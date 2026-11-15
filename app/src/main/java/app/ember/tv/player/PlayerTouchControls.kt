@@ -159,7 +159,11 @@ internal class PlayerTouchControls(
                 ?: (Settings.System.getInt(activity.contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128) / 255f)) * 100).roundToInt()
         }
         if (!accepted) return false
-        if (event.pointerCount > 1) multiTouch = true
+        if (event.pointerCount > 1 && !multiTouch) {
+            multiTouch = true
+            val cancel = MotionEvent.obtain(event).apply { action = MotionEvent.ACTION_CANCEL }
+            gestures.onTouchEvent(cancel); cancel.recycle()
+        }
         scaling.onTouchEvent(event)
         if (!multiTouch) gestures.onTouchEvent(event)
         if (event.actionMasked == MotionEvent.ACTION_MOVE && !multiTouch && heldSpeed == null) {

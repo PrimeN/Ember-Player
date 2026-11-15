@@ -77,6 +77,9 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -277,7 +280,28 @@ internal fun SeekBar(s: ControlsState, a: ControlsActions, modifier:Modifier=Mod
                     else -> false
                 }
             }
-            .focusable(enabled=!cinematic || s.duration>0),
+            .focusable(enabled=!cinematic || s.duration>0)
+            .pointerInput(s.duration) {
+                detectTapGestures { point ->
+                    if (s.duration > 0 && size.width > 0) {
+                        a.touched()
+                        a.seekBy((point.x / size.width).coerceIn(0f, 1f).times(s.duration).toLong() - s.position)
+                    }
+                }
+            }
+            .pointerInput(s.duration) {
+                detectHorizontalDragGestures(
+                    onDragStart = { point -> if (s.duration > 0 && size.width > 0) { a.touched(); s.seekPreview = (point.x / size.width).coerceIn(0f, 1f) } },
+                    onHorizontalDrag = { change, _ ->
+                        if (s.duration > 0 && size.width > 0) { change.consume(); a.touched(); s.seekPreview = (change.position.x / size.width).coerceIn(0f, 1f) }
+                    },
+                    onDragEnd = {
+                        if (s.duration > 0 && s.seekPreview >= 0) a.seekBy((s.seekPreview * s.duration).toLong() - s.position)
+                        s.seekPreview = -1f
+                    },
+                    onDragCancel = { s.seekPreview = -1f },
+                )
+            },
         contentAlignment = Alignment.CenterStart,
     ) {
         if(cinematic) {

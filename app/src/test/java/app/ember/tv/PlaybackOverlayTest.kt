@@ -56,6 +56,21 @@ class PlaybackOverlayTest {
         }
     }
     private fun click(tag:String)=compose.onNodeWithTag(tag).performSemanticsAction(SemanticsActions.OnClick){it()}
+    @Test fun timelineAcceptsTouchSeekingAndCancelledDragsDoNotSeek() {
+        val s=state();show(s)
+        val node=compose.onNodeWithTag("player_timeline")
+        node.performTouchInput {click(androidx.compose.ui.geometry.Offset(width*.75f,height/2f))}
+        assertEquals(1,seeks.size)
+        assertEquals(s.duration*.75-s.position,seeks.single().toDouble(),1000.0)
+        seeks.clear()
+        node.performTouchInput {
+            down(androidx.compose.ui.geometry.Offset(width*.2f,height/2f))
+            moveTo(androidx.compose.ui.geometry.Offset(width*.8f,height/2f),200)
+            cancel()
+        }
+        assertTrue(seeks.isEmpty())
+        compose.runOnIdle {assertEquals(-1f,s.seekPreview,0f)}
+    }
     @Test fun glassButtonsInvokeTransportOnceAndKeepACompactDock() {
         val s=state();show(s)
         compose.onNodeWithTag("player_play").assertIsFocused()
