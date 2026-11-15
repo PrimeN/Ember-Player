@@ -9,8 +9,12 @@ import java.io.File
 
 internal object MediaFiles {
     /** Failed activity launches must not leave relay resources or abandoned queues alive. */
-    fun launch(context:Context,items:List<QueueMedia>,resources:List<java.io.Closeable> = emptyList()) {
-        MediaQueues.launch(items,resources) {queue->context.startActivity(intent(context,items,queue))}
+    fun launch(context:Context,items:List<QueueMedia>,resources:List<java.io.Closeable> = emptyList(),index:Int=0,playlistId:String?=null,shuffle:Boolean=false,repeat:String="off") {
+        MediaQueues.launch(items,resources) {queue->
+            val state=checkNotNull(MediaQueues.get(queue))
+            state.select(index.coerceIn(0,state.items.lastIndex));state.playlistId=playlistId;state.shuffle=shuffle;state.repeat=repeat
+            context.startActivity(intent(context,listOf(checkNotNull(state.current)),queue))
+        }
     }
     fun name(context:Context,uri:Uri):String=runCatching {
         context.contentResolver.query(uri,arrayOf(OpenableColumns.DISPLAY_NAME),null,null,null)?.use {if(it.moveToFirst())it.getString(0) else null}

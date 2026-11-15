@@ -18,7 +18,7 @@ import app.ember.tv.ui.*
 import kotlinx.coroutines.*
 
 @Composable
-internal fun DeviceFilesPanel(activity: ComponentActivity) {
+internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0) {
     val store = remember { DeviceFolders(activity) }
     val scope = rememberCoroutineScope()
     var folders by remember { mutableStateOf<List<DeviceFolder>>(emptyList()) }
@@ -66,7 +66,10 @@ internal fun DeviceFilesPanel(activity: ComponentActivity) {
         selected = emptySet(); query = ""; select = false
     }
     BackHandler(enabled = root != null && !busy) {back()}
-    LaunchedEffect(Unit) {folders = withContext(Dispatchers.IO) {store.read()}}
+    LaunchedEffect(refresh) {
+        folders = withContext(Dispatchers.IO) {store.read()}
+        if(root!=null && folders.none {it.uri==root?.uri}){root=null;parents=emptyList()}
+    }
     LaunchedEffect(root, current, revision) {
         selected = emptySet(); page = DeviceFiles.Page(emptyList(), false);lastPlayed=null
         val folder = root ?: return@LaunchedEffect

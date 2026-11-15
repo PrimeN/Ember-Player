@@ -96,8 +96,9 @@ class MediaFilesActivity:ComponentActivity() {
                         if(cleared)recent=emptyList() else message="Could not clear encrypted history."
                     }}
                 }
-                DeviceFilesPanel(this@MediaFilesActivity)
-                NetworkFilesPanel(this@MediaFilesActivity)
+                PlaylistsPanel(this@MediaFilesActivity,version)
+                DeviceFilesPanel(this@MediaFilesActivity,version)
+                NetworkFilesPanel(this@MediaFilesActivity,version)
                 Chip("Back"){finish()}
             }
             if(urlDialog) {

@@ -33,7 +33,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 @Composable
-internal fun NetworkFilesPanel(activity:MediaFilesActivity) {
+internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
     val scope=rememberCoroutineScope();val json=remember {Json {ignoreUnknownKeys=true}}
     val profile=remember {Prefs(activity).currentProfile}
     val key=remember {"media.network."+profile}
@@ -41,9 +41,11 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity) {
     var edit by remember {mutableStateOf(false)}
     var browse by remember {mutableStateOf<NetworkAccount?>(null)}
     var error by remember {mutableStateOf<String?>(null)}
-    LaunchedEffect(key) {
+    var handledRequest by remember {mutableStateOf(false)}
+    LaunchedEffect(key,refresh) {
         accounts=withContext(Dispatchers.IO){runCatching {json.decodeFromString<List<NetworkAccount>>(TokenStore(activity).get(key)?:"[]")}.getOrDefault(emptyList())}
-        if(activity.intent.getStringExtra("network.profile")==profile) {
+        if(!handledRequest && activity.intent.getStringExtra("network.profile")==profile) {
+            handledRequest=true
             val id=activity.intent.getStringExtra("network.account")
             if(id!=null){browse=accounts.firstOrNull {it.id==id};if(browse==null)error="This saved folder was removed. Add it again to use this shortcut."}
         }
@@ -159,7 +161,7 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity) {
                 val items=chosen.map {e->
                     val relative=NetworkLocation.child(path,e.name)
                     val identity="network:"+java.security.MessageDigest.getInstance("SHA-256").digest((account.id+":"+relative).toByteArray()).toHex()
-                    QueueMedia(relay.register(NetworkFiles.resource(account,relative,e.size),e.name),e.name,identity)
+                    QueueMedia(relay.register(NetworkFiles.resource(account,relative,e.size),e.name),e.name,identity,NetworkQueueEntry(account.id,relative,e.size))
                 }
                 MediaFiles.launch(activity,items,listOf(relay))
             } catch(_:Exception) {cleanup?.close();note="Could not start file playback."}

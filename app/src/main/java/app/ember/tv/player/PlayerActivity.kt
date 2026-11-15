@@ -404,7 +404,7 @@ class PlayerActivity : ComponentActivity() {
         controls.seasonEpisode = if (item.season != null && item.episode != null) "S${item.season}:E${item.episode}" else null
         controls.nextEpisodes = nextEpisodes.toList()
         controls.fileQueueLabel=fileQueue?.let {"${it.index+1} / ${it.items.size}"}
-        controls.fileQueueNext=fileQueue?.let {it.index<it.items.lastIndex||it.repeat=="all"}==true
+        controls.fileQueueNext=fileQueue?.hasNext()==true
     }
 
     internal val controlActions by lazy {

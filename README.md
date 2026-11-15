@@ -13,6 +13,8 @@ A media player for Android phones, tablets and Android TV, with touch and remote
 - **Network folders:** SMB, SFTP, WebDAV, FTP and FTPS, with on-demand SMB discovery and authenticated share browsing.
 - **Stream URLs and Open with:** play supported network URLs or open media supplied by another application.
 - **Resume and bookmarks:** saved positions, named scene bookmarks, queue ordering, repeat modes and chapter navigation.
+- **Saved playlists:** keep reusable file, stream and network-folder queues, with shuffle and repeat. Saved network items reconnect through their account and file references when reopened.
+- **Encrypted backups:** export and restore player settings, positions, bookmarks, playlists and connection details using a password. Backups include no video files; Android storage permissions may need to be renewed on another device.
 - **Subtitles:** embedded tracks and manual text/bitmap subtitles, including SRT, VTT, ASS/SSA, TTML, SAMI and paired VobSub files. Timing, speed and appearance controls are available in the player.
 - **Sound and picture:** track selection, HDMI passthrough, lip sync, separate Bluetooth delay, ten-band equalizer with saved presets, bass/treble, stereo width, picture fit, frame-rate matching and optional deinterlacing. Sound effects apply to decoded audio; passthrough keeps the original audio.
 - **Device-aware performance:** automatic, low, balanced and high settings; optional glass surfaces and remembered working video decoders.
@@ -27,6 +29,8 @@ Local playback needs no account or API key. No developer credentials are include
 Recent media addresses and network credentials use Android Keystore-backed encrypted storage. If encrypted storage is unavailable, these values are not saved through a plaintext fallback. Resume positions and scene bookmarks remain in the application's private storage. Clearing disposable caches preserves saved media settings and credentials.
 
 Chosen folders and their recent-file history are also encrypted. Device-video thumbnails stay in a small memory cache and are removed through Clear disposable caches. Deleting files requires confirmation. A file move completes and checks the copy before removing the original.
+
+Backups use password-derived AES-256-GCM encryption. The password is not saved. Wrong passwords, damaged files and invalid backup contents are rejected before settings are replaced; failed writes attempt to restore and verify the previous configuration. Keep the backup password separately, since it cannot be recovered.
 
 The app requests access to selected files through Android's document picker. It does not replace the home screen, run a home-button accessibility service, start at boot, request broad storage access or install application updates.
 

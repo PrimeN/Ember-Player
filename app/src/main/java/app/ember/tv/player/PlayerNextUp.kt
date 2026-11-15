@@ -39,7 +39,8 @@ internal fun PlayerActivity.playFile(media:QueueMedia) {
     controls.localUri=media.uri.takeIf {it.startsWith("content://")}
     if(subsInitialized)subs.config=subConfigFor(prefs.subtitleConfig)
     start(media.uri,media.title,emptyList(),media.title);refreshControlsTitle()
-    platformSession?.nextAvailable(fileQueue?.let {it.index<it.items.lastIndex||it.repeat=="all"}==true)
+    platformSession?.nextAvailable(fileQueue?.hasNext()==true)
+    fileQueue?.let {q->q.playlistId?.let {PlaylistProgress.save(applicationContext,watchProfileId,it,media.key)}}
 }
 
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])

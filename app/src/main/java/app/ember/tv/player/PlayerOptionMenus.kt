@@ -194,6 +194,8 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
                 if(repeatRange.start!=null)add(OptionRow("Set repeat end",repeatRange.end?.let { clock(it) }.orEmpty(),action={if(!repeatRange.markEnd(p.currentPosition))Toast.makeText(this@optionRows,"Choose an end at least one second after the start.",Toast.LENGTH_SHORT).show();changed()}))
                 if(repeatRange.start!=null)add(OptionRow("Clear repeat range",action={repeatRange.clear();changed()}))
                 fileQueue?.let {q->
+                    add(OptionRow("Shuffle",toggle=q.shuffle,action={q.shuffle=!q.shuffle;refreshControlsTitle();changed()}))
+                    add(OptionRow("Save queue as playlist",action={saveFilePlaylist()}))
                     add(OptionRow("Queue","${q.index+1} of ${q.items.size}",action={showFileQueue()}))
                     add(OptionRow("Add files to queue",action={pickFile("queue")}))
                 }

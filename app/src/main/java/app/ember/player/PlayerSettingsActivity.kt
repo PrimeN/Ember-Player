@@ -100,6 +100,7 @@ class PlayerSettingsActivity:ComponentActivity() {
                         SwitchChip("Glass surfaces",prefs.navigationGlass){prefs.navigationGlass=!prefs.navigationGlass;revision++}
                         Chip("Clear disposable caches"){scope.launch {val result=withContext(Dispatchers.IO){runCatching {CacheManagement.clear()}};android.widget.Toast.makeText(this@PlayerSettingsActivity,if(result.isSuccess)"Cache cleared" else "Some cached data could not be cleared",android.widget.Toast.LENGTH_LONG).show()}}
                     }}
+                    item {Section("Backups") {PlayerBackupSettings {revision++}}}
                     item {Section("About") {
                         Text("Ember Player ${app.ember.tv.BuildConfig.VERSION_NAME}",fontSize=18.sp)
                         Text("An independent player for Android and Android TV. No service credentials are bundled. Codec and HDR playback depend on the device, display and selected engine.",color=Mute,fontSize=13.sp)
