@@ -281,6 +281,9 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         }
 
         override fun onTracksChanged(tracks: Tracks) {
+            val captions=prefs.subtitleConfig
+            if(config.engine=="auto" && !captions.systemStyle && captions.layout.needsCompatibility && playbackEngine?.compatibility==null &&
+                tracks.groups.any {it.type==C.TRACK_TYPE_TEXT && it.isSelected} && playbackEngine?.switch()==true)return
             if (config.engine == "auto" && playbackEngine?.compatibility == null && tracks.groups.any { group ->
                 group.type == C.TRACK_TYPE_VIDEO && (0 until group.length).any { group.isTrackSelected(it) && PlaybackFormats.nativeFirst(group.getTrackFormat(it).sampleMimeType, group.isTrackSupported(it, false)) }
             } && playbackEngine?.switch() == true) return
@@ -445,9 +448,13 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         SubtitleEngine.style(sv, subCfg)
         baseSubCfg = subCfg
         subs = SubtitleController(this, { player }, SubtitleEngine(sv), subConfigFor(subCfg), {refreshSubtitlePanel();updateSubtitleSheet()}) { text,format,wholeFile ->
-            if(format=="ass" && config.engine=="auto" && prefs.subtitleConfig.authoredStyles)playbackEngine?.switch()
+            if(config.engine=="auto" && (format=="ass"&&prefs.subtitleConfig.authoredStyles || prefs.subtitleConfig.layout.needsCompatibility&&!prefs.subtitleConfig.systemStyle))playbackEngine?.switch()
             playbackEngine?.compatibility?.external(text,format,wholeFile)==true
         }
+        subs.onManualSelection={subtitleSelectionChanged()}
+        subs.engine.offsetMs=subCfg.defaultDelayMs.coerceIn(-600000,600000)
+        p.subtitleDelayMilliseconds=subs.engine.offsetMs
+        playbackEngine?.compatibility?.subtitleDelay(subs.engine.offsetMs)
     }
     handler.post(subtitleTicker)
     handler.post(markerTicker)

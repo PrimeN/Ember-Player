@@ -141,24 +141,17 @@ class PlayerActivity : ComponentActivity() {
     internal val repeatRange=RepeatRange()
     internal var pickingSidecar=false
     internal var pickerWasPlaying=false
+    internal var manualSubtitleJob:Job?=null
+    internal var nearbySubtitleJob:Job?=null
     internal val subtitleFilePicker=registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenMultipleDocuments()) {uris ->
         pickingSidecar=false
-        // A result can arrive after the activity was recreated, before playback set up subtitles.
-        if(uris.isNotEmpty()&&::subs.isInitialized)lifecycleScope.launch {
-            try {
-                val bitmap=kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO){MediaFiles.bitmap(this@PlayerActivity,uris)}
-                if(bitmap!=null) {
-                    val native=playbackEngine?.compatibility ?: if(playbackEngine?.switch()==true)playbackEngine?.compatibility else null
-                    if(native==null){(listOf(bitmap.first)+bitmap.second).forEach {it.delete()};error("Compatibility unavailable")}
-                    native.externalFile(bitmap.first,bitmap.second);subs.selectManualNative()
-                } else {
-                    val (text,format)=kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO){MediaFiles.subtitle(this@PlayerActivity,uris.first())}
-                    if(!subs.loadManual(text,format))error("Unreadable subtitle")
-                }
-            } catch(e:kotlinx.coroutines.CancellationException){throw e}
-            catch(_:Exception){Toast.makeText(this@PlayerActivity,"Could not read this subtitle file. Check its format and encoding. For VobSub, select both IDX and SUB files.",Toast.LENGTH_LONG).show()}
-            finally {player?.playWhenReady=pickerWasPlaying;changed()}
-        } else player?.playWhenReady=pickerWasPlaying
+        if(uris.isNotEmpty()&&::subs.isInitialized)loadPickedSubtitles(uris)
+        player?.playWhenReady=pickerWasPlaying
+    }
+    internal val subtitleFolderPicker=registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree()) {uri ->
+        pickingSidecar=false
+        if(uri!=null&&::subs.isInitialized)saveSubtitleFolder(uri)
+        player?.playWhenReady=pickerWasPlaying
     }
     internal val audioFilePicker=registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) {uri ->
         pickingSidecar=false

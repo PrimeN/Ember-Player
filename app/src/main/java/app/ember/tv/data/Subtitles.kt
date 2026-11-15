@@ -73,6 +73,9 @@ data class SubtitleConfig(
     val font: String = "default",
     /** Where the custom font came from and its family name, for showing which one is loaded. */
     val customFontName: String = "",
+    val encoding:String="auto",
+    val defaultDelayMs:Long=0,
+    val layout:SubtitleLayout=SubtitleLayout(),
 )
 
 /** One subtitle file Ember can show, with what is known about how well it fits the video. */
@@ -374,7 +377,7 @@ object Subtitles {
     // ---- download ----
 
     /** Downloads a subtitle as UTF-8 text, unzipping and fixing the encoding. Call off the main thread. */
-    suspend fun download(s: SubtitleCandidate, target: Query? = null): Pair<String,String>? = kotlinx.coroutines.coroutineScope {
+    suspend fun download(s: SubtitleCandidate, target: Query? = null,encoding:String="auto"): Pair<String,String>? = kotlinx.coroutines.coroutineScope {
         try {
             val url = s.url ?: s.fileId?.let { resolveOpenSubsCom(it) } ?: return@coroutineScope null
             val call = http.newCall(Request.Builder().url(url).header("User-Agent", "EmberTV/0.9").build())
@@ -383,7 +386,7 @@ object Subtitles {
                 withContext(Dispatchers.IO) { response.body.byteStream().use { SubtitleFiles.read(it) } }
             }
             val (name, raw) = if (s.zipped || SubtitleFiles.isZip(bytes)) SubtitleFiles.archive(bytes, SubtitleFiles.Target(target?.release ?: s.release,target?.season,target?.episode,s.lang)) ?: return@coroutineScope null else url.substringAfterLast('/') to bytes
-            val text = decode(raw,s.lang)
+            val text = SubtitleEncodings.decode(raw,s.lang,encoding)
             text to SubtitleFiles.format(name,text.toByteArray(Charsets.UTF_8))
         } catch (e: kotlinx.coroutines.CancellationException) { throw e }
         // #256: an archive or file too large to read is skipped like any other bad download.

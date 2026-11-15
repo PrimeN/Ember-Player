@@ -87,19 +87,19 @@ class SubtitleEngine(private val view: SubtitleView) {
     companion object {
         /** Applies Settings > Subtitles > Look to the player's subtitle view (Ember's and the video's own). */
         fun style(view: SubtitleView, c: SubtitleConfig) {
-            val fg = if (c.color == "yellow") Color.rgb(255, 230, 80) else Color.WHITE
+            val fg = c.layout.textColor(c.color)
             // #219: the chosen font; the default stays bold sans.
             val face: Typeface = app.ember.tv.data.SubtitleFonts.typeface(view.context, c.font)
             val style = when (c.background) {
-                "box" -> CaptionStyleCompat(fg, Color.argb(190, 0, 0, 0), Color.TRANSPARENT, CaptionStyleCompat.EDGE_TYPE_NONE, Color.BLACK, face)
-                "shadow" -> CaptionStyleCompat(fg, Color.TRANSPARENT, Color.TRANSPARENT, CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW, Color.BLACK, face)
-                else -> CaptionStyleCompat(fg, Color.TRANSPARENT, Color.TRANSPARENT, CaptionStyleCompat.EDGE_TYPE_OUTLINE, Color.BLACK, face)
+                "box" -> CaptionStyleCompat(fg, c.layout.boxColor(), Color.TRANSPARENT, CaptionStyleCompat.EDGE_TYPE_NONE, c.layout.borderColor(), face)
+                "shadow" -> CaptionStyleCompat(fg, Color.TRANSPARENT, Color.TRANSPARENT, CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW, c.layout.borderColor(), face)
+                else -> CaptionStyleCompat(fg, Color.TRANSPARENT, Color.TRANSPARENT, CaptionStyleCompat.EDGE_TYPE_OUTLINE, c.layout.borderColor(), face)
             }
             val system=view.context.getSystemService(android.content.Context.CAPTIONING_SERVICE) as? android.view.accessibility.CaptioningManager
             view.setStyle(if(c.systemStyle && system!=null)CaptionStyleCompat.createFromCaptionStyle(system.userStyle) else style)
             view.setApplyEmbeddedStyles(c.authoredStyles && !c.systemStyle)
             view.setFractionalTextSize(
-                SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * (if(c.systemStyle)system?.fontScale?:1f else 1f) * when (c.size) {
+                SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * c.layout.scale * (if(c.systemStyle)system?.fontScale?:1f else 1f) * when (c.size) {
                     "small" -> 0.8f
                     "large" -> 1.25f
                     "xlarge" -> 1.5f
@@ -107,11 +107,11 @@ class SubtitleEngine(private val view: SubtitleView) {
                 },
             )
             view.setBottomPaddingFraction(
-                when (c.position) {
+                c.layout.position(when (c.position) {
                     "low" -> 0.03f
                     "high" -> 0.2f
                     else -> SubtitleView.DEFAULT_BOTTOM_PADDING_FRACTION
-                },
+                }),
             )
         }
     }

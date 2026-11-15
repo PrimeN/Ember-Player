@@ -52,7 +52,7 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0) {
         }
     }
     fun open(items: List<DeviceFile>) = operation {
-        val queue = items.filterNot {it.directory}.take(200).map { QueueMedia(it.uri.toString(), it.name) }
+        val queue = items.filterNot {it.directory}.take(200).map { QueueMedia(it.uri.toString(), it.name,directory=it.parent.toString()) }
         if (queue.isNotEmpty()) {
             withContext(Dispatchers.IO) {
                 MediaHistory(activity).add(queue)

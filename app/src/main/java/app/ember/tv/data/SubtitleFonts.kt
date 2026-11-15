@@ -59,6 +59,20 @@ object SubtitleFonts {
         mac?.takeIf { it.isNotEmpty() }
     }.getOrNull()
 
+    fun install(context:Context,bytes:ByteArray):String {
+        require(bytes.size in 4..MAX_BYTES.toInt() && looksLikeFont(bytes)) {"Choose a valid TTF or OTF font, up to 12 MB."}
+        val target=file(context);check(target.parentFile!!.isDirectory || target.parentFile!!.mkdirs())
+        val validation=File.createTempFile("font-check-",".tmp",target.parentFile)
+        try {
+            validation.writeBytes(bytes)
+            Typeface.createFromFile(validation)
+            val atomic=android.util.AtomicFile(target)
+            val out=atomic.startWrite()
+            try {out.write(bytes);atomic.finishWrite(out)} catch(e:Throwable){atomic.failWrite(out);throw e}
+        } finally {validation.delete()}
+        return familyName(bytes)?.filterNot {it.isISOControl()}?.take(100)?.takeIf {it.isNotBlank()} ?: "Custom font"
+    }
+
     /** Downloads the font at [url] and keeps it; the family name on success, or a message saying what went wrong. */
     fun save(context: Context, url: String, client: okhttp3.OkHttpClient): Result<String> = runCatching {
         val link = url.trim()

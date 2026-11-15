@@ -11,7 +11,7 @@ import kotlinx.serialization.json.Json
 @Serializable
 internal data class NetworkQueueEntry(val accountId:String,val path:String,val size:Long)
 @Serializable
-internal data class PlaylistEntry(val uri:String,val title:String,val identity:String?=null,val network:NetworkQueueEntry?=null)
+internal data class PlaylistEntry(val uri:String,val title:String,val identity:String?=null,val network:NetworkQueueEntry?=null,val directory:String?=null)
 @Serializable
 internal data class SavedPlaylist(val id:String,val name:String,val entries:List<PlaylistEntry>,val index:Int=0,val repeat:String="off",val shuffle:Boolean=false)
 
@@ -27,7 +27,7 @@ internal class SavedPlaylists(private val readValue:()->String?,private val writ
     fun save(name:String,items:List<QueueMedia>,index:Int=0,repeat:String="off",shuffle:Boolean=false,id:String?=null):Boolean=synchronized(lock) {
         val values=read()
         if(values.none {it.id==id} && values.size>=50)return@synchronized false
-        val entries=items.map {media->PlaylistEntry(if(media.network==null)media.uri else "",media.title.take(180),media.identity,media.network)}
+        val entries=items.map {media->PlaylistEntry(if(media.network==null)media.uri else "",media.title.take(180),media.identity,media.network,media.directory)}
         val value=SavedPlaylist(id ?: java.util.UUID.randomUUID().toString(),name.filterNot {it.isISOControl()}.trim().take(80),entries,index,repeat,shuffle)
         if(!valid(value))return@synchronized false
         val updated=values.filterNot {it.id==value.id}+value
@@ -52,7 +52,7 @@ internal class SavedPlaylists(private val readValue:()->String?,private val writ
         private val json=Json {ignoreUnknownKeys=true}
         fun valid(value:SavedPlaylist):Boolean = value.id.isNotBlank() && value.id.length<=80 && value.name.isNotBlank() && value.name.length<=80 &&
             value.entries.size in 1..200 && value.index in value.entries.indices && value.repeat in setOf("off","one","all") && value.entries.all {entry->
-                entry.title.isNotBlank() && entry.title.length<=180 && (entry.identity==null || entry.identity.length<=256) &&
+                entry.title.isNotBlank() && entry.title.length<=180 && (entry.identity==null || entry.identity.length<=256) && (entry.directory==null || entry.directory.length<=16384 && entry.directory.startsWith("content://")) &&
                     if(entry.network!=null) {
                         val network=entry.network
                         entry.uri.isEmpty() && network.accountId.isNotBlank() && network.accountId.length<=80 && network.size>=0 && network.path.length in 1..4096 &&
@@ -82,7 +82,7 @@ internal fun preparePlaylist(context:Context,playlist:SavedPlaylist):PreparedPla
                 val server=relay ?: MediaRelay().also {relay=it}
                 server.register(NetworkFiles.resource(account,network.path,network.size),entry.title)
             }
-            QueueMedia(uri,entry.title,entry.identity,network)
+            QueueMedia(uri,entry.title,entry.identity,network,entry.directory)
         }
         return PreparedPlaylist(items,listOfNotNull(relay))
     } catch(e:Throwable) {relay?.close();throw e}

@@ -43,6 +43,9 @@ class SubtitleController(
     var status: String? = null; private set
     var selection: Selection = Selection.Off; private set
 
+    var onManualSelection:(()->Unit)?=null
+    fun reserveManualSelection(){autoSelection.manual();loadJob?.cancel()}
+
     private var searchJob: Job? = null
     private var loadJob: Job? = null
     private var searched = false
@@ -156,6 +159,7 @@ class SubtitleController(
     }
 
     fun selectOff() {
+        onManualSelection?.invoke()
         autoSelection.manual()
         loadJob?.cancel()
         engine.clear()
@@ -166,6 +170,7 @@ class SubtitleController(
     }
 
     fun selectEmbedded(group: Int, track: Int, manual: Boolean = true) {
+        if(manual)onManualSelection?.invoke()
         autoSelection.manual()
         loadJob?.cancel()
         engine.clear()
@@ -183,6 +188,7 @@ class SubtitleController(
 
     /** Downloads and shows a subtitle; if it cannot be read, tries [fallbacks] in turn. */
     fun selectExternal(c: SubtitleCandidate, fallbacks: List<SubtitleCandidate> = emptyList(), manual: Boolean = true) {
+        if(manual)onManualSelection?.invoke()
         manualFile=null;manualBitmap=false
         if(manual) { choice=Choice(c.lang,true,c.provider,c.forced);chosenOff=false }
         autoSelection.manual()
@@ -193,7 +199,7 @@ class SubtitleController(
             status = "Could not load that subtitle. Try another one."; runCatching { onChange() }
         }) {
             for (s in listOf(c) + fallbacks) {
-                val got = Subtitles.download(s,query)
+                val got = Subtitles.download(s,query,config.encoding)
                 ensureActive()
                 if (got == null) continue
                 // #256: a file the player or the drawing engine cannot take moves on to the next one instead of

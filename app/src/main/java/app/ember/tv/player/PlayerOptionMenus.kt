@@ -231,6 +231,9 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
         "subtitles" -> buildList {
             add(subRow)
             add(OptionRow("Load subtitle file", "SRT, VTT, ASS, TTML, SUP or IDX + SUB",action={pickFile("sub")}))
+            add(OptionRow("Nearby subtitle files",action={findNearbySubtitles()}))
+            add(OptionRow("Choose subtitle folder",action={pickSubtitleFolder()}))
+            add(OptionRow("Reload saved subtitle",action={restoreManualSubtitle(notify=true)}))
             playbackEngine?.compatibility?.let { native ->
                 val options=p.currentTracks.groups.filter {it.type==C.TRACK_TYPE_TEXT&&!it.isSelected}
                 val ids=listOf<Int?>(null)+options.map {it.mediaTrackGroup.id.substringAfterLast(':').toInt()}
@@ -256,6 +259,22 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
             look(getString(R.string.pl_size), subSizes, c.size) { c.copy(size = it) }
             look(getString(R.string.pl_position), subPositions, c.position) { c.copy(position = it) }
             look(getString(R.string.pl_style), subLooks, c.background) { c.copy(background = it) }
+
+            look("Font",app.ember.tv.data.SubtitleFonts.options.filter {it.first!="custom" || app.ember.tv.data.SubtitleFonts.hasCustom(this@optionRows)},c.font){c.copy(font=it)}
+            look("Text color",listOf("white" to "White","yellow" to "Yellow","green" to "Green","cyan" to "Cyan"),c.color){c.copy(color=it,layout=c.layout.copy(foreground=""))}
+            val encodings=app.ember.tv.data.SubtitleEncodings.options
+            val encodingIndex=encodings.indexOfFirst {it.first==c.encoding}.coerceAtLeast(0)
+            add(OptionRow("Text encoding",encodings[encodingIndex].second,encodings.map {it.second},encodingIndex,
+                note="Changes apply to files loaded next. Reload the saved subtitle to apply now.",onPick={applySubLook(c.copy(encoding=encodings[it].first))}))
+            val scales=listOf(50,75,100,125,150,175,200)
+            add(OptionRow("Text scale","${c.layout.scalePercent}%",scales.map {"$it%"},scales.indexOf(c.layout.scalePercent).coerceAtLeast(0),onPick={applySubLook(c.copy(layout=c.layout.copy(scalePercent=scales[it])))}))
+            val alignments=listOf("auto","left","center","right")
+            add(OptionRow("Alignment",c.layout.alignment,alignments,alignments.indexOf(c.layout.alignment).coerceAtLeast(0),note="Custom alignment and spacing use compatibility playback. Authored and system caption styles take priority.",onPick={applySubLook(c.copy(layout=c.layout.copy(alignment=alignments[it])))}))
+            val spacing=listOf(-2f,0f,1f,2f,4f,6f,10f)
+            add(OptionRow("Letter spacing",c.layout.letterSpacing.toString(),spacing.map {it.toString()},spacing.indexOf(c.layout.letterSpacing).coerceAtLeast(0),onPick={applySubLook(c.copy(layout=c.layout.copy(letterSpacing=spacing[it])))}))
+            val lines=listOf(-5f,0f,2f,5f,10f,15f,20f)
+            add(OptionRow("Line spacing",c.layout.lineSpacing.toString(),lines.map {it.toString()},lines.indexOf(c.layout.lineSpacing).coerceAtLeast(0),onPick={applySubLook(c.copy(layout=c.layout.copy(lineSpacing=lines[it])))}))
+            add(OptionRow("More appearance options",note="Custom colors, font import, outline and default timing are in Settings > Subtitles."))
             add(OptionRow(getString(R.string.pl_get_more), action = { closeMenu(); showInfo() }))
         }
         else -> emptyList()
@@ -266,7 +285,9 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.applySubLook(c: app.ember.tv.data.SubtitleConfig) {
     prefs.subtitleConfig = c
-    baseSubCfg = baseSubCfg?.copy(size = c.size, position = c.position, background = c.background) ?: c
+    baseSubCfg = c
+    if(subsInitialized)subs.config=subConfigFor(c)
+    if(c.layout.needsCompatibility && !c.systemStyle && playbackEngine?.compatibility==null && config.engine=="auto")playbackEngine?.switch()
     view.subtitleView?.let { SubtitleEngine.style(it, c) }
     playbackEngine?.compatibility?.captionStyle(c)
 }

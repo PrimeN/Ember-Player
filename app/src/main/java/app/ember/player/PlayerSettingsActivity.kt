@@ -93,6 +93,7 @@ class PlayerSettingsActivity:ComponentActivity() {
                         PlayerChoice("Text background",listOf("outline" to "Outline","shadow" to "Shadow","box" to "Box"),subtitles.background){v->captions {it.copy(background=v)}}
                         SwitchChip("Preserve authored styling",subtitles.authoredStyles){captions {it.copy(authoredStyles=!it.authoredStyles)}}
                         SwitchChip("Use system caption style",subtitles.systemStyle){captions {it.copy(systemStyle=!it.systemStyle)}}
+                        AdvancedSubtitleSettings(subtitles){value->captions {value}}
                         SwitchChip("Community subtitle search",subtitles.stremioOpenSubs){captions {it.copy(stremioOpenSubs=!it.stremioOpenSubs)}}
                     }}
                     item {Section("Appearance and performance") {
@@ -115,7 +116,7 @@ class PlayerSettingsActivity:ComponentActivity() {
     }
 }
 @Composable
-private fun PlayerChoice(label:String,options:List<Pair<String,String>>,value:String,pick:(String)->Unit) {
+internal fun PlayerChoice(label:String,options:List<Pair<String,String>>,value:String,pick:(String)->Unit) {
     var open by remember {mutableStateOf(false)}
     Chip("$label · ${options.firstOrNull {it.first==value}?.second ?: value}",maxLines=1){open=true}
     if(open)OptionMenu(label,options.map {(id,name)->MenuOption(name,id==value){pick(id)}},{open=false})

@@ -3,7 +3,7 @@ package app.ember.tv.player
 import app.ember.tv.data.toHex
 
 /** Transport addresses live only in memory. Saved positions use a one-way identity. */
-internal data class QueueMedia(val uri:String,val title:String,val identity:String?=null,val network:NetworkQueueEntry?=null) {
+internal data class QueueMedia(val uri:String,val title:String,val identity:String?=null,val network:NetworkQueueEntry?=null,val directory:String?=null) {
     val key:String get()=identity ?: "file:"+java.security.MessageDigest.getInstance("SHA-256").digest(uri.toByteArray()).toHex()
 }
 internal class MediaQueue(items:List<QueueMedia>,val resources:List<java.io.Closeable> = emptyList()) {

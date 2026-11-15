@@ -17,12 +17,13 @@ internal object MediaFiles {
         }
     }
     fun name(context:Context,uri:Uri):String=runCatching {
-        context.contentResolver.query(uri,arrayOf(OpenableColumns.DISPLAY_NAME),null,null,null)?.use {if(it.moveToFirst())it.getString(0) else null}
+        context.contentResolver.query(uri,arrayOf(OpenableColumns.DISPLAY_NAME),android.os.Bundle.EMPTY,null)?.use {if(it.moveToFirst())it.getString(0) else null}
     }.getOrNull()?.take(180) ?: "Media file"
     fun retain(context:Context,uri:Uri) {runCatching {context.contentResolver.takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION)}}
     fun subtitle(context:Context,uri:Uri):Pair<String,String> {
         val bytes=context.contentResolver.openInputStream(uri)?.use {SubtitleFiles.read(it)} ?: error("File unavailable.")
-        val text=SubtitleFiles.bom(bytes) ?: String(bytes,Charsets.UTF_8)
+        val config=app.ember.tv.data.Prefs(context).subtitleConfig
+        val text=app.ember.tv.data.SubtitleEncodings.decode(bytes,config.languages.firstOrNull() ?: java.util.Locale.getDefault().language,config.encoding)
         return text to SubtitleFiles.format(name(context,uri),text.toByteArray())
     }
     /** A VobSub pair shares a generated basename; original file paths never enter the cache. */

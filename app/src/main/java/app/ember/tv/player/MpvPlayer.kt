@@ -327,18 +327,20 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     }
     fun captionStyle(c:app.ember.tv.data.SubtitleConfig) {
         native.setPropertyString("sub-ass-override",if(c.authoredStyles&&!c.systemStyle)"no" else "force")
-        native.setPropertyString("sub-color",if(c.color=="yellow")"#FFFFE650" else "#FFFFFFFF")
-        native.setPropertyDouble("sub-font-size",when(c.size){"small"->30.0;"large"->48.0;"xlarge"->58.0;else->38.0})
-        native.setPropertyDouble("sub-pos",when(c.position){"low"->100.0;"high"->80.0;else->95.0})
+        native.setPropertyString("sub-color",app.ember.tv.data.SubtitleLayout.hex(c.layout.textColor(c.color)))
+        native.setPropertyDouble("sub-font-size",c.layout.scale*when(c.size){"small"->30.0;"large"->48.0;"xlarge"->58.0;else->38.0})
+        native.setPropertyDouble("sub-pos",c.layout.bottomMarginPercent?.let {100.0-it.coerceIn(0,35)} ?: when(c.position){"low"->100.0;"high"->80.0;else->95.0})
         native.setPropertyString("sub-border-style",if(c.background=="box")"background-box" else "outline-and-shadow")
-        native.setPropertyString("sub-back-color",if(c.background=="box")"#BE000000" else "#00000000")
-        native.setPropertyString("sub-border-color","#FF000000");native.setPropertyDouble("sub-border-size",if(c.background=="outline")2.5 else 0.0)
+        native.setPropertyString("sub-back-color",if(c.background=="box")app.ember.tv.data.SubtitleLayout.hex(c.layout.boxColor()) else "#00000000")
+        native.setPropertyString("sub-border-color",app.ember.tv.data.SubtitleLayout.hex(c.layout.borderColor()))
+        native.setPropertyDouble("sub-border-size",if(c.background=="outline")app.ember.tv.data.SubtitleLayout.finite(c.layout.outlineWidth,0f,6f).toDouble() else 0.0)
+        c.layout.nativeOptions().forEach {(key,value)->native.setPropertyString(key,value)}
         native.setPropertyDouble("sub-shadow-offset",if(c.background=="shadow")2.5 else 0.0)
         native.setPropertyBoolean("sub-bold",false);native.setPropertyBoolean("sub-italic",false)
         // #219: the chosen font, as far as this player can find it; a custom one is looked up in Ember's font folder.
         runCatching {
             when(app.ember.tv.data.SubtitleFonts.normalize(c.font)) {
-                app.ember.tv.data.SubtitleFonts.DEFAULT -> {}
+                app.ember.tv.data.SubtitleFonts.DEFAULT -> {native.setPropertyString("sub-font","sans-serif");native.setPropertyBoolean("sub-bold",true)}
                 app.ember.tv.data.SubtitleFonts.CUSTOM -> if(app.ember.tv.data.SubtitleFonts.hasCustom(context)&&c.customFontName.isNotBlank()) {
                     native.setPropertyString("sub-fonts-dir",app.ember.tv.data.SubtitleFonts.file(context).parentFile!!.absolutePath)
                     native.setPropertyString("sub-font",c.customFontName)
@@ -357,7 +359,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
                 native.setPropertyString("sub-border-color",color(style.edgeColor))
                 native.setPropertyDouble("sub-border-size",if(style.edgeType==android.view.accessibility.CaptioningManager.CaptionStyle.EDGE_TYPE_OUTLINE)2.5 else 0.0)
                 native.setPropertyDouble("sub-shadow-offset",if(style.edgeType==android.view.accessibility.CaptioningManager.CaptionStyle.EDGE_TYPE_DROP_SHADOW)2.5 else 0.0)
-                native.setPropertyDouble("sub-font-size",38.0*it.fontScale*when(c.size){"small"->0.8;"large"->1.25;"xlarge"->1.5;else->1.0})
+                native.setPropertyDouble("sub-font-size",38.0*it.fontScale*c.layout.scale*when(c.size){"small"->0.8;"large"->1.25;"xlarge"->1.5;else->1.0})
                 native.setPropertyBoolean("sub-bold",style.typeface?.isBold==true);native.setPropertyBoolean("sub-italic",style.typeface?.isItalic==true)
             }
         }
