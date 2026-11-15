@@ -1,0 +1,132 @@
+package app.ember.tv.data
+
+import androidx.core.content.edit
+
+import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
+import java.security.MessageDigest
+import java.util.Base64
+
+/** Typed aliases prevent movie/TV collisions; only opaque references are hashed, never credentials saved. */
+internal object WatchedKeys {
+    private val hashes=object:LinkedHashMap<String,String>(128,.75f,true) {
+        override fun removeEldestEntry(eldest:MutableMap.MutableEntry<String,String>?)=size>1024
+    }
+    private fun opaque(id:String)=synchronized(hashes) {hashes.getOrPut(id) {
+        Base64.getUrlEncoder().withoutPadding().encodeToString(MessageDigest.getInstance("SHA-256").digest(id.toByteArray()).copyOf(16))
+    }}
+    fun bases(meta:Meta):List<String> {
+        val kind=if(meta.type=="movie")"m" else "s"
+        val identity=HeroIdentity.of(meta)
+        val parent=if(meta.season!=null && meta.episode!=null)meta.serverSeriesRef else null
+        val ref=parent ?: app.ember.tv.mediaserver.ServerRef.of(meta)?.value
+        return listOfNotNull(identity?.imdb?.let {"$kind:i:$it"},
+            identity?.tmdb?.let {"$kind:t:$it"},ref?.let {"$kind:r:${opaque(it)}"},
+            meta.id.takeIf(String::isNotBlank)?.let {"$kind:p:${opaque(it)}"}).distinct()
+    }
+    fun keys(meta:Meta)=bases(meta).map {base->if(meta.season!=null && meta.episode!=null)"$base@${meta.season}.${meta.episode}" else base}
+    fun episode(show:Meta,ep:Episode)=show.copy(season=ep.season,episode=ep.episode,
+        serverRef=ep.serverRef ?: show.serverRef,serverSeriesRef=ep.serverSeriesRef ?: show.serverSeriesRef ?: show.serverRef,
+        progress=ep.progress,watched=ep.watched ?: show.watched?.takeIf {it})
+}
+
+internal data class WatchedIndex(val yes:Set<String> = emptySet(),val no:Set<String> = emptySet()) {
+    private val incompleteShows=no.filter {it.contains('@')}.mapTo(hashSetOf()) {it.substringBeforeLast('@')}
+    private fun explicit(keys:List<String>):Boolean? {
+        if (keys.any { it in no }) return false
+        if (keys.any { it in yes }) return true
+        return null
+    }
+    fun explicitStatus(meta:Meta):Boolean? {
+        if(meta.season!=null && meta.episode!=null) {
+            val (verified, opaque) = WatchedKeys.bases(meta).partition { !it.startsWith("s:p:") && !it.startsWith("m:p:") }
+            fun episodeKeys(bases: List<String>) = bases.map { "$it@${meta.season}.${meta.episode}" }
+            // Resolve episode choices across every verified alias before whole-show fallback.
+            // An older opaque provider mark must not reverse a later server/public show action.
+            return explicit(episodeKeys(verified)) ?: explicit(verified)
+                ?: explicit(episodeKeys(opaque)) ?: explicit(opaque)
+        } else explicit(WatchedKeys.keys(meta))?.let {return it}
+        return null
+    }
+    /** [remote]: what your trackers say you watched (#83). Your own marks on this TV come first. */
+    fun watched(meta:Meta,remote:Set<String> = emptySet()):Boolean {
+        if(meta.type!="movie" && meta.season==null && meta.episode==null && WatchedKeys.bases(meta).any {it in incompleteShows})return false
+        return explicitStatus(meta) ?: remoteStatus(meta,remote) ?: meta.watched ?: (meta.progress?.let {it.isFinite() && it>=.92f && (meta.type=="movie" || meta.season!=null && meta.episode!=null)}==true)
+    }
+    /** Tracker keys use IMDb and TMDB ids only, so only those aliases are checked. */
+    private fun remoteStatus(meta:Meta,remote:Set<String>):Boolean? {
+        if(remote.isEmpty())return null
+        return if(WatchedKeys.keys(meta).any {(it.contains(":i:") || it.contains(":t:")) && it in remote})true else null
+    }
+    fun changed(meta:Meta,value:Boolean):WatchedIndex {
+        val keys=WatchedKeys.keys(meta).toSet()
+        val whole=meta.type!="movie" && meta.season==null && meta.episode==null
+        fun keep(key:String)=key !in keys && !(whole && keys.any {key.startsWith("$it@")})
+        val positive=yes.filterTo(linkedSetOf(),::keep);val negative=no.filterTo(linkedSetOf(),::keep)
+        if(value)positive.addAll(keys) else negative.addAll(keys)
+        return WatchedIndex(positive,negative)
+    }
+}
+
+/** Separate from the ten-title recent list and its frequent progress writes. Call disk access on IO. */
+internal class WatchedStore(context:Context) {
+    private val prefs=context.getSharedPreferences(FILE,Context.MODE_PRIVATE)
+    fun load(profile:String):WatchedIndex {
+        val prefix=HomeTitleVisibility.prefix(profile)
+        fun keys(name:String)=runCatching {prefs.getStringSet(prefix+name,emptySet())!!.toSet()}.getOrDefault(emptySet())
+        return WatchedIndex(keys("yes"),keys("no"))
+    }
+    fun mark(profile:String,meta:Meta,value:Boolean):WatchedIndex=synchronized(lock) {
+        val before=load(profile);val after=before.changed(meta,value)
+        save(profile,before,after)
+    }
+    /** Drops watched marks for titles removed on your trackers (#90); unwatched marks stay. */
+    fun forget(profile:String,keys:Set<String>):WatchedIndex=synchronized(lock) {
+        val before=load(profile)
+        val after=WatchedIndex(before.yes.filterTo(linkedSetOf()) {it !in keys},before.no)
+        save(profile,before,after)
+    }
+    /** Retrieved history is completion evidence, but never overrides an explicit local choice. */
+    fun learn(profile:String,history:List<Meta>):WatchedIndex=synchronized(lock) {
+        val before=load(profile)
+        val after=history.filter {it.type=="movie" || it.season!=null && it.episode!=null}.fold(before) {index,meta->
+            if(index.explicitStatus(meta)==null)index.changed(meta,true) else index
+        }
+        save(profile,before,after)
+    }
+    private fun save(profile:String,before:WatchedIndex,after:WatchedIndex):WatchedIndex {
+        if (profile in removedProfiles) return WatchedIndex()
+        if(after!=before) {
+            val prefix=HomeTitleVisibility.prefix(profile)
+            prefs.edit { putStringSet(prefix+"yes",after.yes); putStringSet(prefix+"no",after.no) }
+            version++
+        }
+        return after
+    }
+    companion object {
+        const val FILE="ember_watched"
+        fun playProfile(current:String,requested:String?)=current.takeIf {requested==null || requested==current}
+        private val lock=Any()
+        private val removedProfiles=java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+        var version by mutableIntStateOf(0);private set
+        private val writer by lazy {java.util.concurrent.Executors.newSingleThreadExecutor {r->Thread(r,"ember-watched").apply {isDaemon=true}}}
+        fun record(context:Context,profile:String,meta:Meta) {
+            val app=context.applicationContext
+            writer.execute {runCatching {WatchedStore(app).mark(profile,meta,true)}.onFailure {CrashLog.note("Could not save watched status",it)}}
+        }
+        fun remove(context: Context, profile: String) {
+            removedProfiles.add(profile)
+            drain()
+            synchronized(lock) {
+                val prefs = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+                val prefix = HomeTitleVisibility.prefix(profile)
+                prefs.edit { prefs.all.keys.filter { it.startsWith(prefix) }.forEach(::remove) }
+                version++
+            }
+        }
+        fun drain(){writer.submit {}.get()}
+        fun restored(){synchronized(lock){removedProfiles.clear();version++}}
+    }
+}

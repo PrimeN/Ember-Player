@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <style name="EmberPanelMotion">
+        <item name="android:windowEnterAnimation">@anim/ember_panel_enter</item>
+        <item name="android:windowExitAnimation">@anim/ember_panel_exit</item>
+    </style>
+</resources>

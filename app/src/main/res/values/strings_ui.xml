@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="ui_close">Close</string>
+    <string name="ui_next_episode">Next episode</string>
+    <string name="ui_none">None</string>
+    <string name="ui_off">Off</string>
+    <string name="ui_skip_intro">Skip intro</string>
+    <string name="ui_synopsis">SYNOPSIS</string>
+    <string name="ui_cast_crew_2">CAST &amp; CREW</string>
+</resources>

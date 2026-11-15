@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="tx_entries_page" formatted="true">%1$s entries · page %2$s</string>
+    <string name="tx_for_older_nas_devices_without_smb3">For older NAS devices without SMB3 encryption. Others on your network could see the files you play; signing still stops them being altered.</string>
+    <string name="tx_live_2">LIVE · </string>
+    <string name="tx_network_folders">Network folders</string>
+    <string name="tx_opening_folder">Opening folder…</string>
+    <string name="tx_play_files_from_this_device_a">Play files from this device, a USB drive, or a network folder. Select several files to create a queue.</string>
+    <string name="tx_smb3_encrypted_smb_server_share_sftp">SMB3 (encrypted): smb://server/share · SFTP: sftp://server/folder\nWebDAV: https://server/folder · FTPS: ftps://server/folder\nPlain FTP and HTTP do not encrypt network traffic.</string>
+</resources>

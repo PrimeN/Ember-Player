@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <application android:name="app.ember.player.PlayerApplication" android:allowBackup="false"
+        android:fullBackupContent="false" android:dataExtractionRules="@xml/data_extraction_rules"
+        android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round"
+        android:banner="@drawable/banner" android:theme="@style/Theme.Ember" android:usesCleartextTraffic="true">
+        <activity android:name="app.ember.tv.player.MediaFilesActivity" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /><category android:name="android.intent.category.LEANBACK_LAUNCHER" /></intent-filter>
+        </activity>
+        <activity android:name="app.ember.player.OpenMediaActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.DEFAULT" /><category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" /><data android:scheme="http" /><data android:scheme="https" /><data android:scheme="rtsp" />
+                <data android:mimeType="video/*" /><data android:mimeType="audio/*" /><data android:mimeType="application/x-matroska" /><data android:mimeType="application/octet-stream" /><data android:mimeType="application/vnd.apple.mpegurl" /><data android:mimeType="application/x-mpegurl" />
+            </intent-filter>
+        </activity>
+        <activity android:name="app.ember.player.PlayerSettingsActivity" android:exported="false" />
+        <activity android:name="app.ember.tv.player.PlayerActivity" android:exported="false" android:supportsPictureInPicture="true"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|density|uiMode" />
+    </application>
+</manifest>

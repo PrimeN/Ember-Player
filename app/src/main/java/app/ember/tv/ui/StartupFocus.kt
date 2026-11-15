@@ -1,0 +1,162 @@
+package app.ember.tv.ui
+
+import androidx.compose.foundation.focusGroup
+import androidx.compose.runtime.*
+import androidx.compose.ui.input.key.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.onFocusChanged
+import kotlinx.coroutines.flow.collect
+
+/** Keep a few deliberate presses, never a held-key backlog accumulated while the UI loads. */
+internal class StartupDirections {
+    private var values by mutableStateOf(emptyList<FocusDirection>())
+    val size get()=values.size
+    fun offer(direction:FocusDirection,repeatCount:Int=0) {
+        if(repeatCount==0 && values.size<4)values=values+direction
+    }
+    fun take():FocusDirection?=values.firstOrNull()?.also {values=values.drop(1)}
+    fun clear() {values=emptyList()}
+}
+
+/** One startup handoff per navigation owner; window returns and ordinary moves keep their focus. */
+internal class InitialNavigationFocusState {
+    var established by mutableStateOf(false);private set
+    private var requesting=false
+    fun ensure(ready:Boolean,hasFocus:Boolean,request:()->Boolean):Boolean {
+        if(established)return true
+        if(!ready || requesting)return false
+        if(hasFocus){established=true;return true}
+        requesting=true
+        return try {runCatching(request).getOrDefault(false).also {if(it)established=true}}
+        finally {requesting=false}
+    }
+    /**
+     * The preferred target never took focus (#33): stop retrying and let ordinary focus search
+     * and queued presses carry on from wherever focus is, instead of asking on every frame forever.
+     */
+    fun giveUp() {established=true}
+}
+
+/** About two seconds at 60 fps: plenty for the first interactive layout, short enough to never spin. */
+internal const val MAX_STARTUP_FOCUS_FRAMES=120
+
+/** Directional entry can wait for a placed target without losing the originating key. */
+internal fun Modifier.initialNavigationFocusGroup(state:InitialNavigationFocusState,ready:()->Boolean,
+    focused:()->Boolean,request:()->Boolean,onEarlyDirection:((FocusDirection)->Unit)?=null):Modifier=focusProperties {
+    onEnter={
+        if(requestedFocusDirection in listOf(FocusDirection.Up,FocusDirection.Down,FocusDirection.Left,FocusDirection.Right)) {
+            if (!state.established && onEarlyDirection != null) {
+                onEarlyDirection(requestedFocusDirection)
+                cancelFocusChange()
+            } else state.ensure(ready(),focused(),request)
+        }
+    }
+}.focusGroup()
+
+/** Seed the real tab after placement and replay early directional input from that tab. */
+@Composable
+internal fun Modifier.initialNavigationFocus(owner:NavigationFocus,tab:String,enabled:Boolean,available:Boolean=true):Modifier {
+    if (!available) return this
+    var focused by remember(owner){mutableStateOf(false)}
+    val pending=remember(owner){StartupDirections()}
+    val manager = androidx.compose.ui.platform.LocalFocusManager.current
+    val currentTab by rememberUpdatedState(tab)
+    val active by rememberUpdatedState(enabled)
+    LaunchedEffect(owner,manager) {
+        // collect (not collectLatest): more input must not cancel the frame that establishes focus.
+        snapshotFlow {listOf(active,currentTab,owner.tabReady(currentTab),focused,owner.focusedTab,pending.size)}.collect {
+            if (!active) {
+                if(owner.startup.established)pending.clear()
+                return@collect
+            }
+            if (!owner.tabReady(currentTab)) {
+                if(owner.startup.established)pending.clear()
+                return@collect
+            }
+            if(owner.startup.established && pending.size==0)return@collect
+            // A placed target can reject focus before the first interactive layout is ready.
+            // Retry on frames, independently of artwork completion or another button press.
+            var frames=0
+            while(!owner.startup.established && active && owner.tabReady(currentTab)) {
+                withFrameNanos { }
+                if(!active || !owner.tabReady(currentTab))break
+                owner.startup.ensure(true, owner.focusedTab == currentTab || owner.focusedTab == null && focused && owner.preferred(currentTab) != null) {
+                    owner.tab(currentTab).requestFocus() && owner.focusedTab == currentTab
+                }
+                if(!owner.startup.established && ++frames>=MAX_STARTUP_FOCUS_FRAMES) {owner.startup.giveUp();break}
+            }
+            if(!owner.startup.established)return@collect
+            while(pending.size>0) {
+                if(!active) {pending.clear();break}
+                if(!owner.tabReady(currentTab)) {pending.clear();break}
+                val direction=pending.take() ?: break
+                try {manager.moveFocus(direction)}
+                catch(error:IllegalStateException) {
+                    app.ember.tv.data.CrashLog.note("Startup focus target changed during navigation",error)
+                    pending.clear()
+                    break
+                }
+                // A move may switch the page or open a dialog. Re-read readiness after layout.
+                if(pending.size>0)withFrameNanos { }
+            }
+        }
+    }
+    return onFocusChanged {focused=it.hasFocus}
+        .onPreviewKeyEvent { event ->
+            val direction = when (event.key) {
+                Key.DirectionUp -> FocusDirection.Up
+                Key.DirectionDown -> FocusDirection.Down
+                Key.DirectionLeft -> FocusDirection.Left
+                Key.DirectionRight -> FocusDirection.Right
+                else -> null
+            }
+            if ((!owner.startup.established || pending.size>0) && event.type == KeyEventType.KeyDown && direction != null) {
+                pending.offer(direction,event.nativeKeyEvent.repeatCount)
+                true
+            } else false
+        }
+        .initialNavigationFocusGroup(owner.startup,{enabled},
+            {owner.focusedTab == tab || owner.focusedTab == null && focused && owner.preferred(tab) != null},
+            {owner.tab(tab).requestFocus() && owner.focusedTab == tab},
+            onEarlyDirection = pending::offer)
+}
+
+/** Logical previous/next follows layout direction, matching the arrows shown on screen. */
+internal fun choiceStep(right:Boolean,rtl:Boolean)=if(right!=rtl)1 else -1
+
+internal fun returnsToNavigation(direction:FocusDirection,side:Boolean,rtl:Boolean):Boolean =
+    direction==FocusDirection.Up || side && direction==(if(rtl)FocusDirection.Right else FocusDirection.Left)
+
+/**
+ * First load lands on the hero (#100). At start the hero is still loading, so the first card
+ * below it gets focus; once the hero appears it takes focus, one time, unless a key has been
+ * pressed since Ember started (then your own focus stays where you put it).
+ */
+internal object StartupHeroFocus {
+    const val WINDOW_MS = 8_000L
+    @Volatile private var startedAt = 0L
+    @Volatile private var acted = false
+    @Volatile private var claimed = false
+
+    /** The first activity start of this process; later re-creations don't re-arm it. */
+    fun begin(now: Long = android.os.SystemClock.elapsedRealtime()) { if (startedAt == 0L) startedAt = now }
+    fun keyPressed() { acted = true }
+    fun waiting(now: Long = android.os.SystemClock.elapsedRealtime()) =
+        startedAt != 0L && !acted && !claimed && now - startedAt in 0 until WINDOW_MS
+    /** Records that the hero took focus. */
+    fun claimed() { claimed = true }
+
+    internal fun resetForTest() { startedAt = 0L; acted = false; claimed = false }
+}
+
+/** Gives [target] focus once, on first load, when nothing has been pressed yet (#100). */
+internal suspend fun claimStartupFocus(target: androidx.compose.ui.focus.FocusRequester): Boolean {
+    for (frame in 0 until 30) {
+        withFrameNanos { }
+        if (!StartupHeroFocus.waiting()) return false
+        if (runCatching { target.requestFocus() }.getOrDefault(false)) { StartupHeroFocus.claimed(); return true }
+    }
+    return false
+}
