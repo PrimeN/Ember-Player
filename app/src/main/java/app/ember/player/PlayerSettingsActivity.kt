@@ -75,6 +75,10 @@ class PlayerSettingsActivity:ComponentActivity() {
                         Text("Bluetooth delay: ${config.bluetoothDelayMs?.let {"$it ms"} ?: "Use sound delay"}",fontSize=14.sp)
                         ButtonRow {Chip("−25 ms"){update {it.copy(bluetoothDelayMs=((it.bluetoothDelayMs ?: it.audioDelayMs)-25).coerceAtLeast(-2000))}};Chip("+25 ms"){update {it.copy(bluetoothDelayMs=((it.bluetoothDelayMs ?: it.audioDelayMs)+25).coerceAtMost(2000))}};Chip("Use sound delay"){update {it.copy(bluetoothDelayMs=null)}}}
                         PlayerChoice("Audio preset",AudioEffects.presets,config.audioEffects.preset){v->update {it.copy(audioEffects=it.audioEffects.copy(preset=v))}}
+                        EqualizerSettings(prefs,config.audioEffects){v->update {it.copy(audioEffects=v)}}
+                        PlayerChoice("Bass",(0..6).map {it.toString() to "+$it dB"},config.audioEffects.bass.toString()){v->update {it.copy(audioEffects=it.audioEffects.copy(bass=v.toInt()))}}
+                        PlayerChoice("Treble",(0..6).map {it.toString() to "+$it dB"},config.audioEffects.treble.toString()){v->update {it.copy(audioEffects=it.audioEffects.copy(treble=v.toInt()))}}
+                        PlayerChoice("Stereo width",listOf(0,50,100,125,150,175,200).map {it.toString() to "$it%"},config.audioEffects.stereoWidth.toString()){v->update {it.copy(audioEffects=it.audioEffects.copy(stereoWidth=v.toInt()))}}
                         PlayerChoice("Channels",AudioEffects.channelChoices,config.audioEffects.channels){v->update {it.copy(audioEffects=it.audioEffects.copy(channels=v))}}
                         Text("Audio effects apply to decoded sound; passthrough stays untouched.",color=Mute,fontSize=12.sp)
                     }}

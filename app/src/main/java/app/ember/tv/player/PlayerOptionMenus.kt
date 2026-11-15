@@ -206,9 +206,15 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
             val effectNote=if(pass || playbackEngine?.compatibility?.audioEffectsAvailable==false) "Passthrough is unchanged. Use decoded output to apply effects to this track." else "Decoded audio only; boosts reserve headroom to reduce clipping."
             add(OptionRow("Equalizer",AudioEffects.presets.firstOrNull {it.first==config.audioEffects.preset}?.second ?: "Off / flat",AudioEffects.presets.map {it.second},AudioEffects.presets.indexOfFirst {it.first==config.audioEffects.preset},note=effectNote,
                 onPick={changeAudioEffects(config.audioEffects.copy(preset=AudioEffects.presets[it].first))}))
+            add(OptionRow("Equalizer bands", "10 bands · −12 to +12 dB", note=effectNote, action={editEqualizer()}))
             val bassLevels=listOf(0,2,4,6)
             add(OptionRow("Bass",if(config.audioEffects.bass==0)"Off" else "+${config.audioEffects.bass} dB",bassLevels.map {if(it==0)"Off" else "+$it dB"},bassLevels.indexOf(config.audioEffects.bass),note=effectNote,
                 onPick={changeAudioEffects(config.audioEffects.copy(bass=bassLevels[it]))}))
+            add(OptionRow("Treble", "+${config.audioEffects.treble} dB", bassLevels.map {"+$it dB"}, bassLevels.indexOf(config.audioEffects.treble).coerceAtLeast(0), note=effectNote,
+                onPick={changeAudioEffects(config.audioEffects.copy(treble=bassLevels[it]))}))
+            val widths=listOf(0,50,100,125,150,175,200)
+            add(OptionRow("Stereo width", "${config.audioEffects.stereoWidth}%", widths.map {"$it%"}, widths.indexOf(config.audioEffects.stereoWidth).let {if(it>=0)it else 2}, note=effectNote,
+                onPick={changeAudioEffects(config.audioEffects.copy(stereoWidth=widths[it]))}))
             add(OptionRow("Audio channels",AudioEffects.channelChoices.firstOrNull {it.first==config.audioEffects.channels}?.second.orEmpty(),AudioEffects.channelChoices.map {it.second},AudioEffects.channelChoices.indexOfFirst {it.first==config.audioEffects.channels},note=effectNote,
                 onPick={changeAudioEffects(config.audioEffects.copy(channels=AudioEffects.channelChoices[it].first))}))
             val ms = (audioDelay.us / 1000).toInt()
