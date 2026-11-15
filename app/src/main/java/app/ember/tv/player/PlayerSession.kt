@@ -69,6 +69,7 @@ import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleSpeed
 @OptIn(UnstableApi::class)
 /** Loads a source into the player and starts it. Used for the first episode and every next one. */
 internal fun PlayerActivity.start(url: String, title: String, addonSubs: List<SubtitleOption>, release: String?) {
+    closeCaptionAssistance();captionConfig=null;embeddedCaptionText=""
     manualSubtitleJob?.cancel();manualSubtitleJob=null
     nearbySubtitleJob?.cancel();nearbySubtitleJob=null
     supplementarySubtitles?.cancel(); supplementarySubtitles = null
@@ -89,6 +90,12 @@ internal fun PlayerActivity.start(url: String, title: String, addonSubs: List<Su
         subtitleLanguages=app.ember.tv.data.Subtitles.wanted(prefs.subtitleConfig)))
     serverPartIndex = 0
     transcodeStopQueued = false
+    usbWatch?.close();usbWatch=UsbMedia.watch(this,url){android.widget.Toast.makeText(this,"USB drive disconnected",android.widget.Toast.LENGTH_LONG).show();endPlayback()}
+    privatePlayback=app.ember.player.PrivateMedia.hidden(url)
+    if(privatePlayback){
+        if(!app.ember.player.PrivateMedia.unlocked.value){endPlayback();return}
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);platformSession?.release();platformSession=null
+    }
     currentUrl = url
     triedAsHls = false
     showLiveBanner()
@@ -172,6 +179,8 @@ internal fun PlayerActivity.askToLeave() {
 @OptIn(UnstableApi::class)
 /** Saves where you are, reports the stop, releases the player and (normally) closes the screen. */
 internal fun PlayerActivity.endPlayback(finishActivity: Boolean = true) {
+    closeCaptionAssistance();captionConfig=null;embeddedCaptionText=""
+    usbWatch?.close();usbWatch=null
     manualSubtitleJob?.cancel();manualSubtitleJob=null
     nearbySubtitleJob?.cancel();nearbySubtitleJob=null
     supplementarySubtitles?.cancel(); supplementarySubtitles = null
@@ -248,7 +257,7 @@ internal fun PlayerActivity.progress(): Float {
 
 @OptIn(UnstableApi::class)
 internal fun PlayerActivity.savePosition() {
-    if (trailer) return
+    if (trailer || privatePlayback || !app.ember.player.PrivateMedia.historyAllowed(currentUrl.orEmpty())) return
     val p = player ?: return
     if (ended) return
     val d = playbackDuration(p)
@@ -272,7 +281,7 @@ internal fun PlayerActivity.contentPlaybackAllowed():Boolean {
 
 @OptIn(UnstableApi::class)
 internal fun PlayerActivity.recordWatched() {
-    if(live || trailer || !recordedWatched.add(resumeKey))return
+    if(live || trailer || privatePlayback || !app.ember.player.PrivateMedia.state.value.history || !recordedWatched.add(resumeKey))return
     val meta=app.ember.tv.data.LocalLibrary.metaFor(resumeKey,localActivityScope) ?: app.ember.tv.data.Meta(id=item.imdbId ?: resumeKey,
         type=if(item.kind==Kind.MOVIE)"movie" else "series",name=seriesName,imdbId=item.imdbId,tmdbId=item.tmdbId,
         season=item.season,episode=item.episode,serverRef=serverRef,serverSeriesRef=serverPlayback?.seriesRef)

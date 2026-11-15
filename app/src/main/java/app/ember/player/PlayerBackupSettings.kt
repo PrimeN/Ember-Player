@@ -26,6 +26,7 @@ internal fun PlayerBackupSettings(restored:()->Unit) {
     var restoreData by remember {mutableStateOf<PlayerBackupData?>(null)}
     DisposableEffect(Unit) {onDispose {exportKey?.fill('\u0000')}}
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) {uri->
+        PrivateMedia.endPicker()
         val password=exportKey;exportKey=null
         if(uri==null || password==null)password?.fill('\u0000')
         else {
@@ -44,11 +45,11 @@ internal fun PlayerBackupSettings(restored:()->Unit) {
             }
         }
     }
-    val select=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {uri->if(uri!=null){source=uri;mode="restore"}}
+    val select=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {uri->PrivateMedia.endPicker();if(uri!=null){source=uri;mode="restore"}}
     Text("Settings, saved positions, bookmarks, playlists and connection details are protected by your backup password. Video files are not copied. Keep the password safe; it cannot be recovered.",fontSize=12.sp,color=Mute)
     ButtonRow {
         Chip(if(busy)"Working…" else "Export encrypted backup") {if(!busy){notice=null;mode="export"}}
-        Chip("Restore backup") {if(!busy)runCatching {select.launch(arrayOf("application/octet-stream","*/*"))}.onFailure {notice="No document picker is installed on this device."}}
+        Chip("Restore backup") {if(!busy)runCatching {if(PrivateMedia.enabled)PrivateMedia.beginPicker();select.launch(arrayOf("application/octet-stream","*/*"))}.onFailure {PrivateMedia.endPicker();notice="No document picker is installed on this device."}}
     }
     notice?.let {Text(it,fontSize=13.sp,color=Mute)}
     mode?.let {operation->
@@ -68,7 +69,7 @@ internal fun PlayerBackupSettings(restored:()->Unit) {
                         val key=password.toCharArray();password="";confirm="";mode=null
                         if(operation=="export") {
                             exportKey=key
-                            runCatching {export.launch("Ember Player.epbackup")}.onFailure {key.fill('\u0000');exportKey=null;notice="No document picker is installed on this device."}
+                            runCatching {if(PrivateMedia.enabled)PrivateMedia.beginPicker();export.launch("Ember Player.epbackup")}.onFailure {PrivateMedia.endPicker();key.fill('\u0000');exportKey=null;notice="No document picker is installed on this device."}
                         } else {
                             val uri=source;source=null;busy=true
                             scope.launch {

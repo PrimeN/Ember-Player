@@ -95,6 +95,9 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         finish()
         return
     }
+    privatePlayback=app.ember.player.PrivateMedia.hidden(url.orEmpty())
+    if(privatePlayback&&!app.ember.player.PrivateMedia.unlocked.value){finish();return}
+    if(privatePlayback)window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
     val title = if (liveSession != null) zapNames.getOrNull(zapIndex).orEmpty() else intent.getStringExtra(PlayRequest.EXTRA_TITLE).orEmpty()
     resumeKey = intent.getStringExtra(PlayRequest.EXTRA_RESUME_KEY) ?: url.orEmpty()
     resumeFraction = intent.getFloatExtra(PlayRequest.EXTRA_RESUME_FRACTION, -1f)
@@ -280,6 +283,8 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
             if (aspect != 0) handler.post { applyAspect() }
         }
 
+        override fun onCues(cueGroup:androidx.media3.common.text.CueGroup){embeddedCaptionText=cueGroup.cues.mapNotNull {it.text?.toString()}.joinToString("\n")}
+
         override fun onTracksChanged(tracks: Tracks) {
             val captions=prefs.subtitleConfig
             if(config.engine=="auto" && !captions.systemStyle && captions.layout.needsCompatibility && playbackEngine?.compatibility==null &&
@@ -326,7 +331,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
                 scrobble(ScrobbleState.STOP, 1f)
                 serverReport(ReportState.STOP)
                 positions.clear(resumeKey)
-                if (!trailer) {app.ember.tv.data.LocalLibrary.finished(resumeKey,localActivityScope);recordWatched()}
+                if (!trailer && !privatePlayback && app.ember.player.PrivateMedia.state.value.history) {app.ember.tv.data.LocalLibrary.finished(resumeKey,localActivityScope);recordWatched()}
                 onEpisodeEnded()
             }
         }
@@ -442,7 +447,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
 
     view.player = p
     player = p
-    platformSession = PlatformPlaybackSession(this, p, { endPlayback() }, { if (nextEpisodes.isNotEmpty() || fileQueue!=null) playNext() }).also { it.nextAvailable(nextEpisodes.isNotEmpty() || (fileQueue?.items?.size?:0)>1) }
+    platformSession = if(privatePlayback)null else PlatformPlaybackSession(this, p, { endPlayback() }, { if (nextEpisodes.isNotEmpty() || fileQueue!=null) playNext() }).also { it.nextAvailable(nextEpisodes.isNotEmpty() || (fileQueue?.items?.size?:0)>1) }
     val subCfg = prefs.subtitleConfig
     view.subtitleView?.let { sv ->
         SubtitleEngine.style(sv, subCfg)

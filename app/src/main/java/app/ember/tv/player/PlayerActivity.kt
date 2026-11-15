@@ -141,20 +141,31 @@ class PlayerActivity : ComponentActivity() {
     internal val repeatRange=RepeatRange()
     internal var pickingSidecar=false
     internal var pickerWasPlaying=false
+    internal var captionForeground=false
+    internal var captionAssistant:CaptionAssistant?=null
+    internal var captionConfig:app.ember.tv.data.SubtitleConfig?=null
+    internal var captionOptions:app.ember.tv.data.SubtitleAssistance?=null
+    internal var captionOverlay:androidx.media3.ui.SubtitleView?=null
+    internal var embeddedCaptionText=""
+    internal var privatePlayback=false
+    internal var usbWatch:java.io.Closeable?=null
     internal var manualSubtitleJob:Job?=null
     internal var nearbySubtitleJob:Job?=null
     internal val subtitleFilePicker=registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenMultipleDocuments()) {uris ->
         pickingSidecar=false
+        app.ember.player.PrivateMedia.endPicker()
         if(uris.isNotEmpty()&&::subs.isInitialized)loadPickedSubtitles(uris)
         player?.playWhenReady=pickerWasPlaying
     }
     internal val subtitleFolderPicker=registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree()) {uri ->
         pickingSidecar=false
+        app.ember.player.PrivateMedia.endPicker()
         if(uri!=null&&::subs.isInitialized)saveSubtitleFolder(uri)
         player?.playWhenReady=pickerWasPlaying
     }
     internal val audioFilePicker=registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) {uri ->
         pickingSidecar=false
+        app.ember.player.PrivateMedia.endPicker()
         if(uri!=null){
             val native=playbackEngine?.compatibility ?: if(playbackEngine?.switch()==true)playbackEngine?.compatibility else null
             if(native!=null)native.additionalAudio(uri.toString()) else Toast.makeText(this,"Could not start compatibility playback.",Toast.LENGTH_LONG).show()
@@ -163,6 +174,7 @@ class PlayerActivity : ComponentActivity() {
     }
     internal val queueFilePicker=registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenMultipleDocuments()) {uris ->
         pickingSidecar=false
+        app.ember.player.PrivateMedia.endPicker()
         fileQueue?.add(uris.take(200).map {MediaFiles.retain(this,it);QueueMedia(it.toString(),MediaFiles.name(this,it))})
         player?.playWhenReady=pickerWasPlaying;changed()
     }
@@ -262,6 +274,11 @@ class PlayerActivity : ComponentActivity() {
             val p = player
             if(p!=null && p.isPlaying)repeatRange.destination(p.currentPosition)?.let(p::seekTo)
             if (p != null && ::subs.isInitialized) {val prefix=if(subs.wholeFileTiming)0L else (playbackEngine?.compatibility?.partOffset ?: serverPlayback?.offset(serverPartIndex))?:0L;subs.engine.render((p.currentPosition-prefix).coerceAtLeast(0))}
+            if(p!=null&&::prefs.isInitialized){
+                val native=playbackEngine?.compatibility
+                val text=if(native!=null)native.captionText else if(::subs.isInitialized&&(subs.selection is SubtitleController.Selection.Manual||subs.selection is SubtitleController.Selection.External))subs.engine.visibleText else embeddedCaptionText
+                updateCaptionAssistance(text,p.isPlaying)
+            }
             handler.postDelayed(this, 100)
         }
     }
@@ -277,9 +294,10 @@ class PlayerActivity : ComponentActivity() {
 
     /** The subtitle settings with this show's remembered choice applied. */
     internal fun subConfigFor(base: app.ember.tv.data.SubtitleConfig): app.ember.tv.data.SubtitleConfig {
-        val mem = showKey()?.let { memory.get(it) }?.subtitles ?: return base
-        return if (mem == "off") base.copy(autoSelect = "off")
-        else base.copy(autoSelect = "always", languages = listOf(mem) + base.languages.filter { it != mem })
+        val effective=if(privatePlayback)base.copy(stremioOpenSubs=false,openSubsCom=false,subdl=false,hashMatch=false) else base
+        val mem = showKey()?.let { memory.get(it) }?.subtitles ?: return effective
+        return if (mem == "off") effective.copy(autoSelect = "off")
+        else effective.copy(autoSelect = "always", languages = listOf(mem) + base.languages.filter { it != mem })
     }
 
     /** Picture-in-picture when Home is pressed during playback (Settings > Player). */
@@ -289,7 +307,7 @@ class PlayerActivity : ComponentActivity() {
         // Home (or another app) chosen by the user: the player closes when it stops (unless picture-in-picture).
         userLeft = true
         val p = player ?: return
-        if (!config.pip || !p.isPlaying || !packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
+        if (privatePlayback || !config.pip || !p.isPlaying || !packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
         val size = p.videoSize
         val ratio = if (size.width > 0 && size.height > 0) android.util.Rational(size.width, size.height) else android.util.Rational(16, 9)
         val safe = if (ratio.toFloat() in 0.42f..2.38f) ratio else android.util.Rational(16, 9)
@@ -301,6 +319,8 @@ class PlayerActivity : ComponentActivity() {
     internal var keptAlive = false
     /** A paused player kept in the background closes after half an hour (the TV may be off by then). */
     internal val closeKept = Runnable { endPlayback() }
+
+    override fun onResume(){super.onResume();captionConfig=null;captionForeground=true}
 
     override fun onStart() {
         super.onStart()
@@ -321,6 +341,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        closeCaptionAssistance()
         backgroundStage?.let(BackgroundAudioService::cancelStage);backgroundStage=null
         touchControls?.close(); touchControls = null
         // A dialog still showing would leak its window when the player closes (#77).
@@ -603,6 +624,12 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        lifecycleScope.launch {kotlinx.coroutines.flow.combine(app.ember.player.PrivateMedia.unlocked,app.ember.player.PrivateMedia.state){allowed,_->allowed}.collect {allowed->
+            if(currentUrl!=null&&app.ember.player.PrivateMedia.hidden(currentUrl.orEmpty())) {
+                privatePlayback=true;window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);platformSession?.release();platformSession=null
+                if(!allowed){player?.pause();endPlayback()}
+            }
+        }}
         createPlayer(savedInstanceState)
     }
 
@@ -722,6 +749,7 @@ class PlayerActivity : ComponentActivity() {
     override fun onStop() {
         touchControls?.cancel()
         super.onStop()
+        if(privatePlayback&&!isChangingConfigurations&&!pickingSidecar){player?.pause();endPlayback();return}
         cancelRecovery()
         cancelNextEpisodeLookup()
         liveRetryJob?.cancel(); liveRetryJob = null
@@ -759,6 +787,7 @@ class PlayerActivity : ComponentActivity() {
     override fun onPause() {
         stageBackgroundAudio()
         super.onPause()
+        captionForeground=false;closeCaptionAssistance()
     }
     internal var touchControls: PlayerTouchControls? = null
     internal var touchMagnification = 1f

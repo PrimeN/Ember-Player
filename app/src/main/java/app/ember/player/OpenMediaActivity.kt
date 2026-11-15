@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import app.ember.tv.player.PlayRequest
 import app.ember.tv.player.PlayerActivity
 
@@ -15,6 +16,12 @@ class OpenMediaActivity:ComponentActivity() {
         if(uri==null || !ExternalMedia.allowed(uri.toString())) {
             Toast.makeText(this,"Choose a media file or a supported stream URL.",Toast.LENGTH_LONG).show();finish();return
         }
+        if(PrivateMedia.enabled) {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+            setContent {PlayerTheme(app.ember.tv.data.Prefs(this)) {PrivatePinPrompt({finish()},{open(uri)})}}
+        } else open(uri)
+    }
+    private fun open(uri:android.net.Uri) {
         try {
             val next=Intent(this,PlayerActivity::class.java).setData(uri)
                 .putExtra(PlayRequest.EXTRA_URL,uri.toString())

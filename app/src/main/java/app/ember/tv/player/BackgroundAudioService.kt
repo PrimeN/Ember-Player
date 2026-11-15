@@ -32,6 +32,7 @@ class BackgroundAudioService:Service(),Player.Listener {
     private var audio:BackgroundAudioEngine?=null
     private var session:MediaSession?=null
     private var source:EngineSource?=null
+    private var usbWatch:java.io.Closeable?=null
     private var pickedAudio=false
     private var restoreTrack=true
     private var closing=false
@@ -93,6 +94,8 @@ class BackgroundAudioService:Service(),Player.Listener {
         handler.removeCallbacks(timeout)
         val request=state.value
         try {
+            usbWatch=UsbMedia.watch(this,request.source.urls.firstOrNull().orEmpty()){stopPlayback()}
+            check(!app.ember.player.PrivateMedia.hidden(request.source.urls.firstOrNull().orEmpty()))
             source=request.source
             audio=factory(applicationContext,request)
             audio!!.player.addListener(this)
@@ -132,9 +135,11 @@ class BackgroundAudioService:Service(),Player.Listener {
         (if(direction>0)queue.next() else queue.previous())?.let(::loadQueueItem)
     }
     private fun loadQueueItem(media:QueueMedia) {
+        if(app.ember.player.PrivateMedia.hidden(media.uri)){stopPlayback();return}
         val request=handoff?.value ?: return
         pickedAudio=false
         restoreTrack=false
+        usbWatch?.close();usbWatch=UsbMedia.watch(this,media.uri){stopPlayback()}
         source=EngineSource(listOf(media.uri),media.title,media.key,headers=request.source.headers,
             audioLanguages=request.source.audioLanguages,filename=media.title)
         val at=PositionStore(this,request.scope).get(media.key)?.first ?: 0
@@ -143,6 +148,7 @@ class BackgroundAudioService:Service(),Player.Listener {
         update()
     }
     private fun savePosition() {
+        if(!app.ember.player.PrivateMedia.historyAllowed(source?.urls?.firstOrNull().orEmpty()))return
         val player=audio?.player ?: return
         val request=handoff?.value ?: return
         val key=source?.key ?: return
@@ -192,6 +198,7 @@ class BackgroundAudioService:Service(),Player.Listener {
             .setDeleteIntent(control(ACTION_STOP)).setStyle(Notification.MediaStyle().setMediaSession(checkNotNull(session).sessionToken).setShowActionsInCompactView(0,1,2)).build()
     }
     private fun releaseSession(releaseQueue:Boolean) {
+        usbWatch?.close();usbWatch=null
         closing=true
         handler.removeCallbacksAndMessages(null)
         savePosition()
@@ -235,6 +242,8 @@ class BackgroundAudioService:Service(),Player.Listener {
         private const val ACTION_PREVIOUS="app.ember.player.PREVIOUS_AUDIO"
         private val pending=ConcurrentHashMap<String,BackgroundHandoff<BackgroundAudioRequest>>()
         private var current:WeakReference<BackgroundAudioService>?=null
+        internal fun currentIsPrivate()=current?.get()?.source?.urls?.any {app.ember.player.PrivateMedia.hidden(it)}==true
+        internal fun stopPrivatePlayback(){current?.get()?.let {service->if(service.source?.urls?.any {app.ember.player.PrivateMedia.hidden(it)}==true)service.stopPlayback()}}
         private val playingState=MutableStateFlow<BackgroundNowPlaying?>(null)
         internal val nowPlaying=playingState.asStateFlow()
         internal var factory:(Context,BackgroundAudioRequest)->BackgroundAudioEngine=::AndroidBackgroundAudioEngine

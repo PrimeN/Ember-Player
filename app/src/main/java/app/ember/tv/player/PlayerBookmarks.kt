@@ -12,6 +12,7 @@ import kotlinx.coroutines.*
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal fun PlayerActivity.showBookmarks() {
+    if(privatePlayback){android.widget.Toast.makeText(this,"Bookmarks are not saved for private playback.",android.widget.Toast.LENGTH_SHORT).show();return}
     if(live || trailer)return
     val key=resumeKey;val visit=playbackVisit
     val store=PlaybackBookmarks(this,localActivityScope)

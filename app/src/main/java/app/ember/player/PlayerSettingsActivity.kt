@@ -30,6 +30,10 @@ class PlayerSettingsActivity:ComponentActivity() {
             fun captions(change:(SubtitleConfig)->SubtitleConfig){prefs.subtitleConfig=change(prefs.subtitleConfig);revision++}
             PlayerTheme(prefs) {
                 CompositionLocalProvider(androidx.tv.material3.LocalContentColor provides Fg) {
+                val unlocked by PrivateMedia.unlocked.collectAsState()
+                val privacy by PrivateMedia.state.collectAsState()
+                SideEffect {if(PrivateMedia.enabled)window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)}
+                if((privacy.pin.isNotEmpty()||PrivateMedia.enabled)&&!unlocked){PrivatePinPrompt({finish()},{ });return@CompositionLocalProvider}
                 LazyColumn(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(horizontal=36.dp),
                     contentPadding=PaddingValues(vertical=24.dp),verticalArrangement=Arrangement.spacedBy(22.dp)) {
                     item {Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
@@ -93,6 +97,7 @@ class PlayerSettingsActivity:ComponentActivity() {
                         PlayerChoice("Text background",listOf("outline" to "Outline","shadow" to "Shadow","box" to "Box"),subtitles.background){v->captions {it.copy(background=v)}}
                         SwitchChip("Preserve authored styling",subtitles.authoredStyles){captions {it.copy(authoredStyles=!it.authoredStyles)}}
                         SwitchChip("Use system caption style",subtitles.systemStyle){captions {it.copy(systemStyle=!it.systemStyle)}}
+                        SubtitleAssistanceSettings(subtitles.assistance){value->captions {it.copy(assistance=value)}}
                         AdvancedSubtitleSettings(subtitles){value->captions {value}}
                         SwitchChip("Community subtitle search",subtitles.stremioOpenSubs){captions {it.copy(stremioOpenSubs=!it.stremioOpenSubs)}}
                     }}
@@ -103,6 +108,7 @@ class PlayerSettingsActivity:ComponentActivity() {
                         SwitchChip("Glass surfaces",prefs.navigationGlass){prefs.navigationGlass=!prefs.navigationGlass;revision++}
                         Chip("Clear disposable caches"){scope.launch {val result=withContext(Dispatchers.IO){runCatching {CacheManagement.clear()}};android.widget.Toast.makeText(this@PlayerSettingsActivity,if(result.isSuccess)"Cache cleared" else "Some cached data could not be cleared",android.widget.Toast.LENGTH_LONG).show()}}
                     }}
+                    item {Section("Privacy") {PrivacySettings()}}
                     item {Section("Backups") {PlayerBackupSettings {revision++}}}
                     item {Section("About") {
                         Text("Ember Player ${app.ember.tv.BuildConfig.VERSION_NAME}",fontSize=18.sp)

@@ -10,19 +10,23 @@ import kotlinx.serialization.json.Json
 internal data class RecentMedia(val uri:String,val title:String)
 
 /** Stream addresses can contain credentials. History never has a plaintext storage fallback. */
-internal class MediaHistory(private val readValue:()->String?,private val writeValue:(String)->Boolean) {
+internal class MediaHistory(private val readValue:()->String?,private val writeValue:(String)->Boolean,private val visible:(String)->Boolean={true},private val recording:()->Boolean={true}) {
     constructor(context:Context):this(
         {TokenStore(context.applicationContext).get(KEY)},
         {TokenStore(context.applicationContext).putEncrypted(KEY,it)},
+        {app.ember.player.PrivateMedia.historyAllowed(it)},
+        {app.ember.player.PrivateMedia.state.value.history},
     )
     fun read():List<RecentMedia> = readValue()?.takeIf {it.length<=512*1024}?.let {raw->
-        runCatching {json.decodeFromString<List<RecentMedia>>(raw)}.getOrNull()?.filter(::valid)?.distinctBy {it.uri}?.take(20)
+        runCatching {json.decodeFromString<List<RecentMedia>>(raw)}.getOrNull()?.filter {valid(it)&&visible(it.uri)}?.distinctBy {it.uri}?.take(20)
     }.orEmpty()
     fun add(items:List<QueueMedia>):Boolean=synchronized(lock) {
-        val next=(items.map {RecentMedia(it.uri,it.title.take(180))}.filter(::valid)+read()).distinctBy {it.uri}.take(20)
+        if(!recording())return@synchronized true
+        val next=(items.map {RecentMedia(it.uri,it.title.take(180))}.filter {valid(it)&&visible(it.uri)}+read()).distinctBy {it.uri}.take(20)
         writeValue(json.encodeToString(next))
     }
     fun clear():Boolean=writeValue("[]")
+    fun purgeHidden():Boolean=writeValue(json.encodeToString(read()))
     fun moveUri(from:String,to:String,title:String):Boolean=synchronized(lock) {
         val previous=read()
         if(previous.none {it.uri==from})return@synchronized true

@@ -28,7 +28,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.*
 
-/** Uses Android's storage grants; no broad video/storage permission is requested. */
+/** Uses document grants by default; mounted-drive browsing requests media access explicitly. */
 class MediaFilesActivity:ComponentActivity() {
     private lateinit var openedProfile:String
     private var preparing by mutableStateOf(false)
@@ -60,9 +60,11 @@ class MediaFilesActivity:ComponentActivity() {
         super.onCreate(savedInstanceState)
         openedProfile=Prefs(this).currentProfile
         setContent {app.ember.player.PlayerTheme(Prefs(this)) {
+            val privacy by app.ember.player.PrivateMedia.state.collectAsState()
+            SideEffect {if(app.ember.player.PrivateMedia.enabled)window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)}
             val first=remember {FocusRequester()}
             LaunchedEffect(Unit){withFrameNanos {};runCatching {first.requestFocus()}}
-            val version=refresh
+            val version=refresh+privacy.hashCode()
             val background by BackgroundAudioService.nowPlaying.collectAsStateWithLifecycle()
             val scope=rememberCoroutineScope()
             var recent by remember {mutableStateOf<List<RecentMedia>>(emptyList())}
@@ -82,7 +84,7 @@ class MediaFilesActivity:ComponentActivity() {
                     Chip("Settings"){startActivity(android.content.Intent(this@MediaFilesActivity,app.ember.player.PlayerSettingsActivity::class.java))}
                 }
                 Text(stringResource(R.string.tx_play_files_from_this_device_a))
-                background?.let {playing->Chip("${if(playing.playing)"Playing" else "Paused"} · ${playing.title}",maxLines=1) {
+                background?.takeUnless {BackgroundAudioService.currentIsPrivate()}?.let {playing->Chip("${if(playing.playing)"Playing" else "Paused"} · ${playing.title}",maxLines=1) {
                     startActivity(android.content.Intent(this@MediaFilesActivity,ResumeBackgroundAudioActivity::class.java).putExtra(BackgroundAudioService.EXTRA_ID,playing.id))
                 }}
                 Chip(if(preparing) "Preparing files…" else "Choose files",modifier=Modifier.focusRequester(first)) {
@@ -92,7 +94,7 @@ class MediaFilesActivity:ComponentActivity() {
                 message?.let {Text(it,fontSize=13.sp)}
                 if(recent.isNotEmpty()) {
                     Text("Recent media",fontSize=20.sp)
-                    recent.forEach {entry->Chip(entry.title,maxLines=1){
+                    recent.filterNot {app.ember.player.PrivateMedia.hidden(it.uri)}.forEach {entry->Chip(entry.title,maxLines=1){
                         runCatching {MediaFiles.launch(this@MediaFilesActivity,listOf(QueueMedia(entry.uri,entry.title)))}
                             .onFailure {message="This media is unavailable. Select it again if its permission has expired."}
                     }}
@@ -101,7 +103,9 @@ class MediaFilesActivity:ComponentActivity() {
                         if(cleared)recent=emptyList() else message="Could not clear encrypted history."
                     }}
                 }
+                app.ember.player.PrivateMediaPanel(this@MediaFilesActivity)
                 PlaylistsPanel(this@MediaFilesActivity,version)
+                UsbFilesPanel(this@MediaFilesActivity,version)
                 DeviceFilesPanel(this@MediaFilesActivity,version)
                 NetworkFilesPanel(this@MediaFilesActivity,version)
                 Chip("Back"){finish()}

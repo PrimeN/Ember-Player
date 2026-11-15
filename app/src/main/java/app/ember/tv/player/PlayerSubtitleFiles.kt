@@ -60,7 +60,7 @@ internal suspend fun PlayerActivity.loadManualSubtitle(choice:ManualSubtitleFile
             checkNotNull(text)
             check(subs.loadManual(text.first,text.second)){"Unreadable subtitle"}
         }
-        if(remember)SubtitleChoiceStorage.scope.launch {
+        if(remember&&!privatePlayback)SubtitleChoiceStorage.scope.launch {
             val saved=runCatching {ManualSubtitleChoices(context,profile).put(key,choice)}.getOrDefault(false)
             if(!saved)withContext(Dispatchers.Main){
                 Toast.makeText(context,"Subtitle loaded, but its choice could not be saved.",Toast.LENGTH_SHORT).show()
@@ -115,6 +115,7 @@ internal fun PlayerActivity.findNearbySubtitles() {
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal fun PlayerActivity.pickSubtitleFolder() {
+    if(privatePlayback)app.ember.player.PrivateMedia.beginPicker()
     pickerWasPlaying=player?.playWhenReady==true;pickingSidecar=true;player?.pause()
     try {subtitleFolderPicker.launch(null)}
     catch(_:android.content.ActivityNotFoundException){

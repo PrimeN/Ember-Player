@@ -10,6 +10,7 @@ class PlayerApplication:Application(),ImageLoaderFactory {
     private val scope=CoroutineScope(SupervisorJob()+Dispatchers.IO)
     override fun onCreate() {
         super.onCreate()
+        PrivateMedia.install(this)
         CrashLog.install(this)
         app.ember.tv.remote.RemoteBridge.install(this)
         Net.init(this)

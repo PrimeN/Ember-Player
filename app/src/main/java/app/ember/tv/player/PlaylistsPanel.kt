@@ -24,7 +24,7 @@ internal fun PlaylistsPanel(activity:ComponentActivity,refresh:Int) {
     var busy by remember {mutableStateOf(false)}
     var notice by remember {mutableStateOf<String?>(null)}
     var revision by remember {mutableIntStateOf(0)}
-    LaunchedEffect(refresh,revision) {values=withContext(Dispatchers.IO) {store.read()}}
+    LaunchedEffect(refresh,revision) {values=withContext(Dispatchers.IO) {store.read().filter {value->value.entries.none {app.ember.player.PrivateMedia.hidden(it.uri)}}}}
     fun play(value:SavedPlaylist,index:Int) {
         if(busy)return
         busy=true;notice=null
@@ -53,7 +53,7 @@ internal fun PlaylistsPanel(activity:ComponentActivity,refresh:Int) {
     }
     Text("Playlists",fontSize=20.sp)
     Chip(if(busy)"Working…" else "New playlist from files") {if(!busy)runCatching {picker.launch(arrayOf("video/*","audio/*","application/octet-stream"))}.onFailure {notice="No document picker is installed on this device."}}
-    values.forEach {value->ButtonRow {
+    values.filter {it.entries.none {entry->app.ember.player.PrivateMedia.hidden(entry.uri)}}.forEach {value->ButtonRow {
         Chip("${value.name} · ${value.entries.size}",maxLines=1) {if(!busy)play(value,value.index)}
         Chip("⋯") {if(!busy)selected=value}
     }}

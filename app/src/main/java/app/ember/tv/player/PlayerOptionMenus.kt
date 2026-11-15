@@ -252,6 +252,11 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
                     onPick = { i -> if (subsInitialized) { subs.engine.offsetMs = subShifts[i]; p.subtitleDelayMilliseconds = subShifts[i]; playbackEngine?.compatibility?.subtitleDelay(subShifts[i]); refreshSubtitlePanel() } }),
             )
             val c = prefs.subtitleConfig
+            add(OptionRow("Read subtitles aloud",toggle=c.assistance.readAloud,note="Uses an installed offline voice only.",action={applySubLook(c.copy(assistance=c.assistance.copy(readAloud=!c.assistance.readAloud)))}))
+            add(OptionRow("Translate subtitles",toggle=c.assistance.translate,note="Choose installed languages in Settings > Subtitles > Offline subtitle assistance. No cloud service or model downloads.",action={
+                if(c.assistance.translate || c.assistance.source.isNotBlank()&&c.assistance.target.isNotBlank())applySubLook(c.copy(assistance=c.assistance.copy(translate=!c.assistance.translate)))
+                else Toast.makeText(this@optionRows,"Choose installed translation languages in subtitle settings first.",Toast.LENGTH_LONG).show()
+            }))
             fun look(title: String, opts: List<Pair<String, String>>, cur: String, set: (String) -> app.ember.tv.data.SubtitleConfig) {
                 val i = opts.indexOfFirst { it.first == cur }.coerceAtLeast(0)
                 add(OptionRow(title, opts[i].second, opts.map { it.second }, i, onPick = { j -> applySubLook(set(opts[j].first)) }))
@@ -285,6 +290,7 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.applySubLook(c: app.ember.tv.data.SubtitleConfig) {
     prefs.subtitleConfig = c
+    captionConfig=c;closeCaptionAssistance()
     baseSubCfg = c
     if(subsInitialized)subs.config=subConfigFor(c)
     if(c.layout.needsCompatibility && !c.systemStyle && playbackEngine?.compatibility==null && config.engine=="auto")playbackEngine?.switch()

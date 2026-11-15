@@ -256,7 +256,7 @@ internal fun PlayerActivity.findNextServerEpisode() {
 
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.scrobble(state: ScrobbleState, progress: Float) {
-    if (trailer || fileQueue!=null) return
+    if (trailer || privatePlayback || !app.ember.player.PrivateMedia.state.value.history || fileQueue!=null) return
     // Runs outside the activity so a stop still goes out after the screen closes.
     val snapshot = item
     PlayerActivity.background.launch { hub.scrobble(snapshot, state, progress) }

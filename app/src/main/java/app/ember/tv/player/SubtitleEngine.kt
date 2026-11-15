@@ -24,6 +24,7 @@ import app.ember.tv.data.SubtitleConfig
  */
 @OptIn(UnstableApi::class)
 class SubtitleEngine(private val view: SubtitleView) {
+    var visibleText="";private set
     private var cues: List<CuesWithTiming> = emptyList()
     private var lastShown: List<Cue>? = null
     private var index = CueIndex<CuesWithTiming>(emptyList(), { it.startTimeUs }, { it.startTimeUs })
@@ -67,6 +68,7 @@ class SubtitleEngine(private val view: SubtitleView) {
     }
 
     fun clear() {
+        visibleText=""
         cues = emptyList()
         index = CueIndex(emptyList(), { it.startTimeUs }, { it.startTimeUs })
         lastShown = null
@@ -80,6 +82,7 @@ class SubtitleEngine(private val view: SubtitleView) {
         val now = index.at(t).flatMap { it.cues }
         if (now != lastShown) {
             lastShown = now
+            visibleText=now.mapNotNull {it.text?.toString()}.joinToString("\n")
             view.setCues(now)
         }
     }

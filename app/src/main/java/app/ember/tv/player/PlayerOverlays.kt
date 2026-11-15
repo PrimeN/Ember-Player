@@ -17,6 +17,7 @@ import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleDelayMillisecon
 /** Server markers take priority; eligible IMDb titles can fall back to the public IntroDB lookup. */
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.loadMarkers() {
+    if(privatePlayback)return
     metadataLoads.reset()
     markers = emptyList()
     markersFromIntroDb = false

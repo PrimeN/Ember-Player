@@ -36,6 +36,7 @@ import java.util.zip.ZipInputStream
 /** Settings > Subtitles. Saved as JSON in preferences (in backups). */
 @Serializable
 data class SubtitleConfig(
+    val assistance:SubtitleAssistance=SubtitleAssistance(),
     /** Preferred languages, most wanted first (ISO 639-1, e.g. "en", "fr", "pt-BR"). Empty: the TV's language. */
     val languages: List<String> = emptyList(),
     /** Turn a subtitle on at start: "off", "always", "foreign" (only when the audio is not in my first language). */

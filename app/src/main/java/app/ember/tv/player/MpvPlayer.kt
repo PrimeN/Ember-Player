@@ -70,6 +70,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     private var audioOffset=0L
     private var externalSubtitle:File?=null
     private var externalGlobal=false
+    var captionText="";private set
     private var subtitleOffset=0L
     private var subtitleRate=1f
     private var previousTextureListener:TextureView.SurfaceTextureListener?=null
@@ -116,6 +117,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
             picture(config.deband,config.interpolation,config.scaler,config.deinterlacing)
             listOf("time-pos","duration","demuxer-cache-time").forEach {native.observeProperty(it,MPVLib.MpvFormat.MPV_FORMAT_DOUBLE)}
             listOf("pause","paused-for-cache","eof-reached","seekable").forEach {native.observeProperty(it,MPVLib.MpvFormat.MPV_FORMAT_FLAG)}
+            native.observeProperty("sub-text",MPVLib.MpvFormat.MPV_FORMAT_STRING)
             listOf("track-list","video-params","audio-out-params").forEach {native.observeProperty(it,MPVLib.MpvFormat.MPV_FORMAT_NONE)}
             if(Build.VERSION.SDK_INT>=33)context.registerReceiver(noisy,IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),Context.RECEIVER_NOT_EXPORTED)
             else @Suppress("DEPRECATION") context.registerReceiver(noisy,IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
@@ -140,6 +142,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     }
     private fun load(index:Int,at:Long=0) {
         if(index!=partIndex&&!externalGlobal)externalSubtitle=null
+        captionText=""
         partIndex=index;pendingSeek=at;waitingSeek=true;position=at;loading=true;status=Player.STATE_BUFFERING;busy=true;stopping=false
         native.setPropertyBoolean("pause",true)
         native.command(arrayOf("loadfile",uri(source.urls[index]),"replace"))
@@ -223,7 +226,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     private fun fail(){status=Player.STATE_IDLE;busy=false;error=PlaybackException("Compatibility playback failed. Try another version or server quality.",null,transport?.failureCode?:PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED);invalidateState()}
     override fun eventProperty(property:String)=onMain {refreshTracks();invalidateState()}
     override fun eventProperty(property:String,value:Long) {}
-    override fun eventProperty(property:String,value:String)=onMain {refreshTracks();invalidateState()}
+    override fun eventProperty(property:String,value:String)=onMain {if(property=="sub-text")captionText=value else {refreshTracks();invalidateState()}}
     override fun eventProperty(property:String,value:Double)=onMain {
         when(property){"time-pos"->{val at=(value*1000).toLong();if(!loading && (!waitingSeek || approximateSeek || kotlin.math.abs(at-(pendingSeek-prefix(partIndex)))<2000)){waitingSeek=false;approximateSeek=false;partPosition=at;position=prefix(partIndex)+partPosition}};"duration"->{if(value>0)durations[partIndex]=(value*1000).toLong()};"demuxer-cache-time"->buffered=prefix(partIndex)+(value*1000).toLong()};invalidateState()
     }

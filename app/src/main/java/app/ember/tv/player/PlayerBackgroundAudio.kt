@@ -6,6 +6,7 @@ import androidx.media3.common.util.UnstableApi
 
 @androidx.annotation.OptIn(UnstableApi::class)
 internal fun PlayerActivity.backgroundRequest():BackgroundAudioRequest? {
+    if(privatePlayback||app.ember.player.PrivateMedia.hidden(currentUrl.orEmpty()))return null
     if(!config.backgroundAudio || pickingSidecar || isFinishing || live || trailer || serverRef!=null || isInPictureInPictureMode)return null
     val p=player ?: return null
     if(!p.playWhenReady || ended)return null

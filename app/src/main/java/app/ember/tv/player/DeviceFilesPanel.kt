@@ -34,6 +34,8 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0) {
     var revision by remember { mutableIntStateOf(0) }
     var select by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<Set<Uri>>(emptySet()) }
+    var protect by remember {mutableStateOf<DeviceFile?>(null)}
+    var protectPin by remember {mutableStateOf(false)}
     var menu by remember { mutableStateOf<DeviceFile?>(null) }
     var rename by remember { mutableStateOf<DeviceFile?>(null) }
     var deleting by remember { mutableStateOf<List<DeviceFile>>(emptyList()) }
@@ -52,7 +54,7 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0) {
         }
     }
     fun open(items: List<DeviceFile>) = operation {
-        val queue = items.filterNot {it.directory}.take(200).map { QueueMedia(it.uri.toString(), it.name,directory=it.parent.toString()) }
+        val queue = items.filterNot {it.directory||app.ember.player.PrivateMedia.hidden(it.uri.toString())}.take(200).map { QueueMedia(it.uri.toString(), it.name,directory=it.parent.toString()) }
         if (queue.isNotEmpty()) {
             withContext(Dispatchers.IO) {
                 MediaHistory(activity).add(queue)
@@ -67,7 +69,8 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0) {
     }
     BackHandler(enabled = root != null && !busy) {back()}
     LaunchedEffect(refresh) {
-        folders = withContext(Dispatchers.IO) {store.read()}
+        selected=emptySet()
+        folders = withContext(Dispatchers.IO) {store.read().filterNot {app.ember.player.PrivateMedia.hidden(it.uri)}}
         if(root!=null && folders.none {it.uri==root?.uri}){root=null;parents=emptyList()}
     }
     LaunchedEffect(root, current, revision) {
@@ -77,7 +80,7 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0) {
         loading = true
         try {
             val loaded=withContext(Dispatchers.IO) {DeviceFiles.list(activity,Uri.parse(folder.uri),directory) {ensureActive()} to FolderPlaybackHistory(activity).get(directory)}
-            page=loaded.first;lastPlayed=loaded.second
+            page=loaded.first.copy(entries=loaded.first.entries.filterNot {app.ember.player.PrivateMedia.hidden(it.uri.toString())});lastPlayed=loaded.second
         }
         catch (e: CancellationException) {throw e}
         catch (_: Exception) {notice = "This folder is unavailable. Choose it again to renew access."}
@@ -91,7 +94,7 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0) {
                     check(store.add(it)) {"Encrypted folder storage is unavailable."}
                 }
             }
-            folders = withContext(Dispatchers.IO) {store.read()}
+            folders = withContext(Dispatchers.IO) {store.read().filterNot {app.ember.player.PrivateMedia.hidden(it.uri)}}
             root = folder; parents = emptyList(); query = ""
         }
     }
@@ -111,6 +114,7 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0) {
     }
     fun share(files: List<DeviceFile>) {
         if (files.isEmpty()) return
+        if(files.any {app.ember.player.PrivateMedia.hidden(it.uri.toString())}){notice="Use the private-media area to access protected files.";return}
         val uris = ArrayList(files.map {it.uri})
         val intent = Intent(Intent.ACTION_SEND_MULTIPLE).setType("*/*").putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -122,7 +126,7 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0) {
         Chip("Add a media folder") {if (!busy) runCatching {addFolder.launch(null)}.onFailure {notice = "No document picker is installed on this device."}}
         folders.forEach {folder -> ButtonRow {
             Chip(folder.name, maxLines = 1) {root = folder; parents = emptyList(); query = ""}
-            Chip("Forget folder") {operation {withContext(Dispatchers.IO) {check(store.remove(folder.uri)) {"Could not update saved folders."}}; folders = withContext(Dispatchers.IO) {store.read()}}}
+            Chip("Forget folder") {operation {withContext(Dispatchers.IO) {check(store.remove(folder.uri)) {"Could not update saved folders."}}; folders = withContext(Dispatchers.IO) {store.read().filterNot {app.ember.player.PrivateMedia.hidden(it.uri)}}}}
         }}
     } else {
         Text(current?.second ?: root!!.name, fontSize = 16.sp, maxLines = 1)
@@ -134,9 +138,9 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0) {
             Chip("Hidden files", selected = hidden) {hidden = !hidden}
             Chip(if (select) "Done selecting" else "Select files", selected = select) {select = !select; selected = emptySet()}
         }
-        val entries = DeviceFiles.sorted(page.entries, query, sort, hidden)
-        lastPlayed?.let {last->page.entries.firstOrNull {it.uri.toString()==last.uri && (hidden || !it.name.startsWith('.'))}?.let {file->Chip("Resume · ${last.title}",maxLines=1) {open(listOf(file))}}}
-        val chosen = page.entries.filter {it.uri in selected && !it.directory}
+        val entries = DeviceFiles.sorted(page.entries.filterNot {app.ember.player.PrivateMedia.hidden(it.uri.toString())}, query, sort, hidden)
+        lastPlayed?.let {last->page.entries.firstOrNull {it.uri.toString()==last.uri && !app.ember.player.PrivateMedia.hidden(it.uri.toString()) && (hidden || !it.name.startsWith('.'))}?.let {file->Chip("Resume · ${last.title}",maxLines=1) {open(listOf(file))}}}
+        val chosen = page.entries.filter {it.uri in selected && !it.directory && !app.ember.player.PrivateMedia.hidden(it.uri.toString())}
         if (chosen.isNotEmpty()) ButtonRow {
             Chip("Play ${chosen.size}") {open(chosen)}
             Chip("Share") {share(chosen)}
@@ -165,14 +169,19 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0) {
         if (entries.any {!it.directory}) Chip("Play this folder · up to 200 files") {open(entries.filterNot {it.directory})}
     }
     notice?.let {Text(it, fontSize = 13.sp, color = Mute)}
-    menu?.let {file -> OptionMenu(file.name, listOf(
+    menu?.takeUnless {app.ember.player.PrivateMedia.hidden(it.uri.toString())}?.let {file -> OptionMenu(file.name, listOf(
         MenuOption("Play") {open(listOf(file))},
+        MenuOption("Keep private") {protect=file;protectPin=true},
         MenuOption("Rename") {rename = file},
         MenuOption("Share") {share(listOf(file))},
         MenuOption("Move") {moving = listOf(file); runCatching {destination.launch(null)}.onFailure {notice = "No document picker is installed."}},
         MenuOption("Delete") {deleting = listOf(file)},
     ), {menu = null})}
-    rename?.let {file ->
+    if(protectPin)app.ember.player.PrivatePinPrompt({protectPin=false;protect=null},{
+        val file=protect;protectPin=false;protect=null
+        if(file!=null)operation {withContext(Dispatchers.IO){app.ember.player.PrivateMedia.add(app.ember.player.PrivateItem(file.uri.toString(),file.name,file.directory))}}
+    })
+    rename?.takeUnless {app.ember.player.PrivateMedia.hidden(it.uri.toString())}?.let {file ->
         var name by remember(file) {mutableStateOf(file.name)}
         TvDialog({rename = null}, width = 520.dp, resizeForKeyboard = true) {
             DialogHeading("Rename file")
@@ -186,7 +195,7 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0) {
             }
         }
     }
-    if (deleting.isNotEmpty()) TvDialog({deleting = emptyList()}, width = 480.dp) {
+    if (deleting.isNotEmpty()&&deleting.none {app.ember.player.PrivateMedia.hidden(it.uri.toString())}) TvDialog({deleting = emptyList()}, width = 480.dp) {
         DialogHeading("Delete ${deleting.size} file${if (deleting.size == 1) "" else "s"}?")
         Text("This removes the selected files from storage.", fontSize = 14.sp)
         ButtonRow {

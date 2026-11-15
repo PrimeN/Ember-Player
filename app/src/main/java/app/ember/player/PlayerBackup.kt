@@ -79,6 +79,7 @@ internal object PlayerBackups {
         require(data.secrets.all {(key,value)->key.isNotBlank() && key.length<=256 && key.none {it.isISOControl()} && value.length<=2*1024*1024})
     }
     fun snapshot(context:Context):PlayerBackupData {
+        check(!PrivateMedia.enabled||PrivateMedia.unlocked.value){"Unlock private media before exporting settings."}
         val tokens=TokenStore(context)
         if(context.getSharedPreferences(app.ember.tv.tracker.SecretVault.FILE,Context.MODE_PRIVATE).all.isNotEmpty())
             check(tokens.encryptionAvailable) {"Stored connection details could not be unlocked. No backup was created."}
@@ -120,8 +121,10 @@ internal object PlayerBackups {
         }
     }
     fun restore(context:Context,data:PlayerBackupData)=synchronized(this) {
+        check(!PrivateMedia.enabled||PrivateMedia.unlocked.value){"Unlock private media before restoring settings."}
         validate(data)
         replace(data,{snapshot(context)},{write(context,it)})
+        PrivateMedia.reload(context)
         app.ember.tv.data.CacheManagement.preferencesRestored(context.applicationContext)
     }
     /** Validate first, then verify the write. A failed write restores and verifies the old snapshot. */

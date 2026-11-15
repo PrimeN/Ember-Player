@@ -11,6 +11,7 @@ class PositionStore(context: Context,scope:String=app.ember.tv.data.LocalActivit
 
     /** Position and duration in milliseconds, or null when nothing is saved. */
     fun get(key: String): Pair<Long, Long>? {
+        if(!app.ember.player.PrivateMedia.state.value.history)return null
         val v = sp.getString(prefix+key, null) ?: return null
         val parts = v.split(',')
         val pos = parts.getOrNull(0)?.toLongOrNull() ?: return null
@@ -19,7 +20,7 @@ class PositionStore(context: Context,scope:String=app.ember.tv.data.LocalActivit
     }
 
     fun put(key: String, positionMs: Long, durationMs: Long) =
-        sp.edit { putString(prefix+key, "$positionMs,$durationMs") }
+        if(app.ember.player.PrivateMedia.state.value.history)sp.edit { putString(prefix+key, "$positionMs,$durationMs") } else Unit
 
     fun clear(key: String) = sp.edit { remove(prefix+key) }
 

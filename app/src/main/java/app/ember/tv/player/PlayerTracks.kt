@@ -66,6 +66,7 @@ import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleSpeed
 @OptIn(UnstableApi::class)
 /** Saves the audio language (always) and the subtitle choice (when picked by hand) for the show. */
 internal fun PlayerActivity.rememberTracks() {
+    if(privatePlayback || !app.ember.player.PrivateMedia.historyAllowed(currentUrl.orEmpty()))return
     val key = showKey() ?: return
     val p = player ?: return
     p.audioFormat?.language?.let { app.ember.tv.data.Subtitles.normalise(it) }
