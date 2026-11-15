@@ -24,6 +24,7 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0) {
     var folders by remember { mutableStateOf<List<DeviceFolder>>(emptyList()) }
     var root by remember { mutableStateOf<DeviceFolder?>(null) }
     var parents by remember { mutableStateOf<List<Pair<Uri,String>>>(emptyList()) }
+    var offsets by remember {mutableStateOf(listOf(0))}
     var page by remember { mutableStateOf(DeviceFiles.Page(emptyList(), false)) }
     var query by remember { mutableStateOf("") }
     var sort by remember { mutableStateOf("name") }
@@ -54,7 +55,7 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0) {
         }
     }
     fun open(items: List<DeviceFile>) = operation {
-        val queue = items.filterNot {it.directory||app.ember.player.PrivateMedia.hidden(it.uri.toString())}.take(200).map { QueueMedia(it.uri.toString(), it.name,directory=it.parent.toString()) }
+        val queue = items.filterNot {it.directory||app.ember.player.PrivateMedia.hidden(it.uri.toString())}.map { QueueMedia(it.uri.toString(), it.name,directory=it.parent.toString()) }
         if (queue.isNotEmpty()) {
             withContext(Dispatchers.IO) {
                 MediaHistory(activity).add(queue)
@@ -73,13 +74,14 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0) {
         folders = withContext(Dispatchers.IO) {store.read().filterNot {app.ember.player.PrivateMedia.hidden(it.uri)}}
         if(root!=null && folders.none {it.uri==root?.uri}){root=null;parents=emptyList()}
     }
-    LaunchedEffect(root, current, revision) {
+    LaunchedEffect(root,current) {offsets=listOf(0)}
+    LaunchedEffect(root, current, revision, offsets) {
         selected = emptySet(); page = DeviceFiles.Page(emptyList(), false);lastPlayed=null
         val folder = root ?: return@LaunchedEffect
         val directory = current?.first ?: DeviceFiles.root(Uri.parse(folder.uri))
         loading = true
         try {
-            val loaded=withContext(Dispatchers.IO) {DeviceFiles.list(activity,Uri.parse(folder.uri),directory) {ensureActive()} to FolderPlaybackHistory(activity).get(directory)}
+            val loaded=withContext(Dispatchers.IO) {DeviceFiles.list(activity,Uri.parse(folder.uri),directory,offsets.last()) {ensureActive()} to FolderPlaybackHistory(activity).get(directory)}
             page=loaded.first.copy(entries=loaded.first.entries.filterNot {app.ember.player.PrivateMedia.hidden(it.uri.toString())});lastPlayed=loaded.second
         }
         catch (e: CancellationException) {throw e}
@@ -165,8 +167,12 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0) {
                 }
             }
         }
-        if (page.limited) Text("Showing the first ${DeviceFiles.LIMIT} media entries. Use smaller folders for larger libraries.", color = Mute, fontSize = 12.sp)
-        if (entries.any {!it.directory}) Chip("Play this folder · up to 200 files") {open(entries.filterNot {it.directory})}
+        ButtonRow {
+            if(offsets.size>1)Chip("Previous page"){offsets=offsets.dropLast(1)}
+            if(page.limited)Chip("Next page"){offsets=offsets+page.nextOffset}
+        }
+        Text("Search and sorting apply to this page. Use Library search to find files across folders.",color=Mute,fontSize=12.sp)
+        if (entries.any {!it.directory}) Chip("Play this page") {open(entries.filterNot {it.directory})}
     }
     notice?.let {Text(it, fontSize = 13.sp, color = Mute)}
     menu?.takeUnless {app.ember.player.PrivateMedia.hidden(it.uri.toString())}?.let {file -> OptionMenu(file.name, listOf(

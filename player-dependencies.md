@@ -142,3 +142,9 @@ frames bypass the automatic filter, although enabled copying can still add cost.
 Host tests cover field order/frame counts and combing; real HDR/interlaced and
 device performance acceptance is still required.
 Playback uses foreground video and picture-in-picture.
+
+Library indexing uses [SQLCipher for Android 4.20.0](https://github.com/sqlcipher/sqlcipher-android)
+with AndroidX SQLite 2.7.0. Its BSD license is included in About. The database key stays
+in the Keystore-backed secret store; the index can be rebuilt from saved folder grants.
+Clip export uses Media3 Transformer 1.11.1, under the same Apache 2.0 license as Media3.
+Release packaging continues to include ARM64 and ARM32 only.

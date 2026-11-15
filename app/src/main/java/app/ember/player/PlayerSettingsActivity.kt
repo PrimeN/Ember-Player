@@ -54,6 +54,7 @@ class PlayerSettingsActivity:ComponentActivity() {
                         SwitchChip("IntroDB markers",config.introDb){update {it.copy(introDb=!it.introDb)}}
                         PlayerChoice("Skip markers",listOf("button" to "Show skip button","auto" to "Skip automatically","off" to "Off"),config.skipIntro){v->update {it.copy(skipIntro=v)}}
                     }}
+                    item {Section("Sleep timer") {SleepTimerSettings()}}
                     item {Section("Picture") {
                         PlayerChoice("Software video",listOf("fallback" to "When needed","off" to "Device decoders only","always" to "Always software"),config.ffmpegVideo){v->update {it.copy(ffmpegVideo=v)}}
                         PlayerChoice("Frame rate matching",listOf("off" to "Off","seamless" to "Seamless only","always" to "Match video"),config.frameRate){v->update {it.copy(frameRate=v)}}
@@ -133,7 +134,7 @@ private fun PlayerLegal() {
     val context=androidx.compose.ui.platform.LocalContext.current
     val licenses=listOf("GPL v3 — mpv, FFmpeg and Nextlib" to "player-GPL-3.0.txt","Apache 2.0 — AndroidX Media3 and libraries" to "Apache-2.0.txt",
         "Fraunhofer MPEG-H" to "Fraunhofer-FDK-MPEG-H.txt","libmpv Android wrapper" to "libmpv-wrapper-MIT.txt",
-        "SMBJ-RPC" to "SMBJ-RPC-BSD.txt","JSch" to "JSch-BSD.txt","Apache Commons notices" to "Commons-IO-Lang-NOTICE.txt","Apache Commons Net notices" to "Commons-Net-NOTICE.txt",
+        "SQLCipher" to "SQLCipher-LICENSE.txt","SMBJ-RPC" to "SMBJ-RPC-BSD.txt","JSch" to "JSch-BSD.txt","Apache Commons notices" to "Commons-IO-Lang-NOTICE.txt","Apache Commons Net notices" to "Commons-Net-NOTICE.txt",
         "JSch compression notices" to "JSch-JZlib-BSD.txt","JSch password hashing notices" to "JSch-jBCrypt-ISC.txt","Android NDK notices" to "Android-NDK-29-LLVM-NOTICE.txt")
     licenses.forEach {entry->Chip(entry.first){chosen=entry}}
     chosen?.let {(title,file)->

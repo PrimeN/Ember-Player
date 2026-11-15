@@ -45,9 +45,11 @@ internal fun PlayerActivity.playFile(media:QueueMedia) {
 }
 
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
-internal fun PlayerActivity.showFileQueue() {
+internal fun PlayerActivity.showFileQueue(page:Int=0) {
     val queue=fileQueue?:return
-    showPlayerActions("Queue", queue.items.mapIndexedNotNull { index, media ->
+    val start=page.coerceAtLeast(0)*100
+    val actions=queue.items.drop(start).take(100).mapIndexedNotNull { offset, media ->
+        val index=start+offset
         if(!queueItemAllowed(media))return@mapIndexedNotNull null
         PlayerDialogAction(media.title, Icons.Outlined.PlayArrow, selected = index == queue.index) {
             val currentIndex = queue.items.indexOf(media)
@@ -58,11 +60,15 @@ internal fun PlayerActivity.showFileQueue() {
                 PlayerDialogAction("Remove", Icons.Outlined.DeleteOutline, destructive = true) { queue.remove(queue.items.indexOf(media)); changed() },
             ))
         }
-    })
+    }.toMutableList()
+    if(start>0)actions.add(0,PlayerDialogAction("Previous page"){showFileQueue(page-1)})
+    if(start+100<queue.items.size)actions.add(PlayerDialogAction("Next page"){showFileQueue(page+1)})
+    showPlayerActions("Queue · ${start+1}–${minOf(start+100,queue.items.size)} of ${queue.items.size}",actions)
 }
 
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.onEpisodeEnded() {
+    if(app.ember.tv.data.SleepTimer.itemEnded())return
     fileQueue?.let {q->val next=q.next(ended=true,accept=::queueItemAllowed);if(next!=null)playFile(next) else finish();return}
     if (serverRef != null && nextEpisodes.isEmpty() && nextServerJob?.isActive == true) {
         lifecycleScope.launch { nextServerJob?.join(); onEpisodeEnded() }

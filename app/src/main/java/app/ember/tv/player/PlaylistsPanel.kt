@@ -44,7 +44,7 @@ internal fun PlaylistsPanel(activity:ComponentActivity,refresh:Int) {
         if(uris.isNotEmpty()) {
             busy=true
             scope.launch {
-                try {files=withContext(Dispatchers.IO) {uris.take(200).map {uri->ensureActive();MediaFiles.retain(activity,uri);QueueMedia(uri.toString(),MediaFiles.name(activity,uri))}}}
+                try {files=withContext(Dispatchers.IO) {uris.map {uri->ensureActive();MediaFiles.retain(activity,uri);QueueMedia(uri.toString(),MediaFiles.name(activity,uri))}}}
                 catch(e:CancellationException) {throw e}
                 catch(_:Exception) {notice="Could not read those files."}
                 finally {busy=false}

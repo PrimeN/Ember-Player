@@ -176,6 +176,22 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
             )
         }
         "playback" -> buildList {
+            val timer=app.ember.tv.data.SleepTimer.state.value
+            val remaining=timer.remaining(android.os.SystemClock.elapsedRealtime())
+            val timerOptions=listOf("Off","15 minutes","30 minutes","60 minutes","90 minutes","End of item")
+            add(OptionRow("Sleep timer",if(timer.endOfItem)"End of item" else if(remaining>0)"${(remaining+59999)/60000} min remaining" else "Off",timerOptions,if(timer.endOfItem)5 else 0,onPick={i->
+                when(i){0->app.ember.tv.data.SleepTimer.cancel();5->app.ember.tv.data.SleepTimer.atEnd();else->app.ember.tv.data.SleepTimer.after(listOf(0,15,30,60,90)[i])};changed()
+            }))
+
+            if(exports.permitted()) {
+                add(OptionRow("Save screenshot",action={exports.screenshot()}))
+                if(!live) {
+                    add(OptionRow("Mark clip start",clips.startMs?.let(::clock).orEmpty(),action={clips.markStart();changed()}))
+                    add(OptionRow("Mark clip end",clips.endMs?.let(::clock).orEmpty(),action={if(!clips.markEnd())Toast.makeText(this@optionRows,"Mark the start, then seek at least one second ahead.",Toast.LENGTH_SHORT).show();changed()}))
+                    if(clips.active)add(OptionRow("Cancel clip export",clips.progress?.let {"$it%"}.orEmpty(),action={clips.cancel();changed()}))
+                    else add(OptionRow("Export clip",note="MP4 using device encoders · original kept",action={clips.chooseDestination()}))
+                }
+            }
             add(OptionRow("Lock playback",note="Use the unlock button or Back to restore controls.",action={closeMenu();touchControls?.setLocked(true)}))
             if (chapters.isNotEmpty()) {
                 val pos = p.currentPosition

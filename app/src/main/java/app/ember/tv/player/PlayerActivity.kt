@@ -148,6 +148,9 @@ class PlayerActivity : ComponentActivity() {
     internal var captionOverlay:androidx.media3.ui.SubtitleView?=null
     internal var embeddedCaptionText=""
     internal var privatePlayback=false
+    internal val clips=PlayerClipExport(this)
+    internal val exports=PlayerExports(this)
+    internal var sleepWatch:java.io.Closeable?=null
     internal var usbWatch:java.io.Closeable?=null
     internal var manualSubtitleJob:Job?=null
     internal var nearbySubtitleJob:Job?=null
@@ -175,7 +178,8 @@ class PlayerActivity : ComponentActivity() {
     internal val queueFilePicker=registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenMultipleDocuments()) {uris ->
         pickingSidecar=false
         app.ember.player.PrivateMedia.endPicker()
-        fileQueue?.add(uris.take(200).map {MediaFiles.retain(this,it);QueueMedia(it.toString(),MediaFiles.name(this,it))})
+        runCatching {fileQueue?.add(uris.map {MediaFiles.retain(this,it);QueueMedia(it.toString(),MediaFiles.name(this,it))})}
+            .onFailure {Toast.makeText(this,"The queue is full. Create a separate playlist.",Toast.LENGTH_LONG).show()}
         player?.playWhenReady=pickerWasPlaying;changed()
     }
     internal var trailer = false
@@ -341,6 +345,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        clips.close();exports.close();sleepWatch?.close();sleepWatch=null
         closeCaptionAssistance()
         backgroundStage?.let(BackgroundAudioService::cancelStage);backgroundStage=null
         touchControls?.close(); touchControls = null
@@ -624,6 +629,7 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        sleepWatch=app.ember.tv.data.SleepTimer.listen {if(player!=null)endPlayback()}
         lifecycleScope.launch {kotlinx.coroutines.flow.combine(app.ember.player.PrivateMedia.unlocked,app.ember.player.PrivateMedia.state){allowed,_->allowed}.collect {allowed->
             if(!privatePlayback&&fileQueue?.items?.any {app.ember.player.PrivateMedia.hidden(it.uri)}==true){
                 actionDialog?.dismiss();actionDialog=null;window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)

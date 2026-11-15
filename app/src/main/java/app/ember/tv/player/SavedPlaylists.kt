@@ -21,7 +21,7 @@ internal class SavedPlaylists(private val readValue:()->String?,private val writ
         {TokenStore(context.applicationContext).get("player.playlists."+profile)},
         {TokenStore(context.applicationContext).putEncrypted("player.playlists."+profile,it)},
     )
-    fun read():List<SavedPlaylist> = readValue()?.takeIf {it.length<=2*1024*1024}?.let {raw->
+    fun read():List<SavedPlaylist> = readValue()?.takeIf {it.length<=16*1024*1024}?.let {raw->
         runCatching {json.decodeFromString<List<SavedPlaylist>>(raw)}.getOrNull()?.filter(::valid)?.distinctBy {it.id}?.take(50)
     }.orEmpty()
     fun save(name:String,items:List<QueueMedia>,index:Int=0,repeat:String="off",shuffle:Boolean=false,id:String?=null):Boolean=synchronized(lock) {
@@ -33,7 +33,7 @@ internal class SavedPlaylists(private val readValue:()->String?,private val writ
         if(!valid(value))return@synchronized false
         val updated=values.filterNot {it.id==value.id}+value
         val encoded=json.encodeToString(updated)
-        encoded.length<=2*1024*1024 && writeValue(encoded)
+        encoded.length<=16*1024*1024 && writeValue(encoded)
     }
     fun rename(id:String,name:String):Boolean=synchronized(lock) {
         val value=read().firstOrNull {it.id==id} ?: return@synchronized false
@@ -52,7 +52,7 @@ internal class SavedPlaylists(private val readValue:()->String?,private val writ
         private val lock=Any()
         private val json=Json {ignoreUnknownKeys=true}
         fun valid(value:SavedPlaylist):Boolean = value.id.isNotBlank() && value.id.length<=80 && value.name.isNotBlank() && value.name.length<=80 &&
-            value.entries.size in 1..200 && value.index in value.entries.indices && value.repeat in setOf("off","one","all") && value.entries.all {entry->
+            value.entries.size in 1..MediaQueue.MAX_ITEMS && value.index in value.entries.indices && value.repeat in setOf("off","one","all") && value.entries.all {entry->
                 entry.title.isNotBlank() && entry.title.length<=180 && (entry.identity==null || entry.identity.length<=256) && (entry.directory==null || entry.directory.length<=16384 && entry.directory.startsWith("content://")) &&
                     if(entry.network!=null) {
                         val network=entry.network

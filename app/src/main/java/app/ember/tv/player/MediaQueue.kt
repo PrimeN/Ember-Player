@@ -7,7 +7,8 @@ internal data class QueueMedia(val uri:String,val title:String,val identity:Stri
     val key:String get()=identity ?: "file:"+java.security.MessageDigest.getInstance("SHA-256").digest(uri.toByteArray()).toHex()
 }
 internal class MediaQueue(items:List<QueueMedia>,val resources:List<java.io.Closeable> = emptyList()) {
-    val items=items.take(200).toMutableList()
+    val items=items.toMutableList()
+    init {require(items.size<=MAX_ITEMS) {"A queue can hold up to $MAX_ITEMS items."}}
     var index=0;private set
     var repeat="off"
     var playlistId:String?=null
@@ -26,7 +27,8 @@ internal class MediaQueue(items:List<QueueMedia>,val resources:List<java.io.Clos
         return candidates.firstOrNull {accept(items[it])}?.let(::select)
     }
     fun previous(accept:(QueueMedia)->Boolean={true}):QueueMedia? {val values=traversal();return values.take(values.indexOf(index).coerceAtLeast(0)).asReversed().firstOrNull {accept(items[it])}?.let(::select)}
-    fun add(values:List<QueueMedia>){items.addAll(values.take((200-items.size).coerceAtLeast(0)));rebuildOrder()}
+    fun add(values:List<QueueMedia>){require(values.size<=MAX_ITEMS-items.size) {"The queue is full. Create a separate playlist."};items.addAll(values);rebuildOrder()}
+    companion object {const val MAX_ITEMS=10000}
     fun move(from:Int,to:Int) {
         if(from !in items.indices||to !in items.indices)return
         val selected=index;items.add(to,items.removeAt(from));index=when {from==selected->to;from<selected&&to>=selected->selected-1;from>selected&&to<=selected->selected+1;else->selected}
@@ -42,7 +44,7 @@ internal object MediaQueues {
     fun put(items:List<QueueMedia>,resources:List<java.io.Closeable> = emptyList()):String=java.util.UUID.randomUUID().toString().also {queues[it]=MediaQueue(items,resources)}
     fun get(id:String?)=id?.let(queues::get)
     fun launch(items:List<QueueMedia>,resources:List<java.io.Closeable> = emptyList(),open:(String)->Unit) {
-        val id=put(items,resources)
+        val id=try {put(items,resources)}catch(e:Exception){resources.forEach {runCatching {it.close()}};throw e}
         try {open(id)} catch(e:Exception) {release(id);throw e}
     }
     fun release(id:String?){id?.let(queues::remove)?.resources?.forEach {runCatching {it.close()}}}

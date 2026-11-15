@@ -245,6 +245,9 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer-rtsp:1.11.1")
     implementation("androidx.media3:media3-exoplayer-smoothstreaming:1.11.1")
     implementation("androidx.media3:media3-ui:1.11.1")
+    implementation("androidx.media3:media3-transformer:1.11.1")
+    implementation("net.zetetic:sqlcipher-android:4.20.0")
+    implementation("androidx.sqlite:sqlite:2.7.0")
     // FFmpeg audio decoders from Nextlib (TrueHD, DTS/DTS-HD core, AC3, E-AC3, FLAC, ALAC, MP3, AAC,
     // Opus, Vorbis), plus software video recovery through Nextlib DecoderManager.
     implementation("io.github.anilbeesetti:nextlib-media3ext:1.11.1-0.17.0")
@@ -265,6 +268,7 @@ dependencies {
     implementation("com.github.mwiede:jsch:2.28.8")
     implementation("commons-net:commons-net:3.13.0")
 
+    testImplementation("androidx.sqlite:sqlite-framework:2.7.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.16.1")
     testImplementation("androidx.compose.ui:ui-test-junit4")

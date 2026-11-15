@@ -15,6 +15,8 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <queries><intent><action android:name="android.intent.action.TTS_SERVICE" /></intent></queries>
     <application android:name="app.ember.player.PlayerApplication" android:allowBackup="false"
         android:fullBackupContent="false" android:dataExtractionRules="@xml/data_extraction_rules"
@@ -32,6 +34,10 @@
         </activity>
         <activity android:name="app.ember.player.PlayerSettingsActivity" android:exported="false" />
         <activity android:name="app.ember.tv.player.ResumeBackgroundAudioActivity" android:exported="false" />
+        <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.downloads" android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/download_paths" />
+        </provider>
+        <service android:name="app.ember.player.MediaDownloadService" android:exported="false" android:foregroundServiceType="dataSync" />
         <service android:name="app.ember.tv.player.BackgroundAudioService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
         <activity android:name="app.ember.tv.player.PlayerActivity" android:exported="false" android:supportsPictureInPicture="true"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|density|uiMode" />

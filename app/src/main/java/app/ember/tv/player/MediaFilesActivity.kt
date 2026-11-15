@@ -38,7 +38,7 @@ class MediaFilesActivity:ComponentActivity() {
         preparing=true
         lifecycleScope.launch {
             try {
-                val items=withContext(Dispatchers.IO) {uris.take(200).map {
+                val items=withContext(Dispatchers.IO) {uris.map {
                     ensureActive();MediaFiles.retain(this@MediaFilesActivity,it)
                     QueueMedia(it.toString(),MediaFiles.name(this@MediaFilesActivity,it))
                 }}
@@ -103,9 +103,11 @@ class MediaFilesActivity:ComponentActivity() {
                         if(cleared)recent=emptyList() else message="Could not clear encrypted history."
                     }}
                 }
+                app.ember.player.DownloadsPanel(this@MediaFilesActivity)
                 app.ember.player.PrivateMediaPanel(this@MediaFilesActivity)
                 PlaylistsPanel(this@MediaFilesActivity,version)
                 UsbFilesPanel(this@MediaFilesActivity,version)
+                MediaLibraryPanel(this@MediaFilesActivity,version)
                 DeviceFilesPanel(this@MediaFilesActivity,version)
                 NetworkFilesPanel(this@MediaFilesActivity,version)
                 Chip("Back"){finish()}

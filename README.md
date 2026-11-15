@@ -37,15 +37,24 @@ Chosen folders and their recent-file history are also encrypted. Device-video th
 
 Backups use password-derived AES-256-GCM encryption. The password is not saved. Wrong passwords, damaged files and invalid backup contents are rejected before settings are replaced; failed writes attempt to restore and verify the previous configuration. Keep the backup password separately, since it cannot be recovered.
 
-The app requests access to selected files through Android's document picker. It does not replace the home screen, run a home-button accessibility service, start at boot, request broad storage access or install application updates.
+The app requests access to selected files through Android's document picker. It does not replace the home screen, run a home-button accessibility service, start at boot, request all-files storage access or install application updates.
+
+
+### Library and media tools
+
+- Search across saved media folders using an encrypted local index. Refresh it after changing files; no full scan runs at startup. Private files and forgotten roots are excluded from results.
+- Set a sleep timer for a preset or custom duration, or stop at the end of the current item. It applies to video and background audio.
+- Save a screenshot to a destination you choose. Captures are limited to 1080p and are unavailable for private playback and protected video surfaces.
+- Mark a clip start and end from Playback options, then export an MP4 without changing the source. Export uses the device’s H.264/AAC codecs, so supported input formats and speed depend on the device. Keep playback open during export; progress and cancellation are available in Playback options.
+- Download direct HTTP/HTTPS media files for offline use. Downloads are explicitly started, run with a foreground notification, and can be paused or resumed when the server supports byte ranges and validators. Saved URLs and download metadata are encrypted. Adaptive playlists and DRM streams are excluded; downloads interrupted by Android can be resumed manually.
 
 ## Installation and builds
 
 - Android 10 or newer; ARM64 or ARM32.
 - Touch controls on phones and tablets; remote or controller navigation on TVs. Rotation can follow the device or use a chosen orientation.
 - The application ID is `app.ember.player`; debug installations use `app.ember.player.debug`.
-- A file provider/document picker must be available for selecting local or USB files. Network folders remain available independently.
-- Folder browsing currently shows up to 2,000 media entries per directory; playback queues hold up to 200 files.
+- Android’s document picker is used for selected files, saved folders and export destinations. Mounted USB browsing can use Android’s media index with explicit media-library permission; network folders work independently.
+- Folder views use pages of 200 provider entries. Library search indexes selected folders and subfolders on request, with encrypted storage and pages of 100 results. Queues and saved playlists support up to 10,000 items; saved playlists share a 16 MiB storage budget.
 
 To build from source, install JDK 17, Gradle 9.8.2 and the Android SDK platform used by `app/build.gradle.kts`:
 

@@ -33,7 +33,7 @@ internal class DeviceFolders(private val readValue: () -> String?, private val w
 }
 
 internal object DeviceFiles {
-    const val LIMIT = 2000
+    const val LIMIT = 200
     private val video = setOf("mkv", "mp4", "m4v", "avi", "mov", "webm", "wmv", "ts", "mts", "m2ts", "mpg", "mpeg", "vob", "flv", "3gp", "ogv", "asf", "rm", "rmvb", "divx")
     private val audio = setOf("mp3", "m4a", "aac", "flac", "alac", "wav", "ogg", "opus", "ac3", "eac3", "dts", "mka", "aiff", "ape", "wma")
     private val extensions = video + audio
@@ -47,21 +47,34 @@ internal object DeviceFiles {
     fun name(context: Context, uri: Uri): String = context.contentResolver.query(uri, arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME), android.os.Bundle.EMPTY, null)?.use {
         if (it.moveToFirst()) it.getString(0) else null
     }?.take(180) ?: "Folder"
-    data class Page(val entries: List<DeviceFile>, val limited: Boolean)
-    fun list(context: Context, tree: Uri, directory: Uri, check: () -> Unit = {}): Page {
+    data class Page(val entries: List<DeviceFile>, val limited: Boolean, val nextOffset:Int=0)
+    fun list(context: Context, tree: Uri, directory: Uri, offset:Int=0, check: () -> Unit = {}): Page {
         val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, DocumentsContract.getDocumentId(directory))
         val columns = arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME,
             DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_SIZE,
             DocumentsContract.Document.COLUMN_LAST_MODIFIED, DocumentsContract.Document.COLUMN_FLAGS)
         val entries = mutableListOf<DeviceFile>()
-        context.contentResolver.query(children, columns, android.os.Bundle.EMPTY, null)?.use { cursor ->
+        require(offset>=0)
+        val args=android.os.Bundle().apply {
+            putInt(android.content.ContentResolver.QUERY_ARG_OFFSET,offset)
+            putInt(android.content.ContentResolver.QUERY_ARG_LIMIT,LIMIT+1)
+            putStringArray(android.content.ContentResolver.QUERY_ARG_SORT_COLUMNS,arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID))
+            putInt(android.content.ContentResolver.QUERY_ARG_SORT_DIRECTION,android.content.ContentResolver.QUERY_SORT_DIRECTION_ASCENDING)
+        }
+        context.contentResolver.query(children, columns, args, null)?.use { cursor ->
+            val honored=cursor.extras.getStringArray(android.content.ContentResolver.EXTRA_HONORED_ARGS).orEmpty().toSet()
+            if(android.content.ContentResolver.QUERY_ARG_OFFSET !in honored && offset>0) {
+                if(!cursor.moveToPosition(offset-1))return Page(emptyList(),false,offset)
+            }
+            var scanned=0
             while (cursor.moveToNext()) {
                 check()
+                if(scanned>=LIMIT)return Page(entries,true,offset+scanned)
+                scanned++
                 val id = cursor.getString(0) ?: continue
                 val name = cursor.getString(1)?.take(180) ?: continue
                 val mime = cursor.getString(2) ?: "application/octet-stream"
                 if (mime != DocumentsContract.Document.MIME_TYPE_DIR && !media(name, mime)) continue
-                if (entries.size >= LIMIT) return Page(entries, true)
                 entries += DeviceFile(DocumentsContract.buildDocumentUriUsingTree(tree, id), directory, name, mime,
                     if (cursor.isNull(3)) -1 else cursor.getLong(3), if (cursor.isNull(4)) 0 else cursor.getLong(4), cursor.getInt(5))
             }

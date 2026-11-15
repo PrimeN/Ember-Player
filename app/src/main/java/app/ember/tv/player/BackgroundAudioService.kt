@@ -32,6 +32,7 @@ class BackgroundAudioService:Service(),Player.Listener {
     private var audio:BackgroundAudioEngine?=null
     private var session:MediaSession?=null
     private var source:EngineSource?=null
+    private var sleepWatch:java.io.Closeable?=null
     private var usbWatch:java.io.Closeable?=null
     private var pickedAudio=false
     private var restoreTrack=true
@@ -50,6 +51,7 @@ class BackgroundAudioService:Service(),Player.Listener {
     override fun onBind(intent:Intent?)=null
     override fun onCreate() {
         super.onCreate();current=WeakReference(this)
+        sleepWatch=app.ember.tv.data.SleepTimer.listen {stopPlayback()}
         getSharedPreferences("ember",MODE_PRIVATE).registerOnSharedPreferenceChangeListener(preferences)
         getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel(CHANNEL,"Background playback",NotificationManager.IMPORTANCE_LOW))
         session=MediaSession(this,"Ember Player").apply {
@@ -118,6 +120,7 @@ class BackgroundAudioService:Service(),Player.Listener {
         }
     }
     override fun onPlaybackStateChanged(playbackState:Int) {
+        if(playbackState==Player.STATE_ENDED&&app.ember.tv.data.SleepTimer.itemEnded())return
         if(playbackState==Player.STATE_ENDED){
             source?.let {key->PositionStore(this,handoff?.value?.scope ?: app.ember.tv.data.LocalActivity.SHARED).clear(key.key)}
             val queue=MediaQueues.get(handoff?.value?.queueId)
@@ -222,6 +225,7 @@ class BackgroundAudioService:Service(),Player.Listener {
         return updated
     }
     override fun onDestroy(){
+        sleepWatch?.close();sleepWatch=null
         getSharedPreferences("ember",MODE_PRIVATE).unregisterOnSharedPreferenceChangeListener(preferences)
         releaseSession(true);session?.isActive=false;session?.release();session=null;if(current?.get()===this)current=null;super.onDestroy()
     }

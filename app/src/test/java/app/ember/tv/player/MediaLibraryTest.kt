@@ -1,0 +1,54 @@
+package app.ember.tv.player
+
+import android.content.Context
+import android.content.pm.ProviderInfo
+import android.net.Uri
+import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.db.SupportSQLiteOpenHelper
+import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
+import org.junit.Assert.*
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowContentResolver
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk=[35],application=android.app.Application::class)
+class MediaLibraryTest {
+    private val app:Context get()=RuntimeEnvironment.getApplication()
+    private fun database():SupportSQLiteDatabase=FrameworkSQLiteOpenHelperFactory().create(SupportSQLiteOpenHelper.Configuration.builder(app)
+        .callback(object:SupportSQLiteOpenHelper.Callback(1){override fun onCreate(db:SupportSQLiteDatabase){};override fun onUpgrade(db:SupportSQLiteDatabase,oldVersion:Int,newVersion:Int){}}).build()).writableDatabase
+    @Test fun refreshSearchPrivacyAndRemovedFilesUseTheSameIndex() {
+        val provider=DeviceTestProvider();provider.attachInfo(app,ProviderInfo().apply {authority="device.files";exported=true;grantUriPermissions=true;readPermission="android.permission.MANAGE_DOCUMENTS";writePermission="android.permission.MANAGE_DOCUMENTS"})
+        ShadowContentResolver.registerProviderInternal("device.files",provider)
+        val roots=mutableListOf(DeviceFolder("content://device.files/tree/root","Root"))
+        var protectVideo=false
+        MediaLibrary(app,{database()},{roots},{protectVideo&&it.endsWith("/video")}).use {index->
+            index.refresh(roots,{}, {})
+            assertEquals(1,index.search("video").entries.size)
+            assertTrue(index.search("notes").entries.isEmpty())
+            protectVideo=true;assertTrue(index.search("video").entries.isEmpty())
+            protectVideo=false
+            provider.children=listOf("hidden")
+            index.refresh(roots,{}, {})
+            assertTrue(index.search("video").entries.isEmpty())
+            assertEquals(1,index.search("hidden").entries.size)
+            roots.clear();assertTrue(index.search("").entries.isEmpty())
+        }
+    }
+    @Test fun providerWithoutOffsetSupportStillPagesAllRows() {
+        val provider=DeviceTestProvider();provider.attachInfo(app,ProviderInfo().apply {authority="device.files";exported=true;grantUriPermissions=true;readPermission="android.permission.MANAGE_DOCUMENTS";writePermission="android.permission.MANAGE_DOCUMENTS"})
+        ShadowContentResolver.registerProviderInternal("device.files",provider)
+        provider.children=List(451){"video"}
+        val tree=Uri.parse("content://device.files/tree/root");val root=DeviceFiles.root(tree)
+        val first=DeviceFiles.list(app,tree,root);val second=DeviceFiles.list(app,tree,root,first.nextOffset);val last=DeviceFiles.list(app,tree,root,second.nextOffset)
+        assertEquals(200,first.entries.size);assertEquals(200,second.entries.size);assertEquals(51,last.entries.size)
+        assertFalse(last.limited)
+    }
+    @Test fun searchTermsCannotInjectFtsSyntax() {
+        assertEquals("\"hello\"* \"OR\"* \"世界\"*",MediaLibrary.terms("hello OR (世界*)\""))
+        assertEquals("",MediaLibrary.terms("* - \""))
+    }
+}
