@@ -52,20 +52,41 @@ internal class PrivateSession {
 
 /** Document IDs stay stable across tree and single-document URI forms. */
 internal object PrivateMediaPolicy {
-    private fun identity(value:String):Pair<String,String>?=runCatching {
+    internal fun identity(value:String):Pair<String,String>?=runCatching {
         val uri=Uri.parse(value)
         if(uri.scheme=="content"&&uri.authority=="media"&&uri.pathSegments.lastOrNull()?.toLongOrNull()!=null)return@runCatching "media" to (uri.pathSegments.first().lowercase(java.util.Locale.ROOT)+":"+uri.pathSegments.last())
         val id=if(uri.scheme=="content")runCatching {DocumentsContract.getDocumentId(uri)}.getOrNull()
             ?: runCatching {DocumentsContract.getTreeDocumentId(uri)}.getOrNull() else null
         id?.let {val normalized=if(uri.authority=="com.android.externalstorage.documents"&&':' in it)it.substringBefore(':').lowercase(java.util.Locale.ROOT)+":"+it.substringAfter(':') else it;uri.authority.orEmpty() to normalized}
     }.getOrNull()
+    internal fun treeIdentity(value:String):Pair<String,String>?=runCatching {
+        val uri=Uri.parse(value)
+        val root=DocumentsContract.getTreeDocumentId(uri)
+        identity(DocumentsContract.buildDocumentUri(uri.authority,root).toString())
+    }.getOrNull()
     fun contains(item:PrivateItem,value:String):Boolean {
         if(item.aliases.any {contains(item.copy(uri=it,aliases=emptyList()),value)})return true
         if(item.uri==value)return true
         val a=identity(item.uri);val b=identity(value)
+        if(item.folder&&a!=null&&a==treeIdentity(value))return true
         if(a!=null&&b!=null&&a.first==b.first)return a.second==b.second || item.folder &&
             (b.second.startsWith(a.second.trimEnd('/')+"/") || a.second.endsWith(':')&&b.second.startsWith(a.second))
         return false
+    }
+}
+
+/** Normalize protected identities once; browsing only normalizes the candidate URI. */
+internal class PrivateMediaIndex(items:List<PrivateItem>) {
+    private val exact=items.flatMap {listOf(it.uri)+it.aliases}.toHashSet()
+    private val documents=exact.mapNotNull(PrivateMediaPolicy::identity).toHashSet()
+    private val folders=items.filter {it.folder}.flatMap {item->(listOf(item.uri)+item.aliases).mapNotNull(PrivateMediaPolicy::identity)}.groupBy({it.first},{it.second})
+    fun hidden(uri:String):Boolean {
+        if(uri in exact)return true
+        val id=PrivateMediaPolicy.identity(uri) ?: return false
+        if(id in documents)return true
+        val roots=folders[id.first].orEmpty()
+        if(roots.isNotEmpty()&&PrivateMediaPolicy.treeIdentity(uri)?.let {it.first==id.first&&it.second in roots}==true)return true
+        return roots.any {root->id.second.startsWith(root.trimEnd('/')+"/") || root.endsWith(':')&&id.second.startsWith(root)}
     }
 }
 
@@ -77,6 +98,7 @@ internal object PrivateMedia {
     val unlocked=session.unlocked
     private lateinit var app:Context
     private var initialized=false
+    @Volatile private var index=PrivateMediaIndex(emptyList())
     @Volatile private var unavailable=false
     private val handler=Handler(Looper.getMainLooper())
     private var started=0
@@ -89,6 +111,7 @@ internal object PrivateMedia {
         val raw=TokenStore(app).get(KEY)
         val value=raw?.takeIf {it.length<=1024*1024}?.let {runCatching {json.decodeFromString<PrivacyData>(it).also(::validate)}.getOrNull()}
         unavailable=(raw!=null&&value==null)||(marker&&value==null)
+        index=PrivateMediaIndex(value?.items.orEmpty())
         state.value=value ?: PrivacyData();lock()
         if(value!=null)app.getSharedPreferences("playerSecurity",Context.MODE_PRIVATE).edit().putBoolean("enabled",value.pin.isNotEmpty()).commit()
     }
@@ -106,9 +129,10 @@ internal object PrivateMedia {
         validate(value)
         check(TokenStore(app).putEncrypted(KEY,json.encodeToString(value))){"Private storage is unavailable. No privacy change was saved."}
         check(app.getSharedPreferences("playerSecurity",Context.MODE_PRIVATE).edit().putBoolean("enabled",value.pin.isNotEmpty()).commit())
+        index=PrivateMediaIndex(value.items)
         state.value=value
     }
-    fun hidden(uri:String)=unavailable || state.value.items.any {PrivateMediaPolicy.contains(it,uri)}
+    fun hidden(uri:String)=unavailable || index.hidden(uri)
     fun historyAllowed(uri:String)=state.value.history&&!hidden(uri)
     @Synchronized fun configure(pin:String) {
         check(!enabled || unlocked.value);check(!unavailable)

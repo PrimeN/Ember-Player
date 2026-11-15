@@ -45,3 +45,6 @@ internal fun PlayerActivity.commitBackgroundAudio():Boolean {
     backgroundStage=null
     return backgroundQueueTransferred
 }
+
+@androidx.annotation.OptIn(UnstableApi::class)
+internal fun PlayerActivity.queueItemAllowed(media:QueueMedia)=!app.ember.player.PrivateMedia.hidden(media.uri) || privatePlayback&&app.ember.player.PrivateMedia.unlocked.value

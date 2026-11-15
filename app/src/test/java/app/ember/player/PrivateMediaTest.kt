@@ -67,6 +67,7 @@ class PrivateMediaTest {
         assertFalse(context.getSharedPreferences(SecretVault.FILE,Context.MODE_PRIVATE).all.values.any {it.toString().contains("Private movie")})
         PrivateMedia.lock();assertFalse(PrivateMedia.unlocked.value)
         assertTrue(PrivateMedia.authenticate("123456"));assertEquals("Private movie",PrivateMedia.state.value.items.single().name)
+        PrivateMedia.remove(private.uri);assertFalse(PrivateMedia.hidden(private.uri))
     }
     @Test fun failedAttemptsPersistAndThrottleBeforeUnlock() {
         PrivateMedia.configure("123456");PrivateMedia.lock()
@@ -100,6 +101,20 @@ class PrivateMediaTest {
         assertTrue(MediaHistory(context).read().isEmpty());assertNull(PositionStore(context).get("movie"))
         PositionStore(context).put("other",100,1000);assertNull(PositionStore(context).get("other"))
         assertEquals("Scene",bookmarks.read("movie").single().name)
+    }
+    @Test fun privateTreeGrantsProtectChildrenWithOpaqueDocumentIds() {
+        val folder=PrivateItem("content://docs/tree/opaque-parent","Private folder",true)
+        val child="content://docs/tree/opaque-parent/document/unrelated-child-id"
+        val other="content://docs/tree/other-parent/document/unrelated-child-id"
+        assertTrue(PrivateMediaPolicy.contains(folder,child));assertFalse(PrivateMediaPolicy.contains(folder,other))
+        val index=PrivateMediaIndex(listOf(folder))
+        assertTrue(index.hidden(child));assertFalse(index.hidden(other))
+    }
+    @Test fun cachedIdentityIndexKeepsFolderAndAliasRules() {
+        val items=listOf(PrivateItem("content://docs/tree/root%3ASecret","Secret",true),PrivateItem("content://docs/document/video","Video",aliases=listOf("content://media/drive/video/media/42")))
+        val index=PrivateMediaIndex(items)
+        for(uri in listOf("content://docs/document/root%3ASecret%2Fmovie.mkv","content://docs/document/root%3ASecret2%2Fmovie.mkv","content://media/drive/file/42","content://media/drive/file/43","content://other/document/video"))
+            assertEquals(items.any {PrivateMediaPolicy.contains(it,uri)},index.hidden(uri))
     }
     @Test fun privateImportsCommitAsOneValidatedBatch(){
         PrivateMedia.configure("123456")

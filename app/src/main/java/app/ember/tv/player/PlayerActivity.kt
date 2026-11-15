@@ -625,6 +625,9 @@ class PlayerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         lifecycleScope.launch {kotlinx.coroutines.flow.combine(app.ember.player.PrivateMedia.unlocked,app.ember.player.PrivateMedia.state){allowed,_->allowed}.collect {allowed->
+            if(!privatePlayback&&fileQueue?.items?.any {app.ember.player.PrivateMedia.hidden(it.uri)}==true){
+                actionDialog?.dismiss();actionDialog=null;window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+            }
             if(currentUrl!=null&&app.ember.player.PrivateMedia.hidden(currentUrl.orEmpty())) {
                 privatePlayback=true;window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);platformSession?.release();platformSession=null
                 if(!allowed){player?.pause();endPlayback()}
@@ -644,7 +647,7 @@ class PlayerActivity : ComponentActivity() {
         if (touchControls?.dispatchKey(event) == true) return true
         if (actionDialog?.dispatch(event) == true) return true
         if(fileQueue!=null && event.keyCode in setOf(KeyEvent.KEYCODE_MEDIA_NEXT,KeyEvent.KEYCODE_MEDIA_PREVIOUS)){
-            if(event.action==KeyEvent.ACTION_UP)(if(event.keyCode==KeyEvent.KEYCODE_MEDIA_NEXT)fileQueue?.next() else fileQueue?.previous())?.let { playFile(it) }
+            if(event.action==KeyEvent.ACTION_UP)(if(event.keyCode==KeyEvent.KEYCODE_MEDIA_NEXT)fileQueue?.next(accept=::queueItemAllowed) else fileQueue?.previous(::queueItemAllowed))?.let { playFile(it) }
             return true
         }
         val unobstructed = !(::panel.isInitialized && panel.isVisible) &&

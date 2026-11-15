@@ -121,7 +121,7 @@ class BackgroundAudioService:Service(),Player.Listener {
         if(playbackState==Player.STATE_ENDED){
             source?.let {key->PositionStore(this,handoff?.value?.scope ?: app.ember.tv.data.LocalActivity.SHARED).clear(key.key)}
             val queue=MediaQueues.get(handoff?.value?.queueId)
-            queue?.next(ended=true)?.let {loadQueueItem(it)} ?: stopPlayback()
+            queue?.next(ended=true,accept={ !app.ember.player.PrivateMedia.hidden(it.uri) })?.let {loadQueueItem(it)} ?: stopPlayback()
         }
     }
     override fun onPlayerError(error:PlaybackException) {
@@ -132,7 +132,7 @@ class BackgroundAudioService:Service(),Player.Listener {
         if(direction<0 && player.currentPosition>3000){player.seekTo(0);return}
         val queue=MediaQueues.get(handoff?.value?.queueId) ?: return
         savePosition()
-        (if(direction>0)queue.next() else queue.previous())?.let(::loadQueueItem)
+        (if(direction>0)queue.next(accept={!app.ember.player.PrivateMedia.hidden(it.uri)}) else queue.previous {!app.ember.player.PrivateMedia.hidden(it.uri)})?.let(::loadQueueItem)
     }
     private fun loadQueueItem(media:QueueMedia) {
         if(app.ember.player.PrivateMedia.hidden(media.uri)){stopPlayback();return}

@@ -33,20 +33,22 @@ internal fun PlayerActivity.readNextEpisodes() {
 
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.playFile(media:QueueMedia) {
+    if(!queueItemAllowed(media)){Toast.makeText(this,"Open protected files from Private media.",Toast.LENGTH_LONG).show();return}
     savePosition();resumeKey=media.key;item=item.copy(key=resumeKey,title=media.title)
     resumed=false;ended=false;startOver=false;resumeFraction=-1f;audioUrl=null
     closeMenu();controls.sheet=null;controls.details=null
     controls.localUri=media.uri.takeIf {it.startsWith("content://")}
     if(subsInitialized)subs.config=subConfigFor(prefs.subtitleConfig)
     start(media.uri,media.title,emptyList(),media.title);refreshControlsTitle()
-    platformSession?.nextAvailable(fileQueue?.hasNext()==true)
+    platformSession?.nextAvailable(fileQueue?.hasNext(::queueItemAllowed)==true)
     fileQueue?.let {q->q.playlistId?.let {PlaylistProgress.save(applicationContext,watchProfileId,it,media.key)}}
 }
 
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.showFileQueue() {
     val queue=fileQueue?:return
-    showPlayerActions("Queue", queue.items.mapIndexed { index, media ->
+    showPlayerActions("Queue", queue.items.mapIndexedNotNull { index, media ->
+        if(!queueItemAllowed(media))return@mapIndexedNotNull null
         PlayerDialogAction(media.title, Icons.Outlined.PlayArrow, selected = index == queue.index) {
             val currentIndex = queue.items.indexOf(media)
             if (currentIndex >= 0) showPlayerActions(media.title, listOf(
@@ -61,7 +63,7 @@ internal fun PlayerActivity.showFileQueue() {
 
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.onEpisodeEnded() {
-    fileQueue?.let {q->val next=q.next(ended=true);if(next!=null)playFile(next) else finish();return}
+    fileQueue?.let {q->val next=q.next(ended=true,accept=::queueItemAllowed);if(next!=null)playFile(next) else finish();return}
     if (serverRef != null && nextEpisodes.isEmpty() && nextServerJob?.isActive == true) {
         lifecycleScope.launch { nextServerJob?.join(); onEpisodeEnded() }
         return
@@ -109,7 +111,7 @@ internal fun PlayerActivity.dismissUpNext() {
 
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.playNext() {
-    fileQueue?.let {q->q.next()?.let { playFile(it) };return}
+    fileQueue?.let {q->q.next(accept=::queueItemAllowed)?.let { playFile(it) };return}
     if (nextEpisodeJob?.isActive == true || upNextUi.finding) return
     handler.removeCallbacks(tick)
     val next = nextEpisodes.firstOrNull() ?: return finish()

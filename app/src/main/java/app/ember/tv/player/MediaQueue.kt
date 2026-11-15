@@ -16,15 +16,16 @@ internal class MediaQueue(items:List<QueueMedia>,val resources:List<java.io.Clos
     private var order:List<Int> = emptyList()
     private fun rebuildOrder(){order=if(shuffle)listOf(index)+(items.indices.filter {it!=index}).shuffled() else items.indices.toList()}
     private fun traversal():List<Int> {if(order.size!=items.size)rebuildOrder();return order}
-    fun hasNext():Boolean=repeat=="all" || traversal().indexOf(index)<items.lastIndex
+    fun hasNext(accept:(QueueMedia)->Boolean={true}):Boolean {val values=traversal();return (if(repeat=="all")values else values.drop(values.indexOf(index)+1)).any {accept(items[it])}}
     val current get()=items.getOrNull(index)
     fun select(at:Int):QueueMedia? {if(at !in items.indices)return null;index=at;return current}
-    fun next(ended:Boolean=false):QueueMedia? {
-        if(ended&&repeat=="one")return current
+    fun next(ended:Boolean=false,accept:(QueueMedia)->Boolean={true}):QueueMedia? {
+        if(ended&&repeat=="one")current?.takeIf(accept)?.let {return it}
         val values=traversal();val at=values.indexOf(index)
-        return select(values.getOrNull(at+1) ?: if(repeat=="all")values.firstOrNull() ?: return null else return null)
+        val candidates=values.drop(at+1)+(if(repeat=="all")values.take(at+1) else emptyList())
+        return candidates.firstOrNull {accept(items[it])}?.let(::select)
     }
-    fun previous():QueueMedia? {val values=traversal();return select(values.getOrNull(values.indexOf(index)-1) ?: return null)}
+    fun previous(accept:(QueueMedia)->Boolean={true}):QueueMedia? {val values=traversal();return values.take(values.indexOf(index).coerceAtLeast(0)).asReversed().firstOrNull {accept(items[it])}?.let(::select)}
     fun add(values:List<QueueMedia>){items.addAll(values.take((200-items.size).coerceAtLeast(0)));rebuildOrder()}
     fun move(from:Int,to:Int) {
         if(from !in items.indices||to !in items.indices)return

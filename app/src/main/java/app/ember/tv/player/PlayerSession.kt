@@ -99,6 +99,7 @@ internal fun PlayerActivity.start(url: String, title: String, addonSubs: List<Su
     currentUrl = url
     triedAsHls = false
     showLiveBanner()
+    if (subsInitialized)subs.config=subConfigFor(prefs.subtitleConfig)
     if (subsInitialized && !trailer) {
         subs.startSearch(
             url,
