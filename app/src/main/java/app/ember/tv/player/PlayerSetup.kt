@@ -159,6 +159,11 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
     controls.details = PlayerDetails.get(resumeKey)
     refreshControlsTitle()
     setContentView(buildLayout())
+    androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
+        systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+    }
+    installTouchControls()
     if (advanced) handler.post(controlsTicker)
 
     applyZoom()
@@ -200,7 +205,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         if(boostLevel>0)setBoost(boostLevel)
         if(compatible) {
             audioDecoder=null
-            applyZoom();applyAspect()
+            applyZoom();applyAspect();applyTouchMagnification()
             playbackEngine?.compatibility?.captionStyle(prefs.subtitleConfig)
             playbackEngine?.compatibility?.audioDelay(audioDelay.us/1000)
             playbackEngine?.compatibility?.audioEffects(config.audioEffects)

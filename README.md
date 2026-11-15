@@ -1,6 +1,6 @@
 # Ember Player
 
-A standalone media player for Android and Android TV, built around Ember's playback engines and remote-friendly controls.
+A media player for Android phones, tablets and Android TV, with touch and remote controls. No ads.
 
 **Development happens on [`beta`](https://github.com/PrimeN/Ember-Player/tree/beta).** The initial version is 0.1.0. No production APK release is published automatically.
 
@@ -15,6 +15,7 @@ A standalone media player for Android and Android TV, built around Ember's playb
 - **Subtitles:** embedded tracks and manual text/bitmap subtitles, including SRT, VTT, ASS/SSA, TTML, SAMI and paired VobSub files. Timing, speed and appearance controls are available in the player.
 - **Sound and picture:** track selection, HDMI passthrough, lip sync, separate Bluetooth delay, decoded-audio presets, picture fit, frame-rate matching and optional deinterlacing.
 - **Device-aware performance:** automatic, low, balanced and high settings; optional glass surfaces and remembered working video decoders.
+- **Touch controls:** double-tap to seek or pause, swipe to seek or change volume/brightness, pinch to zoom, and hold for temporary 2× playback. Gestures and rotation are configurable; playback lock has an explicit unlock button and Back-key escape.
 
 Format support depends on the engine, device decoders, audio output and display. HDR10+, Dolby Vision and encoded surround output require compatible hardware. There is no promise that every format or profile works on every device.
 
@@ -29,8 +30,8 @@ The app requests access to selected files through Android's document picker. It 
 ## Installation and builds
 
 - Android 10 or newer; ARM64 or ARM32.
-- Designed primarily for Android TV and landscape use with a remote or controller. The controls also accept touch.
-- The application ID is `app.ember.player`; debug installations use `app.ember.player.debug`. Both are separate from Ember Launcher.
+- Touch controls on phones and tablets; remote or controller navigation on TVs. Rotation can follow the device or use a chosen orientation.
+- The application ID is `app.ember.player`; debug installations use `app.ember.player.debug`.
 - A file provider/document picker must be available for selecting local or USB files. Network folders remain available independently.
 
 To build from source, install JDK 17, Gradle 9.8.2 and the Android SDK platform used by `app/build.gradle.kts`:

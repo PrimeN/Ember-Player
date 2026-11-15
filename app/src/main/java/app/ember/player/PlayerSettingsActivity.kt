@@ -55,6 +55,17 @@ class PlayerSettingsActivity:ComponentActivity() {
                         PlayerChoice("Dolby Vision",listOf("auto" to "Automatic","always" to "Use Dolby Vision","hdr10" to "HDR10 base layer when available"),config.dolbyVision){v->update {it.copy(dolbyVision=v)}}
                         PlayerChoice("Deinterlacing",listOf("off" to "Off","auto" to "Automatic","always" to "Always"),config.deinterlacing){v->update {it.copy(deinterlacing=v)}}
                     }}
+                    item {Section("Touch and rotation") {
+                        Text("Touch gestures apply on phones and tablets. Remote navigation stays available on TVs.",color=Mute,fontSize=12.sp)
+                        SwitchChip("Touch gestures",config.touch.enabled){update {it.copy(touch=it.touch.copy(enabled=!it.touch.enabled))}}
+                        PlayerChoice("Double-tap seek",listOf("5" to "5 seconds","10" to "10 seconds","15" to "15 seconds","30" to "30 seconds","60" to "60 seconds"),config.touch.seekSeconds.toString()){v->update {it.copy(touch=it.touch.copy(seekSeconds=v.toInt()))}}
+                        SwitchChip("Swipe right side for volume",config.touch.volumeSwipe){update {it.copy(touch=it.touch.copy(volumeSwipe=!it.touch.volumeSwipe))}}
+                        SwitchChip("Swipe left side for brightness",config.touch.brightnessSwipe){update {it.copy(touch=it.touch.copy(brightnessSwipe=!it.touch.brightnessSwipe))}}
+                        SwitchChip("Pinch to zoom",config.touch.pinchZoom){update {it.copy(touch=it.touch.copy(pinchZoom=!it.touch.pinchZoom))}}
+                        SwitchChip("Hold video for temporary 2× speed",config.touch.holdToSpeed){update {it.copy(touch=it.touch.copy(holdToSpeed=!it.touch.holdToSpeed))}}
+                        PlayerChoice("Orientation",listOf("auto" to "Follow device setting","sensor" to "Automatic rotation","landscape" to "Landscape","portrait" to "Portrait"),config.touch.orientation){v->update {it.copy(touch=it.touch.copy(orientation=v))}}
+                        Text("Tap to show controls. Double-tap the centre to pause; double-tap an edge to seek. Swipe horizontally to preview a seek, then release. Playback lock is in the player options; Back unlocks it.",color=Mute,fontSize=12.sp)
+                    }}
                     item {Section("Sound") {
                         SwitchChip("HDMI passthrough",config.passthrough){update {it.copy(passthrough=!it.passthrough)}}
                         PlayerChoice("Audio decoding",listOf("on" to "Software when needed","prefer" to "Prefer software","off" to "Device decoders only"),config.ffmpeg){v->update {it.copy(ffmpeg=v)}}

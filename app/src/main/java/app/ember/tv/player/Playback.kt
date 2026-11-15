@@ -105,6 +105,7 @@ data class PlaybackConfig(
     val seekMode: String = "precise",
     val audioEffects: AudioEffects = AudioEffects(),
     val quickShortcuts: List<String> = PlayerShortcuts.defaults,
+    val touch: TouchControlsConfig = TouchControlsConfig(),
 )
 
 @OptIn(UnstableApi::class)

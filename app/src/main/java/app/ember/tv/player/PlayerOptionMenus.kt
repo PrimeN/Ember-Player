@@ -137,6 +137,7 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
             }.forEach(::add)
             add(OptionRow("All player options",icon=MenuIcons.more,action={openMenu("options","playback")}))
             add(OptionRow("Customize shortcuts",icon=MenuIcons.more,action={editPlayerShortcuts()}))
+            add(OptionRow("Lock playback",action={closeMenu();touchControls?.setLocked(true)}))
         }
         "video" -> buildList {
             val engines=listOf("auto","standard","compatibility")
@@ -175,6 +176,7 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
             )
         }
         "playback" -> buildList {
+            add(OptionRow("Lock playback",note="Use the unlock button or Back to restore controls.",action={closeMenu();touchControls?.setLocked(true)}))
             if (chapters.isNotEmpty()) {
                 val pos = p.currentPosition
                 val cur = chapters.indexOfLast { it.startMs <= pos }.coerceAtLeast(0)
@@ -294,12 +296,14 @@ internal fun PlayerActivity.applyZoom() {
         "stretch" -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
         else -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
     }
+    applyTouchMagnification()
 }
 
 /** Forces a picture shape; Auto goes back to the video's own. */
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.applyAspect() {
     playbackEngine?.compatibility?.geometry(config.zoom,aspects[aspect].second)
+    applyTouchMagnification()
     val frame = view.findViewById<androidx.media3.ui.AspectRatioFrameLayout>(androidx.media3.ui.R.id.exo_content_frame) ?: return
     val r = aspects[aspect].second
     if (r > 0f) {

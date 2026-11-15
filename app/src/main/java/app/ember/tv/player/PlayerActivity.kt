@@ -327,6 +327,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        touchControls?.close(); touchControls = null
         // A dialog still showing would leak its window when the player closes (#77).
         actionDialog?.dismiss(); actionDialog = null
         outputRoute?.close(); outputRoute=null
@@ -376,6 +377,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     internal fun showControls() {
+        if (touchControls?.locked == true) return
         if (!advanced || controls.menu != null) return
         updateControls()
         if (!controls.visible) {
@@ -617,6 +619,7 @@ class PlayerActivity : ComponentActivity() {
     /** While the "Up next" card is open, its buttons get the remote; otherwise the player controls do. */
     @android.annotation.SuppressLint("RestrictedApi") // super.dispatchKeyEvent is the normal Activity path
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (touchControls?.dispatchKey(event) == true) return true
         if (actionDialog?.dispatch(event) == true) return true
         if(fileQueue!=null && event.keyCode in setOf(KeyEvent.KEYCODE_MEDIA_NEXT,KeyEvent.KEYCODE_MEDIA_PREVIOUS)){
             if(event.action==KeyEvent.ACTION_UP)(if(event.keyCode==KeyEvent.KEYCODE_MEDIA_NEXT)fileQueue?.next() else fileQueue?.previous())?.let { playFile(it) }
@@ -722,6 +725,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     override fun onStop() {
+        touchControls?.cancel()
         super.onStop()
         cancelRecovery()
         cancelNextEpisodeLookup()
@@ -753,6 +757,18 @@ class PlayerActivity : ComponentActivity() {
     }
 
     internal var actionDialog: PlayerActionDialog? = null
+    internal var touchControls: PlayerTouchControls? = null
+    internal var touchMagnification = 1f
+
+    override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
+        if (isInPictureInPictureMode) return super.dispatchTouchEvent(event)
+        return touchControls?.dispatch(event) == true || super.dispatchTouchEvent(event)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (!hasFocus) touchControls?.cancel()
+    }
     internal var leaveDialog: PlayerActionDialog? = null
 
     /** The accent colour (Settings > Appearance) as a colour int, for the panel's buttons and the simple look's progress bar. */

@@ -289,6 +289,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         native.setPropertyBoolean("keepaspect",zoom!="stretch")
         native.setPropertyString("video-aspect-override",if(ratio>0)ratio.toString() else "no")
     }
+    fun magnify(scale:Float) { native.setPropertyDouble("video-zoom", kotlin.math.ln(scale.coerceIn(1f,4f).toDouble()) / kotlin.math.ln(2.0)) }
     fun volumeBoost(db:Double){boostGain=Math.pow(10.0,db/20.0);native.setPropertyDouble("volume",gain*100.0*boostGain)}
     fun audioDelay(ms:Long){audioOffset=ms;native.setPropertyDouble("audio-delay",(ms-(if(wholeTitleAudio)prefix(partIndex) else 0L))/1000.0)}
     fun subtitleDelay(ms:Long){subtitleOffset=ms;native.setPropertyDouble("sub-delay",SubtitleTiming.nativeDelay(ms,subtitleRate,if(externalGlobal)prefix(partIndex) else 0L))}
