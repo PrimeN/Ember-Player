@@ -1,0 +1,110 @@
+package app.ember.tv.player
+
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.DocumentsContract
+import app.ember.tv.tracker.TokenStore
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.io.IOException
+
+@Serializable
+internal data class DeviceFolder(val uri: String, val name: String)
+
+internal data class DeviceFile(val uri: Uri, val parent: Uri, val name: String, val mime: String, val size: Long, val modified: Long, val flags: Int) {
+    val directory get() = mime == DocumentsContract.Document.MIME_TYPE_DIR
+}
+
+/** Folder access is explicit and uses persisted Android document grants. No startup scan. */
+internal class DeviceFolders(private val readValue: () -> String?, private val writeValue: (String) -> Boolean) {
+    constructor(context: Context) : this(
+        { TokenStore(context.applicationContext).get("player.folders") },
+        { TokenStore(context.applicationContext).putEncrypted("player.folders", it) },
+    )
+    fun read(): List<DeviceFolder> = readValue()?.takeIf { it.length <= 65536 }?.let {
+        runCatching { Json.decodeFromString<List<DeviceFolder>>(it) }.getOrNull()
+            ?.filter { f -> f.name.isNotBlank() && f.name.length <= 180 && f.uri.length <= 4096 && runCatching { val uri=Uri.parse(f.uri);uri.scheme=="content" && !uri.authority.isNullOrBlank() && DocumentsContract.isTreeUri(uri) }.getOrDefault(false) }
+            ?.distinctBy { f -> f.uri }?.take(16)
+    }.orEmpty()
+    fun add(value: DeviceFolder): Boolean = writeValue(Json.encodeToString((read().filterNot { it.uri == value.uri } + value).takeLast(16)))
+    fun remove(uri: String): Boolean = writeValue(Json.encodeToString(read().filterNot { it.uri == uri }))
+}
+
+internal object DeviceFiles {
+    const val LIMIT = 2000
+    private val video = setOf("mkv", "mp4", "m4v", "avi", "mov", "webm", "wmv", "ts", "mts", "m2ts", "mpg", "mpeg", "vob", "flv", "3gp", "ogv", "asf", "rm", "rmvb", "divx")
+    private val audio = setOf("mp3", "m4a", "aac", "flac", "alac", "wav", "ogg", "opus", "ac3", "eac3", "dts", "mka", "aiff", "ape", "wma")
+    private val extensions = video + audio
+    fun media(name: String, mime: String) = mime.startsWith("video/") || mime.startsWith("audio/") || name.substringAfterLast('.', "").lowercase() in extensions
+    fun validName(name: String) = name.isNotBlank() && name == name.trim() && name.length <= 180 && name !in setOf(".", "..") && name.none { it == '/' || it == '\\' || it.isISOControl() }
+    fun root(tree: Uri): Uri = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
+    fun retain(context: Context, uri: Uri) {
+        try {context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)}
+        catch (_:SecurityException) {context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)}
+    }
+    fun name(context: Context, uri: Uri): String = context.contentResolver.query(uri, arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME), android.os.Bundle.EMPTY, null)?.use {
+        if (it.moveToFirst()) it.getString(0) else null
+    }?.take(180) ?: "Folder"
+    data class Page(val entries: List<DeviceFile>, val limited: Boolean)
+    fun list(context: Context, tree: Uri, directory: Uri, check: () -> Unit = {}): Page {
+        val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, DocumentsContract.getDocumentId(directory))
+        val columns = arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+            DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_SIZE,
+            DocumentsContract.Document.COLUMN_LAST_MODIFIED, DocumentsContract.Document.COLUMN_FLAGS)
+        val entries = mutableListOf<DeviceFile>()
+        context.contentResolver.query(children, columns, android.os.Bundle.EMPTY, null)?.use { cursor ->
+            while (cursor.moveToNext()) {
+                check()
+                val id = cursor.getString(0) ?: continue
+                val name = cursor.getString(1)?.take(180) ?: continue
+                val mime = cursor.getString(2) ?: "application/octet-stream"
+                if (mime != DocumentsContract.Document.MIME_TYPE_DIR && !media(name, mime)) continue
+                if (entries.size >= LIMIT) return Page(entries, true)
+                entries += DeviceFile(DocumentsContract.buildDocumentUriUsingTree(tree, id), directory, name, mime,
+                    if (cursor.isNull(3)) -1 else cursor.getLong(3), if (cursor.isNull(4)) 0 else cursor.getLong(4), cursor.getInt(5))
+            }
+        } ?: throw IOException("This folder is unavailable. Choose it again to renew access.")
+        return Page(entries, false)
+    }
+    fun sorted(entries: List<DeviceFile>, query: String, sort: String, hidden: Boolean): List<DeviceFile> {
+        val filtered = entries.filter { (hidden || !it.name.startsWith('.')) && it.name.contains(query, true) }
+        val comparator:Comparator<DeviceFile> = when (sort) { "date" -> compareByDescending { it.modified }; "size" -> compareByDescending { it.size }; else -> compareBy { it.name.lowercase() } }
+        return filtered.sortedWith(compareByDescending<DeviceFile> { it.directory }.then(comparator).thenBy { it.name.lowercase() })
+    }
+    fun rename(context: Context, file: DeviceFile, name: String): Uri {
+        require(validName(name)) { "Enter a filename without slashes or control characters." }
+        require(!file.directory) { "Select a file." }
+        return DocumentsContract.renameDocument(context.contentResolver, file.uri, name) ?: throw IOException("This provider could not rename the file.")
+    }
+    fun delete(context: Context, files: List<DeviceFile>) {
+        require(files.isNotEmpty() && files.none { it.directory })
+        files.forEach { check(DocumentsContract.deleteDocument(context.contentResolver, it.uri)) { "Some files could not be deleted. Refresh the folder to see what remains." } }
+    }
+    /** A completed copy is closed and length-checked before the original is removed. */
+    fun move(context: Context, file: DeviceFile, tree: Uri, check: () -> Unit = {}): Uri {
+        require(!file.directory)
+        val resolver = context.contentResolver
+        val destination = root(tree)
+        if (file.uri.authority == tree.authority && file.flags and DocumentsContract.Document.FLAG_SUPPORTS_MOVE != 0) {
+            DocumentsContract.moveDocument(resolver, file.uri, file.parent, destination)?.let { return it }
+        }
+        val created = DocumentsContract.createDocument(resolver, destination, file.mime, file.name) ?: throw IOException("Cannot create a file in that folder.")
+        var copied = false
+        try {
+            var total = 0L
+            resolver.openInputStream(file.uri)?.use { input ->
+                resolver.openOutputStream(created, "w")?.use { output ->
+                    val bytes = ByteArray(64 * 1024)
+                    while (true) { check(); val count = input.read(bytes); if (count < 0) break; output.write(bytes, 0, count); total += count }
+                    output.flush()
+                } ?: throw IOException("Cannot write the destination file.")
+            } ?: throw IOException("Cannot read the source file.")
+            kotlin.check(file.size < 0 || total == file.size) { "The file changed during the move. The original was kept." }
+            check(); copied = true
+            kotlin.check(DocumentsContract.deleteDocument(resolver, file.uri)) { "The copy succeeded, but the original could not be removed." }
+            return created
+        } finally { if (!copied) runCatching { DocumentsContract.deleteDocument(resolver, created) } }
+    }
+}

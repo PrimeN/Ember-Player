@@ -72,11 +72,11 @@ class MediaFilesActivity:ComponentActivity() {
             }
             CompositionLocalProvider(androidx.tv.material3.LocalContentColor provides app.ember.tv.ui.Fg) {
             Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
-                .verticalScroll(rememberScrollState()).padding(40.dp),verticalArrangement=Arrangement.spacedBy(18.dp)) {
+                .verticalScroll(rememberScrollState()).padding(if(PlayerTouchControls.isTelevision(this@MediaFilesActivity))40.dp else 16.dp),verticalArrangement=Arrangement.spacedBy(18.dp)) {
                 Row(Modifier.fillMaxWidth(),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically,
                     horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                     app.ember.tv.ui.EmberMark(36.dp)
-                    Text("Ember Player",fontSize=26.sp,modifier=Modifier.weight(1f))
+                    Text("Ember Player",fontSize=26.sp,modifier=Modifier.weight(1f),maxLines=1,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     Chip("Settings"){startActivity(android.content.Intent(this@MediaFilesActivity,app.ember.player.PlayerSettingsActivity::class.java))}
                 }
                 Text(stringResource(R.string.tx_play_files_from_this_device_a))
@@ -96,6 +96,7 @@ class MediaFilesActivity:ComponentActivity() {
                         if(cleared)recent=emptyList() else message="Could not clear encrypted history."
                     }}
                 }
+                DeviceFilesPanel(this@MediaFilesActivity)
                 NetworkFilesPanel(this@MediaFilesActivity)
                 Chip("Back"){finish()}
             }

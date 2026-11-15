@@ -23,6 +23,12 @@ internal class MediaHistory(private val readValue:()->String?,private val writeV
         writeValue(json.encodeToString(next))
     }
     fun clear():Boolean=writeValue("[]")
+    fun moveUri(from:String,to:String,title:String):Boolean=synchronized(lock) {
+        val previous=read()
+        if(previous.none {it.uri==from})return@synchronized true
+        val updated=previous.map {if(it.uri==from)RecentMedia(to,title.take(180)) else it}.filter(::valid).distinctBy {it.uri}
+        writeValue(json.encodeToString(updated))
+    }
     companion object {
         private const val KEY="player.recent"
         private val lock=Any()

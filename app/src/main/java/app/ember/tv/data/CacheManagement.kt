@@ -115,6 +115,7 @@ object CacheManagement {
             else check(CacheFiles.delete(File(root(context),kind.directory)))
         }
         if (CacheKind.IMAGES in kinds) {
+            app.ember.tv.player.DeviceThumbnails.clear()
             attempt { ArtworkCaches.clear() }
             attempt { context.imageLoader.diskCache?.clear(); context.imageLoader.memoryCache?.clear(); app.ember.tv.ui.FrostCache.clear() }
             attempt { check(CacheFiles.delete(File(context.cacheDir,"hero-art-v1"))) }

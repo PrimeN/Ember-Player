@@ -23,5 +23,15 @@ class TrackMemory(context: Context,scope:String=app.ember.tv.data.LocalActivity.
 
     fun putAudio(show: String, language: String) = sp.edit { putString(prefix+"a:$show", language) }
     fun putSubtitles(show: String, choice: String) = sp.edit { putString(prefix+"s:$show", choice) }
+    fun moveKey(from:String,to:String) {
+        if(from==to)return
+        val audio=sp.getString(prefix+"a:$from",null)
+        val subtitles=sp.getString(prefix+"s:$from",null)
+        sp.edit {
+            audio?.let {putString(prefix+"a:$to",it)}
+            subtitles?.let {putString(prefix+"s:$to",it)}
+            remove(prefix+"a:$from");remove(prefix+"s:$from")
+        }
+    }
     fun clear() {val keys=sp.all.keys.filter {key->if(prefix.isEmpty())key.startsWith("a:") || key.startsWith("s:") else key.startsWith(prefix)};sp.edit {keys.forEach {remove(it)}}}
 }

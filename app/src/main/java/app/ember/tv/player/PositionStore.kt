@@ -22,4 +22,10 @@ class PositionStore(context: Context,scope:String=app.ember.tv.data.LocalActivit
         sp.edit { putString(prefix+key, "$positionMs,$durationMs") }
 
     fun clear(key: String) = sp.edit { remove(prefix+key) }
+
+    fun moveKey(from:String,to:String) {
+        if(from==to)return
+        val value=sp.getString(prefix+from,null) ?: return
+        sp.edit {putString(prefix+to,value);remove(prefix+from)}
+    }
 }

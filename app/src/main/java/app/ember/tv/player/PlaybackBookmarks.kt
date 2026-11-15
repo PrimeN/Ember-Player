@@ -36,6 +36,12 @@ internal class PlaybackBookmarks(context:Context,scope:String) {
         if(updated.isEmpty())edit.remove(key(title)) else edit.putString(key(title),json.encodeToString(updated))
         edit.commit()
     }
+    fun moveKey(from:String,to:String):Boolean = synchronized(lock) {
+        if(from==to)return@synchronized true
+        val value=store.getString(key(from),null) ?: return@synchronized true
+        if(!valid(value))return@synchronized false
+        store.edit().putString(key(to),value).remove(key(from)).commit()
+    }
     companion object {
         private val lock=Any()
         private val json=Json {ignoreUnknownKeys=true}
