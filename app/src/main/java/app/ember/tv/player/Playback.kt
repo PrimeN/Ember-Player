@@ -106,6 +106,7 @@ data class PlaybackConfig(
     val audioEffects: AudioEffects = AudioEffects(),
     val quickShortcuts: List<String> = PlayerShortcuts.defaults,
     val touch: TouchControlsConfig = TouchControlsConfig(),
+    val backgroundAudio:Boolean=false,
 )
 
 @OptIn(UnstableApi::class)

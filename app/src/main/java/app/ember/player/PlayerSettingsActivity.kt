@@ -44,6 +44,8 @@ class PlayerSettingsActivity:ComponentActivity() {
                         SwitchChip("Remember working decoders",config.rememberDecoderChoices){update {it.copy(rememberDecoderChoices=!it.rememberDecoderChoices)}}
                         Chip("Reset decoder memory"){DecoderHealth.clear(this@PlayerSettingsActivity)}
                         SwitchChip("Picture in picture",config.pip){update {it.copy(pip=!it.pip)}}
+                        SwitchChip("Background audio",config.backgroundAudio){update {it.copy(backgroundAudio=!it.backgroundAudio)}}
+                        Text("Keep sound playing when the screen is off or you switch apps. Picture in picture takes priority when enabled.",color=Mute,fontSize=12.sp)
                         SwitchChip("Ask before leaving playback",config.confirmExit){update {it.copy(confirmExit=!it.confirmExit)}}
                         SwitchChip("IntroDB markers",config.introDb){update {it.copy(introDb=!it.introDb)}}
                         PlayerChoice("Skip markers",listOf("button" to "Show skip button","auto" to "Skip automatically","off" to "Off"),config.skipIntro){v->update {it.copy(skipIntro=v)}}

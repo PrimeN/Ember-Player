@@ -100,7 +100,8 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
             fun option(k:String,v:String) { check(native.setOptionString(k,v)>=0) { "Compatibility player option unavailable: $k" } }
             option("config","no");option("load-scripts","no");option("ytdl","no")
             option("msg-level","all=no");option("terminal","no");option("osd-level","0");option("input-default-bindings","no")
-            option("vo","gpu");option("gpu-context","android");option("opengl-es","yes")
+            if(C.TRACK_TYPE_VIDEO in parameters.disabledTrackTypes) {option("vo","null");option("vid","no")}
+            else {option("vo","gpu");option("gpu-context","android");option("opengl-es","yes")}
             option("hwdec",NativeDeinterlacing.decoder(requestedSoftwareVideo,deinterlacing))
             option("ao","audiotrack,opensles")
             option("load-unsafe-playlists","no");option("access-references","no")
@@ -173,6 +174,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         size=VideoSize(native.getPropertyInt("video-params/w")?:0,native.getPropertyInt("video-params/h")?:0)
     }
     private fun applyTracks(value:TrackSelectionParameters) {
+        if(C.TRACK_TYPE_VIDEO in value.disabledTrackTypes)native.setPropertyString("vid","no")
         for(type in listOf(C.TRACK_TYPE_AUDIO,C.TRACK_TYPE_TEXT)) {
             val property=if(type==C.TRACK_TYPE_AUDIO)"aid" else "sid"
             if(type in value.disabledTrackTypes) {native.setPropertyString(property,"no");if(type==C.TRACK_TYPE_TEXT){native.setPropertyString("secondary-sid","no");secondaryLanguage=null;externalSubtitle=null;externalGlobal=false;subtitleDelay(subtitleOffset)};continue}

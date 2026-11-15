@@ -311,6 +311,7 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        backgroundStage?.let(BackgroundAudioService::cancelStage);backgroundStage=null
         if(::prefs.isInitialized && !contentPlaybackAllowed()){endPlayback();finish();return}
         userLeft = false
         if (!keptAlive) return
@@ -327,6 +328,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        backgroundStage?.let(BackgroundAudioService::cancelStage);backgroundStage=null
         touchControls?.close(); touchControls = null
         // A dialog still showing would leak its window when the player closes (#77).
         actionDialog?.dismiss(); actionDialog = null
@@ -337,7 +339,7 @@ class PlayerActivity : ComponentActivity() {
         handler.removeCallbacks(hideLiveBanner)
         // Closed by the system while kept in the background.
         if (player != null) endPlayback(finishActivity = false)
-        if (!isChangingConfigurations) {LiveSessions.release(liveSessionId);MediaQueues.release(queueId)}
+        if (!isChangingConfigurations) {LiveSessions.release(liveSessionId);if(!backgroundQueueTransferred)MediaQueues.release(queueId)}
         super.onDestroy()
     }
 
@@ -742,6 +744,7 @@ class PlayerActivity : ComponentActivity() {
         handler.removeCallbacks(controlsTicker)
         handler.removeCallbacks(hideControls)
         handler.removeCallbacks(statsTicker)
+        if(commitBackgroundAudio())return
         val p = player
         // Paused and still on screen when the screensaver (or another overlay) took over: keep the
         // player, so the video is there when you come back. Home, Back and a running video close it.
@@ -757,6 +760,13 @@ class PlayerActivity : ComponentActivity() {
     }
 
     internal var actionDialog: PlayerActionDialog? = null
+    internal var backgroundStage:String?=null
+    internal var backgroundQueueTransferred=false
+
+    override fun onPause() {
+        stageBackgroundAudio()
+        super.onPause()
+    }
     internal var touchControls: PlayerTouchControls? = null
     internal var touchMagnification = 1f
 

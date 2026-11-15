@@ -208,6 +208,8 @@ internal fun PlayerActivity.endPlayback(finishActivity: Boolean = true) {
 @OptIn(UnstableApi::class)
 // ---- resume and progress ----
 internal fun PlayerActivity.resume(p: ExoPlayer): Boolean {
+    val forced=intent.getLongExtra(BackgroundAudioService.FORCE_POSITION,-1L)
+    if(forced>=0) {intent.removeExtra(BackgroundAudioService.FORCE_POSITION);p.seekTo(forced.coerceAtMost(p.duration.takeIf {it>0} ?: Long.MAX_VALUE));return true}
     if (trailer || startOver) return true
     if (playbackEngine?.compatibility==null && serverPlayback?.takeIf { it.parts.size > 1 }?.parts?.any { (it.durationMs ?: 0L) <= 0L } == true) return false
     val saved = positions.get(resumeKey)

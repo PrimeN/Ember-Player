@@ -65,7 +65,8 @@ import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleSpeed
 
 @OptIn(UnstableApi::class)
 internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
-    PlayerActivity.current?.get()?.takeIf { it !== this }?.finish()
+    PlayerActivity.current?.get()?.takeIf { it !== this }?.endPlayback(finishActivity=true)
+    BackgroundAudioService.stopCurrent()
     PlayerActivity.current = java.lang.ref.WeakReference(this)
     startOver = intent.getBooleanExtra(PlayRequest.EXTRA_START_OVER, false)
     queueId=intent.getStringExtra("ember.fileQueue");fileQueue=MediaQueues.get(queueId)
@@ -214,10 +215,18 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         }
     }
     val p=playbackEngine!!.player
+    val restoredSpeed=intent.getFloatExtra(BackgroundAudioService.FORCE_SPEED,1f).takeIf {it.isFinite()}?.coerceIn(.25f,4f) ?: 1f
+    speed=restoredSpeed;p.setPlaybackSpeed(restoredSpeed)
+    intent.getBundleExtra(BackgroundAudioService.FORCE_SOUND)?.let {sound->
+        p.volume=sound.getFloat("volume",1f).takeIf {it.isFinite()}?.coerceIn(0f,1f) ?: 1f
+        boostLevel=boosts.indexOf(sound.getInt("boost",0)).coerceAtLeast(0)
+    }
     outputRoute?.close()
     outputRoute = OutputRouteMonitor(this) { bluetooth ->
         bluetoothOutput = bluetooth
-        audioDelay.us = if (trailer) 0 else config.outputDelay(bluetooth) * 1000L
+        val sound=intent.getBundleExtra(BackgroundAudioService.FORCE_SOUND)
+        val timing=if(sound==null)config.outputDelay(bluetooth) else if(bluetooth && sound.containsKey("bluetooth"))sound.getInt("bluetooth") else sound.getInt("delay")
+        audioDelay.us = if (trailer) 0 else timing.coerceIn(-10000,10000) * 1000L
         playbackEngine?.compatibility?.audioDelay(audioDelay.us / 1000)
         changed(); updateSoundLabel()
     }
@@ -285,7 +294,9 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
             // Start on the best audio track once per title; after that the user's choice stands.
             if (!audioPicked && tracks.groups.any { it.type == C.TRACK_TYPE_AUDIO }) {
                 audioPicked = true
-                Playback.bestAudio(tracks, config, showKey()?.let { memory.get(it)?.audio })?.let { o ->
+                val restored=BackgroundAudioTrack.from(intent.getBundleExtra(BackgroundAudioService.FORCE_TRACK))?.selection(tracks)
+                intent.removeExtra(BackgroundAudioService.FORCE_TRACK)
+                (restored ?: Playback.bestAudio(tracks, config, showKey()?.let { memory.get(it)?.audio }))?.let { o ->
                     p.trackSelectionParameters = p.trackSelectionParameters.buildUpon().setOverrideForType(o).build()
                 }
             }

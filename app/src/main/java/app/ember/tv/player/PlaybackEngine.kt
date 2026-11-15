@@ -34,6 +34,7 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
     private var attempted=false
     private var mode=config().engine
     val compatibility get()=active as? MpvPlayer
+    internal fun snapshot():EngineSource?=source
     private fun key(method:Method)=method.name+method.parameterTypes.joinToString {it.name}
     private val common=Player::class.java.methods.associateBy(::key)
     val player:ExoPlayer=Proxy.newProxyInstance(ExoPlayer::class.java.classLoader,arrayOf(ExoPlayer::class.java)) { proxy,method,args ->

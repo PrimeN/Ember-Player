@@ -5,6 +5,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <application android:name="app.ember.player.PlayerApplication" android:allowBackup="false"
         android:fullBackupContent="false" android:dataExtractionRules="@xml/data_extraction_rules"
         android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round"
@@ -20,6 +25,8 @@
             </intent-filter>
         </activity>
         <activity android:name="app.ember.player.PlayerSettingsActivity" android:exported="false" />
+        <activity android:name="app.ember.tv.player.ResumeBackgroundAudioActivity" android:exported="false" />
+        <service android:name="app.ember.tv.player.BackgroundAudioService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
         <activity android:name="app.ember.tv.player.PlayerActivity" android:exported="false" android:supportsPictureInPicture="true"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|density|uiMode" />
     </application>

@@ -25,6 +25,7 @@ import app.ember.tv.data.Prefs
 import app.ember.tv.ui.EmberTheme
 import app.ember.tv.ui.Chip
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.*
 
 /** Uses Android's storage grants; no broad video/storage permission is requested. */
@@ -62,6 +63,7 @@ class MediaFilesActivity:ComponentActivity() {
             val first=remember {FocusRequester()}
             LaunchedEffect(Unit){withFrameNanos {};runCatching {first.requestFocus()}}
             val version=refresh
+            val background by BackgroundAudioService.nowPlaying.collectAsStateWithLifecycle()
             val scope=rememberCoroutineScope()
             var recent by remember {mutableStateOf<List<RecentMedia>>(emptyList())}
             var urlDialog by remember {mutableStateOf(false)}
@@ -80,6 +82,9 @@ class MediaFilesActivity:ComponentActivity() {
                     Chip("Settings"){startActivity(android.content.Intent(this@MediaFilesActivity,app.ember.player.PlayerSettingsActivity::class.java))}
                 }
                 Text(stringResource(R.string.tx_play_files_from_this_device_a))
+                background?.let {playing->Chip("${if(playing.playing)"Playing" else "Paused"} · ${playing.title}",maxLines=1) {
+                    startActivity(android.content.Intent(this@MediaFilesActivity,ResumeBackgroundAudioActivity::class.java).putExtra(BackgroundAudioService.EXTRA_ID,playing.id))
+                }}
                 Chip(if(preparing) "Preparing files…" else "Choose files",modifier=Modifier.focusRequester(first)) {
                     if(!preparing)runCatching {picker.launch(arrayOf("video/*","audio/*","application/octet-stream"))}.onFailure {Toast.makeText(this@MediaFilesActivity,"No file picker is installed on this TV.",Toast.LENGTH_LONG).show()}
                 }
