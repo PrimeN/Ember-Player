@@ -18,7 +18,7 @@ internal fun PlayerActivity.toggleGeometryMemory() {
     val current=GeometryMemory.selected(config,resumeKey)
     config=GeometryMemory.set(config,resumeKey,if(current==null)VideoGeometry(currentZoom(),aspect,touchMagnification) else null)
     prefs.playbackConfig=config
-    if(current!=null){aspect=0;touchMagnification=1f}
+    if(current!=null){aspect=0;touchMagnification=1f;touchControls?.restoreMagnification(1f)}
     applyZoom();applyAspect();changed()
 }
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
