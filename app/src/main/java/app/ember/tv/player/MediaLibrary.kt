@@ -64,26 +64,29 @@ internal class MediaLibrary(context:Context,
             check();db.execSQL("DELETE FROM media WHERE root=? AND generation<>?",arrayOf(root,generation))
         }
     }
-    data class Result(val entries:List<QueueMedia>,val nextOffset:Int?)
-    fun search(query:String,offset:Int=0):Result {
+    data class Result(val entries:List<QueueMedia>,val nextOffset:Int?,val modified:Map<String,Long> = emptyMap())
+    fun search(query:String,offset:Int=0,sort:String="name"):Result {
         require(offset>=0)
         val allowed=folders().filterNot {hidden(it.uri)}.map {digest(it.uri)}.toSet()
         val match=terms(query)
-        val found=mutableListOf<QueueMedia>();var cursorOffset=offset;var more=true
+        val found=mutableListOf<QueueMedia>();val dates=mutableMapOf<String,Long>();var cursorOffset=offset;var more=true
+        val order=if(sort=="modified")"modified DESC,title COLLATE NOCASE,id" else "title COLLATE NOCASE,id"
         while(found.size<100 && more) {
             val clause=if(match.isEmpty())"" else " WHERE rowid IN (SELECT docid FROM names WHERE names MATCH ?)"
             val args=(if(match.isEmpty())emptyList() else listOf(match))+listOf("100",cursorOffset.toString())
             var rows=0
-            db.query("SELECT uri,title,root FROM media$clause ORDER BY title COLLATE NOCASE,id LIMIT ? OFFSET ?",args.toTypedArray()).use {cursor->
+            db.query("SELECT uri,title,root,modified FROM media$clause ORDER BY $order LIMIT ? OFFSET ?",args.toTypedArray()).use {cursor->
                 while(cursor.moveToNext()) {
                     rows++;cursorOffset++
-                    if(cursor.getString(2) in allowed && !hidden(cursor.getString(0)))found+=QueueMedia(cursor.getString(0),cursor.getString(1))
+                    if(cursor.getString(2) in allowed && !hidden(cursor.getString(0))) {
+                        val media=QueueMedia(cursor.getString(0),cursor.getString(1));found+=media;dates[media.key]=cursor.getLong(3)
+                    }
                     if(found.size==100)break
                 }
             }
             more=rows==100
         }
-        return Result(found,if(more)cursorOffset else null)
+        return Result(found,if(more)cursorOffset else null,dates)
     }
     override fun close(){db.close()}
     companion object {

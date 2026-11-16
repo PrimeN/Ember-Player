@@ -18,7 +18,7 @@ import app.ember.tv.ui.*
 import kotlinx.coroutines.*
 
 @Composable
-internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0) {
+internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialFolderUri:String?=null) {
     val store = remember { DeviceFolders(activity) }
     val scope = rememberCoroutineScope()
     var folders by remember { mutableStateOf<List<DeviceFolder>>(emptyList()) }
@@ -43,6 +43,12 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0) {
     var moving by remember { mutableStateOf<List<DeviceFile>>(emptyList()) }
     var lastPlayed by remember {mutableStateOf<RecentMedia?>(null)}
     val current = parents.lastOrNull()
+    LaunchedEffect(initialFolderUri) {
+        if(initialFolderUri!=null) {
+            val chosen=withContext(Dispatchers.IO){store.read().firstOrNull {it.uri==initialFolderUri && !app.ember.player.PrivateMedia.hidden(it.uri)}}
+            if(chosen!=null){root=chosen;parents=emptyList();query=""}
+        }
+    }
 
     fun operation(block: suspend () -> Unit) {
         if (busy) return

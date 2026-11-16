@@ -17,15 +17,15 @@ class PlayerHomeUiTest {
     @get:Rule val compose=createAndroidComposeRule<MediaFilesActivity>()
     @Test fun firstScreenHasFileSelectionAndStreamDialogCanClose() {
         compose.onNodeWithText("Ember Player").assertExists()
-        compose.onNodeWithText("Open file").assertExists()
+        compose.onNodeWithContentDescription("Open file").assertExists()
         compose.onNodeWithContentDescription("More options").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithContentDescription("Open stream URL").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithText("Cancel").performSemanticsAction(SemanticsActions.OnClick){it()}
-        compose.onNodeWithText("Open file").assertExists()
+        compose.onNodeWithContentDescription("Open file").assertExists()
         compose.onNodeWithText("Cancel").assertDoesNotExist()
     }
     @Test fun browserDestinationsKeepFolderAndNetworkToolsReachable() {
-        compose.onNodeWithText("Folders").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithText("Files").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithText("Add a media folder").assertExists()
         compose.onNodeWithText("Network").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithText("Add network folder").assertExists()
@@ -37,19 +37,37 @@ class PlayerHomeUiTest {
         compose.onNodeWithContentDescription("List view").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.runOnIdle {org.junit.Assert.assertFalse(app.ember.tv.data.Prefs(org.robolectric.RuntimeEnvironment.getApplication()).playerLibraryGrid)}
         compose.onNodeWithContentDescription("Grid view").assertExists()
-        compose.onNodeWithContentDescription("Search media").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithText("Search").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithText("Search videos").assertExists()
-        compose.onNodeWithContentDescription("Search media").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithText("Search").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithText("Search videos").assertDoesNotExist()
     }
     @Test @Config(qualifiers="w960dp-h540dp-land-television-mdpi")
     fun televisionStartsOnFileActionAndKeepsRemoteNavigationAvailable() {
-        compose.onNodeWithText("Open file").assertIsFocused()
+        compose.onNodeWithContentDescription("Open file").assertIsFocused()
         compose.onNodeWithText("Folders").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithText("Add a media folder").assertExists()
-        compose.onNodeWithText("Open file").assertExists()
+        compose.onNodeWithContentDescription("Open file").assertExists()
         compose.runOnIdle {compose.activity.onBackPressedDispatcher.onBackPressed()}
         compose.onNodeWithText("Videos").assertIsFocused()
+    }
+
+    @Test @Config(qualifiers="w360dp-h800dp-port-mdpi")
+    fun phoneDockKeepsNavigationReachableAndBrowseChoicesPersist() {
+        listOf("Home","Files","Search","Settings").forEach {compose.onNodeWithText(it,useUnmergedTree=true).assertIsDisplayed()}
+        compose.onNodeWithContentDescription("All media").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithContentDescription("Watched").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithContentDescription("Date modified").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithContentDescription("Name A–Z").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.runOnIdle {
+            val stored=app.ember.tv.data.Prefs(compose.activity)
+            org.junit.Assert.assertEquals("watched",stored.playerLibraryFilter)
+            org.junit.Assert.assertEquals("name",stored.playerLibrarySort)
+        }
+        compose.onNodeWithText("Files").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithText("Add a media folder").assertExists()
+        compose.onNodeWithText("Home").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithContentDescription("Watched").assertExists()
     }
 
 }

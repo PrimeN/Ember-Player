@@ -51,4 +51,21 @@ class MediaLibraryTest {
         assertEquals("\"hello\"* \"OR\"* \"世界\"*",MediaLibrary.terms("hello OR (世界*)\""))
         assertEquals("",MediaLibrary.terms("* - \""))
     }
+    @Test fun sortingUsesTheWholeIndexAndKeepsStablePages() {
+        val db=database()
+        val folder=DeviceFolder("content://device.files/tree/root","Root")
+        val root=java.security.MessageDigest.getInstance("SHA-256").digest(folder.uri.toByteArray()).joinToString(""){"%02x".format(it)}
+        MediaLibrary(app,{db},{listOf(folder)},{false}).use {index->
+            for(i in 0..204)db.execSQL("INSERT INTO media VALUES(?,?,?,?,?,?,?,?)",arrayOf<Any>("id-$i",root,"content://device.files/tree/root/document/$i","clip-%03d".format(i),"video/mp4",100L,i.toLong(),"generation"))
+            val first=index.search("clip",sort="modified")
+            assertEquals("clip-204",first.entries.first().title)
+            assertEquals(204L,first.modified[first.entries.first().key])
+            val second=index.search("clip",first.nextOffset!!,"modified")
+            assertEquals("clip-104",second.entries.first().title)
+            assertTrue(first.entries.map {it.key}.toSet().intersect(second.entries.map {it.key}.toSet()).isEmpty())
+            assertEquals("clip-000",index.search("clip",sort="name").entries.first().title)
+            val last=index.search("clip",second.nextOffset!!,"modified")
+            assertEquals(5,last.entries.size);assertNull(last.nextOffset)
+        }
+    }
 }

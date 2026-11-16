@@ -14,6 +14,12 @@ class Prefs(context:Context) {
     var playerLibraryGrid:Boolean
         get()=decoded("playerLibraryGrid",true)
         set(value)=put("playerLibraryGrid",value)
+    var playerLibrarySort:String
+        get()=decoded("playerLibrarySort","modified")
+        set(value)=put("playerLibrarySort",value)
+    var playerLibraryFilter:String
+        get()=decoded("playerLibraryFilter","all")
+        set(value)=put("playerLibraryFilter",value)
     var cacheConfig:CacheConfig
         get()=decoded("cacheConfig",CacheConfig())
         set(value)=put("cacheConfig",value)

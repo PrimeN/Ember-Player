@@ -64,13 +64,13 @@ internal fun PlayerAction(label:String,icon:ImageVector?=null,modifier:Modifier=
 }
 
 @Composable
-internal fun PlayerIconAction(label:String,icon:ImageVector,modifier:Modifier=Modifier,onClick:()->Unit) {
+internal fun PlayerIconAction(label:String,icon:ImageVector,modifier:Modifier=Modifier,enabled:Boolean=true,onClick:()->Unit) {
     if(LocalPlayerTelevision.current) {
-        Focusable(onClick,modifier.size(48.dp).semantics {contentDescription=label},radius=50,
+        Focusable(onClick,modifier.size(48.dp).semantics {contentDescription=label},enabled=enabled,radius=50,
             container=Color.Transparent,focusedContainer=MaterialTheme.colorScheme.primary,focusedContent=MaterialTheme.colorScheme.onPrimary,outline=false,focusedScale=1.04f) {
             Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){Icon(icon,label,Modifier.size(24.dp))}
         }
-    } else IconButton(onClick,modifier.size(48.dp)){Icon(icon,label)}
+    } else IconButton(onClick,modifier.size(48.dp),enabled=enabled){Icon(icon,label)}
 }
 
 @Composable
