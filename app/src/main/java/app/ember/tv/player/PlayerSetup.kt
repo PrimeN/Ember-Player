@@ -408,9 +408,9 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
                 triedAsHls = true
                 app.ember.tv.data.CrashLog.note("Playback error ${error.errorCodeName} · trying the link as HLS", error)
                 p.currentMediaItem?.buildUpon()?.setMimeType(MimeTypes.APPLICATION_M3U8)?.build()?.let {
-                    p.setMediaItem(it)
+                    val position = p.currentPosition
+                    p.setMediaItem(it, position)
                     p.prepare()
-                    p.playWhenReady = true
                     return
                 }
             }

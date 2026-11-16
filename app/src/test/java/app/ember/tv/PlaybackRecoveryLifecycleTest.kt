@@ -21,6 +21,16 @@ import java.time.Duration
 @Config(sdk=[35],application=Application::class)
 @LooperMode(LooperMode.Mode.PAUSED)
 class PlaybackRecoveryLifecycleTest {
+    @Test fun audioOutputRetryPreservesPauseAndPosition() {
+        val activity=Robolectric.buildActivity(PlayerActivity::class.java).get()
+        activity.config=PlaybackConfig()
+        val player=ExoPlayer.Builder(activity).build();activity.player=player
+        try {
+            player.setMediaItem(MediaItem.fromUri("https://example.invalid/film.mp4"));player.seekTo(42000);player.playWhenReady=false
+            assertTrue(activity.recover(PlaybackException("Audio output failed",null,PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED)))
+            assertEquals(42000,player.currentPosition);assertFalse(player.playWhenReady)
+        } finally {activity.player=null;player.release()}
+    }
     @Test fun delayedRetryCannotSeekOrResumeANewItem() {
         val activity=Robolectric.buildActivity(PlayerActivity::class.java).get()
         val player=ExoPlayer.Builder(activity).build();activity.player=player

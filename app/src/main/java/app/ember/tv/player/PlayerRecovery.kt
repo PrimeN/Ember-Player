@@ -162,7 +162,6 @@ internal fun PlayerActivity.recover(e: PlaybackException): Boolean {
     val at = p.currentPosition
     p.seekTo(at)
     p.prepare()
-    p.playWhenReady = true
     return true
 }
 

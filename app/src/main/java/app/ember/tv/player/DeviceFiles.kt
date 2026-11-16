@@ -34,10 +34,7 @@ internal class DeviceFolders(private val readValue: () -> String?, private val w
 
 internal object DeviceFiles {
     const val LIMIT = 200
-    private val video = setOf("mkv", "mp4", "m4v", "avi", "mov", "webm", "wmv", "ts", "mts", "m2ts", "mpg", "mpeg", "vob", "flv", "3gp", "ogv", "asf", "rm", "rmvb", "divx")
-    private val audio = setOf("mp3", "m4a", "aac", "flac", "alac", "wav", "ogg", "opus", "ac3", "eac3", "dts", "mka", "aiff", "ape", "wma")
-    private val extensions = video + audio
-    fun media(name: String, mime: String) = mime.startsWith("video/") || mime.startsWith("audio/") || name.substringAfterLast('.', "").lowercase() in extensions
+    fun media(name: String, mime: String) = MediaFileFormats.media(name, mime)
     fun validName(name: String) = name.isNotBlank() && name == name.trim() && name.length <= 180 && name !in setOf(".", "..") && name.none { it == '/' || it == '\\' || it.isISOControl() }
     fun root(tree: Uri): Uri = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
     fun retain(context: Context, uri: Uri) {

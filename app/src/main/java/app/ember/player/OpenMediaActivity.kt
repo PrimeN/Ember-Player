@@ -40,7 +40,7 @@ internal object ExternalMedia {
         val uri=java.net.URI(value)
         when(uri.scheme?.lowercase()) {
             "content"->!uri.authority.isNullOrBlank()
-            "http","https","rtsp","rtmp","rtp","udp","tcp"->!uri.host.isNullOrBlank() && (uri.port==-1 || uri.port in 1..65535)
+            "http","https","rtsp","rtmp","rtmps","rtp","srtp","udp","tcp"->!uri.host.isNullOrBlank() && (uri.port==-1 || uri.port in 1..65535)
             else->false
         }
     }.getOrDefault(false)
