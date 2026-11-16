@@ -37,6 +37,7 @@ import java.util.List;
 
 /** IAMF decoder. */
 @VisibleForTesting(otherwise = PACKAGE_PRIVATE)
+@androidx.media3.common.util.UnstableApi
 public final class IamfDecoder
     extends SimpleDecoder<DecoderInputBuffer, SimpleDecoderOutputBuffer, IamfDecoderException> {
 
