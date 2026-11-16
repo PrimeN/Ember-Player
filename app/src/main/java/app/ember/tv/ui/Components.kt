@@ -6,8 +6,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.runtime.remember
@@ -56,6 +58,10 @@ fun Focusable(
     card: Boolean = false,
     content: @Composable () -> Unit,
 ) {
+    if(app.ember.player.LocalPlayerDesign.current && !app.ember.player.LocalPlayerTelevision.current) {
+        app.ember.player.PlayerTouchSurface(onClick,onLongClick,modifier,role,radius,container,focusedContainer,Fg,focusedContent,enabled,content)
+        return
+    }
     val navigation = LocalNavigationFocus.current
     val scene = LocalFocusScene.current.takeUnless { androidx.compose.ui.platform.LocalView.current.parent is androidx.compose.ui.window.DialogWindowProvider }
     @Suppress("DEPRECATION")
@@ -111,11 +117,25 @@ fun Focusable(
         glow = if(card && outline && motion && style==app.ember.tv.data.CardFocusStyle.GLOW) {
             ClickableSurfaceDefaults.glow(focusedGlow=androidx.tv.material3.Glow(elevationColor=ring.copy(alpha=.22f),elevation=4.dp))
         } else ClickableSurfaceDefaults.glow(),
-    ) { content() }
+    ) {
+        if(app.ember.player.LocalPlayerDesign.current)CompositionLocalProvider(
+            androidx.compose.material3.LocalContentColor provides androidx.tv.material3.LocalContentColor.current
+        ) {content()} else content()
+    }
 }
 
 @Composable
 fun Chip(label: String, selected: Boolean = false, modifier: Modifier = Modifier, centered: Boolean = false, maxLines: Int = 2, onClick: () -> Unit) {
+    if(app.ember.player.LocalPlayerDesign.current && !app.ember.player.LocalPlayerTelevision.current) {
+        val scheme=androidx.compose.material3.MaterialTheme.colorScheme
+        androidx.compose.material3.FilledTonalButton(onClick,modifier.semantics {this.selected=selected}.then(Modifier.sizeIn(minHeight=48.dp)),
+            shape=RoundedCornerShape(12.dp),colors=androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
+                containerColor=if(selected)scheme.primaryContainer else scheme.surfaceVariant,
+                contentColor=if(selected)scheme.onPrimaryContainer else scheme.onSurface)) {
+            androidx.compose.material3.Text(label,maxLines=maxLines,softWrap=maxLines>1,overflow=TextOverflow.Ellipsis)
+        }
+        return
+    }
     // Selection uses a persistent accent fill; focus uses the brighter navigation pill.
     Focusable(
         onClick = onClick,
@@ -155,6 +175,18 @@ fun ButtonRow(
  * and [onClick] should say why.
  */
 fun SwitchChip(label: String, on: Boolean, modifier: Modifier = Modifier, locked: Boolean = false, onClick: () -> Unit) {
+    if(app.ember.player.LocalPlayerDesign.current && !app.ember.player.LocalPlayerTelevision.current) {
+        val scheme=androidx.compose.material3.MaterialTheme.colorScheme
+        Row(modifier.fillMaxWidth().sizeIn(minHeight=56.dp).semantics {
+            role=Role.Switch;toggleableState=if(on&&!locked)ToggleableState.On else ToggleableState.Off
+            stateDescription=if(locked)"Off, not available" else if(on)"On" else "Off"
+        }.then(Modifier.clickable(role=Role.Switch,onClick=onClick)).padding(horizontal=8.dp,vertical=4.dp),
+            verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+            androidx.compose.material3.Text(label,Modifier.weight(1f),color=scheme.onSurface,maxLines=3,overflow=TextOverflow.Ellipsis)
+            androidx.compose.material3.Switch(checked=on&&!locked,onCheckedChange=null,enabled=!locked)
+        }
+        return
+    }
     var focused by remember { mutableStateOf(false) }
     val accent = MaterialTheme.colorScheme.primary
     val shownOn = on && !locked

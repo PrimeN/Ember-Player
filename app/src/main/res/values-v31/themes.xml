@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources><style name="Theme.Ember" parent="android:Theme.Material.NoActionBar">
+<item name="android:windowBackground">@drawable/player_startup</item>
+<item name="android:windowSplashScreenBackground">#171517</item>
+<item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_player_mark</item>
+<item name="android:statusBarColor">#171517</item>
+<item name="android:navigationBarColor">#171517</item>
+</style></resources>

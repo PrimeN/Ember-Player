@@ -59,84 +59,18 @@ class MediaFilesActivity:ComponentActivity() {
     override fun onCreate(savedInstanceState:Bundle?) {
         super.onCreate(savedInstanceState)
         openedProfile=Prefs(this).currentProfile
-        setContent {app.ember.player.PlayerTheme(Prefs(this)) {
-            val privacy by app.ember.player.PrivateMedia.state.collectAsState()
-            SideEffect {if(app.ember.player.PrivateMedia.enabled)window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)}
-            val first=remember {FocusRequester()}
-            LaunchedEffect(Unit){withFrameNanos {};runCatching {first.requestFocus()}}
-            val version=refresh+privacy.hashCode()
-            val background by BackgroundAudioService.nowPlaying.collectAsStateWithLifecycle()
-            val scope=rememberCoroutineScope()
-            var recent by remember {mutableStateOf<List<RecentMedia>>(emptyList())}
-            var urlDialog by remember {mutableStateOf(false)}
-            var message by remember {mutableStateOf<String?>(null)}
-            LaunchedEffect(version){recent=withContext(Dispatchers.IO){MediaHistory(this@MediaFilesActivity).read()}}
-            val picker=rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) {uris ->
-                openFiles(uris)
-            }
-            CompositionLocalProvider(androidx.tv.material3.LocalContentColor provides app.ember.tv.ui.Fg) {
-            Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
-                .verticalScroll(rememberScrollState()).padding(if(PlayerTouchControls.isTelevision(this@MediaFilesActivity))40.dp else 16.dp),verticalArrangement=Arrangement.spacedBy(18.dp)) {
-                Row(Modifier.fillMaxWidth(),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically,
-                    horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                    app.ember.tv.ui.EmberMark(36.dp)
-                    Text("Ember Player",fontSize=26.sp,modifier=Modifier.weight(1f),maxLines=1,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                    Chip("Settings"){startActivity(android.content.Intent(this@MediaFilesActivity,app.ember.player.PlayerSettingsActivity::class.java))}
-                }
-                Text(stringResource(R.string.tx_play_files_from_this_device_a))
-                background?.takeUnless {BackgroundAudioService.currentIsPrivate()}?.let {playing->Chip("${if(playing.playing)"Playing" else "Paused"} · ${playing.title}",maxLines=1) {
-                    startActivity(android.content.Intent(this@MediaFilesActivity,ResumeBackgroundAudioActivity::class.java).putExtra(BackgroundAudioService.EXTRA_ID,playing.id))
-                }}
-                Chip(if(preparing) "Preparing files…" else "Choose files",modifier=Modifier.focusRequester(first)) {
-                    if(!preparing)runCatching {picker.launch(arrayOf("video/*","audio/*","application/octet-stream"))}.onFailure {Toast.makeText(this@MediaFilesActivity,"No file picker is installed on this TV.",Toast.LENGTH_LONG).show()}
-                }
-                val casting by app.ember.player.CastPlaybackService.state.collectAsStateWithLifecycle()
-                if(casting?.ready==true&&casting?.error==null)Chip("Receiver · ${casting?.receiver}"){startActivity(android.content.Intent(this@MediaFilesActivity,app.ember.player.CastActivity::class.java))}
-                Chip("Open stream URL"){urlDialog=true}
-                message?.let {Text(it,fontSize=13.sp)}
-                if(recent.isNotEmpty()) {
-                    Text("Recent media",fontSize=20.sp)
-                    recent.filterNot {app.ember.player.PrivateMedia.hidden(it.uri)}.forEach {entry->Chip(entry.title,maxLines=1){
-                        runCatching {MediaFiles.launch(this@MediaFilesActivity,listOf(QueueMedia(entry.uri,entry.title)))}
-                            .onFailure {message="This media is unavailable. Select it again if its permission has expired."}
-                    }}
-                    Chip("Clear recent media"){scope.launch {
-                        val cleared=withContext(Dispatchers.IO){MediaHistory(this@MediaFilesActivity).clear()}
-                        if(cleared)recent=emptyList() else message="Could not clear encrypted history."
-                    }}
-                }
-                app.ember.player.DownloadsPanel(this@MediaFilesActivity)
-                app.ember.player.PrivateMediaPanel(this@MediaFilesActivity)
-                PlaylistsPanel(this@MediaFilesActivity,version)
-                UsbFilesPanel(this@MediaFilesActivity,version)
-                DirectUsbPanel(this@MediaFilesActivity,version)
-                MediaLibraryPanel(this@MediaFilesActivity,version)
-                DeviceFilesPanel(this@MediaFilesActivity,version)
-                NetworkFilesPanel(this@MediaFilesActivity,version)
-                Chip("Back"){finish()}
-            }
-            if(urlDialog) {
-                var url by remember {mutableStateOf("")}
-                var note by remember {mutableStateOf<String?>(null)}
-                app.ember.tv.ui.TvDialog({urlDialog=false},width=560.dp,resizeForKeyboard=true) {
-                    app.ember.tv.ui.DialogHeading("Open stream URL")
-                    app.ember.tv.ui.TvTextField(url,{url=it.take(16384)},Modifier.fillMaxWidth(),placeholder="https:// or rtsp://")
-                    note?.let {Text(it,fontSize=13.sp)}
-                    app.ember.tv.ui.ButtonRow {
-                        Chip("Play"){val value=url.trim()
-                            if(!app.ember.player.ExternalMedia.allowed(value) || value.startsWith("content:",true))note="Enter a supported network stream URL."
-                            else scope.launch {
-                                val name=runCatching {java.net.URI(value).path?.substringAfterLast('/')?.takeIf {it.isNotBlank()}?.take(120)}.getOrNull() ?: "Stream"
-                                val queue=listOf(QueueMedia(value,name))
-                                withContext(Dispatchers.IO){MediaHistory(this@MediaFilesActivity).add(queue)}
-                                runCatching {MediaFiles.launch(this@MediaFilesActivity,queue)}.onSuccess {urlDialog=false}.onFailure {note="Could not open this stream."}
-                            }
-                        }
-                        Chip("Cancel"){urlDialog=false}
-                    }
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window,false)
+        setContent {
+            val prefs=remember {Prefs(this)}
+            app.ember.player.PlayerTheme(prefs) {
+                val privacy by app.ember.player.PrivateMedia.state.collectAsState()
+                SideEffect {if(app.ember.player.PrivateMedia.enabled)window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)}
+                val picker=rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()){uris->openFiles(uris)}
+                app.ember.player.PlayerLibraryScreen(this,refresh+privacy.hashCode(),preparing) {
+                    if(!preparing)runCatching {picker.launch(arrayOf("video/*","audio/*","application/octet-stream"))}
+                        .onFailure {Toast.makeText(this,"No file picker is installed on this device.",Toast.LENGTH_LONG).show()}
                 }
             }
-            }
-        }}
+        }
     }
 }

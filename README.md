@@ -1,8 +1,16 @@
 # Ember Player
 
+<img src="assets/ember-player.svg" width="96" height="96" alt="Ember Player icon" />
+
 A media player for Android phones, tablets and Android TV, with touch and remote controls. No ads.
 
 **Development happens on [`beta`](https://github.com/PrimeN/Ember-Player/tree/beta).** The initial version is 0.1.0. No production APK release is published automatically.
+
+The media library groups Videos, Folders and Network, with playlists, downloads and
+private media available from navigation. Real file thumbnails and saved playback
+progress make it easier to resume. Settings are organized into eight searchable
+categories. Touch devices use Material 3 components; televisions retain Material
+3 for TV controls and clear remote focus, with shared day/night colors.
 
 ## Playback
 

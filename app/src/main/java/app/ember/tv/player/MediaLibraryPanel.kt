@@ -13,7 +13,7 @@ import app.ember.tv.ui.*
 import kotlinx.coroutines.*
 
 @Composable
-internal fun MediaLibraryPanel(activity:ComponentActivity,refresh:Int) {
+internal fun MediaLibraryPanel(activity:ComponentActivity,refresh:Int,showTitle:Boolean=true) {
     val scope=rememberCoroutineScope()
     var expanded by remember {mutableStateOf(false)}
     var query by remember {mutableStateOf("")}
@@ -23,7 +23,7 @@ internal fun MediaLibraryPanel(activity:ComponentActivity,refresh:Int) {
     var notice by remember {mutableStateOf<String?>(null)}
     var job by remember {mutableStateOf<Job?>(null)}
     var scanned by remember {mutableIntStateOf(0)}
-    Text("Library",fontSize=20.sp)
+    if(showTitle)Text("Library",fontSize=20.sp)
     Chip(if(expanded)"Hide library search" else "Search saved media folders"){expanded=!expanded}
     if(!expanded)return
     Text("Refresh indexes the folders you chose, including subfolders. The encrypted index stays on this device; nothing is scanned at startup.",color=Mute,fontSize=12.sp)

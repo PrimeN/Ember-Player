@@ -189,7 +189,7 @@ class BackgroundAudioService:Service(),Player.Listener {
         val resume=PendingIntent.getActivity(this,0,Intent(this,ResumeBackgroundAudioActivity::class.java)
             .setData(Uri.parse("emberplayer:background:$id")).putExtra(EXTRA_ID,id),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val playing=audio?.player?.playWhenReady==true
-        return Notification.Builder(this,CHANNEL).setSmallIcon(android.R.drawable.ic_media_play)
+        return Notification.Builder(this,CHANNEL).setSmallIcon(app.ember.tv.R.drawable.ic_player_notification)
             .setContentTitle(source?.title?.filterNot {it.isISOControl()}?.take(180) ?: "Ember Player")
             .setContentText(if(audio==null)"Preparing background playback" else if(playing)"Background audio" else "Paused")
             .setContentIntent(resume).setVisibility(Notification.VISIBILITY_PRIVATE).setOnlyAlertOnce(true).setOngoing(playing)

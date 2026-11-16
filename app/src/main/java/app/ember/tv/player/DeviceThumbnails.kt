@@ -28,16 +28,17 @@ internal object DeviceThumbnails {
     private val failed = object : LruCache<String, Boolean>(100) {}
     private val gate = Semaphore(2)
     fun clear() { memory.evictAll(); failed.evictAll() }
-    suspend fun load(context: Context, file: DeviceFile): Bitmap? {
+    suspend fun load(context: Context, file: DeviceFile, requestedWidth:Int=160): Bitmap? {
         if (file.directory || file.mime.startsWith("audio/")) return null
-        val key = "${file.uri}|${file.modified}|${file.size}"
+        val width=requestedWidth.coerceIn(160,320)
+        val key = "${file.uri}|${file.modified}|${file.size}|$width"
         memory.get(key)?.let { return it }
         if (failed.get(key) == true) return null
         return gate.withPermit { withContext(Dispatchers.IO) {
             memory.get(key) ?: runCatching {
                 MediaMetadataRetriever().use { retriever ->
                     retriever.setDataSource(context, file.uri)
-                    retriever.getScaledFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 160, 90)
+                    retriever.getScaledFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, width, width*9/16)
                 }
             }.getOrNull()?.also { memory.put(key, it) } ?: run {failed.put(key, true); null}
         } }

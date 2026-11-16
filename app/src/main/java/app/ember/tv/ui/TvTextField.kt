@@ -71,6 +71,19 @@ fun TvTextField(
     /** Search uses the shared glass surface; other forms keep their established field style. */
     glass: Boolean = false,
 ) {
+    if(app.ember.player.LocalPlayerDesign.current && !app.ember.player.LocalPlayerTelevision.current) {
+        val keyboard=LocalSoftwareKeyboardController.current
+        val focus=LocalFocusManager.current
+        fun submit(){if(onSubmit!=null)onSubmit() else {keyboard?.hide();focus.clearFocus()}}
+        androidx.compose.material3.OutlinedTextField(value,onValueChange,
+            modifier.fillMaxWidth().heightIn(min=maxOf(56.dp,minHeight)).then(if(focusRequester!=null)Modifier.focusRequester(focusRequester) else Modifier),
+            placeholder={androidx.compose.material3.Text(placeholder)},singleLine=singleLine,
+            visualTransformation=if(password)PasswordVisualTransformation() else VisualTransformation.None,
+            keyboardOptions=androidx.compose.foundation.text.KeyboardOptions(keyboardType=if(password)androidx.compose.ui.text.input.KeyboardType.Password else keyboardType,imeAction=imeAction),
+            keyboardActions=androidx.compose.foundation.text.KeyboardActions(onDone={submit()},onSearch={submit()},onGo={submit()},onSend={submit()}),
+            shape=androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+        return
+    }
     val focus = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     val accent = MaterialTheme.colorScheme.primary

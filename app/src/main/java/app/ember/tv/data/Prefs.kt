@@ -11,6 +11,9 @@ class Prefs(context:Context) {
     private val json=Json {ignoreUnknownKeys=true}
     private inline fun <reified T> decoded(key:String,default:T):T=runCatching {json.decodeFromString<T>(sp.getString(key,null) ?: return default)}.getOrDefault(default)
     private inline fun <reified T> put(key:String,value:T) {sp.edit {putString(key,json.encodeToString(value))}}
+    var playerLibraryGrid:Boolean
+        get()=decoded("playerLibraryGrid",true)
+        set(value)=put("playerLibraryGrid",value)
     var cacheConfig:CacheConfig
         get()=decoded("cacheConfig",CacheConfig())
         set(value)=put("cacheConfig",value)

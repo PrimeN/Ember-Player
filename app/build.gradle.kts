@@ -264,6 +264,7 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.animation:animation")
+    implementation("androidx.compose.material3:material3")
     implementation("androidx.tv:tv-material:1.1.0")
     // Google's Material icons for the Settings pages (only the icons used stay in release builds; R8 drops the rest).
     // Compose 1.12's BOM no longer lists the icon libraries, so the last release is named here.

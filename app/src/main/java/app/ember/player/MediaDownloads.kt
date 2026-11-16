@@ -143,7 +143,7 @@ class MediaDownloadService:Service() {
     }
     private fun notification(text:String):Notification {
         val pause=PendingIntent.getService(this,730,Intent(this,MediaDownloadService::class.java).setAction("pause"),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        return Notification.Builder(this,"downloads").setSmallIcon(android.R.drawable.stat_sys_download).setContentTitle("Ember Player").setContentText(text).setOngoing(true)
+        return Notification.Builder(this,"downloads").setSmallIcon(app.ember.tv.R.drawable.ic_player_notification).setContentTitle("Ember Player").setContentText(text).setOngoing(true)
             .addAction(Notification.Action.Builder(null,"Pause",pause).build()).build()
     }
     override fun onDestroy(){call?.cancel();scope.cancel();super.onDestroy()}

@@ -217,3 +217,13 @@ and the existing FFmpeg `acompressor` filter on Compatibility playback. The
 selective filter build now enables that filter; its complete source, provenance
 and rebuild instructions remain in the native filter directory. No Maven
 version changes are required. Encoded passthrough is not compressed.
+
+
+## Adaptive application interface
+
+The existing Compose BOM 2026.09.00 pins AndroidX Material 3 to 1.4.0. Touch
+screens use its buttons, switches, text fields, tabs, state layers and color roles.
+The existing TV Material 1.1.0 remains the remote-control component family.
+Both use Ember Player's shared palette. These are local UI libraries under the
+existing AndroidX Apache 2.0 license; they add no runtime service or account.
+The application mark and banner are original Ember vector artwork.

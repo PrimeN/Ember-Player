@@ -155,7 +155,7 @@ class CastPlaybackService:Service() {
     private fun notification(text:String,playing:Boolean):Notification {
         val open=PendingIntent.getActivity(this,740,Intent(this,CastActivity::class.java),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         fun action(name:String)=PendingIntent.getService(this,name.hashCode(),Intent(this,CastPlaybackService::class.java).setAction(name),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        return Notification.Builder(this,"casting").setSmallIcon(android.R.drawable.ic_media_play).setContentTitle("Ember Player").setContentText(text).setContentIntent(open).setOngoing(true)
+        return Notification.Builder(this,"casting").setSmallIcon(app.ember.tv.R.drawable.ic_player_notification).setContentTitle("Ember Player").setContentText(text).setContentIntent(open).setOngoing(true)
             .setStyle(Notification.MediaStyle().setMediaSession(session?.sessionToken).setShowActionsInCompactView(0,1))
             .addAction(Notification.Action.Builder(null,if(playing)"Pause" else "Play",action(if(playing)"pause" else "play")).build())
             .addAction(Notification.Action.Builder(null,"Disconnect",action("stop")).build()).build()
