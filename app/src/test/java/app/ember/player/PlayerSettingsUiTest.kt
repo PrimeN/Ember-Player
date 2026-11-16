@@ -23,4 +23,11 @@ class PlayerSettingsUiTest {
         compose.runOnIdle {assertEquals("streaming",Prefs(RuntimeEnvironment.getApplication()).playbackConfig.playerInterface)}
         compose.onNodeWithText("Controls · Streaming").assertExists()
     }
+    @Test fun pictureEnhancementHasAPersistentMasterOffSwitch() {
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Picture enhancement") and hasClickAction())
+        compose.onNode(hasText("Picture enhancement") and hasClickAction()).performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.runOnIdle {assertEquals(false,Prefs(RuntimeEnvironment.getApplication()).playbackConfig.picture.enabled)}
+        compose.onNode(hasText("Picture enhancement") and hasClickAction()).assertExists()
+    }
+
 }

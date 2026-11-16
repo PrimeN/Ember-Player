@@ -77,7 +77,9 @@ internal fun PlayerActivity.start(url: String, title: String, addonSubs: List<Su
     cancelRecovery()
     cancelNextEpisodeLookup()
     playbackVisit++
+    pictureBypassed=false;pictureSignature=null;pictureEffectsActive=false
     val p = player ?: return
+    playbackEngine?.standard?.setVideoEffects(emptyList())
     hdr10PlusMetadata = false
     decoderStableSince=0;decoderLearned=false
     liveRetryJob?.cancel(); liveRetryJob = null

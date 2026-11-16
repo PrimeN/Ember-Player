@@ -5,6 +5,7 @@ import androidx.media3.common.util.UnstableApi
 @androidx.annotation.OptIn(UnstableApi::class)
 internal fun PlayerActivity.navigateSeek(target: Long) {
     playbackEngine?.navigate(target,SeekPreference.fast(config.seekMode))
+    controls.position=player?.currentPosition ?: controls.position
 }
 
 @androidx.annotation.OptIn(UnstableApi::class)

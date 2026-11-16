@@ -204,6 +204,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         .build()
 
     playbackEngine=PlaybackEngine(this,standard,{config.copy(passthrough=config.passthrough&&!codecs.pcm)}) { compatible ->
+        pictureBypassed=false;pictureSignature=null;pictureEffectsActive=false
         videoDecoder=if(compatible)"Compatibility engine" else null
         loudness?.release();loudness=null
         if(boostLevel>0)setBoost(boostLevel)
@@ -245,6 +246,8 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
     p.addAnalyticsListener(object : AnalyticsListener {
         override fun onVideoInputFormatChanged(eventTime: AnalyticsListener.EventTime, format: Format, decoderReuseEvaluation: DecoderReuseEvaluation?) {
             hdr10PlusMetadata = false
+            val visit=playbackVisit
+            handler.post {if(player===p && playbackVisit==visit)applyPictureEnhancement(format)}
             decoderStableSince=android.os.SystemClock.elapsedRealtime();decoderLearned=false
         }
         override fun onVideoDecoderInitialized(eventTime: AnalyticsListener.EventTime, decoderName: String, initializedTimestampMs: Long, initializationDurationMs: Long) {
@@ -372,6 +375,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         }
 
         override fun onPlayerError(error: PlaybackException) {
+            if(recoverPicture(error))return
             if (live) {
                 // A live stream that fell behind its window just jumps back to live.
                 if (error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {

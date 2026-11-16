@@ -196,4 +196,36 @@ class PlayerTouchControlsTest {
         assertEquals(value, Json.decodeFromString<PlaybackConfig>(Json.encodeToString(value)))
         assertEquals(TouchControlsConfig(), Json.decodeFromString<PlaybackConfig>("{}").touch)
     }
+    @Test fun disablingHorizontalSeekDoesNotJumpOnFingerRelease() = fixture(TouchControlsConfig(horizontalSeek=false)) {_,host,touch->
+        val now=SystemClock.uptimeMillis()
+        event(touch,MotionEvent.ACTION_DOWN,500f,300f,now)
+        event(touch,MotionEvent.ACTION_MOVE,800f,300f,now,80)
+        event(touch,MotionEvent.ACTION_UP,800f,300f,now,100)
+        assertTrue(host.seeks.isEmpty())
+    }
+    @Test fun doubleTapUsesCustomActionsInsteadOfSeeking() = fixture(TouchControlsConfig(leftDoubleTap="play_pause")) {_,host,touch->
+        val now=SystemClock.uptimeMillis()
+        event(touch,MotionEvent.ACTION_DOWN,100f,300f,now)
+        event(touch,MotionEvent.ACTION_UP,100f,300f,now,30)
+        event(touch,MotionEvent.ACTION_DOWN,100f,300f,now+100)
+        event(touch,MotionEvent.ACTION_UP,100f,300f,now+100,30)
+        assertFalse(host.playing);assertTrue(host.seeks.isEmpty())
+    }
+    @Test fun swappedBrightnessSwipeUsesTheRightSide() = fixture(TouchControlsConfig(swapBrightnessVolume=true)) {activity,host,touch->
+        val now=SystemClock.uptimeMillis()
+        event(touch,MotionEvent.ACTION_DOWN,800f,400f,now)
+        event(touch,MotionEvent.ACTION_MOVE,800f,300f,now,80)
+        event(touch,MotionEvent.ACTION_UP,800f,300f,now,100)
+        assertTrue(activity.window.attributes.screenBrightness>0);assertTrue(host.seeks.isEmpty())
+    }
+    @Test fun gestureRegionsAndRestoredActionsKeepSafeDefaults() {
+        assertEquals(0,TouchActions.region(.19f,20));assertEquals(1,TouchActions.region(.21f,20))
+        assertEquals(1,TouchActions.region(.5f,Int.MAX_VALUE));assertEquals(2,TouchActions.region(.9f,Int.MIN_VALUE))
+        assertEquals("play_pause",TouchActions.action(TouchControlsConfig(centerDoubleTap="invalid"),1))
+        assertEquals("seek",TouchActions.action(TouchControlsConfig(leftDoubleTap="invalid"),0))
+        assertEquals("none",TouchActions.action(TouchControlsConfig(rightDoubleTap="none"),2))
+        val config=TouchControlsConfig(leftDoubleTap="previous",rightDoubleTap="next",centerDoubleTap="controls",seekAreaPercent=25,horizontalSeek=false,swapBrightnessVolume=true)
+        assertEquals(config,Json.decodeFromString<TouchControlsConfig>(Json.encodeToString(config)))
+    }
+
 }

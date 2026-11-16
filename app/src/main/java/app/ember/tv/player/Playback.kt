@@ -107,6 +107,7 @@ data class PlaybackConfig(
     val quickShortcuts: List<String> = PlayerShortcuts.defaults,
     val touch: TouchControlsConfig = TouchControlsConfig(),
     val backgroundAudio:Boolean=false,
+    val picture:PictureEnhancement=PictureEnhancement(),
 )
 
 @OptIn(UnstableApi::class)

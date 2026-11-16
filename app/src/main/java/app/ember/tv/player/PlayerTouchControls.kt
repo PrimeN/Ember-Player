@@ -36,6 +36,7 @@ internal interface TouchPlaybackHost {
     fun togglePlayback()
     fun toggleControls()
     fun hideControls()
+    fun skipItem(forward:Boolean):Boolean = false
     fun magnify(scale: Float)
     val subtitleState:SubtitleTouchState? get()=null
     fun previewSubtitles(value:SubtitleTouchState) {}
@@ -93,12 +94,17 @@ internal class PlayerTouchControls(
         }
         override fun onDoubleTap(e: MotionEvent): Boolean {
             if (locked || host.menuVisible || multiTouch || subtitleStart!=null) return true
-            val side = e.x / root.width.coerceAtLeast(1)
-            if (side in .35f.. .65f) host.togglePlayback()
-            else if (host.seekable) {
-                val delta = TouchPlaybackMath.step(settings().seekSeconds) * if (side < .35f) -1 else 1
-                host.seek(TouchPlaybackMath.seek(host.position, delta, host.duration))
-                showHint("${if (delta < 0) "−" else "+"}${abs(delta) / 1000} seconds")
+            val cfg=settings()
+            val region=TouchActions.region(e.x/root.width.coerceAtLeast(1),cfg.seekAreaPercent)
+            when(TouchActions.action(cfg,region)) {
+                "play_pause"->host.togglePlayback()
+                "controls"->host.toggleControls()
+                "previous","next"->if(!host.skipItem(TouchActions.action(cfg,region)=="next"))showHint("No file in that direction")
+                "seek"->if(host.seekable) {
+                    val delta=TouchPlaybackMath.step(cfg.seekSeconds)*if(region==0)-1 else 1
+                    host.seek(TouchPlaybackMath.seek(host.position,delta,host.duration))
+                    showHint("${if(delta<0)"−" else "+"}${abs(delta)/1000} seconds")
+                }
             }
             return true
         }
@@ -198,16 +204,16 @@ internal class PlayerTouchControls(
                 previewSubtitleStyle()
                 showHint(if(axis==1)String.format(java.util.Locale.US,"Subtitle timing %+.2f s",subtitlePreview!!.offsetMs/1000.0)
                     else "Subtitle position ${subtitlePreview!!.bottomMarginPercent}%",sticky=true)
-            } else if (axis == 1 && host.seekable) {
+            } else if (axis == 1 && settings().horizontalSeek && host.seekable) {
                 previewPosition = TouchPlaybackMath.swipeSeek(startPosition, dx / root.width.coerceAtLeast(1), host.duration)
                 showHint("${clock(previewPosition)} / ${clock(host.duration)}", sticky = true)
             } else if (axis == 2) {
                 val fraction = dy / (root.height.coerceAtLeast(1) * .7f)
-                if (downX < root.width / 2f && settings().brightnessSwipe) {
+                if (TouchActions.brightness(downX < root.width / 2f,settings()) && settings().brightnessSwipe) {
                     val level = TouchPlaybackMath.level(startBrightness, fraction, 100).coerceAtLeast(1)
                     activity.window.attributes = activity.window.attributes.apply { screenBrightness = level / 100f }
                     showHint("Brightness $level%", sticky = true)
-                } else if (downX >= root.width / 2f && settings().volumeSwipe && !audio.isVolumeFixed) {
+                } else if (!TouchActions.brightness(downX < root.width / 2f,settings()) && settings().volumeSwipe && !audio.isVolumeFixed) {
                     val maximum = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                     val level = TouchPlaybackMath.level(startVolume, fraction, maximum)
                     runCatching { audio.setStreamVolume(AudioManager.STREAM_MUSIC, level, 0) }
@@ -222,7 +228,7 @@ internal class PlayerTouchControls(
                 if(event.actionMasked==MotionEvent.ACTION_UP && value!=initial)host.applySubtitles(value)
                 else host.previewSubtitles(initial)
                 subtitleStart=null;subtitlePreview=null
-            } else if (event.actionMasked == MotionEvent.ACTION_UP && axis == 1 && !multiTouch && host.seekable) host.seek(previewPosition)
+            } else if (event.actionMasked == MotionEvent.ACTION_UP && axis == 1 && settings().horizontalSeek && !multiTouch && host.seekable) host.seek(previewPosition)
             releaseSpeed()
             handler.postDelayed(clearHint, 800)
         }

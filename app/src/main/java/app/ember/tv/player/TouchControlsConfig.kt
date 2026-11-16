@@ -14,6 +14,12 @@ data class TouchControlsConfig(
     val orientation: String = "auto",
     val holdSpeed:Float=2f,
     val subtitleGestures:Boolean=false,
+    val leftDoubleTap:String="seek",
+    val centerDoubleTap:String="play_pause",
+    val rightDoubleTap:String="seek",
+    val seekAreaPercent:Int=35,
+    val horizontalSeek:Boolean=true,
+    val swapBrightnessVolume:Boolean=false,
 )
 
 /** Bounded gesture calculations shared by both playback engines. */
@@ -35,4 +41,19 @@ internal object TouchPlaybackMath {
 
     fun step(seconds: Int): Long = seconds.coerceIn(5, 60) * 1000L
     fun holdSpeed(value:Float)=if(value.isFinite())value.coerceIn(1.25f,4f) else 2f
+}
+
+/** Invalid restored values fall back to the familiar layout rather than disabling controls. */
+internal object TouchActions {
+    val options=listOf("seek" to "Seek", "play_pause" to "Play / pause", "previous" to "Previous file",
+        "next" to "Next file", "controls" to "Show / hide controls", "none" to "Do nothing")
+    fun region(fraction:Float,percent:Int):Int {
+        val edge=percent.coerceIn(20,45)/100f
+        return if(fraction<edge)0 else if(fraction>1-edge)2 else 1
+    }
+    fun action(config:TouchControlsConfig,region:Int):String {
+        val value=when(region){0->config.leftDoubleTap;2->config.rightDoubleTap;else->config.centerDoubleTap}
+        return value.takeIf {v->options.any {it.first==v}} ?: if(region==1)"play_pause" else "seek"
+    }
+    fun brightness(left:Boolean,config:TouchControlsConfig)=left!=config.swapBrightnessVolume
 }

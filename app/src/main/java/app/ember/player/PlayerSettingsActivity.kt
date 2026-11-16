@@ -55,6 +55,21 @@ class PlayerSettingsActivity:ComponentActivity() {
                         PlayerChoice("Skip markers",listOf("button" to "Show skip button","auto" to "Skip automatically","off" to "Off"),config.skipIntro){v->update {it.copy(skipIntro=v)}}
                     }}
                     item {Section("Sleep timer") {SleepTimerSettings()}}
+                    item {Section("Picture enhancement") {
+                        val picture=config.picture
+                        SwitchChip("Picture enhancement",picture.enabled){update {it.copy(picture=it.picture.copy(enabled=!it.picture.enabled))}}
+                        Text("Enabled by default. GPU processing uses more power; turn it off for longer battery life or if playback stutters. HDR, Dolby Vision, protected and tunneled video keep their supported output path.",color=Mute,fontSize=12.sp)
+                        SwitchChip("GPU upscaling",picture.upscaling){update {it.copy(picture=it.picture.copy(upscaling=!it.picture.upscaling))}}
+                        SwitchChip("Fast upscaling shader",picture.shader){update {it.copy(picture=it.picture.copy(shader=!it.picture.shader))}}
+                        Text("Standard uses Lanczos when enlarging video. Compatibility can also use a bundled lightweight shader above 1.2× in both dimensions. No downloads are needed.",color=Mute,fontSize=12.sp)
+                        PlayerChoice("Picture preset",PictureEnhancement.presets.mapIndexed {i,v->i.toString() to v},"custom"){v->update {it.copy(picture=PictureEnhancement.preset(v.toInt()))}}
+                        pictureAdjustments.forEach {adjustment->
+                            PlayerChoice(adjustment.label,adjustment.values(picture).map {it.toString() to it.toString()},adjustment.read(picture.normalized()).toString()){v->
+                                update {it.copy(picture=adjustment.write(it.picture,v.toInt()).normalized())}
+                            }
+                        }
+                        Chip("Reset picture adjustments"){update {it.copy(picture=it.picture.copy(brightness=0,contrast=0,saturation=0,gamma=0,hue=0,sharpness=0))}}
+                    }}
                     item {Section("Picture") {
                         PlayerChoice("Software video",listOf("fallback" to "When needed","off" to "Device decoders only","always" to "Always software"),config.ffmpegVideo){v->update {it.copy(ffmpegVideo=v)}}
                         PlayerChoice("Frame rate matching",listOf("off" to "Off","seamless" to "Seamless only","always" to "Match video"),config.frameRate){v->update {it.copy(frameRate=v)}}
@@ -66,8 +81,14 @@ class PlayerSettingsActivity:ComponentActivity() {
                         Text("Touch gestures apply on phones and tablets. Remote navigation stays available on TVs.",color=Mute,fontSize=12.sp)
                         SwitchChip("Touch gestures",config.touch.enabled){update {it.copy(touch=it.touch.copy(enabled=!it.touch.enabled))}}
                         PlayerChoice("Double-tap seek",listOf("5" to "5 seconds","10" to "10 seconds","15" to "15 seconds","30" to "30 seconds","60" to "60 seconds"),config.touch.seekSeconds.toString()){v->update {it.copy(touch=it.touch.copy(seekSeconds=v.toInt()))}}
-                        SwitchChip("Swipe right side for volume",config.touch.volumeSwipe){update {it.copy(touch=it.touch.copy(volumeSwipe=!it.touch.volumeSwipe))}}
-                        SwitchChip("Swipe left side for brightness",config.touch.brightnessSwipe){update {it.copy(touch=it.touch.copy(brightnessSwipe=!it.touch.brightnessSwipe))}}
+                        PlayerChoice("Left double-tap",TouchActions.options,config.touch.leftDoubleTap){v->update {it.copy(touch=it.touch.copy(leftDoubleTap=v))}}
+                        PlayerChoice("Centre double-tap",TouchActions.options,config.touch.centerDoubleTap){v->update {it.copy(touch=it.touch.copy(centerDoubleTap=v))}}
+                        PlayerChoice("Right double-tap",TouchActions.options,config.touch.rightDoubleTap){v->update {it.copy(touch=it.touch.copy(rightDoubleTap=v))}}
+                        PlayerChoice("Edge tap region",listOf(20,25,30,35,40,45).map {it.toString() to "$it% each side"},config.touch.seekAreaPercent.toString()){v->update {it.copy(touch=it.touch.copy(seekAreaPercent=v.toInt()))}}
+                        SwitchChip("Horizontal swipe to seek",config.touch.horizontalSeek){update {it.copy(touch=it.touch.copy(horizontalSeek=!it.touch.horizontalSeek))}}
+                        SwitchChip("Swap brightness and volume sides",config.touch.swapBrightnessVolume){update {it.copy(touch=it.touch.copy(swapBrightnessVolume=!it.touch.swapBrightnessVolume))}}
+                        SwitchChip("Volume swipe",config.touch.volumeSwipe){update {it.copy(touch=it.touch.copy(volumeSwipe=!it.touch.volumeSwipe))}}
+                        SwitchChip("Brightness swipe",config.touch.brightnessSwipe){update {it.copy(touch=it.touch.copy(brightnessSwipe=!it.touch.brightnessSwipe))}}
                         SwitchChip("Pinch to zoom",config.touch.pinchZoom){update {it.copy(touch=it.touch.copy(pinchZoom=!it.touch.pinchZoom))}}
                         SwitchChip("Hold video for temporary speed",config.touch.holdToSpeed){update {it.copy(touch=it.touch.copy(holdToSpeed=!it.touch.holdToSpeed))}}
                         PlayerChoice("Temporary hold speed",listOf("1.25" to "1.25×","1.5" to "1.5×","2.0" to "2×","3.0" to "3×","4.0" to "4×"),config.touch.holdSpeed.toString()){v->update {it.copy(touch=it.touch.copy(holdSpeed=v.toFloat()))}}
@@ -139,7 +160,7 @@ private fun PlayerLegal() {
         "Fraunhofer MPEG-H" to "Fraunhofer-FDK-MPEG-H.txt","libmpv Android wrapper" to "libmpv-wrapper-MIT.txt",
         "IAMF decoder notices" to "IAMF-NOTICES.txt",
         "libaums USB notices" to "libaums-NOTICE.txt","SQLCipher" to "SQLCipher-LICENSE.txt","SMBJ-RPC" to "SMBJ-RPC-BSD.txt","JSch" to "JSch-BSD.txt","Apache Commons notices" to "Commons-IO-Lang-NOTICE.txt","Apache Commons Net notices" to "Commons-Net-NOTICE.txt",
-        "JSch compression notices" to "JSch-JZlib-BSD.txt","JSch password hashing notices" to "JSch-jBCrypt-ISC.txt","Android NDK notices" to "Android-NDK-29-LLVM-NOTICE.txt")
+        "Fast upscaling shader — MIT" to "Anime4K-MIT.txt","JSch compression notices" to "JSch-JZlib-BSD.txt","JSch password hashing notices" to "JSch-jBCrypt-ISC.txt","Android NDK notices" to "Android-NDK-29-LLVM-NOTICE.txt")
     licenses.forEach {entry->Chip(entry.first){chosen=entry}}
     Chip("Google Cast SDK terms") {runCatching {context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse("https://developers.google.com/cast/docs/terms")))}}
     Chip("Android SDK terms") {runCatching {context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse("https://developer.android.com/studio/terms.html")))}}

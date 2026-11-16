@@ -55,4 +55,21 @@ class PlaybackRecoveryLifecycleTest {
         } finally {activity.cancelRecovery();activity.player=null;player.release()}
     }
 
+    @Test fun pictureFailureBypassesEffectsOnceAndKeepsThePausedPosition() {
+        val activity=Robolectric.buildActivity(PlayerActivity::class.java).get()
+        val actual=ExoPlayer.Builder(activity).build()
+        activity.player=actual
+        activity.playbackEngine=PlaybackEngine(activity,actual,{PlaybackConfig(rememberDecoderChoices=false)}) {}
+        activity.config=PlaybackConfig();activity.pictureEffectsActive=true
+        try {
+            actual.setMediaItem(MediaItem.fromUri("content://media/123"));actual.seekTo(42000);actual.playWhenReady=false
+            val error=PlaybackException("GPU unavailable",null,PlaybackException.ERROR_CODE_VIDEO_FRAME_PROCESSING_FAILED)
+            assertTrue(activity.recoverPicture(error));assertTrue(activity.pictureBypassed)
+            assertFalse(activity.pictureEffectsActive)
+            assertEquals(42000L,actual.currentPosition);assertFalse(actual.playWhenReady)
+            assertFalse(activity.recoverPicture(error))
+            assertFalse(activity.recoverPicture(PlaybackException("Network",null,PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED)))
+        }finally{activity.player=null;activity.playbackEngine=null;actual.release()}
+    }
+
 }

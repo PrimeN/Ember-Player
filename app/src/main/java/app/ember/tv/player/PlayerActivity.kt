@@ -431,7 +431,7 @@ class PlayerActivity : ComponentActivity() {
     internal val controlActions by lazy {
         ControlsActions(
             playPause = { player?.let { it.playWhenReady = !it.playWhenReady }; showControls() },
-            seekBy = { d -> player?.let { p -> navigateSeek((p.currentPosition + d).coerceIn(0L, (p.duration.takeIf { it > 0 } ?: Long.MAX_VALUE))) }; showControls() },
+            seekBy = { d -> player?.let { p -> navigateSeek(PlaybackSeeking.target(p.currentPosition,d,p.duration)) }; showControls() },
             skip = { doSkip() },
             openMenu = { which, tab -> openMenu(which, tab) },
             options = { which -> optionRows(which) },
@@ -465,6 +465,9 @@ class PlayerActivity : ComponentActivity() {
 
     // ---- player menus (advanced look): the small menu, the Options page and playback stats ----
     internal var speed = 1f
+    internal var pictureBypassed=false
+    internal var pictureSignature:String?=null
+    internal var pictureEffectsActive=false
     internal var boostLevel = 0
     internal val audioEffectState = AudioEffectState()
     internal var outputRoute: OutputRouteMonitor? = null

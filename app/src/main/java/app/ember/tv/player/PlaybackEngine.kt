@@ -40,6 +40,10 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
     private var released=false
     private var health:DecoderHealth?=if(config().rememberDecoderChoices)DecoderHealth.current() else null
     private val handler=Handler(Looper.getMainLooper())
+    private val seekFlush:Runnable=Runnable {navigation.flush()}
+    private val navigation:NavigationSeekQueue=NavigationSeekQueue({handler.postDelayed(seekFlush,60)},{handler.removeCallbacks(seekFlush)}) {at,fast->
+        if(!released)seekNow(at,fast)
+    }
     private var stable:Runnable?=null
     private fun memoryKey()=source?.let {app.ember.tv.data.CachePolicy.digest("${it.key}|${it.filename.orEmpty()}|${it.audio!=null}")}
     private val stabilityListener=object:Player.Listener {
@@ -58,7 +62,7 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
         standard.addListener(stabilityListener)
         if(config().rememberDecoderChoices && health==null)DecoderHealth.loadAsync(context) {if(!released){health=it;if(active.isPlaying)stabilityListener.onIsPlayingChanged(true)}}
     }
-    val compatibility get()=active as? MpvPlayer
+    val compatibility get()=if(active===standard)null else active as? MpvPlayer
     internal fun snapshot():EngineSource?=source
     private fun key(method:Method)=method.name+method.parameterTypes.joinToString {it.name}
     private val common=Player::class.java.methods.associateBy(::key)
@@ -73,10 +77,11 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
                     val adapter=listeners.getOrPut(listener) {playbackListener(listener) {player}};active.addListener(adapter);null}
                 "removeListener" -> {listeners.remove(arguments[0])?.let(active::removeListener);null}
                 // Drop the released libmpv instance: native calls on a destroyed handle crash the process.
-                "release" -> {released=true;stable?.let(handler::removeCallbacks);active.removeListener(stabilityListener);listeners.values.forEach(active::removeListener);if(active!==standard)active.release();active=standard;standard.release();listeners.clear();null}
+                "release" -> {released=true;navigation.cancel();stable?.let(handler::removeCallbacks);active.removeListener(stabilityListener);listeners.values.forEach(active::removeListener);if(active!==standard)active.release();active=standard;standard.release();listeners.clear();null}
+                "getCurrentPosition", "getContentPosition" -> navigation.target ?: if(method.name=="getContentPosition")active.contentPosition else active.currentPosition
                 "seekBack", "seekForward" -> {
                     val delta=if(method.name=="seekBack")-active.seekBackIncrement else active.seekForwardIncrement
-                    navigate(PlaybackSeeking.target(active.currentPosition,delta,active.duration),SeekPreference.fast(config().seekMode));null
+                    navigate(PlaybackSeeking.target(navigation.target?:active.currentPosition,delta,active.duration),SeekPreference.fast(config().seekMode));null
                 }
                 "prepare" -> {val current=source
                     val learned=if(config().rememberDecoderChoices)memoryKey()?.let {health?.engine(it)} else null
@@ -87,6 +92,7 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
                 "getVideoFormat" -> compatibility?.currentTracks?.groups?.firstOrNull {it.type==androidx.media3.common.C.TRACK_TYPE_VIDEO&&it.isSelected}?.getTrackFormat(0) ?: if(active===standard)standard.videoFormat else null
                 "getAudioFormat" -> compatibility?.currentTracks?.groups?.firstOrNull {it.type==androidx.media3.common.C.TRACK_TYPE_AUDIO&&it.isSelected}?.getTrackFormat(0) ?: if(active===standard)standard.audioFormat else null
                 else -> {
+                    if(method.name in setOf("seekTo","seekToDefaultPosition","seekToNextMediaItem","seekToPreviousMediaItem","setMediaItem","setMediaItems","setMediaSource","setMediaSources","replaceMediaItem","replaceMediaItems","removeMediaItem","removeMediaItems","seekToNext","seekToPrevious","clearMediaItems","stop"))navigation.cancel()
                     if(method.name in setOf("setVideoSurface","setVideoSurfaceView","setVideoSurfaceHolder","setVideoTextureView")) {surfaceMethod=common[key(method)];surface=arguments.firstOrNull()}
                     if(method.name.startsWith("clearVideo")){surfaceMethod=null;surface=null}
                     val target=if(active!==standard)common[key(method)] else null
@@ -95,11 +101,17 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
             }
         } catch(e:InvocationTargetException){throw e.targetException}
     } as ExoPlayer
-    fun navigate(target: Long, fast: Boolean) {
+    fun navigate(target: Long, fast: Boolean, coalesce:Boolean=true) {
+        val bounded=target.coerceIn(0,active.duration.takeIf {it>0}?:Long.MAX_VALUE)
+        if(coalesce)navigation.request(bounded,fast) else {navigation.cancel();seekNow(bounded,fast)}
+    }
+    fun flushNavigation(){navigation.flush()}
+    private fun seekNow(target:Long,fast:Boolean) {
         compatibility?.let { it.seekNavigation(target,fast);return }
         PlaybackSeeking.seek(standard,target,fast)
     }
     fun configure(value:EngineSource) {
+        navigation.cancel()
         stable?.let(handler::removeCallbacks);stable=null
         val old=active.takeUnless {it===standard}
         if(old!=null){old.removeListener(stabilityListener);listeners.values.forEach(old::removeListener);old.release();active=standard;standard.addListener(stabilityListener);listeners.values.forEach(standard::addListener)
@@ -110,7 +122,7 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
         mode=value
         if(value=="compatibility") {attempted=false;switch()}
         else if(value=="standard" && compatibility!=null) {
-            val at=active.currentPosition;val wanted=active.playWhenReady;val current=source?:return
+            val at=navigation.target?:active.currentPosition;val wanted=active.playWhenReady;val current=source?:return
             configure(current);standard.seekTo(at);standard.prepare();standard.playWhenReady=wanted
         }
     }
@@ -128,7 +140,8 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
             (0 until group.length).firstOrNull(group::isTrackSelected)?.let(group::getTrackFormat)
         }
         if(!PlaybackEnginePolicy.preservesAudio(audio?.sampleMimeType,audio?.drmInitData!=null || standard.videoFormat?.drmInitData!=null))return false
-        val position=standard.currentPosition.coerceAtLeast(0)
+        val position=(navigation.target?:standard.currentPosition).coerceAtLeast(0)
+        navigation.cancel()
         val desired=standard.playWhenReady
         val state=standard.playbackState
         val native=try {

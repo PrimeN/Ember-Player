@@ -158,3 +158,27 @@ The app owns the selected source, temporary relay, media notification and cleanu
 See [Google Cast terms](https://developers.google.com/cast/docs/terms) and
 [Android SDK terms](https://developer.android.com/studio/terms.html).
 DLNA discovery and controls use the app’s own local UDP/HTTP/XML implementation.
+
+## GPU picture processing
+
+Media3's existing `media3-effect` dependency (1.11.1, already included through
+`media3-transformer`) supplies the Standard engine's Lanczos resampler and colour
+adjustments. Ember's small gamma/detail pass is in `StandardPictureEffects.kt`.
+These effects use the existing GPU renderer; they do not add another decoder.
+
+The Compatibility engine bundles the unmodified MIT-licensed
+[Anime4K CNN x2 small shader](https://github.com/bloc97/Anime4K/blob/28535a4aff3deb55707a36c2f2d05009e0cb7fb3/glsl/Upscale/Anime4K_Upscale_CNN_x2_S.glsl).
+It is stored as `app/src/main/assets/shaders/fast-upscale.glsl`, SHA256
+`4c53ec2e287908f7ee7bcb266b0170421626d663576468b7d7dafc62962649a4`.
+The complete upstream copyright and MIT license remain in its header and in
+`app/src/main/assets/licenses/Anime4K-MIT.txt`, also available in the app's Legal section.
+The source was not modified. An ordinary app build packages the shader without
+an external toolchain, account or runtime download. Its upstream condition only
+runs the enlargement passes above 1.2× in both output dimensions.
+
+Picture enhancement is enabled by default and can be disabled in Settings >
+Picture enhancement or Player options > Video. The master switch bypasses the
+extra processing; colour controls start neutral. HDR/Dolby Vision, protected and
+tunneled Standard playback retain their supported renderer path. A Standard GPU
+processing failure retries the current video without effects, keeping the saved
+preference and playback position.

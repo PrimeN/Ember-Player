@@ -26,6 +26,11 @@ internal fun PlayerActivity.installTouchControls() {
             else if (view.isControllerFullyVisible) view.hideController() else view.showController()
         }
         override fun hideControls() { controls.visible = false; controls.sheet = null; closeMenu(); view.hideController(); hidePanel() }
+        override fun skipItem(forward:Boolean):Boolean {
+            val item=if(forward)fileQueue?.next(accept=::queueItemAllowed) else fileQueue?.previous(::queueItemAllowed)
+            if(item==null)return false
+            playFile(item);return true
+        }
         override fun magnify(scale: Float) { touchMagnification = scale; applyTouchMagnification() }
         override val subtitleState:SubtitleTouchState? get() {
             if(!subsInitialized || prefs.subtitleConfig.systemStyle)return null

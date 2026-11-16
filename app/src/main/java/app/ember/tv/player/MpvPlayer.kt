@@ -30,6 +30,14 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     private var requestedEffects = config.audioEffects
     private var appliedEffects: String? = null
     private var currentVideoMime: String? = null
+    private var requestedPicture=config.picture
+    private var appliedPicture:String?=null
+    private var pictureBypassed=false
+    val enhancementBypassed get()=pictureBypassed
+    private var legacyScale=config.scaler
+    private var requestedDeband=config.deband
+    private var requestedInterpolation=config.interpolation
+    private var pendingFrameStep=0
     private var deinterlacing=config.deinterlacing
     private val native=run {NativePlayerFiles.prepare(context);MPVLib.create(context)} ?: error("Compatibility player could not start.")
     private var status=Player.STATE_IDLE
@@ -173,6 +181,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         }
         tracks=Tracks(groups)
         currentVideoMime=groups.firstOrNull {it.type==C.TRACK_TYPE_VIDEO}?.getTrackFormat(0)?.sampleMimeType
+        applyEnhancement()
         applyVideoDecoder(); applyAudioEffects()
         size=VideoSize(native.getPropertyInt("video-params/w")?:0,native.getPropertyInt("video-params/h")?:0)
     }
@@ -206,6 +215,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         externalSubtitle?.let {native.command(arrayOf("sub-add",it.absolutePath,"select"))}
         subtitleDelay(subtitleOffset)
         native.setPropertyBoolean("pause",!wanted||focusPaused);invalidateState()
+        if(pendingFrameStep!=0){val direction=pendingFrameStep;pendingFrameStep=0;stepFrame(direction>0)}
     }
     private fun eof() {
         if(loading||stopping)return
@@ -216,6 +226,12 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     }
     private fun onMain(action:()->Unit){handler.post {if(!closed)try {action()}catch(_:Exception){fail()}}}
     private fun failedFile() {
+        if(!pictureBypassed && requestedPicture.enabled && currentVideoMime!=null && transport?.failureCode==null &&
+            native.getPropertyString("video-params/gamma") !in setOf("pq","hlg","st2084")) {
+            pictureBypassed=true;appliedPicture=null;applyEnhancement()
+            android.widget.Toast.makeText(context,"Retrying without picture enhancement",android.widget.Toast.LENGTH_SHORT).show()
+            load(partIndex,position);return
+        }
         if(!pcmAttempted && config.passthrough && transport?.failureCode==null && native.getPropertyString("audio-codec-name")!=null) {
             pcmAttempted=true;native.setPropertyString("audio-spdif","")
             android.widget.Toast.makeText(context,"Trying decoded audio output",android.widget.Toast.LENGTH_SHORT).show()
@@ -255,7 +271,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
             .setVideoSize(size).setSurfaceSize(surfaceSize).setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build()).setAudioSessionId(session).setVolume(gain).setRepeatMode(repeat).setPlayerError(error).setNewlyRenderedFirstFrame(firstFrame).build()
     }
     private fun done():ListenableFuture<*> = Futures.immediateVoidFuture()
-    override fun handlePrepare():ListenableFuture<*> {error=null;load(0,initialPosition);return done()}
+    override fun handlePrepare():ListenableFuture<*> {error=null;load(partIndex,position);return done()}
     override fun handleSetPlayWhenReady(playWhenReady:Boolean):ListenableFuture<*> {wanted=playWhenReady;if(wanted)focusPaused=audioManager.requestAudioFocus(focus)!=AudioManager.AUDIOFOCUS_REQUEST_GRANTED
         native.setPropertyBoolean("pause",!wanted||focusPaused);return done()}
     fun seekNavigation(positionMs: Long, fast: Boolean) {
@@ -263,6 +279,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         try { seekTo(positionMs) } finally { navigationSeek=false }
     }
     override fun handleSeek(mediaItemIndex:Int,positionMs:Long,seekCommand:Int):ListenableFuture<*> {
+        pendingFrameStep=0
         approximateSeek=navigationSeek
         val target=positionMs.coerceAtLeast(0);var index=0
         while(index<source.urls.lastIndex && durations[index]!=null && target>=prefix(index)+durations[index]!!)index++
@@ -321,12 +338,50 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     fun additionalAudio(uri:String){additionalAudio=uri;wholeTitleAudio=true;native.command(arrayOf("audio-add",uri(uri),"select"));audioDelay(audioOffset)}
     fun picture(deband:Boolean,interpolate:Boolean,scale:String,deinterlace:String = "off") {
         deinterlacing=deinterlace
-        native.setPropertyBoolean("deband",deband)
+        requestedDeband=deband;requestedInterpolation=interpolate;legacyScale=scale;appliedPicture=null
         applyVideoDecoder()
         val mode=NativeDeinterlacing.mode(deinterlacing)
         if(native.getPropertyString("deinterlace")!=mode)native.setPropertyString("deinterlace",mode)
-        native.setPropertyString("video-sync",if(interpolate)"display-resample" else "audio")
-        native.setPropertyBoolean("interpolation",interpolate);native.setPropertyString("scale",scale)
+        applyEnhancement()
+    }
+    fun enhancement(value:PictureEnhancement){
+        val normalized=value.normalized()
+        if(normalized!=requestedPicture)pictureBypassed=false
+        requestedPicture=normalized;applyEnhancement()
+    }
+    private fun applyEnhancement() {
+        if(closed || currentVideoMime==null)return
+        val hdr=native.getPropertyString("video-params/gamma") in setOf("pq","hlg","st2084")
+        val p=requestedPicture.normalized()
+        val active=p.enabled&&!hdr&&!pictureBypassed
+        val signature="$active|$p|$legacyScale|$requestedDeband|$requestedInterpolation"
+        if(signature==appliedPicture)return
+        runCatching {
+            native.setPropertyBoolean("deband",active&&requestedDeband)
+            native.setPropertyBoolean("interpolation",active&&requestedInterpolation)
+            native.setPropertyString("video-sync",if(active&&requestedInterpolation)"display-resample" else "audio")
+            native.setPropertyString("scale",if(active&&p.upscaling)"lanczos" else if(active)legacyScale else "bilinear")
+            native.setPropertyString("glsl-shaders",if(active&&p.upscaling&&p.shader)NativePlayerFiles.upscaleShader(context).absolutePath else "")
+            for((name,value)in mapOf("brightness" to p.brightness,"contrast" to p.contrast,"saturation" to p.saturation,"gamma" to p.gamma,"hue" to p.hue))
+                native.setPropertyInt(name,if(active)value else 0)
+            native.setPropertyDouble("sharpen",if(active)p.sharpness/100.0 else 0.0)
+            appliedPicture=signature
+        }.onFailure {
+            val retry=!pictureBypassed
+            pictureBypassed=true;appliedPicture=null
+            if(retry)applyEnhancement()
+        }
+    }
+    /** Native frame commands report the resulting timestamp; no FPS-based time approximation. */
+    fun stepFrame(forward:Boolean):Boolean {
+        if(closed || !seekable || source.live)return false
+        if(!loading && tracks.groups.none {it.type==C.TRACK_TYPE_VIDEO})return false
+        playWhenReady=false
+        if(loading){pendingFrameStep=if(forward)1 else -1;return true}
+        if(tracks.groups.none {it.type==C.TRACK_TYPE_VIDEO})return false
+        waitingSeek=false;approximateSeek=false
+        native.command(arrayOf(if(forward)"frame-step" else "frame-back-step"))
+        return true
     }
     fun captionStyle(c:app.ember.tv.data.SubtitleConfig) {
         native.setPropertyString("sub-ass-override",if(c.authoredStyles&&!c.systemStyle)"no" else "force")

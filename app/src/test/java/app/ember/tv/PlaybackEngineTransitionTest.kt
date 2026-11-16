@@ -60,4 +60,44 @@ class PlaybackEngineTransitionTest {
             assertFalse(engine.recover(4003));assertFalse(constructed);assertEquals(42000,original.currentPosition)
         } finally {engine.player.release()}
     }
+    @Test fun pendingKeySeeksAccumulateButExplicitJumpsAndSourceChangesCancelThem() {
+        val context=RuntimeEnvironment.getApplication()
+        val actual=ExoPlayer.Builder(context).build()
+        val engine=PlaybackEngine(context,actual,{PlaybackConfig(rememberDecoderChoices=false)}) {}
+        try {
+            engine.configure(EngineSource(listOf("content://media/123"),"Film","key"))
+            engine.player.setMediaItem(MediaItem.fromUri("content://media/123"));engine.player.seekTo(10000)
+            engine.navigate(20000,true);engine.navigate(30000,true)
+            assertEquals(30000L,engine.player.currentPosition);assertEquals(10000L,actual.currentPosition)
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(60))
+            assertEquals(30000L,actual.currentPosition)
+            engine.navigate(90000,true);engine.navigate(12345,false,coalesce=false)
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(60))
+            assertEquals(12345L,actual.currentPosition)
+            engine.navigate(90000,true);engine.player.seekTo(7000)
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(60))
+            assertEquals(7000L,actual.currentPosition)
+            engine.navigate(90000,true)
+            engine.configure(EngineSource(listOf("content://media/456"),"Next","next"))
+            engine.player.setMediaItem(MediaItem.fromUri("content://media/456"));engine.player.seekTo(5000)
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(60))
+            assertEquals(5000L,actual.currentPosition)
+        }finally{engine.player.release()}
+    }
+
+    @Test fun unavailableFrameInspectionKeepsWorkingAudioAndPlaybackState() {
+        val activity=org.robolectric.Robolectric.buildActivity(PlayerActivity::class.java).get()
+        val actual=ExoPlayer.Builder(activity).build()
+        val standard=intercept(actual){name->if(name=="getAudioFormat")Format.Builder().setSampleMimeType("audio/mhm1").build() else Unit}
+        val engine=PlaybackEngine(activity,standard,{PlaybackConfig(rememberDecoderChoices=false)}) {}
+        engine.configure(EngineSource(listOf("content://media/123"),"Film","key"))
+        activity.playbackEngine=engine;activity.player=engine.player
+        try {
+            actual.setMediaItem(MediaItem.fromUri("content://media/123"));actual.seekTo(42000);actual.playWhenReady=true
+            activity.inspectFrames()
+            assertTrue(actual.playWhenReady);assertEquals(42000L,actual.currentPosition)
+            assertNull(activity.actionDialog);assertNull(engine.compatibility)
+        }finally{activity.player=null;activity.playbackEngine=null;engine.player.release()}
+    }
+
 }

@@ -8,6 +8,13 @@ import java.io.File
  * Point it at read-only system fonts and a private, non-media cache before loading libmpv.
  */
 internal object NativePlayerFiles {
+    @Synchronized fun upscaleShader(context:Context):File {
+        val root=File(context.noBackupFilesDir,"player-shaders").apply {check(isDirectory||mkdirs())}
+        val target=File(root,"fast-upscale.glsl")
+        val bytes=context.assets.open("shaders/fast-upscale.glsl").use {it.readBytes()}
+        if(!target.isFile || !target.readBytes().contentEquals(bytes))target.writeBytes(bytes)
+        return target
+    }
     @Synchronized fun prepare(context:Context) {
         val directory=File(context.noBackupFilesDir,"player-fontconfig").apply {check(isDirectory||mkdirs())}
         val cache=File(context.cacheDir,"player-fonts").apply {check(isDirectory||mkdirs())}
