@@ -352,6 +352,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
+            if(isPlaying)app.ember.player.CastPlaybackService.localPlayback(resumeKey)
             decoderStableSince=if(isPlaying)android.os.SystemClock.elapsedRealtime() else 0L
             controls.playing = isPlaying
             // Paused by the user: show the controls (with the synopsis and cast).

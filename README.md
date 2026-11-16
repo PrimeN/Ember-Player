@@ -40,6 +40,14 @@ Backups use password-derived AES-256-GCM encryption. The password is not saved. 
 The app requests access to selected files through Android's document picker. It does not replace the home screen, run a home-button accessibility service, start at boot, request all-files storage access or install application updates.
 
 
+### Receivers and USB drives
+
+- Send the selected media to a Google Cast or DLNA receiver on the same IPv4 local network. Open Playback options → Cast to a receiver. Google Cast setup starts only when enabled on that screen and requires compatible Google Play services; DLNA discovery works independently.
+- Remote controls include play/pause, seeking, volume and disconnect, with background playback controls in the media notification. The app relays media through temporary URLs restricted to the chosen receiver. Saved server headers and upstream URLs stay on the device. Private playback, DRM and separately linked audio/video sources cannot be sent.
+- The receiver must support the media format. Casting does not provide video transcoding; HDR, audio formats and adaptive-stream support depend on the receiver.
+- Browse supported FAT32 USB mass-storage drives directly, including files missing from Android’s index. Access is read-only and requested explicitly. Other filesystems continue to use Android’s mounted-drive or document-provider access.
+- Direct USB playback keeps its drive connection until playback ends. Its temporary queues are not saved as playlists. When private media is enabled, use Android’s USB/document browser to preserve protected document identities.
+
 ### Library and media tools
 
 - Search across saved media folders using an encrypted local index. Refresh it after changing files; no full scan runs at startup. Private files and forgotten roots are excluded from results.

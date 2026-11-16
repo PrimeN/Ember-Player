@@ -267,6 +267,10 @@ dependencies {
     implementation("org.apache.commons:commons-lang3:3.22.0")
     implementation("com.github.mwiede:jsch:2.28.8")
     implementation("commons-net:commons-net:3.13.0")
+    implementation("me.jahnen.libaums:core:0.10.0")
+    implementation("com.google.android.gms:play-services-cast-framework:23.0.0")
+    implementation("androidx.appcompat:appcompat:1.7.1")
+    implementation("androidx.fragment:fragment:1.8.9")
 
     testImplementation("androidx.sqlite:sqlite-framework:2.7.0")
     testImplementation("junit:junit:4.13.2")

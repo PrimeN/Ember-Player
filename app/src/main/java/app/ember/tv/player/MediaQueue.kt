@@ -41,13 +41,28 @@ internal class MediaQueue(items:List<QueueMedia>,val resources:List<java.io.Clos
 }
 internal object MediaQueues {
     private val queues=java.util.concurrent.ConcurrentHashMap<String,MediaQueue>()
-    fun put(items:List<QueueMedia>,resources:List<java.io.Closeable> = emptyList()):String=java.util.UUID.randomUUID().toString().also {queues[it]=MediaQueue(items,resources)}
+    private val references=mutableMapOf<String,Int>()
+    @Synchronized fun put(items:List<QueueMedia>,resources:List<java.io.Closeable> = emptyList()):String=java.util.UUID.randomUUID().toString().also {queues[it]=MediaQueue(items,resources);references[it]=1}
     fun get(id:String?)=id?.let(queues::get)
     fun launch(items:List<QueueMedia>,resources:List<java.io.Closeable> = emptyList(),open:(String)->Unit) {
         val id=try {put(items,resources)}catch(e:Exception){resources.forEach {runCatching {it.close()}};throw e}
         try {open(id)} catch(e:Exception) {release(id);throw e}
     }
-    fun release(id:String?){id?.let(queues::remove)?.resources?.forEach {runCatching {it.close()}}}
+    @Synchronized fun retain(id:String?):java.io.Closeable? {
+        if(id==null||queues[id]==null)return null
+        references[id]=(references[id]?:1)+1
+        val closed=java.util.concurrent.atomic.AtomicBoolean()
+        return java.io.Closeable {if(closed.compareAndSet(false,true))release(id)}
+    }
+    fun release(id:String?) {
+        val closed=synchronized(this) {
+            if(id==null||id !in references)return
+            val count=references.getValue(id)-1
+            if(count>0){references[id]=count;return}
+            references.remove(id);queues.remove(id)
+        }
+        closed?.resources?.forEach {runCatching {it.close()}}
+    }
 }
 
 /** A repeat range belongs to one item, and never silently repeats a previous title. */

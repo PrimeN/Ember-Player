@@ -148,3 +148,13 @@ with AndroidX SQLite 2.7.0. Its BSD license is included in About. The database k
 in the Keystore-backed secret store; the index can be rebuilt from saved folder grants.
 Clip export uses Media3 Transformer 1.11.1, under the same Apache 2.0 license as Media3.
 Release packaging continues to include ARM64 and ARM32 only.
+
+Direct FAT32 USB browsing uses [libaums core 0.10.0](https://github.com/magnusja/libaums),
+under Apache 2.0. No raw NTFS/exFAT driver is bundled.
+Optional Google Cast uses `com.google.android.gms:play-services-cast-framework:23.0.0`
+and its matching Cast dependency. It is initialized only from the receiver screen;
+saved-session resume, automatic reconnection and the SDK media notification are disabled.
+The app owns the selected source, temporary relay, media notification and cleanup.
+See [Google Cast terms](https://developers.google.com/cast/docs/terms) and
+[Android SDK terms](https://developer.android.com/studio/terms.html).
+DLNA discovery and controls use the app’s own local UDP/HTTP/XML implementation.

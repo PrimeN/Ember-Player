@@ -25,7 +25,7 @@ internal class SavedPlaylists(private val readValue:()->String?,private val writ
         runCatching {json.decodeFromString<List<SavedPlaylist>>(raw)}.getOrNull()?.filter(::valid)?.distinctBy {it.id}?.take(50)
     }.orEmpty()
     fun save(name:String,items:List<QueueMedia>,index:Int=0,repeat:String="off",shuffle:Boolean=false,id:String?=null):Boolean=synchronized(lock) {
-        if(items.any {app.ember.player.PrivateMedia.hidden(it.uri)})return@synchronized false
+        if(items.any {app.ember.player.PrivateMedia.hidden(it.uri)||it.identity?.startsWith(DirectUsbIdentity.PREFIX)==true})return@synchronized false
         val values=read()
         if(values.none {it.id==id} && values.size>=50)return@synchronized false
         val entries=items.map {media->PlaylistEntry(if(media.network==null)media.uri else "",media.title.take(180),media.identity,media.network,media.directory)}

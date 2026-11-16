@@ -71,3 +71,6 @@
 -dontwarn org.newsclub.net.unix.**
 -dontwarn org.apache.logging.log4j.**
 -dontwarn javax.el.**
+
+# Cast discovers its options provider by its manifest name.
+-keep class app.ember.player.EmberCastOptions { public <init>(); }

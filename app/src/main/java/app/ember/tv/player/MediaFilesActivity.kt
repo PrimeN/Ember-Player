@@ -90,6 +90,8 @@ class MediaFilesActivity:ComponentActivity() {
                 Chip(if(preparing) "Preparing files…" else "Choose files",modifier=Modifier.focusRequester(first)) {
                     if(!preparing)runCatching {picker.launch(arrayOf("video/*","audio/*","application/octet-stream"))}.onFailure {Toast.makeText(this@MediaFilesActivity,"No file picker is installed on this TV.",Toast.LENGTH_LONG).show()}
                 }
+                val casting by app.ember.player.CastPlaybackService.state.collectAsStateWithLifecycle()
+                if(casting?.ready==true&&casting?.error==null)Chip("Receiver · ${casting?.receiver}"){startActivity(android.content.Intent(this@MediaFilesActivity,app.ember.player.CastActivity::class.java))}
                 Chip("Open stream URL"){urlDialog=true}
                 message?.let {Text(it,fontSize=13.sp)}
                 if(recent.isNotEmpty()) {
@@ -107,6 +109,7 @@ class MediaFilesActivity:ComponentActivity() {
                 app.ember.player.PrivateMediaPanel(this@MediaFilesActivity)
                 PlaylistsPanel(this@MediaFilesActivity,version)
                 UsbFilesPanel(this@MediaFilesActivity,version)
+                DirectUsbPanel(this@MediaFilesActivity,version)
                 MediaLibraryPanel(this@MediaFilesActivity,version)
                 DeviceFilesPanel(this@MediaFilesActivity,version)
                 NetworkFilesPanel(this@MediaFilesActivity,version)

@@ -16,7 +16,7 @@ import javax.xml.transform.stream.StreamResult
  * Adaptive manifests are rewritten to the same transport, including DASH templates.
  * Bodies and credentials never enter a disk cache or exported diagnostics.
  */
-internal class NativeHttpTransport(private val headers:Map<String,String>,origins:List<String>):Closeable {
+internal class NativeHttpTransport(private val headers:Map<String,String>,origins:List<String>,private val mapAddress:(String)->String={it},private val receiverMode:Boolean=false,private val representations:(Set<String>,Set<String>)->Unit={_,_->}):Closeable {
     private val relay=MediaRelay()
     private val active=ConcurrentHashMap.newKeySet<Call>()
     private val bases=ConcurrentHashMap<String,String>()
@@ -32,7 +32,7 @@ internal class NativeHttpTransport(private val headers:Map<String,String>,origin
             val resolved=url.newBuilder().encodedPath("/").query(null).fragment(null).build().resolve(suffix)?:error("Invalid media path.")
             require(origin(resolved)==origin(url));resource(resolved)
         }}}
-        return base+url.encodedPath+(url.encodedQuery?.let {"?$it"}?:"")
+        return mapAddress(base+url.encodedPath+(url.encodedQuery?.let {"?$it"}?:""))
     }
     private fun request(initial:HttpUrl,head:Boolean=false,offset:Long=0):Response {
         var url=initial
@@ -62,7 +62,25 @@ internal class NativeHttpTransport(private val headers:Map<String,String>,origin
             }
         };error("Too many media redirects.")
     }
+    private fun manifest(url:HttpUrl):RemoteMedia {
+        var final=url;var useDash=url.encodedPath.endsWith(".mpd",true)
+        val bytes=request(url).use {response->
+            check(response.isSuccessful);final=response.request.url
+            val type=response.header("Content-Type").orEmpty()
+            useDash=when {type.contains("dash+xml",true)->true;type.contains("mpegurl",true)->false;else->useDash||final.encodedPath.endsWith(".mpd",true)}
+            SubtitleFiles.read(response.body.byteStream(),4*1024*1024)
+        }
+        val text=String(bytes,Charsets.UTF_8)
+        val mapped=if(useDash)dash(text,final) else hls(text,final)
+        val content=mapped.toByteArray()
+        return object:RemoteMedia {
+            override val length=content.size.toLong()
+            override val mime=if(useDash)"application/dash+xml" else "application/vnd.apple.mpegurl"
+            override fun open(offset:Long)=content.inputStream().apply {skip(offset)}
+        }
+    }
     private fun resource(url:HttpUrl):RemoteMedia {
+        if(listOf(".m3u8",".m3u",".mpd").any {url.encodedPath.endsWith(it,true)})return manifest(url)
         var final=url
         var type="";var size=-1L
         request(url,head=true).use {r ->
@@ -70,14 +88,9 @@ internal class NativeHttpTransport(private val headers:Map<String,String>,origin
         }
         if(type.isEmpty())request(final).use {r->if(r.isSuccessful){type=r.header("Content-Type").orEmpty().lowercase();size=r.header("Content-Length")?.toLongOrNull()?:-1;final=r.request.url}}
         val path=final.encodedPath.lowercase()
-        if(path.endsWith(".m3u8")||path.endsWith(".m3u")||path.endsWith(".mpd")||type.contains("mpegurl")||type.contains("dash+xml")) {
-            val bytes=request(final).use {r->check(r.isSuccessful);final=r.request.url;SubtitleFiles.read(r.body.byteStream(),4*1024*1024)}
-            val text=String(bytes,Charsets.UTF_8)
-            val mapped=if(path.endsWith(".mpd")||type.contains("dash+xml"))dash(text,final) else hls(text,final)
-            val content=mapped.toByteArray()
-            return object:RemoteMedia {override val length=content.size.toLong();override fun open(offset:Long)=content.inputStream().apply {skip(offset)}}
-        }
+        if(path.endsWith(".m3u8")||path.endsWith(".m3u")||path.endsWith(".mpd")||type.contains("mpegurl")||type.contains("dash+xml"))return manifest(final)
         return object:RemoteMedia {
+            override val mime=type.substringBefore(';').ifBlank {"application/octet-stream"}
             override val length=size
             override fun open(offset:Long):InputStream {
                 val response=request(final,offset=offset)
@@ -96,7 +109,22 @@ internal class NativeHttpTransport(private val headers:Map<String,String>,origin
     }
     internal fun dash(text:String,base:HttpUrl):String {
         val document=SafePlayerXml.parse(text)
+        if(receiverMode)require(document.getElementsByTagNameNS("*","ContentProtection").length==0) {"Protected receiver stream"}
+        val tracks=document.getElementsByTagNameNS("*","Representation")
+        val ids=mutableSetOf<String>();val bandwidths=mutableSetOf<String>()
+        for(i in 0 until tracks.length) {
+            val track=tracks.item(i) as? org.w3c.dom.Element ?: continue
+            track.getAttribute("id").takeIf {it.isNotBlank()}?.let(ids::add)
+            track.getAttribute("bandwidth").toLongOrNull()?.toString()?.let(bandwidths::add)
+        }
+        representations(ids,bandwidths)
         fun rewrite(element:org.w3c.dom.Element,parent:HttpUrl) {
+            if(receiverMode) {
+                if(element.localName in setOf("ContentSteering","PatchLocation")){element.parentNode?.removeChild(element);return}
+                if(element.localName=="UTCTiming"&&element.getAttribute("value").startsWith("http"))element.setAttribute("value",mapped(parent,element.getAttribute("value")))
+                val xlink="http://www.w3.org/1999/xlink"
+                if(element.hasAttributeNS(xlink,"href"))element.setAttributeNS(xlink,"xlink:href",mapped(parent,element.getAttributeNS(xlink,"href")))
+            }
             val children=(0 until element.childNodes.length).mapNotNull {element.childNodes.item(it) as? org.w3c.dom.Element}
             children.filter {it.localName=="Location"}.forEach {it.textContent=mapped(parent,it.textContent.trim())}
             val urls=children.filter {it.localName=="BaseURL"}

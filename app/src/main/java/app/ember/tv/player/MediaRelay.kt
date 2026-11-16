@@ -11,6 +11,7 @@ import java.util.concurrent.*
 
 internal interface RemoteMedia {
     val length:Long
+    val mime:String get()="application/octet-stream"
     fun open(offset:Long):InputStream
 }
 internal data class ByteRange(val start:Long,val end:Long) {
@@ -32,33 +33,45 @@ internal data class ByteRange(val start:Long,val end:Long) {
 }
 
 /** Private, read-only, seekable transport for both player engines. No URL/password leaves RAM.
- * Binds loopback only, requires an unguessable token, bounds workers/headers, closes active reads.
+ * Loopback is the default. Explicit casting can bind one LAN address and allow one peer.
+ * Every address requires an unguessable token; workers, headers and active reads are bounded.
  */
-internal class MediaRelay:Closeable {
+internal class MediaRelay(private val lan:LanRelayAccess?=null):Closeable {
+    internal data class LanRelayAccess(val address:InetAddress,val peer:InetAddress) {
+        init {require(address is java.net.Inet4Address && !address.isAnyLocalAddress);require(peer is java.net.Inet4Address && (peer.isSiteLocalAddress||peer.isLinkLocalAddress||peer.isLoopbackAddress))}
+    }
+    private val host=lan?.address?.hostAddress ?: "127.0.0.1"
     private val token=ByteArray(32).also(SecureRandom()::nextBytes).toHex()
-    private val socket=ServerSocket(0,8,InetAddress.getByName("127.0.0.1"))
-    private val media=ConcurrentHashMap<String,RemoteMedia>()
+    private val socket=ServerSocket(0,8,lan?.address ?: InetAddress.getByName("127.0.0.1"))
+    private val media=ConcurrentHashMap<String,()->RemoteMedia>()
     private val families=ConcurrentHashMap<String,(String)->RemoteMedia>()
     private val clients=ConcurrentHashMap.newKeySet<Closeable>()
     private val workers=ThreadPoolExecutor(2,4,20,TimeUnit.SECONDS,ArrayBlockingQueue(8),{r->Thread(r,"Ember media read").apply {isDaemon=true}},ThreadPoolExecutor.AbortPolicy())
     @Volatile private var closed=false
     init {Thread({while(!closed)try {
-        val client=socket.accept();client.soTimeout=8000;clients+=client
+        val client=socket.accept();if(lan!=null&&client.inetAddress!=lan.peer){client.close();continue};client.soTimeout=8000;clients+=client
         try {workers.execute {serve(client)}} catch(_:RejectedExecutionException){clients-=client;client.close()}
     } catch(_:Exception){if(!closed)close()}},"Ember media relay").apply {isDaemon=true;start()}}
     fun register(source:RemoteMedia,name:String):String {
         check(!closed);require(source.length>0)
         val id=java.util.UUID.randomUUID().toString()
         val extension=name.substringAfterLast('.').lowercase().takeIf {it.matches(Regex("[a-z0-9]{1,8}"))}?:"bin"
-        val path="/$token/$id/media.$extension";media[path]=source
-        return "http://127.0.0.1:${socket.localPort}$path"
+        val path="/$token/$id/media.$extension";media[path]={source}
+        return "http://$host:${socket.localPort}$path"
+    }
+    fun factory(source:()->RemoteMedia,name:String="media.bin"):String {
+        check(!closed);check(media.size<50000)
+        val extension=name.substringBefore('?').substringAfterLast('.').lowercase().takeIf {it.matches(Regex("[a-z0-9]{1,8}"))}?:"bin"
+        val path="/$token/"+java.util.UUID.randomUUID().toString()+"/media.$extension"
+        media[path]=source
+        return "http://$host:${socket.localPort}$path"
     }
     /** The token protects an entire registered HTTP origin, including DASH segment templates. */
     fun origin(resource:(String)->RemoteMedia):String {
         check(!closed);check(families.size<128)
         val prefix="/$token/"+java.util.UUID.randomUUID().toString()
         families[prefix]=resource
-        return "http://127.0.0.1:${socket.localPort}$prefix"
+        return "http://$host:${socket.localPort}$prefix"
     }
     private fun once(input:InputStream):InputStream=object:java.io.FilterInputStream(input) {
         private val released=java.util.concurrent.atomic.AtomicBoolean()
@@ -71,26 +84,28 @@ internal class MediaRelay:Closeable {
             val request=line().split(' ');if(request.size!=3)return
             val headers=linkedMapOf<String,String>();while(true){val row=line();if(row.isEmpty())break;val colon=row.indexOf(':');if(colon<=0)return;val key=row.substring(0,colon).lowercase();if(headers.put(key,row.substring(colon+1).trim())!=null)return}
             val out=client.getOutputStream()
-            fun status(code:String,extra:String="",length:Long=0) {out.write(("HTTP/1.1 $code\r\nConnection: close\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\n"+(if(length>=0)"Content-Length: $length\r\n" else "")+"$extra\r\n").toByteArray())}
-            if(headers["host"]!="127.0.0.1:${socket.localPort}"){status("403 Forbidden");return}
+            fun status(code:String,extra:String="",length:Long=0) {out.write(("HTTP/1.1 $code\r\nConnection: close\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\n"+(if(length>=0)"Content-Length: $length\r\n" else "")+(if(lan!=null)"Access-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: Range\r\nAccess-Control-Allow-Methods: GET, HEAD, OPTIONS\r\n" else "")+"$extra\r\n").toByteArray())}
+            if(headers["host"]!="$host:${socket.localPort}"){status("403 Forbidden");return}
+            if(lan!=null&&request[0]=="OPTIONS"){status("204 No Content");return}
             if(request[0] !in setOf("GET","HEAD")){status("405 Method Not Allowed");return}
-            val source=media[request[1]]?:run {
+            val source=try {media[request[1]]?.invoke()}catch(_:Exception){status("502 Bad Gateway");return}?:run {
                 val path=request[1];val prefix=path.substringBefore('?',path).split('/').take(3).joinToString("/")
                 val factory=families[prefix]?:run {status("404 Not Found");return}
                 try {factory(path.removePrefix(prefix).ifEmpty {"/"})}catch(_:Exception){status("502 Bad Gateway");return}
             }
+            val mime=source.mime.takeIf {it.matches(Regex("[A-Za-z0-9.+-]+/[A-Za-z0-9.+-]+"))} ?: "application/octet-stream"
             if(source.length<0) {
                 if(headers["range"]!=null && headers["range"]!="bytes=0-"){status("416 Range Not Satisfiable");return}
-                if(request[0]=="HEAD"){status("200 OK",length=-1);return}
+                if(request[0]=="HEAD"){status("200 OK","Content-Type: $mime\r\n",length=-1);return}
                 val stream=try {once(source.open(0))}catch(_:Exception){status("502 Bad Gateway");return}
                 if(closed){stream.close();return}
                 clients+=stream
-                try {stream.use {status("200 OK","Content-Type: application/octet-stream\r\n",-1);val buffer=ByteArray(64*1024);while(!closed){val n=it.read(buffer);if(n<0)break;if(n>0)out.write(buffer,0,n)}}}finally{clients-=stream}
+                try {stream.use {status("200 OK","Content-Type: $mime\r\n",-1);val buffer=ByteArray(64*1024);while(!closed){val n=it.read(buffer);if(n<0)break;if(n>0)out.write(buffer,0,n)}}}finally{clients-=stream}
                 return
             }
             val range=ByteRange.parse(headers["range"],source.length)?:run {status("416 Range Not Satisfiable","Content-Range: bytes */${source.length}\r\n");return}
             val length=range.end-range.start+1
-            val extra="Content-Type: application/octet-stream\r\nAccept-Ranges: bytes\r\n"+(if(headers["range"]!=null)"Content-Range: bytes ${range.start}-${range.end}/${source.length}\r\n" else "")
+            val extra="Content-Type: $mime\r\nAccept-Ranges: bytes\r\n"+(if(headers["range"]!=null)"Content-Range: bytes ${range.start}-${range.end}/${source.length}\r\n" else "")
             if(request[0]=="HEAD"){status(if(headers["range"]==null)"200 OK" else "206 Partial Content",extra,length);return}
             val stream=try {once(source.open(range.start))} catch(_:Exception){status("502 Bad Gateway");return}
             if(closed){stream.close();return}

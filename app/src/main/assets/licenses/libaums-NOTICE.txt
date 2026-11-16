@@ -1,0 +1,11 @@
+libaums core 0.10.0
+https://github.com/magnusja/libaums
+
+Copyright 2014-2019 Magnus Jahnen and contributors.
+
+Licensed under the Apache License, Version 2.0. The complete license is included
+in this application's Apache 2.0 license entry and Apache-2.0.txt asset.
+https://www.apache.org/licenses/LICENSE-2.0
+
+This library supplies the USB mass-storage and FAT32 filesystem implementation.
+Ember's integration exposes read-only access after an explicit USB permission.

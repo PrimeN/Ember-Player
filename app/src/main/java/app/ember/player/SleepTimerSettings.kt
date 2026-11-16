@@ -10,13 +10,15 @@ import androidx.tv.material3.Text
 import app.ember.tv.data.SleepTimer
 import app.ember.tv.ui.*
 import kotlinx.coroutines.delay
+import androidx.lifecycle.repeatOnLifecycle
 
 @Composable
 internal fun SleepTimerSettings() {
     val state by SleepTimer.state.collectAsState()
     var now by remember {mutableLongStateOf(android.os.SystemClock.elapsedRealtime())}
     var custom by remember {mutableStateOf(false)}
-    LaunchedEffect(state){while(state.deadline>0){now=android.os.SystemClock.elapsedRealtime();delay(1000)}}
+    val lifecycle=androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(state){lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED){while(state.deadline>0){now=android.os.SystemClock.elapsedRealtime();delay(1000)}}}
     Text(when {state.endOfItem->"Stops after the current item";state.deadline>0->"Remaining · ${((state.remaining(now)+59999)/60000)} min";else->"Sleep timer is off"},fontSize=13.sp,color=Mute)
     ButtonRow {listOf(15,30,60,90).forEach {minutes->Chip("$minutes min"){SleepTimer.after(minutes)}}}
     ButtonRow {
