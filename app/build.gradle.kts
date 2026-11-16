@@ -188,6 +188,24 @@ val verifyMpeghNative by tasks.registering {
 }
 tasks.named("preBuild") { dependsOn(verifyMpeghNative) }
 
+val verifyIamfNative by tasks.registering {
+    inputs.dir(layout.projectDirectory.dir("native/iamf"))
+    inputs.files(fileTree("src/main/jniLibs") { include("**/libiamfJNI.so") })
+    doLast {
+        val hashes = Properties().apply {file("native/iamf/checksums.properties").inputStream().use {load(it)}}
+        val expected = mapOf("arm64-v8a" to 183, "armeabi-v7a" to 40)
+        val files = fileTree("src/main/jniLibs") {include("**/libiamfJNI.so")}.files
+        require(files.map {it.parentFile.name}.toSet() == expected.keys) {"IAMF must contain exactly the supported ARM ABIs"}
+        files.forEach {library ->
+            val bytes = library.readBytes()
+            val sha = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") {"%02x".format(it)}
+            require(sha == hashes.getProperty("${library.parentFile.name}.sha256")) {"IAMF checksum mismatch"}
+            require(ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).getShort(18).toInt() == expected[library.parentFile.name]) {"IAMF CPU mismatch"}
+        }
+    }
+}
+tasks.named("preBuild") {dependsOn(verifyIamfNative)}
+
 android {
     namespace = "app.ember.tv"
     compileSdk = 37

@@ -35,6 +35,8 @@
 -keep class io.github.anilbeesetti.nextlib.** { *; }
 # Media3 discovers the MPEG-H renderer by name; JNI also accesses decoder fields.
 -keep class androidx.media3.decoder.mpegh.** { *; }
+# Media3 discovers the renderer builder by reflection; JNI registers methods by name.
+-keep class androidx.media3.decoder.iamf.** { *; }
 -keep class androidx.media3.decoder.SimpleDecoderOutputBuffer { *; }
 -keepclasseswithmembernames class * {
     native <methods>;

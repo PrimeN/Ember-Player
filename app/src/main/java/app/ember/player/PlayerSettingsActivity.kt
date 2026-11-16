@@ -134,6 +134,7 @@ private fun PlayerLegal() {
     val context=androidx.compose.ui.platform.LocalContext.current
     val licenses=listOf("GPL v3 — mpv, FFmpeg and Nextlib" to "player-GPL-3.0.txt","Apache 2.0 — AndroidX Media3 and libraries" to "Apache-2.0.txt",
         "Fraunhofer MPEG-H" to "Fraunhofer-FDK-MPEG-H.txt","libmpv Android wrapper" to "libmpv-wrapper-MIT.txt",
+        "IAMF decoder notices" to "IAMF-NOTICES.txt",
         "libaums USB notices" to "libaums-NOTICE.txt","SQLCipher" to "SQLCipher-LICENSE.txt","SMBJ-RPC" to "SMBJ-RPC-BSD.txt","JSch" to "JSch-BSD.txt","Apache Commons notices" to "Commons-IO-Lang-NOTICE.txt","Apache Commons Net notices" to "Commons-Net-NOTICE.txt",
         "JSch compression notices" to "JSch-JZlib-BSD.txt","JSch password hashing notices" to "JSch-jBCrypt-ISC.txt","Android NDK notices" to "Android-NDK-29-LLVM-NOTICE.txt")
     licenses.forEach {entry->Chip(entry.first){chosen=entry}}

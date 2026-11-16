@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Audit generated AARs without packaging an APK. Python 3 and readelf required."""
-import argparse, io, pathlib, re, struct, subprocess, tempfile, zipfile
+import argparse, io, pathlib, re, struct, subprocess, sys, tempfile, zipfile
+subprocess.run([sys.executable,str(pathlib.Path(__file__).with_name('verify-iamf-native.py'))],check=True)
 p=argparse.ArgumentParser();p.add_argument('isolated_aar');p.add_argument('--nextlib');args=p.parse_args()
 old={b'libavcodec.so',b'libavutil.so',b'libavformat.so',b'libavfilter.so',b'libavdevice.so',b'libswresample.so',b'libswscale.so',b'libmpv.so',b'libplayer.so'}
 expected={'armeabi-v7a','arm64-v8a'}

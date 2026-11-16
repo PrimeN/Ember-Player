@@ -188,13 +188,34 @@ object Playback {
             setExtensionRendererMode(
                 when (c.ffmpeg) {
                     "prefer" -> EXTENSION_RENDERER_MODE_PREFER
-                    "off" -> EXTENSION_RENDERER_MODE_OFF
+                    // The switching controller requires both FFmpeg entries during construction.
+                    // Disabled extensions are gated after it wraps the renderer set below.
+                    "off" -> EXTENSION_RENDERER_MODE_ON
                     else -> EXTENSION_RENDERER_MODE_ON
                 },
             )
             // Lets Dolby Vision fall back to the HEVC (HDR10) layer, and any codec to a second decoder.
             setEnableDecoderFallback(true)
         }
+
+        override fun createRenderers(eventHandler: Handler,
+            videoRendererEventListener: VideoRendererEventListener,
+            audioRendererEventListener: androidx.media3.exoplayer.audio.AudioRendererEventListener,
+            textRendererOutput: TextOutput,
+            metadataRendererOutput: androidx.media3.exoplayer.metadata.MetadataOutput,
+        ): Array<Renderer> = super.createRenderers(eventHandler,videoRendererEventListener,audioRendererEventListener,textRendererOutput,metadataRendererOutput)
+            .map {renderer -> val enabled=when(renderer.trackType) {
+                C.TRACK_TYPE_AUDIO -> c.ffmpeg!="off" || renderer.name=="MediaCodecAudioRenderer"
+                C.TRACK_TYPE_VIDEO -> c.ffmpegVideo!="off" || renderer.name=="MediaCodecVideoRenderer"
+                else -> true
+            }
+                // Preserve renderer indexes: the switching controller stores this exact order.
+                if(enabled)renderer else object:androidx.media3.exoplayer.ForwardingRenderer(renderer),androidx.media3.exoplayer.RendererCapabilities {
+                    override fun getCapabilities():androidx.media3.exoplayer.RendererCapabilities=this
+                    override fun supportsFormat(format:Format)=androidx.media3.exoplayer.RendererCapabilities.create(C.FORMAT_UNSUPPORTED_TYPE)
+                    override fun supportsMixedMimeTypeAdaptation()=androidx.media3.exoplayer.RendererCapabilities.ADAPTIVE_NOT_SUPPORTED
+                }
+            }.toTypedArray()
 
         /** Nextlib owns extension ordering and recovery modes. The platform renderer additionally
          * validates the DV profile before offering an HDR10 base layer, and respects that mode.
@@ -210,7 +231,7 @@ object Playback {
             out: ArrayList<Renderer>,
         ) {
             val start = out.size
-            val mode = if(c.ffmpegVideo == "off") EXTENSION_RENDERER_MODE_OFF else EXTENSION_RENDERER_MODE_ON
+            val mode = EXTENSION_RENDERER_MODE_ON
             super.buildVideoRenderers(context,mode,mediaCodecSelector,enableDecoderFallback,eventHandler,eventListener,allowedVideoJoiningTimeMs,out)
             for(i in start until out.size) if(out[i] is androidx.media3.exoplayer.video.MediaCodecVideoRenderer) {
                 out[i] = object : androidx.media3.exoplayer.video.MediaCodecVideoRenderer(context,mediaCodecSelector,allowedVideoJoiningTimeMs,true,eventHandler,eventListener,50) {

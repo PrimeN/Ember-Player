@@ -7,6 +7,8 @@ A media player for Android phones, tablets and Android TV, with touch and remote
 ## Playback
 
 - **Two internal engines:** AndroidX Media3/Nextlib for normal playback and libmpv for compatibility playback, with automatic recovery where available.
+- **Software audio:** AC-3, E-AC-3, DTS, TrueHD and other common formats are bundled. Standard also supports supported MPEG-H streams as stereo PCM and IAMF tracks in MP4 using Opus, FLAC or PCM. AAC-based IAMF and encrypted IAMF are excluded. HDR output, immersive passthrough and device-only codecs depend on the device and selected engine.
+- **Automatic engine choices:** known filenames guide opaque file URLs, and successful playback choices are remembered privately for seven days. Reset them in Settings with Reset decoder memory. Explicit engine selections take priority. Supported RTMPS and SRTP streams open directly in Compatibility.
 - **Player interfaces:** Glass, Ember, Basic and Streaming controls, independent of the device's home screen.
 - **Files and USB:** select media through Android's document picker, including multiple files for a playback queue.
 - **Device folders:** remember chosen folders, browse video/audio files, search and sort, select multiple files, share, rename, move or delete where the storage provider permits it. Each folder remembers its last-played file; rename/move preserves playback positions, track choices and scene bookmarks.
