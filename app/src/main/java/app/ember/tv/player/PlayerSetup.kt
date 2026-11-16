@@ -337,7 +337,8 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
                 reportedPlaying = false
                 scrobble(ScrobbleState.STOP, 1f)
                 serverReport(ReportState.STOP)
-                positions.clear(resumeKey)
+                if(!trailer&&!privatePlayback&&app.ember.player.PrivateMedia.historyAllowed(currentUrl.orEmpty()))positions.finished(resumeKey,playbackDuration(p))
+                else positions.clear(resumeKey)
                 if (!trailer && !privatePlayback && app.ember.player.PrivateMedia.state.value.history) {app.ember.tv.data.LocalLibrary.finished(resumeKey,localActivityScope);recordWatched()}
                 onEpisodeEnded()
             }

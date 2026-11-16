@@ -120,9 +120,11 @@ class BackgroundAudioService:Service(),Player.Listener {
         }
     }
     override fun onPlaybackStateChanged(playbackState:Int) {
-        if(playbackState==Player.STATE_ENDED&&app.ember.tv.data.SleepTimer.itemEnded())return
         if(playbackState==Player.STATE_ENDED){
-            source?.let {key->PositionStore(this,handoff?.value?.scope ?: app.ember.tv.data.LocalActivity.SHARED).clear(key.key)}
+            source?.takeIf {app.ember.player.PrivateMedia.historyAllowed(it.urls.firstOrNull().orEmpty())}?.let {key->
+                PositionStore(this,handoff?.value?.scope ?: app.ember.tv.data.LocalActivity.SHARED).finished(key.key,audio?.player?.duration ?: 0)
+            }
+            if(app.ember.tv.data.SleepTimer.itemEnded())return
             val queue=MediaQueues.get(handoff?.value?.queueId)
             queue?.next(ended=true,accept={ !app.ember.player.PrivateMedia.hidden(it.uri) })?.let {loadQueueItem(it)} ?: stopPlayback()
         }
@@ -145,7 +147,7 @@ class BackgroundAudioService:Service(),Player.Listener {
         usbWatch?.close();usbWatch=UsbMedia.watch(this,media.uri){stopPlayback()}
         source=EngineSource(listOf(media.uri),media.title,media.key,headers=request.source.headers,
             audioLanguages=request.source.audioLanguages,filename=media.title)
-        val at=PositionStore(this,request.scope).get(media.key)?.first ?: 0
+        val at=PositionStore(this,request.scope).resume(media.key)?.first ?: 0
         audio?.load(source!!,at)
         MediaQueues.get(request.queueId)?.let {queue->queue.playlistId?.let {PlaylistProgress.save(applicationContext,request.profile,it,media.key)}}
         update()
@@ -158,7 +160,7 @@ class BackgroundAudioService:Service(),Player.Listener {
         val duration=player.duration
         if(duration>0 && player.playbackState!=Player.STATE_ENDED) {
             val store=PositionStore(this,request.scope)
-            if(player.currentPosition>=duration*.95)store.clear(key) else store.put(key,player.currentPosition.coerceAtLeast(0),duration)
+            store.put(key,player.currentPosition.coerceAtLeast(0),duration)
         }
     }
     // MediaStyle notifications with an active MediaSession are exempt from Android 13's

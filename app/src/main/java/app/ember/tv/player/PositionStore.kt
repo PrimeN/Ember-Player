@@ -22,6 +22,12 @@ class PositionStore(context: Context,scope:String=app.ember.tv.data.LocalActivit
     fun put(key: String, positionMs: Long, durationMs: Long) =
         if(app.ember.player.PrivateMedia.state.value.history)sp.edit { putString(prefix+key, "$positionMs,$durationMs") } else Unit
 
+    /** Keep completion for the library, while playback always restarts a finished item. */
+    fun resume(key:String):Pair<Long,Long>?=get(key)?.takeIf {it.second>0 && it.first<it.second*.95}
+    fun finished(key:String,durationMs:Long) {
+        if(durationMs>0)put(key,durationMs,durationMs) else clear(key)
+    }
+
     fun clear(key: String) = sp.edit { remove(prefix+key) }
 
     fun moveKey(from:String,to:String) {

@@ -236,7 +236,7 @@ internal fun PlayerActivity.resume(p: ExoPlayer): Boolean {
     if(forced>=0) {intent.removeExtra(BackgroundAudioService.FORCE_POSITION);p.seekTo(forced.coerceAtMost(p.duration.takeIf {it>0} ?: Long.MAX_VALUE));return true}
     if (trailer || startOver) return true
     if (playbackEngine?.compatibility==null && serverPlayback?.takeIf { it.parts.size > 1 }?.parts?.any { (it.durationMs ?: 0L) <= 0L } == true) return false
-    val saved = positions.get(resumeKey)
+    val saved = positions.resume(resumeKey)
     val duration = playbackDuration(p).takeIf {it>0}
     if(duration==null) {
         if(playbackEngine?.compatibility!=null && saved!=null && saved.first>30_000 && saved.first<saved.second*0.95){p.seekTo(saved.first);return true}
@@ -272,7 +272,7 @@ internal fun PlayerActivity.savePosition() {
     val d = playbackDuration(p)
     if (d <= 0) return
     val pos = p.currentPosition
-    if (pos >= d * 0.95) positions.clear(resumeKey) else positions.put(resumeKey, pos, d)
+    positions.put(resumeKey, pos, d)
     // In progress / Recently watched on For You, kept on the TV.
     app.ember.tv.data.LocalLibrary.progress(resumeKey, pos.toFloat() / d, d,localActivityScope)
     if(pos.toFloat()/d>=.92f)recordWatched()
