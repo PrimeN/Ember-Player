@@ -1,109 +1,144 @@
-# Ember Player
+<p align="center">
+  <img src="assets/ember-player-banner.svg" width="100%" alt="Ember Player — Your media. Every screen." />
+</p>
 
-<img src="assets/ember-player.svg" width="96" height="96" alt="Ember Player icon" />
+<p align="center">
+  A media player for Android phones, tablets and TVs.<br />
+  Local files, network libraries and streams. Touch and remote controls. No ads.
+</p>
 
-A media player for Android phones, tablets and Android TV, with touch and remote controls. No ads.
+<p align="center">
+  <a href="https://github.com/PrimeN/Ember-Player/actions/workflows/android.yml?query=branch%3Abeta"><img src="https://github.com/PrimeN/Ember-Player/actions/workflows/android.yml/badge.svg?branch=beta" alt="Android build and checks" /></a>
+  <img src="https://img.shields.io/badge/Android-10%2B-3DDC84?logo=android&amp;logoColor=white" alt="Android 10 or newer" />
+  <img src="https://img.shields.io/badge/ARM-32%20%26%2064%20bit-ffb575" alt="ARM 32-bit and 64-bit" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-ffb575" alt="GNU GPL v3" /></a>
+</p>
 
-**Development happens on [`beta`](https://github.com/PrimeN/Ember-Player/tree/beta).** The initial version is 0.1.0. No production APK release is published automatically.
+<p align="center">
+  <a href="https://github.com/PrimeN/Ember-Player/stargazers"><img src="https://img.shields.io/github/stars/PrimeN/Ember-Player?style=flat&amp;color=ffb575" alt="GitHub stars" /></a>
+  <a href="https://github.com/PrimeN/Ember-Player/network/members"><img src="https://img.shields.io/github/forks/PrimeN/Ember-Player?style=flat&amp;color=ffb575" alt="GitHub forks" /></a>
+  <a href="https://github.com/PrimeN/Ember-Player/issues"><img src="https://img.shields.io/github/issues/PrimeN/Ember-Player?color=ffb575" alt="Open issues" /></a>
+  <a href="https://github.com/PrimeN/Ember-Player/commits/beta/"><img src="https://img.shields.io/github/last-commit/PrimeN/Ember-Player/beta?color=ffb575" alt="Latest beta commit" /></a>
+</p>
 
-The media library groups Videos, Folders and Network, with playlists, downloads and
-private media available from navigation. Real file thumbnails and saved playback
-progress make it easier to resume. Settings are organized into eight searchable
-categories. Touch devices use Material 3 components; televisions retain Material
-3 for TV controls and clear remote focus, with shared day/night colors.
+<p align="center">
+  <a href="#screenshots">Screenshots</a> ·
+  <a href="docs/features.md">Features</a> ·
+  <a href="docs/building.md">Build</a> ·
+  <a href="docs/README.md">Guides</a> ·
+  <a href="https://github.com/PrimeN/Ember-Player/issues/new?title=%5BBug%5D%20">Report a bug</a>
+</p>
 
-## Playback
+## Made for your media
 
-- **Two internal engines:** AndroidX Media3/Nextlib for normal playback and libmpv for compatibility playback, with automatic recovery where available.
-- **Software audio:** AC-3, E-AC-3, DTS, TrueHD and other common formats are bundled. Standard also supports supported MPEG-H streams as stereo PCM and IAMF tracks in MP4 using Opus, FLAC or PCM. AAC-based IAMF and encrypted IAMF are excluded. HDR output, immersive passthrough and device-only codecs depend on the device and selected engine.
-- **Automatic engine choices:** known filenames guide opaque file URLs, and successful playback choices are remembered privately for seven days. Reset them in Settings with Reset decoder memory. Explicit engine selections take priority. Supported RTMPS and SRTP streams open directly in Compatibility.
-- **Player interfaces:** Glass, Ember, Basic and Streaming controls, independent of the device's home screen.
-- **Files and USB:** select media through Android's document picker, including multiple files for a playback queue.
-- **Device folders:** remember chosen folders, browse video/audio files, search and sort, select multiple files, share, rename, move or delete where the storage provider permits it. Each folder remembers its last-played file; rename/move preserves playback positions, track choices and scene bookmarks.
-- **Network folders:** SMB, SFTP, WebDAV, FTP and FTPS, with on-demand SMB discovery and authenticated share browsing.
-- **Stream URLs and Open with:** play supported network URLs or open media supplied by another application.
-- **Resume and bookmarks:** saved positions, named scene bookmarks, queue ordering, repeat modes and chapter navigation.
-- **Saved playlists:** keep reusable file, stream and network-folder queues, with shuffle and repeat. Saved network items reconnect through their account and file references when reopened.
-- **Encrypted backups:** export and restore player settings, positions, bookmarks, playlists and connection details using a password. Backups include no video files; Android storage permissions may need to be renewed on another device.
-- **Subtitles:** embedded tracks and manual text/bitmap subtitles, including SRT, VTT, ASS/SSA, TTML, SAMI and paired VobSub files. Timing, speed, custom fonts, colours, outlines, spacing and encoding controls are available. Find matching subtitle files beside a video or in a chosen folder; manual file choices are remembered privately for each video. Advanced layout and dual subtitles use Compatibility playback. Imported font files need to be installed again after restoring a backup on another device.
-- **Offline subtitle assistance:** optional translation through Android’s installed on-device language models (Android 12+) and read-aloud through installed offline speech voices. No cloud translation, API keys or automatic model downloads. Availability depends on the device; original subtitles remain available.
-- **Private media:** hide selected files and folders behind a PIN, lock the private area, and disable or clear recent activity and resume positions. Private playback stays out of background audio, picture-in-picture and system media controls. This protects access inside the app; original files are not encrypted or hidden from other apps. Encrypted backups include privacy settings.
-- **USB browsing:** browse permitted audio and video on removable drives Android has mounted and indexed, even without a document picker. Media access is requested when you open a drive; supported filesystems and indexing depend on Android. Drive removal stops playback and releases its file handles. The system picker remains available for other files.
+Ember Player brings a warm charcoal-and-amber interface to your own media. Pick
+up where you stopped, browse saved folders or open a network stream. The library
+adapts from a phone dock to a dense tablet layout and a remote-friendly TV sidebar.
+Day/night palettes, searchable settings and independent playback-control layouts
+keep the experience consistent across screens.
 
-- **Sound and picture:** track selection, HDMI passthrough, lip sync, separate Bluetooth delay, ten-band equalizer with saved presets, bass/treble, stereo width, picture fit, frame-rate matching and optional deinterlacing. Sound effects apply to decoded audio; passthrough keeps the original audio.
-- **Device-aware performance:** automatic, low, balanced and high settings; optional glass surfaces and remembered working video decoders.
-- **Precise playback controls:** enter an exact position in seconds, MM:SS or HH:MM:SS, including milliseconds. Choose a custom speed from 0.25× to 4× alongside the presets. Entered timestamps use precise seeking and preserve pause state.
-- **Touch controls:** choose independent left, centre and right double-tap actions and edge widths; swap brightness/volume sides or turn horizontal seeking off. By default, double-tap to seek or pause, swipe to seek or change volume/brightness, pinch to zoom, and hold for a configurable temporary playback speed. Gestures and rotation are configurable; playback lock has an explicit unlock button and Back-key escape.
-- **Picture enhancement:** GPU upscaling is on by default, with a master off switch and individual controls in Settings > Picture enhancement and Player options > Video. Standard uses Lanczos; Compatibility also offers a bundled fast enlargement shader. Brightness, contrast, saturation, gamma, hue and sharpness start neutral, with optional presets. HDR and protected playback keep their supported output path.
-- **Saved picture/shader profiles:** name and reuse up to 16 combinations of picture adjustments, upscaling/shader switches, debanding, frame smoothing and HDR output. Apply a default or remember a profile for a media item. Assignments use private hashed identities and are bounded to the most recent 256; deleting a profile clears its assignments. Profiles are included in encrypted backups. Edits while a media profile is active update that named profile.
-- **Advanced Compatibility decoding:** choose Automatic, direct hardware, copied hardware frames, full-quality software or lighter software decoding. Lighter decoding skips some deblocking to lower CPU work. Automatic can recognize 10-bit H.264 on NVIDIA Shield and use full-quality software; explicit manual and source rules retain priority.
-- **Optional HDR-to-SDR output:** Compatibility provides BT.2390, Reinhard, Hable, Mobius, Gamma and highlight-clipping tone curves, hue-preserving desaturation or hard gamut clipping, and a configurable SDR peak. Scene-peak analysis is optional and off by default to reduce GPU work. Automatic routing keeps protected and device-specific audio paths supported; explicit Standard stays selected. Normal HDR output remains the default.
-- **Network and buffering:** adjust connection/read timeouts for both engines and choose a buffer preset or custom forward/rewind memory, read-ahead and refill limits. A device memory cap protects constrained devices; byte-limited rewind is Compatibility-only. HTTP timeout changes take effect when reopening the stream.
-- **Renderer and output controls:** Compatibility playback offers Automatic, Stable GPU and Advanced GPU, with one automatic recovery to Stable GPU if the advanced renderer fails. Experimental SDR-to-HDR expansion is off by default and needs the advanced renderer, a reported HDR10 display and confirmed Android BT.2020/PQ surface metadata. Unsupported paths retain normal output. This is local inverse tone mapping, not AI or recovery of missing HDR detail; confirmed metadata does not prove the television's active HDR mode.
-- **Compare picture processing:** switch temporarily between original output and saved processing without changing framing or playback position. Closing the comparison restores saved processing. Playback diagnostics distinguish source HDR/profile data, requested conversion, renderer and surface metadata; unverified Dolby Vision RPU/FEL processing remains labeled as such.
-- **Saved styles and framing:** save up to 12 subtitle appearance presets without changing languages or providers, and optionally remember zoom, aspect ratio and magnification per video. These preferences are included in encrypted backups; custom font files may need to be imported again.
-- **Night listening:** optional Gentle and Night compression reduce the gap between quiet dialogue and loud effects. The engines process decoded PCM; encoded surround passthrough stays unchanged.
-- **Subtitle style preview:** see the selected font, outline/shadow, colours, background, alignment, spacing, size and position in a compact video-shaped sample. System captions retain priority; authored styles may override the displayed defaults during playback.
-- **Frame inspection:** move forward or backward through individual frames while paused in Compatibility playback. The player reports the resulting timestamp rather than estimating a frame count. Switching preserves working audio; unsupported tracks keep their current engine.
-- **Responsive seeking:** repeated seek inputs combine over a short fixed window to reduce decoder work. The displayed target updates immediately; entered times, resume positions and chapter jumps remain precise.
-- **Optional subtitle gestures:** with controls hidden and subtitles selected, start in the lower third to adjust timing horizontally, position vertically or text size with a pinch. Changes apply when released, with size and position remembered; cancellation restores the preview. System caption styling keeps priority. Remote users retain the subtitle menu controls.
-- **Optional background audio:** keep sound playing with the screen off or while using another app, with notification, lock-screen, headset and Bluetooth controls. Return through the notification or the Playing entry on the media browser. Playback hands ownership to a foreground media service; returning to video reopens it at the current position. Picture in picture takes priority when enabled.
+Local playback needs **no account or API key**. Optional network and subtitle tools
+are enabled when you choose to use them. See [privacy and local data](docs/privacy.md).
 
-Format support depends on the engine, device decoders, audio output and display. HDR10+, Dolby Vision and encoded surround output require compatible hardware. There is no promise that every format or profile works on every device.
+| | What is included |
+| --- | --- |
+| **Playback** | Standard Media3/Nextlib and Compatibility libmpv engines, automatic routing and remembered working decoder choices |
+| **Your library** | Continue watching, compact media shelves, saved folders, filename search, playlists, watched-state filters and grid/list views |
+| **Files and servers** | Android file picker, mounted USB, read-only FAT32 USB browsing, SMB, SFTP, WebDAV, FTP and FTPS |
+| **Sound and picture** | Track selection, passthrough, delay controls, equalizer, night listening, picture profiles, optional upscaling and tone mapping |
+| **Subtitles** | Embedded and external captions, custom fonts and styles, timing controls, dual subtitles in Compatibility and optional on-device assistance |
+| **Playback tools** | Exact seeking, custom speed, gestures, chapters, bookmarks, A–B repeat, queues, sleep timer, picture-in-picture and optional background audio |
+| **Beyond the screen** | Optional Google Cast and DLNA, resumable direct-file downloads, screenshots and MP4 clip export |
+| **Privacy** | PIN-protected private area, encrypted sensitive storage and library index, password-encrypted settings backups |
 
-## Privacy and permissions
+[Explore the full feature guide →](docs/features.md)
 
-Local playback needs no account or API key. No developer credentials are included. Online subtitle search and IntroDB are optional; online subtitle search is off initially.
+## Screenshots
 
-Recent media addresses and network credentials use Android Keystore-backed encrypted storage. If encrypted storage is unavailable, these values are not saved through a plaintext fallback. Resume positions and scene bookmarks remain in the application's private storage. Clearing disposable caches preserves saved media settings and credentials.
+Current app views with representative media. Media shown here is illustrative
+and is not supplied with the app.
 
-Chosen folders and their recent-file history are also encrypted. Device-video thumbnails stay in a small memory cache and are removed through Clear disposable caches. Deleting files requires confirmation. A file move completes and checks the copy before removing the original.
+<p align="center">
+  <img src="docs/screenshots/player.png" width="100%" alt="Ember Player Glass playback controls" />
+</p>
 
-Backups use password-derived AES-256-GCM encryption. The password is not saved. Wrong passwords, damaged files and invalid backup contents are rejected before settings are replaced; failed writes attempt to restore and verify the previous configuration. Keep the backup password separately, since it cannot be recovered.
+<table>
+  <tr>
+    <th align="center">Phone library</th>
+    <th align="center">Settings</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/mobile.png" width="320" alt="Phone library with media shelves and a floating navigation dock" /></td>
+    <td align="center"><img src="docs/screenshots/settings.png" width="320" alt="Searchable Settings organized into eight categories" /></td>
+  </tr>
+</table>
 
-The app requests access to selected files through Android's document picker. It does not replace the home screen, run a home-button accessibility service, start at boot, request all-files storage access or install application updates.
+<details open>
+  <summary><strong>Tablet library</strong></summary>
+  <p><img src="docs/screenshots/tablet.png" width="100%" alt="Tablet library with dense media shelves, top browsing controls and bottom navigation" /></p>
+</details>
 
+<details open>
+  <summary><strong>TV library</strong></summary>
+  <p><img src="docs/screenshots/tv.png" width="100%" alt="TV library with a compact sidebar and more visible media cards" /></p>
+</details>
 
-### Receivers and USB drives
+## Get started
 
-- Send the selected media to a Google Cast or DLNA receiver on the same IPv4 local network. Open Playback options → Cast to a receiver. Google Cast setup starts only when enabled on that screen and requires compatible Google Play services; DLNA discovery works independently.
-- Remote controls include play/pause, seeking, volume and disconnect, with background playback controls in the media notification. The app relays media through temporary URLs restricted to the chosen receiver. Saved server headers and upstream URLs stay on the device. Private playback, DRM and separately linked audio/video sources cannot be sent.
-- The receiver must support the media format. Casting does not provide video transcoding; HDR, audio formats and adaptive-stream support depend on the receiver.
-- Browse supported FAT32 USB mass-storage drives directly, including files missing from Android’s index. Access is read-only and requested explicitly. Other filesystems continue to use Android’s mounted-drive or document-provider access.
-- Direct USB playback keeps its drive connection until playback ends. Its temporary queues are not saved as playlists. When private media is enabled, use Android’s USB/document browser to preserve protected document identities.
+Ember Player supports **Android 10 or newer** on **ARM64 and ARM32**. Phones and
+tablets use touch controls; TVs support remotes and controllers.
 
-### Library and media tools
+Development happens on [`beta`](https://github.com/PrimeN/Ember-Player/tree/beta).
+The current preview version is **0.1.0**. Published packages, when available, are
+listed under [Releases](https://github.com/PrimeN/Ember-Player/releases). Maintainers
+can create a debug APK through a manual [Actions run](https://github.com/PrimeN/Ember-Player/actions/workflows/android.yml).
+Code pushes do not automatically publish a release.
 
-- Search across saved media folders using an encrypted local index. Refresh it after changing files; no full scan runs at startup. Private files and forgotten roots are excluded from results.
-- Set a sleep timer for a preset or custom duration, or stop at the end of the current item. It applies to video and background audio.
-- Save a screenshot to a destination you choose. Captures are limited to 1080p and are unavailable for private playback and protected video surfaces.
-- Mark a clip start and end from Playback options, then export an MP4 without changing the source. Export uses the device’s H.264/AAC codecs, so supported input formats and speed depend on the device. Keep playback open during export; progress and cancellation are available in Playback options.
-- Download direct HTTP/HTTPS media files for offline use. Downloads are explicitly started, run with a foreground notification, and can be paused or resumed when the server supports byte ranges and validators. Saved URLs and download metadata are encrypted. Adaptive playlists and DRM streams are excluded; downloads interrupted by Android can be resumed manually.
-
-## Installation and builds
-
-- Android 10 or newer; ARM64 or ARM32.
-- Touch controls on phones and tablets; remote or controller navigation on TVs. Rotation can follow the device or use a chosen orientation.
-- The application ID is `app.ember.player`; debug installations use `app.ember.player.debug`.
-- Android’s document picker is used for selected files, saved folders and export destinations. Mounted USB browsing can use Android’s media index with explicit media-library permission; network folders work independently.
-- Folder views use pages of 200 provider entries. Library search indexes selected folders and subfolders on request, with encrypted storage and pages of 100 results. Queues and saved playlists support up to 10,000 items; saved playlists share a 16 MiB storage budget.
-
-To build from source, install JDK 17, Gradle 9.8.2 and the Android SDK platform used by `app/build.gradle.kts`:
+To build the preview with JDK 17, Gradle 9.8.2 and Android SDK platform 37:
 
 ```sh
+git clone --branch beta https://github.com/PrimeN/Ember-Player.git
+cd Ember-Player
 gradle testDebugUnitTest assembleDebug
 ```
 
-An optimized unsigned release can be checked with:
+[Build instructions and native components →](docs/building.md)
 
-```sh
-gradle assembleRelease lintRelease
-```
+## Format and device support
 
-Sign production packages with your own keystore outside the repository. Do not commit keys or signing passwords. The GitHub workflow runs functional regression tests and release checks on pushes and pull requests. A manual workflow run also makes an installable debug artifact available in Actions; ordinary pushes do not publish releases.
+Ember combines Android's decoders with bundled software playback. Common
+containers include MP4, MKV, WebM, AVI, MOV and MPEG-TS. Software audio includes
+AC-3, E-AC-3, DTS and TrueHD. Standard also supports selected MPEG-H streams as
+stereo PCM and unencrypted IAMF in MP4 using Opus, FLAC or PCM.
 
-## Source and licenses
+HDR10+, Dolby Vision, encoded surround output and device-only codecs depend on
+the hardware, output path and selected engine. There is no bundled software AC-4
+decoder. AAC-based/encrypted IAMF and Dolby Vision full enhancement-layer playback
+are not advertised as universally supported. Casting requires a receiver that
+supports the media; it does not transcode video.
 
-Ember Player is distributed under the [GNU GPL v3](LICENSE). See [playback dependencies](player-dependencies.md) for pinned components, source locations and reproducible native build instructions. Applicable license texts are bundled with the app and available in Settings → About.
+[Playback details and limits →](docs/features.md) ·
+[Dependency and source inventory →](player-dependencies.md)
 
-Service names, codec names and any retained logos are trademarks of their respective owners. Their inclusion does not imply endorsement.
+## Help and contribute
+
+Found a problem? [Report a bug](https://github.com/PrimeN/Ember-Player/issues/new?title=%5BBug%5D%20)
+with the app version, device, Android version and steps to reproduce it. Include
+engine and codec details for playback problems. Remove credentials and private
+addresses from logs and screenshots.
+
+[Suggest a feature](https://github.com/PrimeN/Ember-Player/issues/new?title=%5BFeature%5D%20)
+or contribute a focused pull request against `beta`. The Android workflow checks
+functional regressions, the optimized build, lint and native packaging.
+
+[Support and contribution guide →](docs/contributing.md)
+
+## License
+
+Ember Player is distributed under the [GNU GPL v3](LICENSE). Dependency license
+texts are included in the app under **Settings → About**. Pinned source revisions,
+modifications and native rebuild instructions are documented in
+[Playback dependencies and source](player-dependencies.md).
+
+Service names, codec names and logos are trademarks of their respective owners.
+Their inclusion does not imply endorsement.

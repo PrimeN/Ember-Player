@@ -1,0 +1,38 @@
+name: Bug report
+description: Tell us about something that is not working correctly.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: Please search existing issues first. Remove passwords, access tokens, private server addresses and personal filenames from anything you attach.
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Include where you installed the app from.
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and Android version
+      placeholder: Device model, Android version, touch or remote
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What happened?
+      description: Give the shortest steps that reproduce the problem, what you expected and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: playback
+    attributes:
+      label: Playback or display details
+      description: If relevant, include the engine, renderer, container, video/audio codecs, subtitles and performance settings.
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Screenshots or additional details
+      description: Attach a screenshot, recording or sanitized log if it helps. Only share media you are allowed to distribute.

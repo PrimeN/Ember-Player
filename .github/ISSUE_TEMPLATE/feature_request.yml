@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest an improvement to Ember Player.
+title: "[Feature] "
+body:
+  - type: textarea
+    id: task
+    attributes:
+      label: What would you like to do?
+      description: Explain the task and what is difficult or missing today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Your suggestion
+      description: Describe the behavior you would find useful, including an example if possible.
+    validations:
+      required: true
+  - type: checkboxes
+    id: devices
+    attributes:
+      label: Which devices would benefit?
+      options:
+        - label: Phone
+        - label: Tablet
+        - label: TV or projector

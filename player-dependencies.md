@@ -127,7 +127,10 @@ can decode supported unencrypted MPEG-H to stereo PCM; Compatibility/libmpv does
 not use this extension. Software preference changes renderer priority instead of
 forcing Nextlib's FFmpeg-only gate, so it retains MPEG-H and device-only AC-4
 fallbacks. TV decoders only continues to exclude software extensions. AC-4 still
-requires device support; no software AC-4 or IAMF decoder is bundled.
+requires device support; no software AC-4 decoder is bundled. Standard also
+supports unencrypted IAMF tracks in MP4 using Opus, FLAC or PCM. AAC-based IAMF,
+encrypted IAMF and Compatibility IAMF decoding are excluded. Source, licenses
+and rebuild instructions are in [the IAMF native directory](app/native/iamf/README.md).
 
 Software HDR
 preservation/tone mapping is not advertised as equivalent to the TV's HDR pipeline.

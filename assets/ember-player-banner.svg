@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 310" role="img" aria-labelledby="title desc">
+  <title id="title">Ember Player</title>
+  <desc id="desc">An amber flame inside a rounded play mark, with the Ember Player wordmark on charcoal.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#2d231e"/><stop offset="1" stop-color="#171517"/></linearGradient>
+    <linearGradient id="play" x2="1" y2="1"><stop stop-color="#fff8eb"/><stop offset="1" stop-color="#f0d8c3"/></linearGradient>
+    <linearGradient id="fire" x2="0" y2="1"><stop stop-color="#ffb644"/><stop offset=".45" stop-color="#ff7a14"/><stop offset="1" stop-color="#dc3016"/></linearGradient>
+    <linearGradient id="tip" x2="0" y2="1"><stop stop-color="#ff8d16"/><stop offset="1" stop-color="#de2612"/></linearGradient>
+  </defs>
+  <rect width="1200" height="310" rx="24" fill="url(#bg)"/>
+  <g transform="translate(70 52) scale(1.9)">
+    <path d="M36 23 C32 21 28 24 28 29 L28 79 C28 85 32 87 37 84 L82 59 C87 56 87 52 82 49 Z" fill="url(#play)"/>
+    <g transform="translate(32 38) scale(.32)"><path d="M56 4 C75 17 77 36 63 51 C51 64 32 74 40 96 C20 90 12 72 22 53 C31 36 58 27 56 4 Z" fill="url(#fire)"/><path d="M72 40 C87 55 86 75 74 88 C68 94 59 97 48 96 C42 83 51 72 60 62 C69 51 73 46 72 40 Z" fill="url(#tip)"/></g>
+  </g>
+  <text x="300" y="148" fill="#f6eae0" font-family="sans-serif" font-size="66" font-weight="600" letter-spacing="3">EMBER PLAYER</text>
+  <text x="304" y="202" fill="#dfbda4" font-family="sans-serif" font-size="25">Your media. Every screen.</text>
+  <path d="M304 231 H580" stroke="#ffac65" stroke-width="3" stroke-linecap="round"/>
+</svg>
