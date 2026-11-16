@@ -57,7 +57,9 @@ internal class DecoderHealth private constructor(private val store:android.conte
                 @Suppress("DEPRECATION") val info=context.packageManager.getPackageInfo(name,if(Build.VERSION.SDK_INT>=29)android.content.pm.PackageManager.MATCH_APEX else 0)
                 @Suppress("DEPRECATION") "$name:${if(Build.VERSION.SDK_INT>=28)info.longVersionCode else info.versionCode.toLong()}"
             }.getOrDefault(name)}
-            val environment=CachePolicy.digest("${Build.FINGERPRINT}|${Build.VERSION.SECURITY_PATCH}|${BuildConfig.VERSION_CODE}|$names|$modules")
+            // Beta installs can replace native decoders without changing the version code.
+            @Suppress("DEPRECATION") val installedAt=runCatching {context.packageManager.getPackageInfo(context.packageName,0).lastUpdateTime}.getOrDefault(0L)
+            val environment=CachePolicy.digest("${Build.FINGERPRINT}|${Build.VERSION.SECURITY_PATCH}|${BuildConfig.VERSION_CODE}|$installedAt|$names|$modules")
             val store=context.applicationContext.getSharedPreferences("decoder_health",Context.MODE_PRIVATE)
             val document=store.getString("records",null)?.takeIf {it.length<=128*1024}?.let {runCatching {json.decodeFromString<DecoderHealthDocument>(it)}.getOrNull()}
             return DecoderHealth(store,DecoderHealthMemory(environment,document),generation).also {cached=it}
