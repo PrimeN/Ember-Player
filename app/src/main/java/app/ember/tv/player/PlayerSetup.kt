@@ -452,6 +452,10 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
 
     view.player = p
     player = p
+    view.addOnLayoutChangeListener {_,left,top,right,bottom,oldLeft,oldTop,oldRight,oldBottom->
+        if(player===p && right>left && bottom>top &&
+            (right-left!=oldRight-oldLeft || bottom-top!=oldBottom-oldTop))applyPictureEnhancement()
+    }
     platformSession = if(privatePlayback)null else PlatformPlaybackSession(this, p, { endPlayback() }, { if (nextEpisodes.isNotEmpty() || fileQueue!=null) playNext() }).also { it.nextAvailable(nextEpisodes.isNotEmpty() || (fileQueue?.items?.size?:0)>1) }
     val subCfg = prefs.subtitleConfig
     view.subtitleView?.let { sv ->

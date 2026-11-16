@@ -35,6 +35,16 @@ class PictureEnhancementTest {
         assertTrue(StandardPictureEffects.effects(p.copy(enabled=false,sharpness=30),1920,1080,video()).isEmpty())
         assertTrue(StandardPictureEffects.effects(p.copy(upscaling=false),1920,1080,video()).isEmpty())
     }
+    @Test fun portraitWindowsAndRotatedVideoDoNotAllocateAnOversizedUpscaler() {
+        val p=PictureEnhancement()
+        assertTrue(StandardPictureEffects.effects(p,1080,2400,video()).isEmpty())
+        val portrait=video().buildUpon().setWidth(720).setHeight(1280).build()
+        assertTrue(StandardPictureEffects.effects(p,1920,1080,portrait).isEmpty())
+        val rotated=video().buildUpon().setRotationDegrees(90).build()
+        assertTrue(StandardPictureEffects.effects(p,1920,1080,rotated).isEmpty())
+        assertTrue(StandardPictureEffects.effects(p,480,270,video()).isEmpty())
+        assertTrue(StandardPictureEffects.effects(p,1080,1920,portrait).single() is LanczosResample)
+    }
     @Test fun hdrDolbyVisionProtectedAndUnknownVideoKeepTheOriginalPath() {
         val p=PictureEnhancement(contrast=10,gamma=10,sharpness=20)
         val protected=video().buildUpon().setDrmInitData(DrmInitData("cenc",DrmInitData.SchemeData(C.WIDEVINE_UUID,"video/mp4",byteArrayOf(1)))).build()
@@ -51,6 +61,14 @@ class PictureEnhancementTest {
         PictureEnhancement.presets.indices.forEach {assertEquals(PictureEnhancement.preset(it),PictureEnhancement.preset(it).normalized())}
         assertEquals(PictureEnhancement(),PictureEnhancement.preset(-1))
         assertEquals(4,StandardPictureEffects.effects(PictureEnhancement(upscaling=false,brightness=5,contrast=5,saturation=5,gamma=5,sharpness=10),1920,1080,video()).size)
+    }
+    @Test fun choosingAPresetPreservesEnhancementSwitchesAndShowsItsActualName() {
+        val disabled=PictureEnhancement(enabled=false,upscaling=false,shader=false)
+        val vivid=PictureEnhancement.preset(3,disabled)
+        assertFalse(vivid.enabled);assertFalse(vivid.upscaling);assertFalse(vivid.shader)
+        assertEquals(3,PictureEnhancement.presetIndex(vivid))
+        assertEquals(-1,PictureEnhancement.presetIndex(vivid.copy(brightness=5)))
+        assertEquals(0,PictureEnhancement.presetIndex(disabled))
     }
     @Test fun bundledShaderIsVersionedAndRepairsAStalePrivateCopy() {
         val context=RuntimeEnvironment.getApplication()

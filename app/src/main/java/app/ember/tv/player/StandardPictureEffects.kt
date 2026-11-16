@@ -15,9 +15,11 @@ internal object StandardPictureEffects {
         if(!config.enabled || !supported(format))return emptyList()
         val p=config.normalized()
         return buildList {
-            if(p.upscaling && width>0 && height>0 && format!!.width>0 && format.height>0 &&
-                maxOf(width,height)>maxOf(format.width,format.height) && minOf(width,height)>minOf(format.width,format.height))
-                add(LanczosResample.scaleToFitWithFlexibleOrientation(width,height))
+            val quarterTurn=format!!.rotationDegrees%180!=0
+            val inputWidth=if(quarterTurn)format.height else format.width
+            val inputHeight=if(quarterTurn)format.width else format.height
+            if(p.upscaling && width>inputWidth && height>inputHeight && inputWidth>0 && inputHeight>0)
+                add(LanczosResample.scaleToFit(width,height))
             if(p.brightness!=0)add(Brightness(p.brightness/100f))
             if(p.contrast!=0)add(Contrast(p.contrast/100f))
             if(p.saturation!=0 || p.hue!=0)add(HslAdjustment.Builder().adjustSaturation(p.saturation.toFloat()).adjustHue(p.hue*1.8f).build())

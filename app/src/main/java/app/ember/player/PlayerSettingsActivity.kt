@@ -62,7 +62,7 @@ class PlayerSettingsActivity:ComponentActivity() {
                         SwitchChip("GPU upscaling",picture.upscaling){update {it.copy(picture=it.picture.copy(upscaling=!it.picture.upscaling))}}
                         SwitchChip("Fast upscaling shader",picture.shader){update {it.copy(picture=it.picture.copy(shader=!it.picture.shader))}}
                         Text("Standard uses Lanczos when enlarging video. Compatibility can also use a bundled lightweight shader above 1.2× in both dimensions. No downloads are needed.",color=Mute,fontSize=12.sp)
-                        PlayerChoice("Picture preset",PictureEnhancement.presets.mapIndexed {i,v->i.toString() to v},"custom"){v->update {it.copy(picture=PictureEnhancement.preset(v.toInt()))}}
+                        PlayerChoice("Picture preset",PictureEnhancement.presets.mapIndexed {i,v->i.toString() to v},PictureEnhancement.presetIndex(picture).takeIf {it>=0}?.toString() ?: "Custom"){v->update {it.copy(picture=PictureEnhancement.preset(v.toInt(),it.picture))}}
                         pictureAdjustments.forEach {adjustment->
                             PlayerChoice(adjustment.label,adjustment.values(picture).map {it.toString() to it.toString()},adjustment.read(picture.normalized()).toString()){v->
                                 update {it.copy(picture=adjustment.write(it.picture,v.toInt()).normalized())}

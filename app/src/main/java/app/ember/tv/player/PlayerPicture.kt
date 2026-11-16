@@ -10,9 +10,11 @@ internal fun PlayerActivity.applyPictureEnhancement(format:Format?=player?.video
     val picture=config.picture.copy(enabled=config.picture.enabled&&!pictureBypassed)
     engine.compatibility?.let {it.enhancement(picture);return}
     val size=resources.displayMetrics
-    val signature="${picture.normalized()}|${size.widthPixels}x${size.heightPixels}|${format?.width}x${format?.height}|${StandardPictureEffects.supported(format)}|${config.tunneling}"
+    val width=if(viewInitialized && view.width>0)view.width else size.widthPixels
+    val height=if(viewInitialized && view.height>0)view.height else size.heightPixels
+    val signature="${picture.normalized()}|${width}x${height}|${format?.width}x${format?.height}|${format?.rotationDegrees}|${StandardPictureEffects.supported(format)}|${config.tunneling}"
     if(signature==pictureSignature)return
-    val effects=if(config.tunneling)emptyList() else StandardPictureEffects.effects(picture,size.widthPixels,size.heightPixels,format)
+    val effects=if(config.tunneling)emptyList() else StandardPictureEffects.effects(picture,width,height,format)
     engine.standard.setVideoEffects(effects)
     pictureEffectsActive=effects.isNotEmpty();pictureSignature=signature
 }
@@ -46,7 +48,7 @@ internal fun PlayerActivity.pictureOptionRows():List<OptionRow> = buildList {
     if(p.enabled) {
         add(OptionRow("GPU upscaling",toggle=p.upscaling,action={changePicture(p.copy(upscaling=!p.upscaling))}))
         add(OptionRow("Fast upscaling shader",toggle=p.shader,note="Compatibility playback only; active above 1.2× in both dimensions.",action={changePicture(p.copy(shader=!p.shader))}))
-        add(OptionRow("Picture preset","Choose a look",PictureEnhancement.presets,-1,onPick={changePicture(PictureEnhancement.preset(it))}))
+        add(OptionRow("Picture preset",PictureEnhancement.presets.getOrNull(PictureEnhancement.presetIndex(p)) ?: "Custom",PictureEnhancement.presets,PictureEnhancement.presetIndex(p),onPick={changePicture(PictureEnhancement.preset(it,p))}))
         pictureAdjustments.forEach {adjustment->
             val values=adjustment.values(p)
             add(OptionRow(adjustment.label,adjustment.read(p.normalized()).toString(),values.map(Int::toString),values.indexOf(adjustment.read(p.normalized())),

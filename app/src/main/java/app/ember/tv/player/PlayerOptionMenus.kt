@@ -205,9 +205,9 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
             add(OptionRow("Custom playback speed",speedLabel(speed),action={closeMenu();customPlaybackSpeed()}))
             if(!live && p.duration>0 && p.isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM))
                 add(OptionRow("Go to time",clock(p.currentPosition),action={closeMenu();goToPlaybackTime()}))
-            if(!live && !trailer && p.duration>0 && p.isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM) &&
+            if(!live && !trailer && p.isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM) &&
                 p.currentTracks.groups.any {it.type==C.TRACK_TYPE_VIDEO})
-                add(OptionRow("Frame inspection","Paused · precise frames",action={closeMenu();inspectFrames()}))
+                add(OptionRow("Frame inspection","Paused · precise frames",note="Uses Compatibility playback and leaves the video paused.",action={closeMenu();inspectFrames()}))
             add(OptionRow("Seeking",if(SeekPreference.fast(config.seekMode))"Fast / nearby keyframe" else "Precise",listOf("Precise","Fast / nearby keyframe"),if(SeekPreference.fast(config.seekMode))1 else 0,
                 note="Resume positions and chapter/intro jumps stay precise.",onPick={config=config.copy(seekMode=if(it==1)"fast" else "precise");prefs.playbackConfig=config}))
             if(!live) {

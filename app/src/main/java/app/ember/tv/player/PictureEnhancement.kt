@@ -18,12 +18,16 @@ data class PictureEnhancement(
         saturation=saturation.coerceIn(-100,100),gamma=gamma.coerceIn(-50,50),hue=hue.coerceIn(-100,100),sharpness=sharpness.coerceIn(0,100))
     companion object {
         val presets=listOf("Neutral","Gentle contrast","Soft picture","Vivid")
-        fun preset(index:Int)=when(index){
+        fun preset(index:Int,base:PictureEnhancement=PictureEnhancement()):PictureEnhancement {
+            val adjusted=when(index){
             1->PictureEnhancement(contrast=8,saturation=4)
             2->PictureEnhancement(contrast=-8,saturation=-5,sharpness=0)
             3->PictureEnhancement(contrast=12,saturation=15,sharpness=10)
             else->PictureEnhancement()
+            }
+            return adjusted.copy(enabled=base.enabled,upscaling=base.upscaling,shader=base.shader)
         }
+        fun presetIndex(value:PictureEnhancement)=presets.indices.firstOrNull {preset(it,value)==value.normalized()} ?: -1
     }
 }
 
