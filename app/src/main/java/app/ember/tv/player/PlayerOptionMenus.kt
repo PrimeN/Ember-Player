@@ -71,7 +71,7 @@ internal fun PlayerActivity.passthrough(): Boolean {
 }
 
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
-internal fun PlayerActivity.speedLabel(x: Float) = if (x == 1f) getString(R.string.pl_normal) else String.format(Locale.US, "%.2f", x).trimEnd('0').trimEnd('.') + "×"
+internal fun PlayerActivity.speedLabel(x: Float) = if (x == 1f) getString(R.string.pl_normal) else String.format(Locale.US, "%.3f", x).trimEnd('0').trimEnd('.') + "×"
 
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.boostLabel(i: Int) = if (i == 0) getString(R.string.ui_off) else "+${boosts[i] / 100} dB"
@@ -114,10 +114,11 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
         note = if (pass) getString(R.string.pl_no_effect_while_the_sound_goes) else null,
         onPick = { setBoost(it) },
     )
+    val speedChoices=(speeds+speed).filter {it.isFinite() && it in .25f..4f}.distinct().sorted()
     val speedRow = OptionRow(
-        getString(R.string.pl_playback_speed), speedLabel(speed), speeds.map { speedLabel(it) }, speeds.indexOf(speed), MenuIcons.speed,
+        getString(R.string.pl_playback_speed), speedLabel(speed), speedChoices.map { speedLabel(it) }, speedChoices.indexOf(speed), MenuIcons.speed,
         note = if (pass) getString(R.string.pl_with_passthrough_the_sound_may_not) else null,
-        onPick = { i -> speed = speeds[i]; p.setPlaybackSpeed(speed) },
+        onPick = { i -> speed = speedChoices[i]; p.setPlaybackSpeed(speed) },
     )
     return when (which) {
         "quick" -> buildList {
@@ -200,6 +201,9 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
                 add(OptionRow(getString(R.string.pl_chapters), clock(chapters[cur].startMs), chapters.map { clock(it.startMs) + "   " + it.name }, cur, onPick = { i -> p.seekTo(chapters[i].startMs) }))
             }
             add(speedRow)
+            add(OptionRow("Custom playback speed",speedLabel(speed),action={closeMenu();customPlaybackSpeed()}))
+            if(!live && p.duration>0 && p.isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM))
+                add(OptionRow("Go to time",clock(p.currentPosition),action={closeMenu();goToPlaybackTime()}))
             add(OptionRow("Seeking",if(SeekPreference.fast(config.seekMode))"Fast / nearby keyframe" else "Precise",listOf("Precise","Fast / nearby keyframe"),if(SeekPreference.fast(config.seekMode))1 else 0,
                 note="Resume positions and chapter/intro jumps stay precise.",onPick={config=config.copy(seekMode=if(it==1)"fast" else "precise");prefs.playbackConfig=config}))
             if(!live) {

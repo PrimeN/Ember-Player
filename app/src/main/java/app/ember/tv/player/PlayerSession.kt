@@ -69,6 +69,7 @@ import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleSpeed
 @OptIn(UnstableApi::class)
 /** Loads a source into the player and starts it. Used for the first episode and every next one. */
 internal fun PlayerActivity.start(url: String, title: String, addonSubs: List<SubtitleOption>, release: String?) {
+    touchControls?.cancel()
     closeCaptionAssistance();captionConfig=null;embeddedCaptionText=""
     manualSubtitleJob?.cancel();manualSubtitleJob=null
     nearbySubtitleJob?.cancel();nearbySubtitleJob=null

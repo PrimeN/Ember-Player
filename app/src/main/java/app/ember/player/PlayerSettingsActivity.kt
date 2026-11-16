@@ -69,7 +69,10 @@ class PlayerSettingsActivity:ComponentActivity() {
                         SwitchChip("Swipe right side for volume",config.touch.volumeSwipe){update {it.copy(touch=it.touch.copy(volumeSwipe=!it.touch.volumeSwipe))}}
                         SwitchChip("Swipe left side for brightness",config.touch.brightnessSwipe){update {it.copy(touch=it.touch.copy(brightnessSwipe=!it.touch.brightnessSwipe))}}
                         SwitchChip("Pinch to zoom",config.touch.pinchZoom){update {it.copy(touch=it.touch.copy(pinchZoom=!it.touch.pinchZoom))}}
-                        SwitchChip("Hold video for temporary 2× speed",config.touch.holdToSpeed){update {it.copy(touch=it.touch.copy(holdToSpeed=!it.touch.holdToSpeed))}}
+                        SwitchChip("Hold video for temporary speed",config.touch.holdToSpeed){update {it.copy(touch=it.touch.copy(holdToSpeed=!it.touch.holdToSpeed))}}
+                        PlayerChoice("Temporary hold speed",listOf("1.25" to "1.25×","1.5" to "1.5×","2.0" to "2×","3.0" to "3×","4.0" to "4×"),config.touch.holdSpeed.toString()){v->update {it.copy(touch=it.touch.copy(holdSpeed=v.toFloat()))}}
+                        SwitchChip("Subtitle touch gestures",config.touch.subtitleGestures){update {it.copy(touch=it.touch.copy(subtitleGestures=!it.touch.subtitleGestures))}}
+                        Text("With subtitles selected and controls hidden, start in the lower third: swipe sideways for timing, up/down for position, or pinch for text size. System captions keep their own style.",color=Mute,fontSize=12.sp)
                         PlayerChoice("Orientation",listOf("auto" to "Follow device setting","sensor" to "Automatic rotation","landscape" to "Landscape","portrait" to "Portrait"),config.touch.orientation){v->update {it.copy(touch=it.touch.copy(orientation=v))}}
                         Text("Tap to show controls. Double-tap the centre to pause; double-tap an edge to seek. Swipe horizontally to preview a seek, then release. Playback lock is in the player options; Back unlocks it.",color=Mute,fontSize=12.sp)
                     }}

@@ -37,6 +37,9 @@ internal interface TouchPlaybackHost {
     fun toggleControls()
     fun hideControls()
     fun magnify(scale: Float)
+    val subtitleState:SubtitleTouchState? get()=null
+    fun previewSubtitles(value:SubtitleTouchState) {}
+    fun applySubtitles(value:SubtitleTouchState) {}
 }
 
 /** Observes video-area touches only; buttons, seek bars and modal menus keep their normal input. */
@@ -61,6 +64,10 @@ internal class PlayerTouchControls(
     private var startBrightness = 0
     private var heldSpeed: Float? = null
     private var scale = 1f
+    private var subtitleStart:SubtitleTouchState?=null
+    private var subtitlePreview:SubtitleTouchState?=null
+    private var subtitleScaleFactor=1f
+    private var lastSubtitlePreview=0L
     private val originalBrightness = activity.window.attributes.screenBrightness
     var locked = false
         private set
@@ -85,7 +92,7 @@ internal class PlayerTouchControls(
             return true
         }
         override fun onDoubleTap(e: MotionEvent): Boolean {
-            if (locked || host.menuVisible || multiTouch) return true
+            if (locked || host.menuVisible || multiTouch || subtitleStart!=null) return true
             val side = e.x / root.width.coerceAtLeast(1)
             if (side in .35f.. .65f) host.togglePlayback()
             else if (host.seekable) {
@@ -96,19 +103,27 @@ internal class PlayerTouchControls(
             return true
         }
         override fun onLongPress(e: MotionEvent) {
-            if (!settings().holdToSpeed || locked || multiTouch || axis != 0 || !host.playing || host.menuVisible) return
+            if (!settings().holdToSpeed || locked || multiTouch || axis != 0 || !host.playing || host.menuVisible || subtitleStart!=null) return
             heldSpeed = host.speed
-            host.speed = 2f
-            showHint("2× · release to return", sticky = true)
+            val value=TouchPlaybackMath.holdSpeed(settings().holdSpeed)
+            host.speed = value
+            showHint("${value}× · release to return", sticky = true)
         }
     })
     private val scaling = ScaleGestureDetector(activity, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
             releaseSpeed()
             axis = 0
-            return settings().pinchZoom
+            return subtitleStart!=null || settings().pinchZoom
         }
         override fun onScale(detector: ScaleGestureDetector): Boolean {
+            subtitleStart?.let {initial->
+                subtitleScaleFactor*=detector.scaleFactor.takeIf {it.isFinite()&&it>0} ?: 1f
+                subtitlePreview=(subtitlePreview?:initial).copy(scalePercent=SubtitleTouchMath.scale(initial.scalePercent,subtitleScaleFactor))
+                previewSubtitleStyle()
+                showHint("Subtitle size ${subtitlePreview!!.scalePercent}%")
+                return true
+            }
             if (!settings().pinchZoom) return false
             scale = TouchPlaybackMath.zoom(scale, detector.scaleFactor)
             host.magnify(scale)
@@ -154,6 +169,8 @@ internal class PlayerTouchControls(
             if (!accepted) return false
             multiTouch = false; axis = 0; downX = event.x; downY = event.y
             startPosition = host.position; previewPosition = startPosition
+            subtitleStart=if(settings().subtitleGestures && event.y>=root.height*.65f)host.subtitleState else null
+            subtitlePreview=subtitleStart;subtitleScaleFactor=1f;lastSubtitlePreview=0L
             startVolume = audio.getStreamVolume(AudioManager.STREAM_MUSIC)
             startBrightness = ((activity.window.attributes.screenBrightness.takeIf { it >= 0 }
                 ?: (Settings.System.getInt(activity.contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128) / 255f)) * 100).roundToInt()
@@ -174,7 +191,14 @@ internal class PlayerTouchControls(
                 val cancel = MotionEvent.obtain(event).apply { action = MotionEvent.ACTION_CANCEL }
                 gestures.onTouchEvent(cancel); cancel.recycle()
             }
-            if (axis == 1 && host.seekable) {
+            val subtitle=subtitleStart
+            if(subtitle!=null && axis!=0) {
+                subtitlePreview=if(axis==1)subtitle.copy(offsetMs=SubtitleTouchMath.timing(subtitle.offsetMs,dx/root.width.coerceAtLeast(1)))
+                    else subtitle.copy(bottomMarginPercent=SubtitleTouchMath.position(subtitle.bottomMarginPercent,dy/root.height.coerceAtLeast(1)))
+                previewSubtitleStyle()
+                showHint(if(axis==1)String.format(java.util.Locale.US,"Subtitle timing %+.2f s",subtitlePreview!!.offsetMs/1000.0)
+                    else "Subtitle position ${subtitlePreview!!.bottomMarginPercent}%",sticky=true)
+            } else if (axis == 1 && host.seekable) {
                 previewPosition = TouchPlaybackMath.swipeSeek(startPosition, dx / root.width.coerceAtLeast(1), host.duration)
                 showHint("${clock(previewPosition)} / ${clock(host.duration)}", sticky = true)
             } else if (axis == 2) {
@@ -192,7 +216,13 @@ internal class PlayerTouchControls(
             }
         }
         if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
-            if (event.actionMasked == MotionEvent.ACTION_UP && axis == 1 && !multiTouch && host.seekable) host.seek(previewPosition)
+            val initial=subtitleStart
+            if(initial!=null) {
+                val value=subtitlePreview?:initial
+                if(event.actionMasked==MotionEvent.ACTION_UP && value!=initial)host.applySubtitles(value)
+                else host.previewSubtitles(initial)
+                subtitleStart=null;subtitlePreview=null
+            } else if (event.actionMasked == MotionEvent.ACTION_UP && axis == 1 && !multiTouch && host.seekable) host.seek(previewPosition)
             releaseSpeed()
             handler.postDelayed(clearHint, 800)
         }
@@ -215,11 +245,19 @@ internal class PlayerTouchControls(
     }
 
     fun cancel() {
+        subtitleStart?.let(host::previewSubtitles);subtitleStart=null;subtitlePreview=null
         releaseSpeed()
         val cancel = MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0f, 0f, 0)
         gestures.onTouchEvent(cancel); scaling.onTouchEvent(cancel); cancel.recycle()
         accepted = false; axis = 0; multiTouch = false
         handler.removeCallbacks(clearHint); hint.visibility = View.GONE
+    }
+
+    private fun previewSubtitleStyle() {
+        val now=android.os.SystemClock.uptimeMillis()
+        if(lastSubtitlePreview==0L || now-lastSubtitlePreview>=32) {
+            subtitlePreview?.let(host::previewSubtitles);lastSubtitlePreview=now
+        }
     }
 
     fun close() {

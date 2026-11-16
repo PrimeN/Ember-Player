@@ -477,7 +477,7 @@ class PlayerActivity : ComponentActivity() {
     internal var loadSpeed = 0L
     internal var dropped = 0
 
-    internal val speeds = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
+    internal val speeds = listOf(0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f, 3f, 4f)
     /** Volume boost steps in millibels (+3, +6, +9, +12 dB). */
     internal val boosts = listOf(0, 300, 600, 900, 1200)
     internal val aspects by lazy { listOf(getString(R.string.pl_auto) to 0f, "16:9" to 16f / 9, "4:3" to 4f / 3, "1.85:1" to 1.85f, "2.00:1" to 2f, "2.39:1" to 2.39f) }

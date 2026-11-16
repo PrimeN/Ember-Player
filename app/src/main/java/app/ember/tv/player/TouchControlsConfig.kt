@@ -12,6 +12,8 @@ data class TouchControlsConfig(
     val pinchZoom: Boolean = true,
     val holdToSpeed: Boolean = true,
     val orientation: String = "auto",
+    val holdSpeed:Float=2f,
+    val subtitleGestures:Boolean=false,
 )
 
 /** Bounded gesture calculations shared by both playback engines. */
@@ -32,4 +34,5 @@ internal object TouchPlaybackMath {
         if (!current.isFinite() || !factor.isFinite() || factor <= 0) 1f else (current * factor).coerceIn(1f, 4f)
 
     fun step(seconds: Int): Long = seconds.coerceIn(5, 60) * 1000L
+    fun holdSpeed(value:Float)=if(value.isFinite())value.coerceIn(1.25f,4f) else 2f
 }

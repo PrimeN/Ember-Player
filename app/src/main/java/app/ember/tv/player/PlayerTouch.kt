@@ -3,6 +3,7 @@ package app.ember.tv.player
 import android.widget.FrameLayout
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleDelayMilliseconds
 
 @androidx.annotation.OptIn(UnstableApi::class)
 internal fun PlayerActivity.installTouchControls() {
@@ -26,6 +27,28 @@ internal fun PlayerActivity.installTouchControls() {
         }
         override fun hideControls() { controls.visible = false; controls.sheet = null; closeMenu(); view.hideController(); hidePanel() }
         override fun magnify(scale: Float) { touchMagnification = scale; applyTouchMagnification() }
+        override val subtitleState:SubtitleTouchState? get() {
+            if(!subsInitialized || prefs.subtitleConfig.systemStyle)return null
+            val selected=player?.currentTracks?.groups?.any {it.type==androidx.media3.common.C.TRACK_TYPE_TEXT && it.isSelected}==true
+            if(!selected && !subs.engine.active)return null
+            val c=prefs.subtitleConfig
+            val bottom=c.layout.bottomMarginPercent ?: when(c.position){"low"->3;"high"->20;else->8}
+            return SubtitleTouchState(subs.engine.offsetMs,c.layout.scalePercent,bottom)
+        }
+        override fun previewSubtitles(value:SubtitleTouchState) {
+            val c=prefs.subtitleConfig.let {it.copy(layout=it.layout.copy(scalePercent=value.scalePercent,bottomMarginPercent=value.bottomMarginPercent))}
+            view.subtitleView?.let {SubtitleEngine.style(it,c)}
+            playbackEngine?.compatibility?.captionStyle(c)
+        }
+        override fun applySubtitles(value:SubtitleTouchState) {
+            if(!subsInitialized)return
+            subs.engine.offsetMs=value.offsetMs
+            player?.subtitleDelayMilliseconds=value.offsetMs
+            playbackEngine?.compatibility?.subtitleDelay(value.offsetMs)
+            val c=prefs.subtitleConfig
+            applySubLook(c.copy(layout=c.layout.copy(scalePercent=value.scalePercent,bottomMarginPercent=value.bottomMarginPercent)))
+            refreshSubtitlePanel()
+        }
     }) { config.touch }
 }
 
