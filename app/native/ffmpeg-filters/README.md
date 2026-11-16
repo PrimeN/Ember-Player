@@ -61,3 +61,10 @@ test verifies byte-identical progressive bypass, top/bottom-field frame doubling
 and reduced combing on a synthetic moving edge. Actual Android device rendering,
 hardware-frame copies, HDR/interlaced combinations and CPU budgets still need
 device acceptance.
+
+The builds also enable `acompressor` for optional night-listening compression.
+The upstream compressor source is `libavfilter/af_sidechaincompress.c`, including
+its original copyright notice for Paul B Mahol (2013). The pinned source archive
+retains the complete original notices. Channel-linked peak detection and reserved
+makeup headroom keep the sound image stable and reduce clipping; passthrough is
+unchanged. Same-source host checks exercise the quiet/loud dynamic range too.

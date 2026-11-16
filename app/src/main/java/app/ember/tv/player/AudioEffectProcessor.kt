@@ -23,10 +23,11 @@ internal class AudioDsp(private val rate: Int, private val channels: Int, val ef
         Band((1 + alpha * a) / a0, -2 * cos(w) / a0, (1 - alpha * a) / a0,
             -2 * cos(w) / a0, (1 - alpha / a) / a0, DoubleArray(channels), DoubleArray(channels))
     }
+    private val compressor=NightListening.preset(effects.compression)?.let {NightCompressor(rate,it)}
     private val headroom = 10.0.pow(-effects.headroomDb(channels) / 20.0)
     fun frame(samples: FloatArray) {
         for (c in 0 until channels) {
-            var x = samples[c] * headroom
+            var x = (if(samples[c].isFinite())samples[c] else 0f) * headroom
             for (index in bands.indices) {
                 val b = bands[index]
                 val y = b.b0 * x + b.z1[c]
@@ -46,6 +47,7 @@ internal class AudioDsp(private val rate: Int, private val channels: Int, val ef
             samples[0] = (mid + side).coerceIn(-1f, 1f)
             samples[1] = (mid - side).coerceIn(-1f, 1f)
         }
+        compressor?.frame(samples)
     }
 }
 

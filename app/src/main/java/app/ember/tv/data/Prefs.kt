@@ -20,6 +20,9 @@ class Prefs(context:Context) {
     var playbackConfig:PlaybackConfig
         get()=decoded("playbackConfig",PlaybackConfig(playerInterface="modern"))
         set(value)=put("playbackConfig",value)
+    var subtitlePresets:List<app.ember.tv.player.SubtitleStylePreset>
+        get()=decoded("subtitlePresets",emptyList())
+        set(value)=put("subtitlePresets",value.take(12))
     var audioPresets:List<app.ember.tv.player.SavedAudioPreset>
         get()=decoded("audioPresets",emptyList())
         set(value)=put("audioPresets",value.take(12))

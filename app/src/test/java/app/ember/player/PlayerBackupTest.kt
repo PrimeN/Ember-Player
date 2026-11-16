@@ -58,4 +58,27 @@ class PlayerBackupTest {
         assertEquals("hable",app.ember.tv.player.PictureProfiles.effective(result,"media").hdrOutput.tone)
     }
 
+    @Test fun encryptedBackupKeepsNetworkRendererFramingCompressionAndSubtitleStyles() {
+        val config=app.ember.tv.player.GeometryMemory.set(app.ember.tv.player.PlaybackConfig(
+            stream=app.ember.tv.player.StreamConfig(custom=true,connectSeconds=45,readSeconds=60),renderer="gpu-next",
+            audioEffects=app.ember.tv.player.AudioEffects(compression="night"),hdrOutput=app.ember.tv.player.HdrOutput(expand=true)),"saved-video",app.ember.tv.player.VideoGeometry("crop",3,1.5f))
+        val styles=listOf(app.ember.tv.player.SubtitleStylePreset("Evening",app.ember.tv.player.SubtitleStyle(color="yellow")))
+        val json=kotlinx.serialization.json.Json
+        val values=mapOf("playbackConfig" to BackupValue("string",json.encodeToString(app.ember.tv.player.PlaybackConfig.serializer(),config)),
+            "subtitlePresets" to BackupValue("string",json.encodeToString(kotlinx.serialization.builtins.ListSerializer(app.ember.tv.player.SubtitleStylePreset.serializer()),styles)))
+        val data=sample().copy(preferences=sample().preferences+("ember" to values))
+        val password="a sufficiently long password".toCharArray()
+        val encrypted=PlayerBackupCipher.encrypt(json.encodeToString(PlayerBackupData.serializer(),data).toByteArray(),password)
+        val restored=PlayerBackups.decode(encrypted,password)
+        assertEquals(data,restored)
+        val decoded=json.decodeFromString(app.ember.tv.player.PlaybackConfig.serializer(),restored.preferences.getValue("ember").getValue("playbackConfig").text)
+        assertEquals(config,decoded);assertEquals(1.5f,app.ember.tv.player.GeometryMemory.selected(decoded,"saved-video")!!.magnification)
+    }
+    @Test fun malformedOrOversizedSubtitleStyleBackupsAreRejected() {
+        for(styles in listOf("not json","[{\"name\":\"\",\"style\":{}}]")) {
+            val data=sample().copy(preferences=sample().preferences+("ember" to mapOf("subtitlePresets" to BackupValue("string",styles))))
+            try {PlayerBackups.validate(data);fail("Expected invalid styles")}catch(_:IllegalArgumentException){}
+        }
+    }
+
 }

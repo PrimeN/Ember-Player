@@ -113,6 +113,9 @@ data class PlaybackConfig(
     val hi10pFallback:Boolean=true,
     val pictureProfiles:List<PictureProfile> = emptyList(),
     val mediaPictureProfiles:Map<String,String> = emptyMap(),
+    val stream:StreamConfig=StreamConfig(),
+    val renderer:String="auto",
+    val mediaGeometry:Map<String,VideoGeometry> = emptyMap(),
 )
 
 @OptIn(UnstableApi::class)
@@ -296,15 +299,8 @@ object Playback {
         }
     }
 
-    fun loadControl(c: PlaybackConfig, context: Context): DefaultLoadControl {
-        val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
-        val memory = android.app.ActivityManager.MemoryInfo().also(manager::getMemoryInfo)
-        val bytes = PlaybackBuffer.bytes(c.buffer, Runtime.getRuntime().maxMemory(), manager.isLowRamDevice || memory.lowMemory)
-        val min = if(c.buffer == "normal") 30_000 else if(c.buffer == "huge") 60_000 else 50_000
-        val max = if(c.buffer == "normal") 60_000 else if(c.buffer == "huge") 240_000 else 120_000
-        return DefaultLoadControl.Builder().setBufferDurationsMs(min,max,2_500,5_000)
-            .setTargetBufferBytes(bytes).setPrioritizeTimeOverSizeThresholds(false).build()
-    }
+    fun loadControl(c:PlaybackConfig,context:Context,read:()->PlaybackConfig={c}):androidx.media3.exoplayer.LoadControl =
+        ReloadableLoadControl(c,read){StreamConfig.plan(context,it)}
 
     // ---- audio track choice ----
 

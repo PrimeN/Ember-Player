@@ -193,7 +193,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
     }
     val standard = ExoPlayer.Builder(this, Playback.Renderers(this, config, audioDelay, codecs, decoderManager, audioEffectState))
         .setTrackSelector(trackSelector)
-        .setLoadControl(Playback.loadControl(config, this))
+        .setLoadControl(Playback.loadControl(config, this){config})
         .setAudioAttributes(androidx.media3.common.AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true)
         .setHandleAudioBecomingNoisy(true)
         .setMediaSourceFactory(mediaSourceFactory(DefaultDataSource.Factory(this, http)))
@@ -203,7 +203,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         )
         .build()
 
-    playbackEngine=PlaybackEngine(this,standard,{PictureProfiles.effective(config,resumeKey).copy(passthrough=config.passthrough&&!codecs.pcm)}) { compatible ->
+    playbackEngine=PlaybackEngine(this,standard,{renderConfig().copy(passthrough=config.passthrough&&!codecs.pcm)}) { compatible ->
         pictureBypassed=false;pictureSignature=null;pictureEffectsActive=false
         videoDecoder=if(compatible)"Compatibility engine" else null
         loudness?.release();loudness=null

@@ -44,7 +44,7 @@ class PlayerSettingsActivity:ComponentActivity() {
                         PlayerChoice("Playback engine",listOf("auto" to "Automatic","standard" to "Standard","compatibility" to "Compatibility"),config.engine){v->update {it.copy(engine=v)}}
                         PlayerChoice("Resume",listOf("ask" to "Ask","resume" to "Resume automatically","start" to "Start over"),config.resume){v->update {it.copy(resume=v)}}
                         PlayerChoice("Seeking",listOf("precise" to "Precise","fast" to "Fast keyframes"),config.seekMode){v->update {it.copy(seekMode=v)}}
-                        PlayerChoice("Buffer",listOf("normal" to "Normal","large" to "Large","huge" to "Huge"),config.buffer){v->update {it.copy(buffer=v)}}
+                        PlayerChoice("Buffer",listOf("normal" to "Normal","large" to "Large","huge" to "Huge"),config.buffer){v->update {it.copy(buffer=v,stream=it.stream.copy(custom=false))}}
                         SwitchChip("Remember working decoders",config.rememberDecoderChoices){update {it.copy(rememberDecoderChoices=!it.rememberDecoderChoices)}}
                         Chip("Reset decoder memory"){DecoderHealth.clear(this@PlayerSettingsActivity)}
                         SwitchChip("Picture in picture",config.pip){update {it.copy(pip=!it.pip)}}
@@ -54,6 +54,7 @@ class PlayerSettingsActivity:ComponentActivity() {
                         SwitchChip("IntroDB markers",config.introDb){update {it.copy(introDb=!it.introDb)}}
                         PlayerChoice("Skip markers",listOf("button" to "Show skip button","auto" to "Skip automatically","off" to "Off"),config.skipIntro){v->update {it.copy(skipIntro=v)}}
                     }}
+                    item {Section("Network and buffering") {StreamSettings(config){value->update {value}}}}
                     item {Section("Sleep timer") {SleepTimerSettings()}}
                     item {Section("Picture enhancement") {
                         val picture=config.picture
@@ -71,7 +72,9 @@ class PlayerSettingsActivity:ComponentActivity() {
                         Chip("Reset picture adjustments"){update {it.copy(picture=it.picture.copy(brightness=0,contrast=0,saturation=0,gamma=0,hue=0,sharpness=0))}}
                     }}
                     item {Section("Saved picture / shader profiles") {PictureProfileSettings(config){value->update {value}}}}
-                    item {Section("HDR output") {HdrOutputSettings(config.hdrOutput){value->update {it.copy(hdrOutput=value)}}}}
+                    item {Section("HDR output") {
+                        PlayerChoice("Compatibility renderer",RendererPolicy.choices,RendererPolicy.normalized(config.renderer)){v->update {it.copy(renderer=v)}}
+                        HdrOutputSettings(config.hdrOutput){value->update {it.copy(hdrOutput=value)}}}}
                     item {Section("Picture") {
                         PlayerChoice("Software video",listOf("fallback" to "When needed","off" to "Device decoders only","always" to "Always software"),config.ffmpegVideo){v->update {it.copy(ffmpegVideo=v)}}
                         PlayerChoice("Compatibility decoder profile",NativeDecoderProfile.choices,NativeDecoderProfile.normalized(config.compatibilityDecoder)){v->update {it.copy(compatibilityDecoder=v)}}
@@ -103,6 +106,8 @@ class PlayerSettingsActivity:ComponentActivity() {
                         Text("Tap to show controls. Double-tap the centre to pause; double-tap an edge to seek. Swipe horizontally to preview a seek, then release. Playback lock is in the player options; Back unlocks it.",color=Mute,fontSize=12.sp)
                     }}
                     item {Section("Sound") {
+                        PlayerChoice("Night listening",NightListening.choices,config.audioEffects.compression){v->update {it.copy(audioEffects=it.audioEffects.copy(compression=v))}}
+                        Text("Dynamic compression reduces loud effects relative to dialogue. Decoded audio only; passthrough stays untouched.",color=Mute,fontSize=12.sp)
                         SwitchChip("HDMI passthrough",config.passthrough){update {it.copy(passthrough=!it.passthrough)}}
                         PlayerChoice("Audio decoding",listOf("on" to "Software when needed","prefer" to "Prefer software","off" to "Device decoders only"),config.ffmpeg){v->update {it.copy(ffmpeg=v)}}
                         PlayerChoice("Audio track",listOf("quality" to "Best quality","language" to "Preferred language","default" to "File default"),config.audioPick){v->update {it.copy(audioPick=v)}}
@@ -128,6 +133,7 @@ class PlayerSettingsActivity:ComponentActivity() {
                         SwitchChip("Preserve authored styling",subtitles.authoredStyles){captions {it.copy(authoredStyles=!it.authoredStyles)}}
                         SwitchChip("Use system caption style",subtitles.systemStyle){captions {it.copy(systemStyle=!it.systemStyle)}}
                         SubtitleAssistanceSettings(subtitles.assistance){value->captions {it.copy(assistance=value)}}
+                        SubtitlePresetSettings(prefs,subtitles){value->captions {value}}
                         AdvancedSubtitleSettings(subtitles){value->captions {value}}
                         SwitchChip("Community subtitle search",subtitles.stremioOpenSubs){captions {it.copy(stremioOpenSubs=!it.stremioOpenSubs)}}
                     }}

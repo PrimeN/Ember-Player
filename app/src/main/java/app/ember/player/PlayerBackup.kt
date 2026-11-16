@@ -74,6 +74,10 @@ internal object PlayerBackups {
                 require(numbers.size==2 && numbers.all {it!=null && it>=0}) {"Invalid saved position."}
             }
             if(file=="ember" && key=="playbackConfig")configurationJson.decodeFromString<PlaybackConfig>(value.text)
+            if(file=="ember" && key=="subtitlePresets") {
+                val styles=configurationJson.decodeFromString<List<app.ember.tv.player.SubtitleStylePreset>>(value.text)
+                require(styles.size<=12 && styles.all {it.name.isNotBlank() && it.name.length<=32}) {"Invalid subtitle styles."}
+            }
             if(file=="ember" && key=="subtitleConfig")configurationJson.decodeFromString<SubtitleConfig>(value.text)
         }}
         require(data.secrets.all {(key,value)->key.isNotBlank() && key.length<=256 && key.none {it.isISOControl()} && value.length<=2*1024*1024})

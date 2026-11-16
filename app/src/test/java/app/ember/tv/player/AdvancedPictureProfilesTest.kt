@@ -64,7 +64,8 @@ class AdvancedPictureProfilesTest {
         assertEquals("clip",active["gamut-mapping-mode"]);assertEquals("yes",active["hdr-compute-peak"])
         val normal=HdrOutput().options(true)
         assertEquals(normal,config.options(false));assertEquals(normal,config.options(true,bypassed=true))
-        assertTrue(normal.values.all {it=="auto"})
+        assertEquals("no",normal["inverse-tone-mapping"]);assertEquals("yes",normal["target-colorspace-hint-strict"])
+        assertTrue(normal.filterKeys {it !in setOf("inverse-tone-mapping","target-colorspace-hint-strict")}.values.all {it=="auto"})
         assertEquals("no",config.copy(analyzePeak=false).options(true)["hdr-compute-peak"])
         HdrOutput.tones.forEach {(tone,_)->assertEquals(tone,config.copy(tone=tone).options(true)["tone-mapping"])}
     }

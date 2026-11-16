@@ -132,7 +132,7 @@ requires device support; no software AC-4 or IAMF decoder is bundled.
 Software HDR
 preservation/tone mapping is not advertised as equivalent to the TV's HDR pipeline.
 Ember now replaces the pinned libmpv filter library with a selective FFmpeg 8.1
-build containing BWDIF/YADIF, scale/format and the existing buffer filters. Both ARM
+build containing BWDIF/YADIF, scale/format, audio compression and the existing buffer filters. Both ARM
 ABIs retain private SONAMEs, symbol compatibility and 16 KiB alignment. Source,
 checksums and rebuild/verification steps are in
 [the native filter directory](app/native/ffmpeg-filters/README.md). Compatibility
@@ -187,7 +187,33 @@ preference and playback position.
 Advanced decoder profiles and HDR-to-SDR output use the existing mpv 0.41.0
 `gpu` renderer and decoder options. No additional native library, external shader
 pack, model download or service is required. Tone curves and gamut choices are
-limited to those implemented by that renderer; modes exclusive to `gpu-next` are
-not exposed. HDR conversion uses the renderer's colour pipeline, with automatic
+limited to supported modes. Compatibility playback also offers the bundled
+`gpu-next` renderer explicitly, with one automatic fallback to `gpu` after failure. HDR conversion uses the renderer's colour pipeline, with automatic
 output settings restored when conversion is disabled, bypassed or not applicable.
 SDR colour/detail effects remain separate from HDR output conversion.
+
+
+## Output metadata and night listening
+
+Experimental SDR-to-HDR expansion uses the already bundled `gpu-next` renderer
+and libplacebo inverse tone mapping. It adds no AI model, runtime service or
+shader download and is disabled initially. It requires a reported HDR10 display
+and confirmed Android BT.2020/PQ producer metadata on a separately signaled
+surface. Unsupported displays and TextureView output bypass conversion. Output
+metadata does not establish a television's active HDR mode, panel luminance,
+10-bit framebuffer or reconstruction of source detail. Dolby Vision FEL and RPU
+processing are not advertised as verified by Ember.
+
+Ember's small `libember_surface.so` bridge uses public Android native-window APIs.
+It saves and restores each surface's original data space. Its GPL source, pinned
+NDK/API settings, checksums and rebuild instructions are in
+[the surface metadata directory](app/native/hdr-surface/README.md). Only ARM64 and
+ARM32 binaries are packaged, both with 16 KiB ELF load-segment alignment. Gradle
+checks source/binary hashes and architectures before packaging; an ordinary
+build uses the included binaries and requires no new NDK installation.
+
+Night listening uses Ember's linked-channel PCM compressor on Standard playback
+and the existing FFmpeg `acompressor` filter on Compatibility playback. The
+selective filter build now enables that filter; its complete source, provenance
+and rebuild instructions remain in the native filter directory. No Maven
+version changes are required. Encoded passthrough is not compressed.

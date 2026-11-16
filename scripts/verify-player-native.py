@@ -2,6 +2,7 @@
 """Audit generated AARs without packaging an APK. Python 3 and readelf required."""
 import argparse, io, pathlib, re, struct, subprocess, sys, tempfile, zipfile
 subprocess.run([sys.executable,str(pathlib.Path(__file__).with_name('verify-iamf-native.py'))],check=True)
+subprocess.run([sys.executable,str(pathlib.Path(__file__).with_name('verify-hdr-surface.py'))],check=True)
 p=argparse.ArgumentParser();p.add_argument('isolated_aar');p.add_argument('--nextlib');args=p.parse_args()
 old={b'libavcodec.so',b'libavutil.so',b'libavformat.so',b'libavfilter.so',b'libavdevice.so',b'libswresample.so',b'libswscale.so',b'libmpv.so',b'libplayer.so'}
 expected={'armeabi-v7a','arm64-v8a'}
@@ -24,7 +25,7 @@ with zipfile.ZipFile(args.isolated_aar) as z, tempfile.TemporaryDirectory() as t
                 assert int(row.split()[-1],16)>=16384, f'Not 16 KiB aligned: {name}'
         if name.endswith('libemcodec.so'):assert b'LIBAVCODEC_62\0' in data
         if name.endswith('libemfilter.so'):
-            assert all(x in data for x in (b'bwdif\0',b'yadif\0',b'LIBAVFILTER_11\0')), f'Missing rebuilt filters: {name}'
+            assert all(x in data for x in (b'bwdif\0',b'yadif\0',b'LIBAVFILTER_11\0',b'acompressor\0')), f'Missing rebuilt filters: {name}'
     assert abis==expected,abis
     with zipfile.ZipFile(io.BytesIO(z.read('classes.jar'))) as jar:
         cls=jar.read('dev/jdtech/mpv/MPVLib.class')

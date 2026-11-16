@@ -31,6 +31,7 @@ internal fun PlayerActivity.installTouchControls() {
             if(item==null)return false
             playFile(item);return true
         }
+        override fun finishMagnification(){persistGeometry()}
         override fun magnify(scale: Float) { touchMagnification = scale; applyTouchMagnification() }
         override val subtitleState:SubtitleTouchState? get() {
             if(!subsInitialized || prefs.subtitleConfig.systemStyle)return null

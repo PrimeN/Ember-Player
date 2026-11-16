@@ -44,7 +44,7 @@ internal fun transferFilePlaybackState(context:Context,file:DeviceFile,to:Uri,pa
     val toKey=QueueMedia(to.toString(),name).key
     val prefs=app.ember.tv.data.Prefs(context)
     val config=prefs.playbackConfig
-    val migrated=PictureProfiles.moved(config,fromKey,toKey)
+    val migrated=GeometryMemory.moved(PictureProfiles.moved(config,fromKey,toKey),fromKey,toKey)
     if(migrated!=config)prefs.playbackConfig=migrated
     val scope=LocalActivity.scope(context)
     PositionStore(context,scope).moveKey(fromKey,toKey)

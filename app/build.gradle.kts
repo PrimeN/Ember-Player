@@ -206,6 +206,21 @@ val verifyIamfNative by tasks.registering {
 }
 tasks.named("preBuild") {dependsOn(verifyIamfNative)}
 
+val verifyHdrSurface by tasks.registering {
+    inputs.dir(layout.projectDirectory.dir("native/hdr-surface"))
+    inputs.files(fileTree("src/main/jniLibs"){include("**/libember_surface.so")})
+    doLast {
+        val hashes=Properties().apply {file("native/hdr-surface/checksums.properties").inputStream().use {load(it)}}
+        fun digest(bytes:ByteArray)=MessageDigest.getInstance("SHA-256").digest(bytes).joinToString(""){"%02x".format(it)}
+        require(digest(file("native/hdr-surface/hdr_surface.c").readBytes())==hashes.getProperty("source.sha256"))
+        val expected=mapOf("arm64-v8a" to 183,"armeabi-v7a" to 40)
+        val libraries=fileTree("src/main/jniLibs"){include("**/libember_surface.so")}.files
+        require(libraries.map {it.parentFile.name}.toSet()==expected.keys)
+        libraries.forEach {f->val b=f.readBytes();require(digest(b)==hashes.getProperty("${f.parentFile.name}.sha256"));require(ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN).getShort(18).toInt()==expected[f.parentFile.name])}
+    }
+}
+tasks.named("preBuild"){dependsOn(verifyHdrSurface)}
+
 android {
     namespace = "app.ember.tv"
     compileSdk = 37

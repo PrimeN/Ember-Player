@@ -37,6 +37,7 @@ internal interface TouchPlaybackHost {
     fun toggleControls()
     fun hideControls()
     fun skipItem(forward:Boolean):Boolean = false
+    fun finishMagnification() {}
     fun magnify(scale: Float)
     val subtitleState:SubtitleTouchState? get()=null
     fun previewSubtitles(value:SubtitleTouchState) {}
@@ -65,6 +66,7 @@ internal class PlayerTouchControls(
     private var startBrightness = 0
     private var heldSpeed: Float? = null
     private var scale = 1f
+    private var videoScaled=false
     private var subtitleStart:SubtitleTouchState?=null
     private var subtitlePreview:SubtitleTouchState?=null
     private var subtitleScaleFactor=1f
@@ -131,6 +133,7 @@ internal class PlayerTouchControls(
                 return true
             }
             if (!settings().pinchZoom) return false
+            videoScaled=true
             scale = TouchPlaybackMath.zoom(scale, detector.scaleFactor)
             host.magnify(scale)
             showHint("Zoom ${(scale * 100).roundToInt()}%")
@@ -145,6 +148,8 @@ internal class PlayerTouchControls(
         })
         applyOrientation()
     }
+
+    fun restoreMagnification(value:Float){scale=value.takeIf {it.isFinite()}?.coerceIn(1f,4f) ?: 1f}
 
     fun applyOrientation() {
         if (isTelevision(activity)) return
@@ -173,7 +178,7 @@ internal class PlayerTouchControls(
             // Keep the header and lower controls tappable while the player controls are visible.
             accepted = usable && (!host.controlsVisible || event.y in root.height * .23f..root.height * .57f)
             if (!accepted) return false
-            multiTouch = false; axis = 0; downX = event.x; downY = event.y
+            multiTouch = false; videoScaled=false; axis = 0; downX = event.x; downY = event.y
             startPosition = host.position; previewPosition = startPosition
             subtitleStart=if(settings().subtitleGestures && event.y>=root.height*.65f)host.subtitleState else null
             subtitlePreview=subtitleStart;subtitleScaleFactor=1f;lastSubtitlePreview=0L
@@ -229,6 +234,7 @@ internal class PlayerTouchControls(
                 else host.previewSubtitles(initial)
                 subtitleStart=null;subtitlePreview=null
             } else if (event.actionMasked == MotionEvent.ACTION_UP && axis == 1 && settings().horizontalSeek && !multiTouch && host.seekable) host.seek(previewPosition)
+            if(event.actionMasked==MotionEvent.ACTION_UP && videoScaled)host.finishMagnification()
             releaseSpeed()
             handler.postDelayed(clearHint, 800)
         }

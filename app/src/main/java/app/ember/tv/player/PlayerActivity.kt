@@ -130,8 +130,8 @@ class PlayerActivity : ComponentActivity() {
     internal val httpFactory by lazy {
         DefaultHttpDataSource.Factory()
             .setAllowCrossProtocolRedirects(true)
-            .setConnectTimeoutMs(20_000)
-            .setReadTimeoutMs(30_000)
+            .setConnectTimeoutMs(prefs.playbackConfig.stream.normalized().connectSeconds*1000)
+            .setReadTimeoutMs(prefs.playbackConfig.stream.normalized().readSeconds*1000)
             .setUserAgent("EmberTV/0.9")
     }
 
@@ -465,6 +465,7 @@ class PlayerActivity : ComponentActivity() {
 
     // ---- player menus (advanced look): the small menu, the Options page and playback stats ----
     internal var speed = 1f
+    internal var compareOriginal=false
     internal var pictureBypassed=false
     internal var pictureSignature:String?=null
     internal var pictureEffectsActive=false

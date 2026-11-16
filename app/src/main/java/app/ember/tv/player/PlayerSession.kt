@@ -77,9 +77,10 @@ internal fun PlayerActivity.start(url: String, title: String, addonSubs: List<Su
     cancelRecovery()
     cancelNextEpisodeLookup()
     playbackVisit++
-    pictureBypassed=false;pictureSignature=null;pictureEffectsActive=false
+    compareOriginal=false;pictureBypassed=false;pictureSignature=null;pictureEffectsActive=false
     val p = player ?: return
     playbackEngine?.standard?.setVideoEffects(emptyList())
+    httpFactory.setConnectTimeoutMs(config.stream.normalized().connectSeconds*1000).setReadTimeoutMs(config.stream.normalized().readSeconds*1000)
     hdr10PlusMetadata = false
     decoderStableSince=0;decoderLearned=false
     liveRetryJob?.cancel(); liveRetryJob = null
@@ -91,6 +92,10 @@ internal fun PlayerActivity.start(url: String, title: String, addonSubs: List<Su
         audio=audioUrl,headers=sourceHeaders,live=live,filename=release,
         audioLanguages=listOfNotNull(showKey()?.let(memory::get)?.audio,java.util.Locale.getDefault().language).distinct(),
         subtitleLanguages=app.ember.tv.data.Subtitles.wanted(prefs.subtitleConfig)))
+    val geometry=GeometryMemory.selected(config,resumeKey)
+    aspect=geometry?.aspect ?: 0;touchMagnification=geometry?.magnification ?: 1f
+    touchControls?.restoreMagnification(touchMagnification)
+    applyZoom();applyAspect()
     serverPartIndex = 0
     transcodeStopQueued = false
     usbWatch?.close();usbWatch=UsbMedia.watch(this,url){android.widget.Toast.makeText(this,"USB drive disconnected",android.widget.Toast.LENGTH_LONG).show();endPlayback()}

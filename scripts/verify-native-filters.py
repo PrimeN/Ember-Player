@@ -28,7 +28,7 @@ with zipfile.ZipFile(a.upstream_aar) as z, tempfile.TemporaryDirectory() as tmp:
         assert hashlib.sha256(data).hexdigest() == properties[abi+'.sha256'], abi
         assert all(x in data for x in (b'bwdif\0', b'yadif\0', b'LIBAVFILTER_11\0')), abi
         if abi in ('arm64-v8a', 'armeabi-v7a'):
-            assert all(x+b'\0' in data for x in (b'equalizer', b'pan', b'volume', b'aformat', b'aresample')), abi
+            assert all(x+b'\0' in data for x in (b'equalizer', b'pan', b'volume', b'aformat', b'aresample', b'acompressor')), abi
         deps = subprocess.check_output(['readelf', '-d', str(file)], text=True)
         assert 'Library soname: [libavfilter.so]' in deps
         needed = re.findall(r'\(NEEDED\).*\[(.*?)\]', deps)

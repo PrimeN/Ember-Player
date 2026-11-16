@@ -33,8 +33,12 @@ internal fun PictureProfileSettings(config:PlaybackConfig,save:(PlaybackConfig)-
 @Composable
 internal fun HdrOutputSettings(value:HdrOutput,save:(HdrOutput)->Unit) {
     val p=value.normalized()
-    SwitchChip("HDR to SDR output",p.sdr){save(p.copy(sdr=!p.sdr))}
+    SwitchChip("HDR to SDR output",p.sdr){save(p.copy(sdr=!p.sdr,expand=false))}
     Text("Optional Compatibility output for SDR screens. Automatic engine selection can switch supported HDR video; explicit Standard, protected video and unsupported Compatibility audio keep their current path. The SDR picture-enhancement switch is separate.",fontSize=12.sp,color=Mute)
+    SwitchChip("SDR to HDR · experimental",p.expand){save(p.copy(expand=!p.expand,sdr=false))}
+    Text("Local inverse tone mapping, off by default. Requires Advanced/Automatic renderer, a reported HDR10 display and confirmed SurfaceView colour metadata. No AI model or online service. It can alter the intended look and increase banding or GPU load.",fontSize=12.sp,color=Mute)
+    if(p.expand)Text("Display: ${HdrDisplayInfo.read(androidx.compose.ui.platform.LocalContext.current).summary}",fontSize=12.sp,color=Mute)
+    if(p.expand)PlayerChoice("Expanded HDR peak",(listOf(300,400,600,800,1000,1500)+p.hdrPeak).distinct().sorted().map {it.toString() to "$it nits"},p.hdrPeak.toString()){save(p.copy(hdrPeak=it.toInt()))}
     if(p.sdr) {
         PlayerChoice("Tone mapping",HdrOutput.tones,p.tone){save(p.copy(tone=it))}
         PlayerChoice("Gamut mapping",HdrOutput.gamuts,p.gamut){save(p.copy(gamut=it))}

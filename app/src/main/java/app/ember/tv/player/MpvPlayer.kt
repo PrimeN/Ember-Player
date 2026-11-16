@@ -45,7 +45,15 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     private var requestedInterpolation=config.interpolation
     private var pendingFrameStep=0
     private var deinterlacing=config.deinterlacing
-    private val native=run {NativePlayerFiles.prepare(context);MPVLib.create(context)} ?: error("Compatibility player could not start.")
+    private var displayInfo=HdrDisplayInfo.read(context)
+    private var requestedRenderer=config.renderer
+    private val rendererSession=RendererSession(RendererPolicy.initial(config.renderer,config.hdrOutput.expand,displayInfo.pq))
+    private val renderer get()=rendererSession.active
+    private val rendererFallback get()=rendererSession.recovered
+    private val hdrSurface=HdrSurfaceBinding()
+    private var signaledHdr=false
+    private var lastSurfaceCheck=0L
+    private var native=run {NativePlayerFiles.prepare(context);MPVLib.create(context)} ?: error("Compatibility player could not start.")
     private var status=Player.STATE_IDLE
     private var wanted=false
     private var focusPaused=false
@@ -68,6 +76,8 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     private var fileEvents=0
     private var pcmAttempted=false
     private var transport:NativeHttpTransport?=null
+    private var requestedStream=config.stream
+    private var openedStream=config.stream
     private var output:Any?=null
     private var holder:SurfaceHolder?=null
     private var texture:TextureView?=null
@@ -99,9 +109,9 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         },handler).build()
     private val noisy=object:BroadcastReceiver() {override fun onReceive(c:Context,i:Intent){if(i.action==AudioManager.ACTION_AUDIO_BECOMING_NOISY)playWhenReady=false}}
     private val callback=object:SurfaceHolder.Callback {
-        override fun surfaceCreated(h:SurfaceHolder){if(!closed)native.attachSurface(h.surface)}
-        override fun surfaceChanged(h:SurfaceHolder,f:Int,w:Int,height:Int){if(!closed){native.attachSurface(h.surface);native.setPropertyString("android-surface-size","${w}x$height");surfaceSize=androidx.media3.common.util.Size(w,height);invalidateState()}}
-        override fun surfaceDestroyed(h:SurfaceHolder){if(!closed)native.detachSurface()}
+        override fun surfaceCreated(h:SurfaceHolder){if(!closed){native.attachSurface(h.surface);appliedHdr=null;applyHdrOutput()}}
+        override fun surfaceChanged(h:SurfaceHolder,f:Int,w:Int,height:Int){if(!closed){native.attachSurface(h.surface);native.setPropertyString("android-surface-size","${w}x$height");surfaceSize=androidx.media3.common.util.Size(w,height);applyHdrOutput();invalidateState()}}
+        override fun surfaceDestroyed(h:SurfaceHolder){hdrSurface.restore();signaledHdr=false;if(!closed)native.detachSurface()}
     }
     private val textureCallback=object:TextureView.SurfaceTextureListener {
         override fun onSurfaceTextureAvailable(t:android.graphics.SurfaceTexture,w:Int,h:Int) {if(!closed){ownedSurface?.release();ownedSurface=Surface(t);native.attachSurface(ownedSurface!!);native.setPropertyString("android-surface-size","${w}x$h");surfaceSize=androidx.media3.common.util.Size(w,h);invalidateState()}}
@@ -109,20 +119,18 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         override fun onSurfaceTextureDestroyed(t:android.graphics.SurfaceTexture):Boolean {if(!closed)native.detachSurface();ownedSurface?.release();ownedSurface=null;return true}
         override fun onSurfaceTextureUpdated(t:android.graphics.SurfaceTexture) {}
     }
-    init {
-        try {
-            transport=NativeHttpTransport(source.headers,source.urls+listOfNotNull(source.audio))
+    private fun initializeNative() {
             fun option(k:String,v:String) { check(native.setOptionString(k,v)>=0) { "Compatibility player option unavailable: $k" } }
             option("config","no");option("load-scripts","no");option("ytdl","no")
             option("msg-level","all=no");option("terminal","no");option("osd-level","0");option("input-default-bindings","no")
             if(C.TRACK_TYPE_VIDEO in parameters.disabledTrackTypes) {option("vo","null");option("vid","no")}
-            else {option("vo","gpu");option("gpu-context","android");option("opengl-es","yes")}
+            else {option("vo",renderer);option("gpu-context","android");option("opengl-es","yes")}
             option("hwdec",NativeDecoderProfile.choose(requestedDecoderProfile,null,"inherit",config.ffmpegVideo=="always",deinterlacing,false,false,allowHi10p).hardware)
             option("ao","audiotrack,opensles")
             option("load-unsafe-playlists","no");option("access-references","no")
             option("tls-verify","yes");option("tls-ca-file",caFile().absolutePath)
             option("keep-open","yes");option("idle","yes");option("cache","yes")
-            option("demuxer-max-bytes",(48L*1024*1024).toString());option("demuxer-max-back-bytes",(16L*1024*1024).toString())
+            StreamConfig.plan(context,config).nativeOptions().forEach { (key,value)->option(key,value) }
             option("audio-pitch-correction","yes");option("volume-max","400")
             if(source.audioLanguages.isNotEmpty())option("alang",source.audioLanguages.joinToString(","))
             if(source.subtitleLanguages.isNotEmpty())option("slang",source.subtitleLanguages.joinToString(","))
@@ -133,6 +141,15 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
             listOf("pause","paused-for-cache","eof-reached","seekable").forEach {native.observeProperty(it,MPVLib.MpvFormat.MPV_FORMAT_FLAG)}
             native.observeProperty("sub-text",MPVLib.MpvFormat.MPV_FORMAT_STRING)
             listOf("track-list","video-params","audio-out-params").forEach {native.observeProperty(it,MPVLib.MpvFormat.MPV_FORMAT_NONE)}
+    }
+    init {
+        try {
+            transport=NativeHttpTransport(source.headers,source.urls+listOfNotNull(source.audio),timing=config.stream)
+            rendererSession.initialize({initializeNative()},{
+                native.destroy()
+                native=MPVLib.create(context) ?: throw IllegalStateException("Stable renderer unavailable")
+                appliedDecoder=null;appliedPicture=null;appliedHdr=null;appliedEffects=null
+            })
             if(Build.VERSION.SDK_INT>=33)context.registerReceiver(noisy,IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),Context.RECEIVER_NOT_EXPORTED)
             else @Suppress("DEPRECATION") context.registerReceiver(noisy,IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
         } catch(e:Throwable) {transport?.close();native.destroy();throw e}
@@ -155,6 +172,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         descriptors+=fd;return "fd://${fd.fd}"
     }
     private fun load(index:Int,at:Long=0) {
+        if(requestedStream!=openedStream){transport?.close();transport=NativeHttpTransport(source.headers,source.urls+listOfNotNull(source.audio),timing=requestedStream);openedStream=requestedStream}
         if(index!=partIndex&&!externalGlobal)externalSubtitle=null
         captionText=""
         partIndex=index;pendingSeek=at;waitingSeek=true;position=at;loading=true;status=Player.STATE_BUFFERING;busy=true;stopping=false
@@ -232,6 +250,12 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     }
     private fun onMain(action:()->Unit){handler.post {if(!closed)try {action()}catch(_:Exception){fail()}}}
     private fun failedFile() {
+        if(transport?.failureCode==null && rendererSession.fallback()) {
+            hdrSurface.restore();signaledHdr=false;appliedHdr=null
+            native.setPropertyString("vo","gpu");applyHdrOutput()
+            android.widget.Toast.makeText(context,"Advanced renderer unavailable. Trying stable GPU output.",android.widget.Toast.LENGTH_LONG).show()
+            load(partIndex,position);return
+        }
         if(!hdrBypassed && appliedHdr?.get("target-trc")=="bt.1886" && transport?.failureCode==null) {
             hdrBypassed=true;applyHdrOutput()
             android.widget.Toast.makeText(context,"Retrying with automatic HDR output",android.widget.Toast.LENGTH_SHORT).show()
@@ -255,7 +279,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     override fun eventProperty(property:String,value:Long) {}
     override fun eventProperty(property:String,value:String)=onMain {if(property=="sub-text")captionText=value else {refreshTracks();invalidateState()}}
     override fun eventProperty(property:String,value:Double)=onMain {
-        when(property){"time-pos"->{val at=(value*1000).toLong();if(!loading && (!waitingSeek || approximateSeek || kotlin.math.abs(at-(pendingSeek-prefix(partIndex)))<2000)){waitingSeek=false;approximateSeek=false;partPosition=at;position=prefix(partIndex)+partPosition}};"duration"->{if(value>0)durations[partIndex]=(value*1000).toLong()};"demuxer-cache-time"->buffered=prefix(partIndex)+(value*1000).toLong()};invalidateState()
+        when(property){"time-pos"->{if(requestedHdr.expand && android.os.SystemClock.elapsedRealtime()-lastSurfaceCheck>1000){lastSurfaceCheck=android.os.SystemClock.elapsedRealtime();applyHdrOutput()};val at=(value*1000).toLong();if(!loading && (!waitingSeek || approximateSeek || kotlin.math.abs(at-(pendingSeek-prefix(partIndex)))<2000)){waitingSeek=false;approximateSeek=false;partPosition=at;position=prefix(partIndex)+partPosition}};"duration"->{if(value>0)durations[partIndex]=(value*1000).toLong()};"demuxer-cache-time"->buffered=prefix(partIndex)+(value*1000).toLong()};invalidateState()
     }
     override fun eventProperty(property:String,value:Boolean)=onMain {
         when(property){"paused-for-cache"->{busy=value;if(!loading && status!=Player.STATE_ENDED && status!=Player.STATE_IDLE)status=if(value)Player.STATE_BUFFERING else Player.STATE_READY};"eof-reached"->if(value)eof();"seekable"->seekable=value};invalidateState()
@@ -303,13 +327,14 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     override fun handleSetVolume(volume:Float):ListenableFuture<*> {gain=volume;native.setPropertyDouble("volume",volume*100.0*boostGain);return done()}
     override fun handleStop():ListenableFuture<*> {stopping=true;wanted=false;status=Player.STATE_IDLE;busy=false;native.command(arrayOf("stop"));return done()}
     override fun handleSetVideoOutput(videoOutput:Any):ListenableFuture<*> {
-        detachOutput();output=videoOutput
+        detachOutput();output=videoOutput;appliedHdr=null
         when(videoOutput){is Surface->native.attachSurface(videoOutput);is SurfaceView->attach(videoOutput.holder);is SurfaceHolder->attach(videoOutput)
             is TextureView->{texture=videoOutput;previousTextureListener=videoOutput.surfaceTextureListener;videoOutput.surfaceTextureListener=textureCallback;if(videoOutput.isAvailable)videoOutput.surfaceTexture?.let {textureCallback.onSurfaceTextureAvailable(it,videoOutput.width,videoOutput.height)}}}
-        return done()
+        applyHdrOutput();return done()
     }
     private fun attach(value:SurfaceHolder) {holder?.removeCallback(callback);holder=value;value.addCallback(callback);if(value.surface.isValid)native.attachSurface(value.surface)}
     private fun detachOutput() {
+        hdrSurface.restore();signaledHdr=false;appliedHdr=null
         holder?.removeCallback(callback);holder=null
         texture?.let {if(it.surfaceTextureListener===textureCallback)it.surfaceTextureListener=previousTextureListener};texture=null;previousTextureListener=null
         native.detachSurface();ownedSurface?.release();ownedSurface=null;output=null
@@ -473,26 +498,49 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     fun hdrOutput(value:HdrOutput) {
         val normalized=value.normalized()
         if(normalized!=requestedHdr)hdrBypassed=false
-        requestedHdr=normalized;applyHdrOutput()
+        requestedHdr=normalized
+        val desired=RendererPolicy.initial(requestedRenderer,normalized.expand,displayInfo.pq)
+        if(desired=="gpu-next"&&desired!=renderer&&!rendererFallback)renderer(requestedRenderer) else applyHdrOutput()
     }
     private fun applyHdrOutput() {
         if(closed || currentVideoMime==null)return
-        val hdr=native.getPropertyString("video-params/gamma") in setOf("pq","hlg","st2084")
-        val options=requestedHdr.options(hdr,hdrBypassed)
+        displayInfo=HdrDisplayInfo.read(context)
+        val transfer=native.getPropertyString("video-params/gamma")
+        val hdr=transfer in setOf("pq","hlg","st2084")
+        val surface=holder?.surface ?: (output as? Surface)
+        val expand=requestedHdr.normalized().expand&&HdrDiagnostics.isSdrTransfer(transfer)&&renderer=="gpu-next"&&!rendererFallback&&displayInfo.pq&&!hdrBypassed
+        signaledHdr=if(expand)hdrSurface.signal(surface) else {hdrSurface.restore();false}
+        val options=requestedHdr.options(hdr,hdrBypassed,renderer=="gpu-next"&&!rendererFallback,signaledHdr)
         if(options==appliedHdr)return
         runCatching {
             options.forEach {(key,value)->native.setPropertyString(key,value)}
             if(options["target-trc"]=="bt.1886")check(native.getPropertyString("target-trc")=="bt.1886" && native.getPropertyString("target-prim")=="bt.709")
+            if(options["inverse-tone-mapping"]=="yes")check(native.getPropertyString("target-trc")=="pq" && native.getPropertyString("target-prim")=="bt.2020" && native.getPropertyString("inverse-tone-mapping")=="yes")
             appliedHdr=options
         }.onFailure {
             val retry=!hdrBypassed;hdrBypassed=true;appliedHdr=null
             if(retry)applyHdrOutput()
         }
     }
+    fun renderer(value:String) {
+        requestedRenderer=RendererPolicy.normalized(value)
+        hdrSurface.restore();signaledHdr=false
+        rendererSession.select(RendererPolicy.initial(value,requestedHdr.expand,displayInfo.pq))
+        native.setPropertyString("vo",renderer);appliedHdr=null;applyHdrOutput()
+    }
+    fun buffering(value:PlaybackConfig){requestedStream=value.stream;StreamConfig.plan(context,value).nativeOptions().filterKeys {it!="network-timeout"}.forEach {(key,option)->native.setPropertyString(key,option)}}
     fun diagnostics()=mapOf("Engine" to "Compatibility (libmpv)","Video decoder" to native.getPropertyString("hwdec-current").orEmpty(),
+        "Renderer" to (native.getPropertyString("current-vo") ?: renderer),
+        "Renderer recovery" to if(rendererFallback)"Stable fallback active" else "Not needed",
+        "Display HDR capabilities" to displayInfo.summary,
+        "Android HDR surface" to if(signaledHdr)"BT.2020 / PQ confirmed" else "Original data space / no forced HDR",
+        "Dolby Vision source profile" to "Not exposed by this native build",
+        "Dolby Vision RPU processing" to "Not independently verified",
+        "Dolby Vision FEL reconstruction" to "Not independently verified",
         "Decoder profile" to decoderProfileLabel,
         "Software deblocking" to native.getPropertyString("vd-lavc-skiploopfilter").orEmpty(),
-        "HDR output" to if(appliedHdr?.get("target-trc")=="bt.1886")"HDR to SDR · ${requestedHdr.tone}" else "Automatic",
+        "Expansion status" to when { !requestedHdr.expand->"Off";rendererFallback->"Bypassed after renderer recovery";!displayInfo.pq->"HDR10 display not reported";renderer!="gpu-next"->"Advanced renderer required";!signaledHdr->"HDR surface unavailable or input already HDR";else->"BT.2020 / PQ surface confirmed" },
+        "HDR output" to if(appliedHdr?.get("inverse-tone-mapping")=="yes")"SDR to HDR · experimental" else if(appliedHdr?.get("target-trc")=="bt.1886")"HDR to SDR · ${requestedHdr.tone}" else "Automatic",
         "Decoded video transfer" to native.getPropertyString("video-params/gamma").orEmpty(),
         "Deinterlacing mode" to deinterlacing,
         "Renderer input transfer" to native.getPropertyString("video-out-params/gamma").orEmpty(),

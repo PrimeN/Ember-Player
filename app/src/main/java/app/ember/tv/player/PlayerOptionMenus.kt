@@ -159,9 +159,10 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
                 val scales=listOf("bilinear","bicubic","lanczos")
                 if(!pictureConfig.picture.enabled || !pictureConfig.picture.upscaling)add(OptionRow("Upscaling",pictureConfig.scaler,scales,scales.indexOf(pictureConfig.scaler).coerceAtLeast(0),onPick={index->changePictureState {it.copy(scaler=scales[index])}}))
             }
-            val z = zooms.indexOfFirst { it.first == config.zoom }.coerceAtLeast(0)
-            add(OptionRow(getString(R.string.pl_zoom), zooms[z].second, zooms.map { it.second }, z, onPick = { i -> config = config.copy(zoom = zooms[i].first); prefs.playbackConfig = config; applyZoom() }))
-            add(OptionRow(getString(R.string.pl_aspect_ratio), aspects[aspect].first, aspects.map { it.first }, aspect, onPick = { i -> aspect = i; applyAspect() }))
+            val z = zooms.indexOfFirst { it.first == currentZoom() }.coerceAtLeast(0)
+            add(OptionRow(getString(R.string.pl_zoom), zooms[z].second, zooms.map { it.second }, z, onPick = { i -> changeZoom(zooms[i].first) }))
+            add(OptionRow(getString(R.string.pl_aspect_ratio), aspects[aspect].first, aspects.map { it.first }, aspect, onPick = { i -> aspect = i;persistGeometry();applyAspect() }))
+            if(!privatePlayback&&!live&&!trailer)add(OptionRow("Remember geometry for this media",toggle=GeometryMemory.selected(config,resumeKey)!=null,note="Save aspect ratio, picture fit and magnification for this item.",action={toggleGeometryMemory()}))
             val ff = playbackEngine?.compatibility?.softwareVideo ?: codecs.ffmpegVideo
             add(
                 OptionRow(
@@ -230,6 +231,7 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
             }
         }
         "audio" -> buildList {
+            add(OptionRow("Night listening",NightListening.choices.firstOrNull {it.first==config.audioEffects.compression}?.second ?: "Off",NightListening.choices.map {it.second},NightListening.choices.indexOfFirst {it.first==config.audioEffects.compression}.coerceAtLeast(0),note="Decoded audio only. Reduces loud effects relative to dialogue; passthrough stays untouched.",onPick={index->changeAudioEffects(config.audioEffects.copy(compression=NightListening.choices[index].first))}))
             add(audioRow)
             add(OptionRow("Load audio file", "Whole-title soundtrack · compatibility playback", action={pickFile("audio")}))
             add(boostRow)
@@ -257,6 +259,7 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
             if (ms != config.outputDelay(bluetoothOutput)) add(OptionRow(getString(R.string.pl_keep_delay), action = { keepSound(); changed() }))
         }
         "subtitles" -> buildList {
+            add(OptionRow("Subtitle style presets",action={closeMenu();manageSubtitlePresets()}))
             add(subRow)
             add(OptionRow("Load subtitle file", "SRT, VTT, ASS, TTML, SUP or IDX + SUB",action={pickFile("sub")}))
             add(OptionRow("Nearby subtitle files",action={findNearbySubtitles()}))
@@ -353,8 +356,8 @@ internal fun PlayerActivity.setBoost(i: Int) {
 
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.applyZoom() {
-    playbackEngine?.compatibility?.geometry(config.zoom,aspects[aspect].second)
-    view.resizeMode = when (config.zoom) {
+    playbackEngine?.compatibility?.geometry(currentZoom(),aspects[aspect].second)
+    view.resizeMode = when (currentZoom()) {
         "crop" -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
         "stretch" -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
         else -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
@@ -365,7 +368,7 @@ internal fun PlayerActivity.applyZoom() {
 /** Forces a picture shape; Auto goes back to the video's own. */
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.applyAspect() {
-    playbackEngine?.compatibility?.geometry(config.zoom,aspects[aspect].second)
+    playbackEngine?.compatibility?.geometry(currentZoom(),aspects[aspect].second)
     applyTouchMagnification()
     val frame = view.findViewById<androidx.media3.ui.AspectRatioFrameLayout>(androidx.media3.ui.R.id.exo_content_frame) ?: return
     val r = aspects[aspect].second

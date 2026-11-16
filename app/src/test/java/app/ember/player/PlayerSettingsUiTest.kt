@@ -50,4 +50,22 @@ class PlayerSettingsUiTest {
         compose.runOnIdle {assertEquals("Movie night",Prefs(RuntimeEnvironment.getApplication()).playbackConfig.pictureProfiles.single().name)}
     }
 
+    @Test fun customNetworkAndRendererChoicesPersistThroughSettings() {
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Custom buffering") and hasClickAction())
+        compose.onNode(hasText("Custom buffering") and hasClickAction()).performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.runOnIdle {assertEquals(true,Prefs(RuntimeEnvironment.getApplication()).playbackConfig.stream.custom)}
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Compatibility renderer · Automatic"))
+        compose.onNodeWithText("Compatibility renderer · Automatic").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithContentDescription("Advanced GPU").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.runOnIdle {assertEquals("gpu-next",Prefs(RuntimeEnvironment.getApplication()).playbackConfig.renderer)}
+    }
+    @Test fun experimentalExpansionIsOptionalAndDoesNotSelectANewEngineInSettings() {
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("SDR to HDR · experimental") and hasClickAction())
+        compose.onNode(hasText("SDR to HDR · experimental") and hasClickAction()).performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.runOnIdle {
+            val config=Prefs(RuntimeEnvironment.getApplication()).playbackConfig
+            assertEquals(true,config.hdrOutput.expand);assertEquals(false,config.hdrOutput.sdr);assertEquals("auto",config.engine)
+        }
+    }
+
 }

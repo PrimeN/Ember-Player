@@ -71,6 +71,10 @@ internal fun PlayerActivity.updateStats() {
     val full = config.hud == "full"
     out += "Engine" to if(playbackEngine?.compatibility!=null)"Compatibility" else "Standard"
     playbackEngine?.compatibility?.diagnostics()?.forEach {(k,v)->if(k!="Engine")out+=k to v}
+    out += "Source HDR" to HdrDiagnostics.source(p.videoFormat)
+    out += "Requested output" to HdrDiagnostics.requested(PictureProfiles.effective(config,resumeKey).hdrOutput)
+    out += "Picture comparison" to if(compareOriginal)"Original preview" else "Saved processing"
+    if(playbackEngine?.compatibility==null){out+="Dolby Vision RPU / FEL" to "Not independently verified";out+="Active output" to "Device renderer; active HDR signal not independently verified"}
     if (full) out += getString(R.string.pl_container) to containerName(p)
     out += getString(R.string.pl_video) to videoLine(p.videoFormat)
     out += getString(R.string.pl_audio) to audioLine(p.audioFormat)
@@ -78,8 +82,8 @@ internal fun PlayerActivity.updateStats() {
     if (full) {
         @Suppress("DEPRECATION") val types = runCatching { windowManager.defaultDisplay.hdrCapabilities?.supportedHdrTypes }.getOrNull() ?: intArrayOf()
         val supported = types.toList().mapNotNull { when(it) {1->"Dolby Vision";2->"HDR10";3->"HLG";4->"HDR10+";else->null} }
-        out += "Display HDR capabilities" to supported.joinToString(", ").ifEmpty { "Not reported" }
-        out += "HDR output" to "Display capability does not confirm the active output signal"
+        if(out.none {it.first=="Display HDR capabilities"})out += "Display HDR capabilities" to supported.joinToString(", ").ifEmpty { "Not reported" }
+        if(playbackEngine?.compatibility==null)out += "HDR output" to "Display capability does not confirm the active output signal"
     }
     val ahead = ((p.bufferedPosition - p.currentPosition) / 1000).coerceAtLeast(0)
     val health = when {

@@ -37,7 +37,7 @@ for abi in ${NATIVE_FILTER_ABIS:-arm64-v8a armeabi-v7a}; do
             --ar=llvm-ar --nm=llvm-nm --ranlib=llvm-ranlib --strip=llvm-strip --pkg-config=false \
             --disable-autodetect --disable-everything --disable-programs --disable-doc --disable-network \
             --disable-avcodec --disable-avformat --disable-avdevice --enable-swresample \
-            --enable-avfilter --enable-swscale --enable-filter=bwdif,yadif,scale,format,equalizer,pan,aformat,aresample,volume \
+            --enable-avfilter --enable-swscale --enable-filter=bwdif,yadif,scale,format,equalizer,pan,aformat,aresample,volume,acompressor \
             --enable-gpl --enable-version3 --disable-static --enable-shared --disable-debug \
             --extra-ldflags=-Wl,-z,max-page-size=16384
         make -j"${NATIVE_FILTER_JOBS:-4}" libavfilter/libavfilter.so
@@ -52,7 +52,7 @@ import hashlib,pathlib,sys
 root=pathlib.Path(sys.argv[1])
 lines=['# FFmpeg n8.1; libavfilter only; GPL v3; source/build steps in scripts/build-native-filters.sh',
        'source.commit='+sys.argv[2], 'ndk.version='+sys.argv[3], 'ffmpeg.version=8.1']
-for abi in ['arm64-v8a','armeabi-v7a','x86','x86_64']:
+for abi in ['arm64-v8a','armeabi-v7a']:
     lines.append(abi+'.sha256='+hashlib.sha256((root/abi/'libavfilter.so').read_bytes()).hexdigest())
 (root/'checksums.properties').write_text('\n'.join(lines)+'\n')
 PY
@@ -60,9 +60,9 @@ if [[ "${NATIVE_FILTER_HOST_CHECK:-0}" == 1 ]]; then
     mkdir -p "$build_path/host-check"
     (
         cd "$build_path/host-check"
-        "$build_path/source/configure" --cc=gcc --disable-autodetect --disable-everything --disable-doc --disable-network \
+        "$build_path/source/configure" --cc=gcc --disable-x86asm --disable-autodetect --disable-everything --disable-doc --disable-network \
             --disable-avdevice --enable-swresample --enable-avcodec --enable-avformat --enable-avfilter --enable-swscale \
-            --enable-filter=bwdif,yadif,scale,format,setfield,equalizer,pan,aformat,aresample,volume --enable-decoder=rawvideo,pcm_s16le --enable-encoder=rawvideo,pcm_s16le \
+            --enable-filter=bwdif,yadif,scale,format,setfield,equalizer,pan,aformat,aresample,volume,acompressor --enable-decoder=rawvideo,pcm_s16le --enable-encoder=rawvideo,pcm_s16le \
             --enable-demuxer=rawvideo,pcm_s16le --enable-muxer=rawvideo,pcm_s16le --enable-protocol=file --enable-ffmpeg --disable-ffprobe \
             --enable-gpl --enable-version3 --disable-shared --enable-static --disable-debug
         make -j"${NATIVE_FILTER_JOBS:-4}" ffmpeg

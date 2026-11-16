@@ -179,6 +179,10 @@ internal fun PlayerActivity.infoText(): String {
     return listOfNotNull(
         Playback.describeVideo(p.videoFormat, videoDecoder, hdr10PlusMetadata && playbackEngine?.compatibility == null, playbackEngine?.compatibility != null),
         Playback.describeAudio(p.audioFormat, audioDecoder),
+        "Source HDR: ${HdrDiagnostics.source(p.videoFormat)}",
+        "Requested output: ${HdrDiagnostics.requested(PictureProfiles.effective(config,resumeKey).hdrOutput)}",
+        playbackEngine?.compatibility?.diagnostics()?.filterKeys {it in setOf("Renderer","HDR output","Android HDR surface","Expansion status") }?.entries?.joinToString("\n"){"${it.key}: ${it.value}"},
+        "Dolby Vision RPU/FEL reconstruction: not independently verified",
         mode,
         buffer,
         getString(R.string.pl_info_hide),

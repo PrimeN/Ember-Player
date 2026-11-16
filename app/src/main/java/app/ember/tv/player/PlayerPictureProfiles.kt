@@ -2,7 +2,7 @@ package app.ember.tv.player
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal fun PlayerActivity.applyEffectivePicture() {
-    val effective=PictureProfiles.effective(config,resumeKey)
+    val effective=renderConfig()
     pictureBypassed=false
     playbackEngine?.compatibility?.picture(effective.deband,effective.interpolation,effective.scaler,effective.deinterlacing)
     applyPictureEnhancement();changed()
