@@ -70,8 +70,13 @@ class PlayerSettingsActivity:ComponentActivity() {
                         }
                         Chip("Reset picture adjustments"){update {it.copy(picture=it.picture.copy(brightness=0,contrast=0,saturation=0,gamma=0,hue=0,sharpness=0))}}
                     }}
+                    item {Section("Saved picture / shader profiles") {PictureProfileSettings(config){value->update {value}}}}
+                    item {Section("HDR output") {HdrOutputSettings(config.hdrOutput){value->update {it.copy(hdrOutput=value)}}}}
                     item {Section("Picture") {
                         PlayerChoice("Software video",listOf("fallback" to "When needed","off" to "Device decoders only","always" to "Always software"),config.ffmpegVideo){v->update {it.copy(ffmpegVideo=v)}}
+                        PlayerChoice("Compatibility decoder profile",NativeDecoderProfile.choices,NativeDecoderProfile.normalized(config.compatibilityDecoder)){v->update {it.copy(compatibilityDecoder=v)}}
+                        SwitchChip("Automatic Hi10P fallback",config.hi10pFallback){update {it.copy(hi10pFallback=!it.hi10pFallback)}}
+                        Text("Compatibility only. Automatic detects NVIDIA Shield 10-bit H.264 and uses full-quality software decoding. Lighter software skips some deblocking for lower CPU load; explicit track rules and manual choices take priority.",color=Mute,fontSize=12.sp)
                         PlayerChoice("Frame rate matching",listOf("off" to "Off","seamless" to "Seamless only","always" to "Match video"),config.frameRate){v->update {it.copy(frameRate=v)}}
                         SwitchChip("Match video resolution",config.matchResolution){update {it.copy(matchResolution=!it.matchResolution)}}
                         PlayerChoice("Dolby Vision",listOf("auto" to "Automatic","always" to "Use Dolby Vision","hdr10" to "HDR10 base layer when available"),config.dolbyVision){v->update {it.copy(dolbyVision=v)}}

@@ -23,7 +23,6 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     private val initialPosition: Long, initialParameters: TrackSelectionParameters) : SimpleBasePlayer(Looper.getMainLooper()), MPVLib.EventObserver {
     private val handler=Handler(Looper.getMainLooper())
     private var closed=false
-    private var requestedSoftwareVideo=config.ffmpegVideo=="always"
     private var manualSoftwareVideo: Boolean? = null
     private var navigationSeek = false
     private var approximateSeek = false
@@ -31,6 +30,13 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     private var appliedEffects: String? = null
     private var currentVideoMime: String? = null
     private var requestedPicture=config.picture
+    private var requestedHdr=config.hdrOutput
+    private var hdrBypassed=false
+    private var appliedHdr:Map<String,String>?=null
+    val toneMappingBypassed get()=hdrBypassed
+    private var requestedDecoderProfile=config.compatibilityDecoder
+    private var allowHi10p=config.hi10pFallback
+    private var appliedDecoder:NativeDecoderChoice?=null
     private var appliedPicture:String?=null
     private var pictureBypassed=false
     val enhancementBypassed get()=pictureBypassed
@@ -111,7 +117,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
             option("msg-level","all=no");option("terminal","no");option("osd-level","0");option("input-default-bindings","no")
             if(C.TRACK_TYPE_VIDEO in parameters.disabledTrackTypes) {option("vo","null");option("vid","no")}
             else {option("vo","gpu");option("gpu-context","android");option("opengl-es","yes")}
-            option("hwdec",NativeDeinterlacing.decoder(requestedSoftwareVideo,deinterlacing))
+            option("hwdec",NativeDecoderProfile.choose(requestedDecoderProfile,null,"inherit",config.ffmpegVideo=="always",deinterlacing,false,false,allowHi10p).hardware)
             option("ao","audiotrack,opensles")
             option("load-unsafe-playlists","no");option("access-references","no")
             option("tls-verify","yes");option("tls-ca-file",caFile().absolutePath)
@@ -181,7 +187,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         }
         tracks=Tracks(groups)
         currentVideoMime=groups.firstOrNull {it.type==C.TRACK_TYPE_VIDEO}?.getTrackFormat(0)?.sampleMimeType
-        applyEnhancement()
+        applyEnhancement();applyHdrOutput()
         applyVideoDecoder(); applyAudioEffects()
         size=VideoSize(native.getPropertyInt("video-params/w")?:0,native.getPropertyInt("video-params/h")?:0)
     }
@@ -226,6 +232,11 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     }
     private fun onMain(action:()->Unit){handler.post {if(!closed)try {action()}catch(_:Exception){fail()}}}
     private fun failedFile() {
+        if(!hdrBypassed && appliedHdr?.get("target-trc")=="bt.1886" && transport?.failureCode==null) {
+            hdrBypassed=true;applyHdrOutput()
+            android.widget.Toast.makeText(context,"Retrying with automatic HDR output",android.widget.Toast.LENGTH_SHORT).show()
+            load(partIndex,position);return
+        }
         if(!pictureBypassed && requestedPicture.enabled && currentVideoMime!=null && transport?.failureCode==null &&
             native.getPropertyString("video-params/gamma") !in setOf("pq","hlg","st2084")) {
             pictureBypassed=true;appliedPicture=null;applyEnhancement()
@@ -438,15 +449,50 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         return runCatching { native.setPropertyString("af",value); appliedEffects=value;true }.getOrDefault(false)
     }
     fun isPassthrough()=native.getPropertyString("audio-out-params/format")?.startsWith("spdif")==true
-    private fun applyVideoDecoder() {
+    private fun decoderChoice():NativeDecoderChoice {
         val preference=config.decoderRules.preference(source.urls[partIndex],currentVideoMime,source.filename)
-        requestedSoftwareVideo=manualSoftwareVideo ?: when(preference) {"software"->true;"auto","hardware"->false;else->config.ffmpegVideo=="always"}
-        val decoder=NativeDeinterlacing.decoder(requestedSoftwareVideo,deinterlacing)
-        if(native.getPropertyString("hwdec")!=decoder)native.setPropertyString("hwdec",decoder)
+        val count=(native.getPropertyInt("track-list/count")?:0).coerceIn(0,2000)
+        val selected=(0 until count).firstOrNull {native.getPropertyString("track-list/$it/type")=="video" && native.getPropertyBoolean("track-list/$it/selected")==true}
+        val profile=selected?.let {native.getPropertyString("track-list/$it/codec-profile")}
+        return NativeDecoderProfile.choose(requestedDecoderProfile,manualSoftwareVideo,preference,config.ffmpegVideo=="always",deinterlacing,
+            NativeDecoderProfile.shield(Build.MANUFACTURER,Build.MODEL),NativeDecoderProfile.hi10p(currentVideoMime,profile,native.getPropertyString("video-params/pixelformat")),allowHi10p)
     }
+    private fun applyVideoDecoder() {
+        val choice=decoderChoice()
+        if(choice==appliedDecoder)return
+        choice.options.forEach {(key,value)->native.setPropertyString(key,value)}
+        appliedDecoder=choice
+    }
+    fun decoderProfile(value:String,hi10p:Boolean=allowHi10p) {
+        requestedDecoderProfile=NativeDecoderProfile.normalized(value);allowHi10p=hi10p
+        manualSoftwareVideo=null;appliedDecoder=null;applyVideoDecoder()
+    }
+    val decoderProfileLabel get()=if(appliedDecoder?.hi10p==true)"Automatic · Hi10P software fallback" else NativeDecoderProfile.choices.first {it.first==NativeDecoderProfile.normalized(requestedDecoderProfile)}.second
     fun softwareVideo(enabled:Boolean){manualSoftwareVideo=enabled;applyVideoDecoder()}
-    val softwareVideo get()=native.getPropertyString("hwdec")=="no"
+    val softwareVideo get()=native.getPropertyString("hwdec-current")=="no" || native.getPropertyString("hwdec")=="no"
+    fun hdrOutput(value:HdrOutput) {
+        val normalized=value.normalized()
+        if(normalized!=requestedHdr)hdrBypassed=false
+        requestedHdr=normalized;applyHdrOutput()
+    }
+    private fun applyHdrOutput() {
+        if(closed || currentVideoMime==null)return
+        val hdr=native.getPropertyString("video-params/gamma") in setOf("pq","hlg","st2084")
+        val options=requestedHdr.options(hdr,hdrBypassed)
+        if(options==appliedHdr)return
+        runCatching {
+            options.forEach {(key,value)->native.setPropertyString(key,value)}
+            if(options["target-trc"]=="bt.1886")check(native.getPropertyString("target-trc")=="bt.1886" && native.getPropertyString("target-prim")=="bt.709")
+            appliedHdr=options
+        }.onFailure {
+            val retry=!hdrBypassed;hdrBypassed=true;appliedHdr=null
+            if(retry)applyHdrOutput()
+        }
+    }
     fun diagnostics()=mapOf("Engine" to "Compatibility (libmpv)","Video decoder" to native.getPropertyString("hwdec-current").orEmpty(),
+        "Decoder profile" to decoderProfileLabel,
+        "Software deblocking" to native.getPropertyString("vd-lavc-skiploopfilter").orEmpty(),
+        "HDR output" to if(appliedHdr?.get("target-trc")=="bt.1886")"HDR to SDR · ${requestedHdr.tone}" else "Automatic",
         "Decoded video transfer" to native.getPropertyString("video-params/gamma").orEmpty(),
         "Deinterlacing mode" to deinterlacing,
         "Renderer input transfer" to native.getPropertyString("video-out-params/gamma").orEmpty(),

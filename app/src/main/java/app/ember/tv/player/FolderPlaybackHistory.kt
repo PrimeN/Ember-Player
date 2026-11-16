@@ -42,6 +42,10 @@ internal class FolderPlaybackHistory(private val readValue:()->String?,private v
 internal fun transferFilePlaybackState(context:Context,file:DeviceFile,to:Uri,parent:Uri,name:String) {
     val fromKey=QueueMedia(file.uri.toString(),file.name).key
     val toKey=QueueMedia(to.toString(),name).key
+    val prefs=app.ember.tv.data.Prefs(context)
+    val config=prefs.playbackConfig
+    val migrated=PictureProfiles.moved(config,fromKey,toKey)
+    if(migrated!=config)prefs.playbackConfig=migrated
     val scope=LocalActivity.scope(context)
     PositionStore(context,scope).moveKey(fromKey,toKey)
     TrackMemory(context,scope).moveKey(fromKey,toKey)

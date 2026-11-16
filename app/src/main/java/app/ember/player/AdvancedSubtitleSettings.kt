@@ -2,11 +2,9 @@ package app.ember.player
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,8 +59,8 @@ internal fun AdvancedSubtitleSettings(config:SubtitleConfig,save:(SubtitleConfig
             save(config.copy(layout=config.layout.copy(foreground=foreground,background=background,edgeColor=edge)))
         else notice="Use #RRGGBB or #AARRGGBB colours."
     }
-    Text("Subtitle preview",fontSize=(18*config.layout.scale).sp,color=Color(config.layout.textColor(config.color)),
-        modifier=Modifier.fillMaxWidth().background(if(config.background=="box")Color(config.layout.boxColor()) else Color.Black).padding(12.dp))
+    SubtitleStylePreview(config)
+    Text(if(config.systemStyle)"System caption colours, font and edge style take priority." else if(config.authoredStyles)"Preview of your defaults. A subtitle file’s authored styling takes priority during playback." else "Preview of your selected subtitle style.",fontSize=12.sp,color=Mute)
     Text("Alignment, spacing and custom outline width use Compatibility playback. System caption settings take priority. Turn off authored styling to override a subtitle file’s fonts and colours.",fontSize=12.sp,color=Mute)
     notice?.let {Text(it,fontSize=12.sp,color=Mute)}
 }

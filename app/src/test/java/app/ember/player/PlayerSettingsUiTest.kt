@@ -30,4 +30,24 @@ class PlayerSettingsUiTest {
         compose.onNode(hasText("Picture enhancement") and hasClickAction()).assertExists()
     }
 
+    @Test fun hdrOutputChoicesPersistWithoutChangingTheDefaultEngine() {
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("HDR to SDR output") and hasClickAction())
+        compose.onNode(hasText("HDR to SDR output") and hasClickAction()).performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Tone mapping · BT.2390"))
+        compose.onNodeWithText("Tone mapping · BT.2390").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithContentDescription("Reinhard").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.runOnIdle {
+            val p=Prefs(RuntimeEnvironment.getApplication()).playbackConfig
+            assertEquals(true,p.hdrOutput.sdr);assertEquals("reinhard",p.hdrOutput.tone);assertEquals("auto",p.engine)
+        }
+    }
+    @Test fun usersCanNameAndSaveAPictureProfileFromSettings() {
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Profile name",substring=true))
+        compose.onNodeWithText("Profile name",substring=true).performTouchInput {click()}
+        compose.onNode(hasSetTextAction()).performTextInput("Movie night")
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Save current picture settings") and hasClickAction())
+        compose.onNodeWithText("Save current picture settings").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.runOnIdle {assertEquals("Movie night",Prefs(RuntimeEnvironment.getApplication()).playbackConfig.pictureProfiles.single().name)}
+    }
+
 }

@@ -203,7 +203,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         )
         .build()
 
-    playbackEngine=PlaybackEngine(this,standard,{config.copy(passthrough=config.passthrough&&!codecs.pcm)}) { compatible ->
+    playbackEngine=PlaybackEngine(this,standard,{PictureProfiles.effective(config,resumeKey).copy(passthrough=config.passthrough&&!codecs.pcm)}) { compatible ->
         pictureBypassed=false;pictureSignature=null;pictureEffectsActive=false
         videoDecoder=if(compatible)"Compatibility engine" else null
         loudness?.release();loudness=null
@@ -277,6 +277,8 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         override fun onAudioInputFormatChanged(eventTime: AnalyticsListener.EventTime, format: Format, decoderReuseEvaluation: DecoderReuseEvaluation?) {
             // A new audio format may go straight to the receiver; the decoder callback says otherwise.
             audioDecoder = null
+            val visit=playbackVisit
+            handler.post {if(player===p && playbackVisit==visit)applyPictureEnhancement()}
         }
     })
 
@@ -312,6 +314,8 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
                 }
             }
             matchDisplayMode(p)
+            val visit=playbackVisit
+            handler.post {if(player===p && playbackVisit==visit)applyPictureEnhancement()}
         }
 
         override fun onPlaybackStateChanged(state: Int) {

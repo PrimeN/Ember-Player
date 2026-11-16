@@ -145,16 +145,19 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
             add(OptionRow("Playback engine",if(playbackEngine?.compatibility!=null)"Compatibility" else "Standard",listOf("Automatic","Standard","Compatibility"),engines.indexOf(config.engine),onPick={i -> config=config.copy(engine=engines[i]);prefs.playbackConfig=config;playbackEngine?.mode(engines[i])}))
             addAll(pictureOptionRows())
             playbackEngine?.compatibility?.let { native ->
-                fun picture(){native.picture(config.deband,config.interpolation,config.scaler,config.deinterlacing)}
+                val pictureConfig=PictureProfiles.effective(config,resumeKey)
+                add(OptionRow("Compatibility decoder profile",native.decoderProfileLabel,NativeDecoderProfile.choices.map {it.second},NativeDecoderProfile.choices.indexOfFirst {it.first==NativeDecoderProfile.normalized(config.compatibilityDecoder)},
+                    note="Lighter software decoding skips some deblocking to reduce CPU work. Explicit track rules and manual decoder choices take priority.",onPick={index->config=config.copy(compatibilityDecoder=NativeDecoderProfile.choices[index].first);prefs.playbackConfig=config;native.decoderProfile(config.compatibilityDecoder,config.hi10pFallback);changed()}))
+                add(OptionRow("Automatic Hi10P fallback",toggle=config.hi10pFallback,note="Uses full-quality software decoding for detected 10-bit H.264 on NVIDIA Shield in Automatic mode.",action={config=config.copy(hi10pFallback=!config.hi10pFallback);prefs.playbackConfig=config;native.decoderProfile(config.compatibilityDecoder,config.hi10pFallback);changed()}))
                 val deinterlaceModes=listOf("off","auto","always")
                 add(OptionRow("Deinterlacing",listOf("Off","Automatic","Always")[deinterlaceModes.indexOf(config.deinterlacing).coerceAtLeast(0)],listOf("Off","Automatic","Always"),deinterlaceModes.indexOf(config.deinterlacing).coerceAtLeast(0),
                     note="Automatic handles interlaced video. Always is for streams detected incorrectly. Uses more processing; leave Off for progressive video.",
-                    onPick={config=config.copy(deinterlacing=deinterlaceModes[it]);prefs.playbackConfig=config;picture()}))
+                    onPick={config=config.copy(deinterlacing=deinterlaceModes[it]);prefs.playbackConfig=config;applyEffectivePicture()}))
                 // On/off settings are switches that flip on OK (#105).
-                add(OptionRow("Debanding",toggle=config.deband,action={config=config.copy(deband=!config.deband);prefs.playbackConfig=config;picture()}))
-                add(OptionRow("Frame smoothing",toggle=config.interpolation,note="Uses more graphics processing. Turn off if playback slows.",action={config=config.copy(interpolation=!config.interpolation);prefs.playbackConfig=config;picture()}))
+                add(OptionRow("Debanding",toggle=pictureConfig.deband,action={changePictureState {it.copy(deband=!it.deband)}}))
+                add(OptionRow("Frame smoothing",toggle=pictureConfig.interpolation,note="Uses more graphics processing. Turn off if playback slows.",action={changePictureState {it.copy(interpolation=!it.interpolation)}}))
                 val scales=listOf("bilinear","bicubic","lanczos")
-                if(!config.picture.enabled || !config.picture.upscaling)add(OptionRow("Upscaling",config.scaler,scales,scales.indexOf(config.scaler).coerceAtLeast(0),onPick={config=config.copy(scaler=scales[it]);prefs.playbackConfig=config;picture()}))
+                if(!pictureConfig.picture.enabled || !pictureConfig.picture.upscaling)add(OptionRow("Upscaling",pictureConfig.scaler,scales,scales.indexOf(pictureConfig.scaler).coerceAtLeast(0),onPick={index->changePictureState {it.copy(scaler=scales[index])}}))
             }
             val z = zooms.indexOfFirst { it.first == config.zoom }.coerceAtLeast(0)
             add(OptionRow(getString(R.string.pl_zoom), zooms[z].second, zooms.map { it.second }, z, onPick = { i -> config = config.copy(zoom = zooms[i].first); prefs.playbackConfig = config; applyZoom() }))

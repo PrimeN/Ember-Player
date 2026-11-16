@@ -135,11 +135,11 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
     fun switch():Boolean {
         if(attempted||active!==standard)return false
         val current=source?:return false
-        attempted=true
         val audio=standard.audioFormat ?: standard.currentTracks.groups.firstOrNull {it.type==androidx.media3.common.C.TRACK_TYPE_AUDIO && it.isSelected}?.let {group->
             (0 until group.length).firstOrNull(group::isTrackSelected)?.let(group::getTrackFormat)
         }
         if(!PlaybackEnginePolicy.preservesAudio(audio?.sampleMimeType,audio?.drmInitData!=null || standard.videoFormat?.drmInitData!=null))return false
+        attempted=true
         val position=(navigation.target?:standard.currentPosition).coerceAtLeast(0)
         navigation.cancel()
         val desired=standard.playWhenReady

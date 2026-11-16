@@ -56,7 +56,7 @@ internal fun PlayerActivity.playbackValueDialog(title:String,initial:String,hint
         var error by remember {mutableStateOf<String?>(null)}
         fun apply() {error=submit(text);if(error==null)dialog.dismiss()}
         Text(hint,color=Soft,fontSize=13.sp)
-        TvTextField(text,{text=it.take(32);error=null},Modifier.fillMaxWidth(),onSubmit={apply()})
+        TvTextField(text,{text=it.take(32);error=null},Modifier.fillMaxWidth(),onSubmit={apply()},startEditing=!PlayerTouchControls.isTelevision(this@playbackValueDialog))
         error?.let {Text(it,fontSize=13.sp)}
         ButtonRow {Chip(button){apply()};Chip("Cancel"){dialog.dismiss()}}
     }

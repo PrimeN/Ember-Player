@@ -100,4 +100,19 @@ class PlaybackEngineTransitionTest {
         }finally{activity.player=null;activity.playbackEngine=null;engine.player.release()}
     }
 
+    @Test fun unsupportedAudioDoesNotBlockALaterSupportedTrackSwitch() {
+        val context=RuntimeEnvironment.getApplication()
+        val original=ExoPlayer.Builder(context).build();val candidate=ExoPlayer.Builder(context).build()
+        var mime="audio/mhm1";var constructed=false
+        val standard=intercept(original){name->if(name=="getAudioFormat")Format.Builder().setSampleMimeType(mime).build() else Unit}
+        val engine=PlaybackEngine(context,standard,{PlaybackConfig(rememberDecoderChoices=false)},compatibilityFactory={_,_,_->constructed=true;candidate}) {}
+        try {
+            engine.configure(EngineSource(listOf("content://media/123"),"Film","key"))
+            original.setMediaItem(MediaItem.fromUri("content://media/123"));original.seekTo(42000);original.playWhenReady=false
+            assertFalse(engine.switch());assertFalse(constructed)
+            mime="audio/ac3"
+            assertTrue(engine.switch());assertTrue(constructed);assertFalse(engine.player.playWhenReady)
+        }finally{engine.player.release();if(!constructed)candidate.release()}
+    }
+
 }

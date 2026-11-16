@@ -182,3 +182,12 @@ extra processing; colour controls start neutral. HDR/Dolby Vision, protected and
 tunneled Standard playback retain their supported renderer path. A Standard GPU
 processing failure retries the current video without effects, keeping the saved
 preference and playback position.
+
+
+Advanced decoder profiles and HDR-to-SDR output use the existing mpv 0.41.0
+`gpu` renderer and decoder options. No additional native library, external shader
+pack, model download or service is required. Tone curves and gamut choices are
+limited to those implemented by that renderer; modes exclusive to `gpu-next` are
+not exposed. HDR conversion uses the renderer's colour pipeline, with automatic
+output settings restored when conversion is disabled, bypassed or not applicable.
+SDR colour/detail effects remain separate from HDR output conversion.

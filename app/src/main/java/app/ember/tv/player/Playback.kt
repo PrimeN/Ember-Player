@@ -108,6 +108,11 @@ data class PlaybackConfig(
     val touch: TouchControlsConfig = TouchControlsConfig(),
     val backgroundAudio:Boolean=false,
     val picture:PictureEnhancement=PictureEnhancement(),
+    val hdrOutput:HdrOutput=HdrOutput(),
+    val compatibilityDecoder:String="auto",
+    val hi10pFallback:Boolean=true,
+    val pictureProfiles:List<PictureProfile> = emptyList(),
+    val mediaPictureProfiles:Map<String,String> = emptyMap(),
 )
 
 @OptIn(UnstableApi::class)

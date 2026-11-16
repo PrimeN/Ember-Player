@@ -43,4 +43,19 @@ class PlayerBackupTest {
         val unsafe=sample().copy(preferences=sample().preferences+("unexpected" to emptyMap()))
         try {PlayerBackups.validate(unsafe);fail("Expected unknown section failure")} catch(_:IllegalArgumentException) {}
     }
+    @Test fun encryptedBackupRestoresProfilesHdrAndDecoderChoices() {
+        val config=app.ember.tv.player.PictureProfiles.bind(
+            app.ember.tv.player.PictureProfiles.save(app.ember.tv.player.PlaybackConfig(compatibilityDecoder="copy",hdrOutput=app.ember.tv.player.HdrOutput(sdr=true)),"Evening",
+                app.ember.tv.player.PictureState(picture=app.ember.tv.player.PictureEnhancement(contrast=15),hdr=app.ember.tv.player.HdrOutput(sdr=true,tone="hable")),id={"evening"}),"media","evening")
+        val encoded=kotlinx.serialization.json.Json.encodeToString(app.ember.tv.player.PlaybackConfig.serializer(),config)
+        val data=sample().copy(preferences=sample().preferences+("ember" to mapOf("playbackConfig" to BackupValue("string",encoded))))
+        val password="a sufficiently long password".toCharArray()
+        val bytes=PlayerBackupCipher.encrypt(kotlinx.serialization.json.Json.encodeToString(PlayerBackupData.serializer(),data).toByteArray(),password)
+        val restored=PlayerBackups.decode(bytes,password)
+        val result=kotlinx.serialization.json.Json.decodeFromString(app.ember.tv.player.PlaybackConfig.serializer(),restored.preferences.getValue("ember").getValue("playbackConfig").text)
+        assertEquals(config,result)
+        assertEquals(15,app.ember.tv.player.PictureProfiles.effective(result,"media").picture.contrast)
+        assertEquals("hable",app.ember.tv.player.PictureProfiles.effective(result,"media").hdrOutput.tone)
+    }
+
 }
