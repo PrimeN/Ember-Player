@@ -120,7 +120,8 @@ class MediaDownloadServiceTest {
                 startAndWait(service,first,1,origin)
                 start(service,second.id,2);assertTrue("Second download should wait",waitFor {store.read().any {it.state=="queued"}})
                 service.onStartCommand(Intent(context,MediaDownloadService::class.java).setAction("pause"),0,3)
-                assertTrue("Pause should clear the queue",waitFor {store.read().all {it.state=="paused"}})
+                val paused=waitFor {store.read().all {it.state=="paused"}}
+                assertTrue("Pause should clear the queue; states=${store.read().map {it.state}}",paused)
                 assertEquals(listOf("/first.mp4"),origin.requests.toList())
                 assertFalse(DownloadStore.file(context,first).exists())
             }finally {origin.release.countDown();destroy(controller)}
@@ -177,7 +178,7 @@ class MediaDownloadServiceTest {
             requests+=start[1]
             val output=it.getOutputStream()
             output.write("HTTP/1.1 200 OK\r\nContent-Type: video/mp4\r\nContent-Length: 10\r\nETag: fixture\r\nConnection: close\r\n\r\n01".toByteArray());output.flush()
-            if(start[1]=="/first.mp4")release.await(10,TimeUnit.SECONDS)
+            if(start[1]=="/first.mp4")release.await()
             output.write("23456789".toByteArray());output.flush()
         }
         override fun close(){closed=true;release.countDown();socket.close();workers.shutdownNow()}
