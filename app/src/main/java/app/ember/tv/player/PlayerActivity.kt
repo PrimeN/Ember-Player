@@ -138,11 +138,7 @@ class PlayerActivity : ComponentActivity() {
     internal val handler = Handler(Looper.getMainLooper())
     internal var subtitleUpdatesStarted=false
     internal val subtitleTicker = SubtitleTicker(handler,{subtitleUpdatesStarted&&player!=null&&!isFinishing},{
-        val assistance=if(::prefs.isInitialized)(captionConfig ?: prefs.subtitleConfig).assistance else null
-        val nativeCaptions=playbackEngine?.compatibility!=null && (assistance?.translate==true||assistance?.readAloud==true) &&
-            (player?.currentTracks?.groups?.any {it.type==C.TRACK_TYPE_TEXT&&it.isSelected}==true ||
-                ::subs.isInitialized&&(subs.selection is SubtitleController.Selection.Manual||subs.selection is SubtitleController.Selection.External))
-        player?.isPlaying==true&&(::subs.isInitialized&&subs.engine.active||repeatRange.end!=null||nativeCaptions)
+        player?.isPlaying==true&&(::subs.isInitialized&&subs.engine.active||repeatRange.end!=null)
     }) {
             val p = player
             if(p!=null && p.isPlaying)repeatRange.destination(p.currentPosition)?.let(p::seekTo)

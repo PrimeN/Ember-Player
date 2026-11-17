@@ -141,6 +141,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         loudness?.release();loudness=null
         if(boostLevel>0)setBoost(boostLevel)
         if(compatible) {
+            playbackEngine?.compatibility?.onCaptionTextChanged={subtitleTicker.refresh()}
             audioDecoder=null
             applyZoom();applyAspect();applyTouchMagnification()
             playbackEngine?.compatibility?.captionStyle(prefs.subtitleConfig)
