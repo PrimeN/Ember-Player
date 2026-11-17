@@ -10,11 +10,18 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-internal class BackgroundLibrary(private val items:()->List<MediaItem>):MediaLibrarySession.Callback {
+internal class BackgroundLibrary(context:android.content.Context,private val items:()->List<MediaItem>):MediaLibrarySession.Callback {
+    private val packages=context.applicationContext.packageManager
     override fun onConnectAsync(session:MediaSession,controller:MediaSession.ControllerInfo):ListenableFuture<MediaSession.ConnectionResult> {
-        val allowed=controller.isTrusted||controller.uid==android.os.Process.myUid()
-        return Futures.immediateFuture(if(allowed)MediaSession.ConnectionResult.AcceptedResultBuilder(session,controller).build()
-            else MediaSession.ConnectionResult.reject())
+        val automotive=(session.isAutoCompanionController(controller)||session.isAutomotiveController(controller))&&
+            (controller.isPackageNameVerified||packages.getPackagesForUid(controller.uid)?.contains(controller.packageName)==true)
+        val ownApp=controller.uid==android.os.Process.myUid()
+        if(!controller.isTrusted&&!ownApp&&!automotive)return Futures.immediateFuture(MediaSession.ConnectionResult.reject())
+        val result=MediaSession.ConnectionResult.AcceptedResultBuilder(session,controller)
+        // Untrusted defaults are read-only, even after an explicit connection is accepted.
+        if(automotive||ownApp)result.setAvailablePlayerCommands(MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS)
+            .setAvailableSessionCommands(MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS)
+        return Futures.immediateFuture(result.build())
     }
     private val root=MediaItem.Builder().setMediaId(ROOT).setMediaMetadata(MediaMetadata.Builder()
         .setTitle("Current playback").setIsBrowsable(true).setIsPlayable(false).setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED).build()).build()

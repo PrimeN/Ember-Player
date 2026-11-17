@@ -115,7 +115,7 @@ class BackgroundAudioServiceTest {
         try {
             BackgroundAudioService.commit(id,request)
             val session=controller.get().sessions.single()
-            val library=BackgroundLibrary {emptyList()}
+            val library=BackgroundLibrary(context) {emptyList()}
             fun info(uid:Int,trusted:Boolean)=androidx.media3.session.MediaSession.ControllerInfo.createTestOnlyControllerInfo(
                 "controller.example",123,uid,1,1,trusted,android.os.Bundle.EMPTY,true)
             assertFalse(library.onConnectAsync(session,info(android.os.Process.myUid()+100,false)).get().isAccepted)
@@ -123,6 +123,66 @@ class BackgroundAudioServiceTest {
             assertTrue(library.onConnectAsync(session,info(android.os.Process.myUid(),false)).get().isAccepted)
         }finally {controller.destroy()}
     }
+    @Test fun verifiedCarControllersGetPlaybackAndLibraryCommandsWithoutNotificationAccess() {
+        val request=request();val id=BackgroundAudioService.stage(context,request);val controller=service(id)
+        try {
+            BackgroundAudioService.commit(id,request)
+            val session=controller.get().sessions.single();val library=BackgroundLibrary(context) {emptyList()}
+            val packages=listOf("com.google.android.projection.gearhead","com.android.car.media","com.android.car.carlauncher")
+            for(name in packages) {
+                val info=carController(name)
+                val result=library.onConnectAsync(session,info).get()
+                assertTrue(name,result.isAccepted)
+                assertTrue(name,result.availablePlayerCommands.contains(Player.COMMAND_PLAY_PAUSE))
+                assertTrue(name,result.availablePlayerCommands.contains(Player.COMMAND_SET_MEDIA_ITEM))
+                assertTrue(name,result.availableSessionCommands.contains(androidx.media3.session.SessionCommand.COMMAND_CODE_LIBRARY_SEARCH))
+                assertFalse(name,library.onConnectAsync(session,carController(name,verified=false)).get().isAccepted)
+            }
+        }finally {controller.destroy()}
+    }
+    @Test fun legacyAutoControllersMustMatchTheirInstalledPackageUid() {
+        val request=request();val id=BackgroundAudioService.stage(context,request);val controller=service(id)
+        try {
+            BackgroundAudioService.commit(id,request)
+            val session=controller.get().sessions.single();val library=BackgroundLibrary(context) {emptyList()}
+            val uid=android.os.Process.myUid()+100
+            val name="com.google.android.projection.gearhead"
+            val info=android.content.pm.PackageInfo().apply {
+                packageName=name
+                applicationInfo=android.content.pm.ApplicationInfo().apply {packageName=name;this.uid=uid}
+            }
+            shadowOf(context.packageManager).installPackage(info)
+            assertTrue(library.onConnectAsync(session,carController(name,verified=false,uid=uid)).get().isAccepted)
+            assertFalse(library.onConnectAsync(session,carController(name,verified=false,uid=uid+1)).get().isAccepted)
+            assertFalse(library.onConnectAsync(session,carController("controller.example",uid=uid)).get().isAccepted)
+        }finally {controller.destroy()}
+    }
+    @Test fun anUntrustedAutoControllerCanResolveAVoiceSearchAndPlayOnlyAnExistingQueueItem() {
+        val first=QueueMedia("https://example.test/first.mp3","First song")
+        val second=QueueMedia("https://example.test/second.mp3","Second song")
+        val queue=MediaQueues.put(listOf(first,second))
+        val request=request(queue).copy(source=EngineSource(listOf(first.uri),first.title,first.key))
+        val id=BackgroundAudioService.stage(context,request);val controller=service(id)
+        try {
+            BackgroundAudioService.commit(id,request)
+            val session=controller.get().sessions.single();val player=session.player
+            val library=BackgroundLibrary(context) {(0 until player.mediaItemCount).map(player::getMediaItemAt)}
+            val auto=carController("com.google.android.projection.gearhead")
+            assertTrue(library.onConnectAsync(session,auto).get().isAccepted)
+            val voice=MediaItem.Builder().setRequestMetadata(MediaItem.RequestMetadata.Builder().setSearchQuery("SECOND").build()).build()
+            val resolved=library.onAddMediaItems(session,auto,listOf(voice)).get()
+            player.setMediaItems(resolved,0,C.TIME_UNSET);player.play()
+            assertEquals(1,MediaQueues.get(queue)!!.index);assertEquals("Second song",player.mediaMetadata.title)
+            assertTrue(created.single().wanted)
+            assertNull(resolved.single().localConfiguration)
+            try {
+                library.onAddMediaItems(session,auto,listOf(MediaItem.fromUri("https://unrelated.example/media"))).get()
+                fail("Car controllers must stay inside the authorized queue")
+            }catch(_:java.util.concurrent.ExecutionException){}
+        }finally {controller.destroy()}
+    }
+    private fun carController(name:String,verified:Boolean=true,uid:Int=android.os.Process.myUid()+100)=
+        androidx.media3.session.MediaSession.ControllerInfo.createTestOnlyControllerInfo(name,123,uid,1,1,false,android.os.Bundle.EMPTY,verified)
     @Test fun replacingTheNotificationDoesNotRetargetItsOldPendingIntents() {
         val first=request();val firstId=BackgroundAudioService.stage(context,first);val firstController=service(firstId)
         BackgroundAudioService.commit(firstId,first)
@@ -163,7 +223,7 @@ class BackgroundAudioServiceTest {
     }
     @Test fun libraryResolutionRejectsUnknownIdsAndStripsUntrustedTransportData() {
         val allowed=MediaItem.Builder().setMediaId("opaque:0").setMediaMetadata(MediaMetadata.Builder().setTitle("Allowed").build()).build()
-        val library=BackgroundLibrary {listOf(allowed)}
+        val library=BackgroundLibrary(context) {listOf(allowed)}
         val request=MediaItem.Builder().setMediaId("opaque:0").setUri("https://untrusted.example/media").build()
         assertSame(allowed,library.resolve(listOf(request)).single())
         try {library.resolve(listOf(request.buildUpon().setMediaId("unknown").build()));fail("Unknown sources must be rejected")}catch(_:IllegalArgumentException){}
@@ -171,7 +231,7 @@ class BackgroundAudioServiceTest {
     @Test fun voiceSearchResolvesOnlyMatchingItemsFromTheActiveQueue() {
         val first=MediaItem.Builder().setMediaId("opaque:0").setMediaMetadata(MediaMetadata.Builder().setTitle("First song").build()).build()
         val second=first.buildUpon().setMediaId("opaque:1").setMediaMetadata(MediaMetadata.Builder().setTitle("Second song").build()).build()
-        val library=BackgroundLibrary {listOf(first,second)}
+        val library=BackgroundLibrary(context) {listOf(first,second)}
         fun request(query:String)=MediaItem.Builder().setRequestMetadata(MediaItem.RequestMetadata.Builder().setSearchQuery(query).build()).build()
         assertSame(second,library.resolve(listOf(request("SECOND"))).single())
         assertSame(second,library.resolve(listOf(request("")),second.mediaId).single())
