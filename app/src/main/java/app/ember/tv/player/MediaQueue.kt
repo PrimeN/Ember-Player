@@ -15,7 +15,7 @@ internal class MediaQueue(items:List<QueueMedia>,val resources:List<java.io.Clos
     var shuffle=false
         set(value) {if(field!=value){field=value;rebuildOrder()}}
     private var order:List<Int> = emptyList()
-    private fun rebuildOrder(){order=if(shuffle)listOf(index)+(items.indices.filter {it!=index}).shuffled() else items.indices.toList()}
+    private fun rebuildOrder(){order=if(shuffle&&items.isNotEmpty())listOf(index)+(items.indices.filter {it!=index}).shuffled() else items.indices.toList()}
     private fun traversal():List<Int> {if(order.size!=items.size)rebuildOrder();return order}
     fun hasNext(accept:(QueueMedia)->Boolean={true}):Boolean {val values=traversal();return (if(repeat=="all")values else values.drop(values.indexOf(index)+1)).any {accept(items[it])}}
     val current get()=items.getOrNull(index)
@@ -26,17 +26,31 @@ internal class MediaQueue(items:List<QueueMedia>,val resources:List<java.io.Clos
         val candidates=values.drop(at+1)+(if(repeat=="all")values.take(at+1) else emptyList())
         return candidates.firstOrNull {accept(items[it])}?.let(::select)
     }
-    fun previous(accept:(QueueMedia)->Boolean={true}):QueueMedia? {val values=traversal();return values.take(values.indexOf(index).coerceAtLeast(0)).asReversed().firstOrNull {accept(items[it])}?.let(::select)}
-    fun add(values:List<QueueMedia>){require(values.size<=MAX_ITEMS-items.size) {"The queue is full. Create a separate playlist."};items.addAll(values);rebuildOrder()}
+    fun previous(accept:(QueueMedia)->Boolean={true}):QueueMedia? {
+        val values=traversal();val at=values.indexOf(index)
+        val candidates=values.take(at.coerceAtLeast(0)).asReversed()+(if(repeat=="all")values.drop(at.coerceAtLeast(0)).asReversed() else emptyList())
+        return candidates.firstOrNull {accept(items[it])}?.let(::select)
+    }
+    fun add(values:List<QueueMedia>){
+        require(values.size<=MAX_ITEMS-items.size) {"The queue is full. Create a separate playlist."}
+        val previous=traversal();val first=items.size
+        items.addAll(values)
+        order=if(shuffle)previous+(first until items.size).shuffled() else items.indices.toList()
+    }
     companion object {const val MAX_ITEMS=10000}
     fun move(from:Int,to:Int) {
         if(from !in items.indices||to !in items.indices)return
-        val selected=index;items.add(to,items.removeAt(from));index=when {from==selected->to;from<selected&&to>=selected->selected-1;from>selected&&to<=selected->selected+1;else->selected}
-        rebuildOrder()
+        val previous=traversal()
+        fun moved(at:Int)=when {at==from->to;from<at&&to>=at->at-1;from>at&&to<=at->at+1;else->at}
+        items.add(to,items.removeAt(from));index=moved(index)
+        order=if(shuffle)previous.map(::moved) else items.indices.toList()
     }
     fun remove(at:Int):Boolean {
         if(at !in items.indices||at==index)return false
-        items.removeAt(at);if(at<index)index--;rebuildOrder();return true
+        val previous=traversal()
+        items.removeAt(at);if(at<index)index--
+        order=if(shuffle)previous.filter {it!=at}.map {if(it>at)it-1 else it} else items.indices.toList()
+        return true
     }
 }
 internal object MediaQueues {
