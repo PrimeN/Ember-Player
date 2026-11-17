@@ -199,6 +199,7 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
         savePosition();queue.select(index);loadQueueItem(item)
     }
     private fun createSession():MediaLibrarySession {
+        session?.let {return it}
         val adapter=BackgroundSessionPlayer({audio?.player},{source},{id ?: "idle"},{MediaQueues.get(handoff?.value?.queueId)},::select,::step,::setPlaying,{handler.post {stopPlayback()}},{artwork})
         sessionPlayer=adapter
         val resume=PendingIntent.getActivity(this,id?.hashCode() ?: 0,Intent(this,ResumeBackgroundAudioActivity::class.java)

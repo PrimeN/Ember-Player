@@ -35,6 +35,9 @@ class BackgroundAudioServiceTest {
     @Test fun stagingDoesNotCreateAnEngineAndCommitStartsItOnce() {
         val request=request();val id=BackgroundAudioService.stage(context,request)
         val controller=service(id)
+        val session=controller.get().sessions.single()
+        controller.get().onStartCommand(Intent(context,BackgroundAudioService::class.java).putExtra(BackgroundAudioService.EXTRA_ID,id),0,2)
+        assertSame(session,controller.get().sessions.single())
         assertTrue(created.isEmpty())
         assertTrue(BackgroundAudioService.commit(id,request))
         assertFalse(BackgroundAudioService.commit(id,request))
