@@ -18,6 +18,8 @@ class SavedPlaylistsTest {
             assertFalse(store.rename(id,"Renamed"))
             assertFalse(store.progress(id,media.key))
             assertFalse(store.remove(id))
+            assertFalse(store.append(id,listOf(media)))
+            assertFalse(store.move(id,0,0))
             assertEquals(0,writes);assertEquals(bad,raw)
         }
         raw=good;unavailable=true;writes=0
@@ -68,4 +70,23 @@ class SavedPlaylistsTest {
         val current=queue.current
         assertEquals(current,queue.next(ended=true))
     }
+    @Test fun appendingAndReorderingPreserveTheResumeItemAndConnectionDetails() {
+        var raw:String?=null
+        val store=SavedPlaylists({raw},{raw=it;true})
+        val first=QueueMedia("https://example.test/1.mkv","One")
+        val second=QueueMedia("http://127.0.0.1/ephemeral","Two","network:two",NetworkQueueEntry("account","Two.mkv",100))
+        val third=QueueMedia("content://videos/3","Three")
+        assertTrue(store.save("Keep",listOf(first,second),1,"all",true))
+        val id=store.read().single().id
+        assertTrue(store.append(id,listOf(third)))
+        assertTrue(store.move(id,2,0))
+        var saved=store.read().single()
+        assertEquals(listOf("Three","One","Two"),saved.entries.map {it.title})
+        assertEquals(2,saved.index);assertTrue(saved.shuffle);assertEquals("all",saved.repeat)
+        assertEquals(second.network,saved.entries.last().network);assertEquals("",saved.entries.last().uri)
+        assertTrue(store.move(id,2,0));saved=store.read().single()
+        assertEquals("Two",saved.entries[saved.index].title);assertEquals(0,saved.index)
+        assertFalse(store.move(id,-1,0));assertFalse(store.move(id,0,3))
+    }
+
 }

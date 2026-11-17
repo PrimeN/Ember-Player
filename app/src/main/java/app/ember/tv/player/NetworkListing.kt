@@ -28,7 +28,7 @@ internal class NetworkListing(private val path: String, private val offset: Int,
         page[entry.name] = entry
         return true
     }
-    fun result() = NetworkPage(page.values.sortedWith(compareByDescending<NetworkEntry> { it.directory }.thenBy { it.name.lowercase() }), if (more) offset + page.size else null)
+    fun result() = NetworkPage(page.values.sortedWith(compareByDescending<NetworkEntry> { it.directory }.thenBy(NaturalOrder) { it.name }), if (more) offset + page.size else null)
 }
 
 internal object MediaFileTypes {

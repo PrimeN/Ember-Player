@@ -162,8 +162,7 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
             LazyColumn(Modifier.fillMaxWidth().heightIn(max = 440.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 items(entries, key = {it.uri.toString()}) {entry ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        DeviceThumbnail(entry)
-                        app.ember.player.PlayerFileRow(entry.name,entry.directory,selected=entry.uri in selected,modifier=Modifier.weight(1f)) {
+                        app.ember.player.DeviceMediaRow(entry,selected=entry.uri in selected,modifier=Modifier.weight(1f)) {
                             if (!busy) when {
                                 entry.directory -> {parents = parents + (entry.uri to entry.name); query = ""; selected = emptySet()}
                                 select -> selected = if (entry.uri in selected) selected - entry.uri else selected + entry.uri

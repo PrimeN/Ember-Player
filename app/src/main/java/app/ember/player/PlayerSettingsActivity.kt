@@ -135,8 +135,11 @@ private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:
         "subtitles"->PlayerSection(PlayerUiLabels.SUBTITLES) {
             PlayerChoice("At start",listOf("foreign" to "For foreign audio","always" to "Always","off" to "Off"),subtitles.autoSelect){v->captions {it.copy(autoSelect=v)}}
             var languages by remember {mutableStateOf(subtitles.languages.joinToString(", "))}
-            TvTextField(languages,{languages=it.take(120)},Modifier.fillMaxWidth(),placeholder="Languages: en, fr, ja")
-            Chip("Save languages"){captions {it.copy(languages=languages.split(',').map(String::trim).filter {v->v.matches(Regex("[A-Za-z]{2,3}(-[A-Za-z]{2})?"))}.take(8))}}
+            TvTextField(languages,{value->
+                languages=value.take(120)
+                SubtitleLanguages.parse(languages)?.let {codes->captions {it.copy(languages=codes)}}
+            },Modifier.fillMaxWidth(),placeholder="Languages: en, fr, ja")
+            if(SubtitleLanguages.parse(languages)==null)PlayerErrorText("Enter up to 8 language codes separated by commas, such as en, fr or pt-BR. Invalid edits are not saved.")
             PlayerChoice("Text size",listOf("small" to "Small","normal" to "Normal","large" to "Large","xlarge" to "Extra large"),subtitles.size){v->captions {it.copy(size=v)}}
             PlayerChoice("Text background",listOf("outline" to "Outline","shadow" to "Shadow","box" to "Box"),subtitles.background){v->captions {it.copy(background=v)}}
             SwitchChip("Preserve authored styling",subtitles.authoredStyles){captions {it.copy(authoredStyles=!it.authoredStyles)}}
@@ -149,7 +152,7 @@ private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:
         "appearance"->PlayerSection("Appearance and performance") {
             PlayerChoice("Performance",listOf("auto" to "Automatic","low" to "Low","balanced" to "Balanced","high" to "High"),prefs.devicePerformance){v->prefs.devicePerformance=v;refresh()}
             PlayerPalettePicker(prefs.accent){value->prefs.accent=value;refresh()}
-            PlayerChoice("Display mode",listOf("night" to "Night","day" to "Day"),prefs.theme){v->prefs.theme=v;refresh()}
+            PlayerChoice("Theme",listOf("system" to "Follow system","night" to "Dark","day" to "Light"),prefs.theme){v->prefs.theme=v;refresh()}
             SwitchChip("Glass surfaces",prefs.navigationGlass){prefs.navigationGlass=!prefs.navigationGlass;refresh()}
         }
         "privacy"->PlayerSection(PlayerUiLabels.PRIVATE_MEDIA) {

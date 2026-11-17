@@ -23,7 +23,7 @@ internal fun PlayerTheme(prefs:Prefs,content:@Composable ()->Unit) {
     val render=rememberDeviceRenderOptions(prefs.contentDensity,prefs.navigationGlass,prefs.artworkQuality,
         prefs.devicePerformance,prefs.customPerformance).copy(glassMethod=prefs.navigationGlassMethod)
     val television=PlayerTouchControls.isTelevision(LocalContext.current)
-    val day=appearance.second=="day"
+    val day=PlayerAppearance.light(appearance.second,androidx.compose.foundation.isSystemInDarkTheme())
     val context=LocalContext.current
     SideEffect {
         Ui.day=day;Ui.oled=appearance.third

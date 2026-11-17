@@ -261,9 +261,9 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                 if(busy)Text(stringResource(R.string.tx_opening_folder))
                 else Text(stringResource(R.string.tx_entries_page, entries.size, (offset/200+1)),style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
                 note?.let {app.ember.player.PlayerFeedbackText(it)}
-                Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(7.dp)) {
-                    entries.forEach {entry->
-                        app.ember.player.PlayerFileRow(entry.name,entry.directory,selected=entry.name in selected) {
+                LazyColumn(Modifier.fillMaxWidth().heightIn(max=360.dp),verticalArrangement=Arrangement.spacedBy(7.dp)) {
+                    items(entries,key={it.name}) {entry->
+                        app.ember.player.NetworkMediaRow(account,path,entry,entry.name in selected) {
                             if(entry.directory)path=NetworkLocation.child(path,entry.name)
                             else selected=if(entry.name in selected)selected-entry.name else selected+entry.name
                         }

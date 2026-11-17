@@ -73,7 +73,7 @@ internal fun PlayerActivity.playerControlDialog(title:String,content:@Composable
             prefs.devicePerformance,prefs.customPerformance).copy(glassMethod=prefs.navigationGlassMethod)
         CompositionLocalProvider(LocalNight provides true,LocalRenderOptions provides render,
             LocalReduceMotion provides rememberReduceMotion()) {EmberTheme(prefs.accent,playerLayoutStyle) {
-            TvDialog({dialog.dismiss()},width=440.dp,resizeForKeyboard=true) {
+            TvDialog({dialog.dismiss()},width=440.dp,resizeForKeyboard=true,scrollContent=true) {
                 val view=LocalView.current
                 DisposableEffect(view){dialog.target=view;onDispose {dialog.target=null}}
                 DialogHeading(title)

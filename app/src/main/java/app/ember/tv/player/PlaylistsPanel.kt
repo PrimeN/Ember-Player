@@ -19,6 +19,7 @@ internal fun PlaylistsPanel(activity:ComponentActivity,refresh:Int) {
     val store=remember {SavedPlaylists(activity)}
     var values by remember {mutableStateOf<List<SavedPlaylist>>(emptyList())}
     var selected by remember {mutableStateOf<SavedPlaylist?>(null)}
+    var editing by remember {mutableStateOf<SavedPlaylist?>(null)}
     var rename by remember {mutableStateOf<SavedPlaylist?>(null)}
     var deleting by remember {mutableStateOf<SavedPlaylist?>(null)}
     var files by remember {mutableStateOf<List<QueueMedia>>(emptyList())}
@@ -62,6 +63,7 @@ internal fun PlaylistsPanel(activity:ComponentActivity,refresh:Int) {
         selected?.let {value->OptionMenu(value.name,listOf(
             MenuOption("Resume playlist") {play(value,value.index)},
             MenuOption("Play from beginning") {play(value,0)},
+            MenuOption("Reorder entries") {editing=value},
             MenuOption("Rename") {rename=value},
             MenuOption("Delete playlist") {deleting=value},
         ),{selected=null})}
@@ -84,6 +86,7 @@ internal fun PlaylistsPanel(activity:ComponentActivity,refresh:Int) {
                 }
             }
         }
+        editing?.let {value->app.ember.player.PlaylistEditor(activity,value){editing=null;revision++}}
         deleting?.let {value->app.ember.player.PlayerConfirmationDialog("Delete playlist?","${value.name} will be removed. Its media files will stay on your device.","Delete",{deleting=null}) {
             deleting=null;scope.launch {val saved=withContext(Dispatchers.IO){store.remove(value.id)};if(saved)revision++ else notice="Could not update encrypted playlist storage."}
         }}

@@ -27,7 +27,7 @@ internal class DirectUsbSession private constructor(private val context:Context,
         if(removed?.deviceId==device.usbDevice.deviceId)disconnect()
     }}
     init {ContextCompat.registerReceiver(context,receiver,IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED),ContextCompat.RECEIVER_NOT_EXPORTED)}
-    fun files(directory:UsbFile):List<UsbFile> = synchronized(lock) {ready();directory.listFiles().filter {it.isDirectory||DeviceFiles.media(it.name,"")}.sortedWith(compareByDescending<UsbFile>{it.isDirectory}.thenBy {it.name.lowercase()})}
+    fun files(directory:UsbFile):List<UsbFile> = synchronized(lock) {ready();directory.listFiles().filter {it.isDirectory||DeviceFiles.media(it.name,"")}.sortedWith(compareByDescending<UsbFile>{it.isDirectory}.thenBy(NaturalOrder) {it.name})}
     fun lease():Closeable {
         while(true) {
             ready();val count=references.get();check(count>0)

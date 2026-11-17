@@ -47,6 +47,20 @@ internal class SavedPlaylists(private val readValue:()->String?,private val writ
         if(clean.isBlank())return@synchronized false
         writeValue(json.encodeToString(values.map {if(it.id==id)value.copy(name=clean) else it}))
     }
+    fun append(id:String,items:List<QueueMedia>):Boolean=synchronized(lock) {
+        val values=runCatching {load()}.getOrNull() ?: return@synchronized false
+        val value=values.firstOrNull {it.id==id} ?: return@synchronized false
+        val existing=value.entries.map {QueueMedia(it.uri,it.title,it.identity,it.network,it.directory)}
+        save(value.name,existing+items,value.index,value.repeat,value.shuffle,value.id)
+    }
+    fun move(id:String,from:Int,to:Int):Boolean=synchronized(lock) {
+        val values=runCatching {load()}.getOrNull() ?: return@synchronized false
+        val value=values.firstOrNull {it.id==id} ?: return@synchronized false
+        if(from !in value.entries.indices||to !in value.entries.indices)return@synchronized false
+        val entries=value.entries.toMutableList().apply {add(to,removeAt(from))}
+        val index=when {value.index==from->to;from<value.index&&to>=value.index->value.index-1;from>value.index&&to<=value.index->value.index+1;else->value.index}
+        writeValue(json.encodeToString(values.map {if(it.id==id)it.copy(entries=entries,index=index) else it}))
+    }
     fun remove(id:String):Boolean=synchronized(lock) {
         val values=runCatching {load()}.getOrNull() ?: return@synchronized false
         writeValue(json.encodeToString(values.filterNot {it.id==id}))

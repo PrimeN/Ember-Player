@@ -80,8 +80,8 @@ internal object DeviceFiles {
     }
     fun sorted(entries: List<DeviceFile>, query: String, sort: String, hidden: Boolean): List<DeviceFile> {
         val filtered = entries.filter { (hidden || !it.name.startsWith('.')) && it.name.contains(query, true) }
-        val comparator:Comparator<DeviceFile> = when (sort) { "date" -> compareByDescending { it.modified }; "size" -> compareByDescending { it.size }; else -> compareBy { it.name.lowercase() } }
-        return filtered.sortedWith(compareByDescending<DeviceFile> { it.directory }.then(comparator).thenBy { it.name.lowercase() })
+        val comparator:Comparator<DeviceFile> = when (sort) { "date" -> compareByDescending { it.modified }; "size" -> compareByDescending { it.size }; else -> compareBy(NaturalOrder) { it.name } }
+        return filtered.sortedWith(compareByDescending<DeviceFile> { it.directory }.then(comparator).thenBy(NaturalOrder) { it.name })
     }
     fun rename(context: Context, file: DeviceFile, name: String): Uri {
         require(validName(name)) { "Enter a filename without slashes or control characters." }

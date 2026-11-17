@@ -26,8 +26,8 @@ internal class PlayerLibrarySnapshot(entries:List<PlayerLibraryMedia>,val indexU
     // Prepared on the loading dispatcher, so changing a filter or page does no index work on the UI thread.
     private val pages=PlayerLibrarySort.entries.associateWith {sort->
         val sorted=when(sort) {
-            PlayerLibrarySort.NAME->this.entries.sortedWith(compareBy<PlayerLibraryMedia> {it.media.title.lowercase(java.util.Locale.ROOT)}.thenBy {it.media.key})
-            PlayerLibrarySort.MODIFIED->this.entries.sortedWith(compareByDescending<PlayerLibraryMedia> {it.modified}.thenBy {it.media.title.lowercase(java.util.Locale.ROOT)}.thenBy {it.media.key})
+            PlayerLibrarySort.NAME->this.entries.sortedWith(compareBy<PlayerLibraryMedia,String>(NaturalOrder) {it.media.title}.thenBy {it.media.key})
+            PlayerLibrarySort.MODIFIED->this.entries.sortedWith(compareByDescending<PlayerLibraryMedia> {it.modified}.thenBy(NaturalOrder) {it.media.title}.thenBy {it.media.key})
         }
         PlayerLibraryFilter.entries.associateWith {filter->when(filter) {
             PlayerLibraryFilter.ALL->sorted

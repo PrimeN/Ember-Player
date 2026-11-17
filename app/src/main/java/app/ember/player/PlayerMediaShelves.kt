@@ -112,8 +112,11 @@ internal fun RowScope.PlayerVideos(activity:MediaFilesActivity,version:Int,query
                         row.forEach {entry->PlayerMediaCard(entry,Modifier.weight(1f),version,portrait=true){play(entry.media)}}
                         repeat(columns-row.size){Spacer(Modifier.weight(1f))}
                     }
-                } else items(filtered,key={it.media.key}) {entry->PlayerNavigationRow(entry.media.title,
-                    if(entry.duration>0)"${playerMediaTime(entry.position)} / ${playerMediaTime(entry.duration)}" else "",Icons.Outlined.Movie){play(entry.media)}}
+                } else items(filtered,key={it.media.key}) {entry->Row(verticalAlignment=Alignment.CenterVertically) {
+                    PlayerNavigationRow(entry.media.title,
+                        if(entry.duration>0)"${playerMediaTime(entry.position)} / ${playerMediaTime(entry.duration)}" else "",Icons.Outlined.Movie,Modifier.weight(1f)){play(entry.media)}
+                    LibraryPlaylistAction(entry.media)
+                }}
             }
             if(filtered.isEmpty()&&!busy)item {
                 PlayerSection(if(emptyLibrary)"Your media, ready to play" else "No matching media") {
@@ -167,6 +170,7 @@ internal fun PlayerMediaCard(entry:PlayerLibraryMedia,modifier:Modifier,version:
         Column(Modifier.fillMaxWidth()) {
             Box(Modifier.fillMaxWidth().aspectRatio(if(portrait){if(television)1f else 2f/3} else 16f/9).clip(RoundedCornerShape(10.dp))) {
                 PlayerMediaArtwork(entry.media,version,Modifier.fillMaxSize())
+                LibraryPlaylistAction(entry.media,Modifier.align(Alignment.TopStart).background(scheme.surface.copy(alpha=.9f),RoundedCornerShape(24.dp)))
                 if(entry.watched)Icon(Icons.Outlined.CheckCircle,"Watched",Modifier.align(Alignment.TopEnd).padding(5.dp).size(20.dp).background(scheme.surface.copy(alpha=.85f),RoundedCornerShape(10.dp)),tint=scheme.primary)
                 if(!portrait)Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                     .background(Brush.verticalGradient(listOf(Color.Transparent,Color.Black.copy(alpha=.8f)))).padding(if(television)6.dp else 8.dp),verticalArrangement=Arrangement.spacedBy(3.dp)) {
