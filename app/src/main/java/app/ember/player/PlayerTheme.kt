@@ -38,8 +38,6 @@ internal fun PlayerTheme(prefs:Prefs,content:@Composable ()->Unit) {
         EmberTheme(appearance.first,"modern") {
             val base=androidx.tv.material3.MaterialTheme.colorScheme
             val tv=if(appearance.first==0)base.copy(
-                primary=if(day)Color(0xFF8D4300) else Color(0xFFFFBC7D),onPrimary=if(day)Color.White else Color(0xFF4B2500),
-                primaryContainer=if(day)Color(0xFFFFDCC0) else Color(0xFF603510),onPrimaryContainer=if(day)Color(0xFF311300) else Color(0xFFFFDCC0),
                 background=if(day)Color(0xFFFFF8F3) else if(appearance.third)Color.Black else Color(0xFF171517),
                 onBackground=if(day)Color(0xFF241A15) else Color(0xFFF3E7DF),
                 surface=if(day)Color(0xFFFFF8F3) else Color(0xFF211D1B),onSurface=if(day)Color(0xFF241A15) else Color(0xFFF3E7DF),
