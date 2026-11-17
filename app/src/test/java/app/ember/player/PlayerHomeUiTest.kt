@@ -35,17 +35,18 @@ class PlayerHomeUiTest {
         compose.onNodeWithText("Folders").assertIsNotSelected().performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithText("Add a media folder").assertExists()
         compose.onNodeWithText("Folders").assertIsSelected()
-        compose.onNodeWithContentDescription("More options").performSemanticsAction(SemanticsActions.OnClick){it()}
-        compose.onNodeWithContentDescription("Playlists").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithText("Playlists").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithText("New playlist from files").assertExists()
     }
     @Test fun gridChoicePersistsAndSearchCanBeOpenedAndClosed() {
         compose.onNodeWithContentDescription("List view").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.runOnIdle {org.junit.Assert.assertFalse(app.ember.tv.data.Prefs(org.robolectric.RuntimeEnvironment.getApplication()).playerLibraryGrid)}
         compose.onNodeWithContentDescription("Grid view").assertExists()
-        compose.onNodeWithText("Search").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithContentDescription("Search media").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithText("Search videos").assertExists()
-        compose.onNodeWithText("Search").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithText("Videos").assertIsNotSelected()
+        compose.onNodeWithContentDescription("Search media").assertIsSelected()
+        compose.onNodeWithContentDescription("Search media").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithText("Search videos").assertDoesNotExist()
     }
     @Test @Config(qualifiers="w960dp-h540dp-land-television-mdpi")
@@ -59,8 +60,12 @@ class PlayerHomeUiTest {
     }
 
     @Test @Config(qualifiers="w360dp-h800dp-port-mdpi")
-    fun phoneDockKeepsNavigationReachableAndBrowseChoicesPersist() {
-        listOf("Videos","Folders","Search","Settings").forEach {compose.onNodeWithText(it,useUnmergedTree=true).assertIsDisplayed()}
+    fun phoneTabsAndToolbarKeepNavigationReachableAndBrowseChoicesPersist() {
+        listOf("Videos","Folders").forEach {compose.onAllNodesWithText(it).assertCountEquals(1);compose.onNodeWithText(it).assertIsDisplayed()}
+        compose.onNodeWithContentDescription("Search media").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Settings").assertIsDisplayed()
+        compose.onNodeWithText("Search").assertDoesNotExist()
+        compose.onNodeWithText("Settings").assertDoesNotExist()
         compose.onNodeWithContentDescription("All media").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithContentDescription("Watched").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithContentDescription("Date modified").performSemanticsAction(SemanticsActions.OnClick){it()}
@@ -72,6 +77,7 @@ class PlayerHomeUiTest {
         }
         compose.onNodeWithText("Folders").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithText("Add a media folder").assertExists()
+        compose.onNodeWithTag("library-navigation").performScrollToNode(hasText("Videos"))
         compose.onNodeWithText("Videos").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithContentDescription("Watched").assertExists()
     }

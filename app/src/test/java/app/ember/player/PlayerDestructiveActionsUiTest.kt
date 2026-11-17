@@ -72,6 +72,18 @@ class PlayerDestructiveActionsUiTest {
         compose.waitUntil(10_000){Json.decodeFromString<List<NetworkAccount>>(TokenStore(context).get(key)!!).size==1}
         compose.runOnIdle {assertEquals(listOf(other),Json.decodeFromString<List<NetworkAccount>>(TokenStore(context).get(key)!!))}
     }
+    @Test fun unreadableConnectionsReportStorageFailureWithoutClaimingTheFolderWasRemoved() {
+        val profile=Prefs(context).currentProfile
+        val encrypted=context.getSharedPreferences(app.ember.player.storage.SecretVault.FILE,Context.MODE_PRIVATE)
+        encrypted.edit().putString("media.network."+profile,"%unreadable%").commit()
+        val previous=encrypted.all
+        compose.runOnIdle {compose.activity.intent.putExtra("network.profile",profile).putExtra("network.account","saved")}
+        click("Network")
+        val message=context.getString(app.ember.tv.R.string.ui_could_not_update_encrypted_folder_storage)
+        compose.waitUntil(10_000){compose.onAllNodesWithText(message).fetchSemanticsNodes().isNotEmpty()}
+        compose.onNodeWithText(context.getString(app.ember.tv.R.string.ui_this_saved_folder_was_removed_add_it_again_to)).assertDoesNotExist()
+        compose.runOnIdle {assertEquals(previous,encrypted.all)}
+    }
     @Test fun playlistOptionsHaveASpokenNameAndDeletionCanBeCanceled() {
         val store=SavedPlaylists(context)
         assertTrue(store.save("Test playlist",listOf(QueueMedia("https://example.test/clip.mkv","Clip"))))

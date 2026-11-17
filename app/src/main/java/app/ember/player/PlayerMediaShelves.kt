@@ -19,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -48,31 +49,30 @@ internal fun playerLibraryColumns(width:Float,television:Boolean)=when {
 
 @Composable
 internal fun RowScope.PlayerVideos(activity:MediaFilesActivity,version:Int,query:String,searching:Boolean,grid:Boolean,filter:PlayerLibraryFilter,sort:PlayerLibrarySort,play:(QueueMedia)->Unit,
-    background:BackgroundNowPlaying?,casting:CastingState?,notice:String?,folders:(String?)->Unit) {
+    background:BackgroundNowPlaying?,casting:CastingState?,notice:String?,folders:(String?)->Unit,catalogRevision:Int=0,library:PlayerLibraryRepository=activity.library) {
     val uiResources=androidx.compose.ui.platform.LocalResources.current
 
-    var offsets by rememberSaveable {mutableStateOf(listOf(0))}
-    var snapshot by remember {mutableStateOf(PlayerLibrarySnapshot(emptyList()))}
+    var snapshot by remember(query) {mutableStateOf(library.peek(query) ?: PlayerLibrarySnapshot(emptyList()))}
     var savedFolders by remember {mutableStateOf(emptyList<DeviceFolder>())}
-    var busy by remember {mutableStateOf(true)}
+    var busy by remember(query) {mutableStateOf(library.peek(query)==null)}
     var error by remember {mutableStateOf<String?>(null)}
-    var expanded by rememberSaveable {mutableStateOf<String?>(null)}
-    LaunchedEffect(query,sort,filter){expanded=null}
+    var expanded by rememberSaveable(query,sort.id,filter.id) {mutableStateOf<String?>(null)}
     val actualFilter=expanded?.let(PlayerLibraryFilter::from) ?: filter
-    LaunchedEffect(query,sort,actualFilter,version){offsets=listOf(0)}
-    LaunchedEffect(query,version) {
-        busy=true;error=null
+    var offsets by rememberSaveable(query,sort.id,actualFilter.id) {mutableStateOf(listOf(0))}
+    val listState=rememberSaveable(query,sort.id,actualFilter.id,saver=androidx.compose.foundation.lazy.LazyListState.Saver) {androidx.compose.foundation.lazy.LazyListState()}
+    LaunchedEffect(query,version,catalogRevision) {
+        error=null
         try {
             delay(if(query.isBlank())0 else 180)
-            val loaded=withContext(Dispatchers.IO){loadPlayerLibrary(activity,query){ensureActive()} to DeviceFolders(activity).read()}
+            val loaded=withContext(Dispatchers.IO){library.load(query,catalogRevision){ensureActive()}}
             snapshot=loaded.first;savedFolders=loaded.second.filterNot {PrivateMedia.hidden(it.uri)}
         }
         catch(e:CancellationException){throw e}
-        catch(_:Exception){snapshot=PlayerLibrarySnapshot(emptyList());error=uiResources.getString(R.string.ui_could_not_load_saved_media)}
+        catch(_:Exception){error=uiResources.getString(R.string.ui_could_not_load_saved_media)}
         finally {busy=false}
     }
     BackHandler(enabled=expanded!=null&&!searching){expanded=null}
-    val page=remember(snapshot,offsets,sort,actualFilter){snapshot.page(offsets.last(),sort,actualFilter)}
+    val page=remember(snapshot,offsets,sort,actualFilter,version){snapshot.page(offsets.last(),sort,actualFilter,PrivateMedia::hidden)}
     val visible=page.entries.filterNot {PrivateMedia.hidden(it.media.uri)}
     val filtered=visible
     val emptyLibrary=snapshot.entries.isEmpty()&&query.isBlank()
@@ -86,12 +86,12 @@ internal fun RowScope.PlayerVideos(activity:MediaFilesActivity,version:Int,query
         val gap=if(television)8.dp else 12.dp
         val cardWidth=((maxWidth-gap*(columns-1))/columns).coerceAtLeast(72.dp)
         val resumeWidth=if(television)((maxWidth-gap*5)/6).coerceAtLeast(108.dp) else if(maxWidth>=600.dp)((maxWidth-gap*4)/5).coerceAtLeast(160.dp) else 248.dp
-        LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(top=8.dp,bottom=if(television)20.dp else 104.dp),verticalArrangement=Arrangement.spacedBy(if(television)8.dp else 20.dp)) {
+        LazyColumn(Modifier.fillMaxSize().testTag("library-media"),state=listState,contentPadding=PaddingValues(top=8.dp,bottom=20.dp),verticalArrangement=Arrangement.spacedBy(if(television)8.dp else 20.dp)) {
             background?.let {playing->item {PlayerAction(uiResources.getString(R.string.ui_label_value ,if(playing.playing)uiResources.getString(R.string.ui_playing) else uiResources.getString(R.string.ui_paused),playing.title),Icons.Outlined.Headphones,Modifier.fillMaxWidth()) {
                 activity.startActivity(Intent(activity,ResumeBackgroundAudioActivity::class.java).putExtra(BackgroundAudioService.EXTRA_ID,playing.id))
             }}}
             casting?.let {value->item {PlayerAction(uiResources.getString(R.string.ui_receiver_a3878e ,value.receiver),Icons.Outlined.Cast,Modifier.fillMaxWidth()){activity.startActivity(Intent(activity,CastActivity::class.java))}}}
-            if(busy)item {LinearProgressIndicator(Modifier.fillMaxWidth(),color=MaterialTheme.colorScheme.primary)}
+            if(busy)item {LinearProgressIndicator(Modifier.fillMaxWidth().testTag("library-loading"),color=MaterialTheme.colorScheme.primary)}
             if(home) {
                 if(continuing.isNotEmpty())item {
                     LibraryShelf(uiResources.getString(R.string.ui_continue_watching),continuing,resumeWidth,gap,false,version,play){expanded=PlayerLibraryFilter.CONTINUING.id}

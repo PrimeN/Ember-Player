@@ -42,4 +42,19 @@ class PositionStoreTest {
         store.finished("unknown",0)
         assertNull(store.get("unknown"));assertNull(store.resume("unknown"))
     }
+    @Test fun progressSnapshotsRespectTheActivityScopeAndLegacyTimestamps() {
+        val context=RuntimeEnvironment.getApplication()
+        val shared=PositionStore(context)
+        val local=PositionStore(context,"local:one")
+        val other=PositionStore(context,"local:two")
+        shared.put("shared-video",60_000,100_000)
+        local.put("local-video",70_000,100_000)
+        other.put("other-video",80_000,100_000)
+        context.getSharedPreferences("positions",0).edit().putString("legacy","60000,100000").commit()
+        assertEquals(setOf("shared-video","legacy"),shared.savedAll().keys)
+        assertEquals(setOf("local-video"),local.savedAll().keys)
+        assertEquals(70_000L,local.savedAll().getValue("local-video").position)
+        assertEquals(0L,shared.savedAll().getValue("legacy").lastPlayed)
+    }
+
 }

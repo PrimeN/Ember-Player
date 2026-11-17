@@ -156,6 +156,7 @@ internal object PrivateMedia {
         index=PrivateMediaIndex(value.items)
         state.value=value
     }
+    internal val libraryVisibility get()=unavailable to state.value.items
     fun hidden(uri:String)=unavailable || index.hidden(uri)
     fun historyAllowed(uri:String)=state.value.history&&!hidden(uri)
     @Synchronized fun configure(pin:String) {

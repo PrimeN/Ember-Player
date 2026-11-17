@@ -14,31 +14,29 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import app.ember.tv.data.Prefs
-import app.ember.player.storage.TokenStore
 import app.ember.tv.ui.TvDialog
 import app.ember.tv.ui.DialogHeading
 import app.ember.tv.ui.TvTextField
 import app.ember.tv.ui.Chip
 import app.ember.tv.ui.ButtonRow
 import kotlinx.coroutines.*
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 
 @Composable
 internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
     val uiResources=androidx.compose.ui.platform.LocalResources.current
 
-    val scope=rememberCoroutineScope();val json=remember {Json {ignoreUnknownKeys=true}}
+    val scope=rememberCoroutineScope()
     val profile=remember {Prefs(activity).currentProfile}
-    val key=remember {"media.network."+profile}
+    val store=remember(profile) {SavedNetworkFolders(activity,profile)}
     var accounts by remember {mutableStateOf<List<NetworkAccount>>(emptyList())}
     var edit by remember {mutableStateOf(false)}
     var browse by remember {mutableStateOf<NetworkAccount?>(null)}
     var error by remember {mutableStateOf<String?>(null)}
     var handledRequest by remember {mutableStateOf(false)}
-    LaunchedEffect(key,refresh) {
-        accounts=withContext(Dispatchers.IO){runCatching {json.decodeFromString<List<NetworkAccount>>(TokenStore(activity).get(key)?:"[]")}.getOrDefault(emptyList())}
-        if(!handledRequest && activity.intent.getStringExtra("network.profile")==profile) {
+    LaunchedEffect(store,refresh) {
+        val loaded=withContext(Dispatchers.IO){runCatching {store.read()}.getOrNull()}
+        if(loaded!=null){accounts=loaded;error=null} else error=uiResources.getString(R.string.ui_could_not_update_encrypted_folder_storage)
+        if(loaded!=null && !handledRequest && activity.intent.getStringExtra("network.profile")==profile) {
             handledRequest=true
             val id=activity.intent.getStringExtra("network.account")
             if(id!=null){browse=accounts.firstOrNull {it.id==id};if(browse==null)error=uiResources.getString(R.string.ui_this_saved_folder_was_removed_add_it_again_to)}
@@ -152,10 +150,9 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                                 val validKey=withContext(Dispatchers.IO){runCatching {val ssh=com.jcraft.jsch.JSch();try {SftpCredentials.install(ssh,valid)}finally {ssh.removeAllIdentity()}}.isSuccess}
                                 if(!validKey){saving=false;note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_could_not_unlock_this_private_key_check_its_format));return@launch}
                             }
-                            val updated=accounts+valid
-                            val saved=withContext(Dispatchers.IO){TokenStore(activity).putEncrypted(key,json.encodeToString(updated))}
+                            val updated=withContext(Dispatchers.IO){store.add(valid)}
                             saving=false
-                            if(saved){accounts=updated;edit=false}else note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_encrypted_storage_is_unavailable_the_folder_was_not_saved))
+                            if(updated!=null){accounts=updated;edit=false}else note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_encrypted_storage_is_unavailable_the_folder_was_not_saved))
                         }}
                         app.ember.player.PlayerAction(uiResources.getString(R.string.ui_cancel)){if(!saving)edit=false}
                     }}
@@ -197,13 +194,10 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                 ButtonRow {
                     app.ember.player.PlayerAction(if(trusting)uiResources.getString(R.string.ui_saving) else uiResources.getString(R.string.ui_trust_this_key),primary=true,enabled=!trusting) {if(!trusting)scope.launch {
                         trusting=true
-                        val current=accounts.firstOrNull {it.id==account.id}
-                        if(current==null||current.fingerprint.isNotBlank()){trusting=false;hostKey=null;note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_the_saved_folder_changed_reopen_it_before_verifying_its));return@launch}
-                        val trusted=current.copy(fingerprint=fingerprint)
-                        val updated=accounts.map {if(it.id==trusted.id)trusted else it}
-                        val saved=withContext(Dispatchers.IO){TokenStore(activity).putEncrypted(key,json.encodeToString(updated))}
+                        val updated=withContext(Dispatchers.IO){store.trust(account,fingerprint)}
                         trusting=false
-                        if(saved){accounts=updated;browse=trusted;hostKey=null;reload++}else note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_could_not_save_the_trusted_key_in_encrypted_storage))
+                        if(updated!=null){accounts=updated;browse=updated.first {it.id==account.id};hostKey=null;reload++}
+                        else note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_could_not_save_the_trusted_key_in_encrypted_storage))
                     }}
                     app.ember.player.PlayerAction(uiResources.getString(R.string.ui_cancel)){if(!trusting){hostKey=null;browse=null}}
                 }
@@ -274,8 +268,8 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                 app.ember.player.PlayerAction(uiResources.getString(R.string.ui_remove_saved_folder),destructive=true){removing=true}
                 if(removing)app.ember.player.PlayerConfirmationDialog(uiResources.getString(R.string.ui_remove_network_folder),uiResources.getString(R.string.ui_remove_its_saved_credentials_and_any_private_key_from ,account.label),uiResources.getString(R.string.ui_remove_folder),{removing=false}) {
                   removing=false;scope.launch {
-                    val updated=accounts.filterNot {it.id==account.id}
-                    if(withContext(Dispatchers.IO){TokenStore(activity).putEncrypted(key,json.encodeToString(updated))}){accounts=updated;browse=null}
+                    val updated=withContext(Dispatchers.IO){store.remove(account.id)}
+                    if(updated!=null){accounts=updated;browse=null}
                     else note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_could_not_update_encrypted_folder_storage))
                   }
                 }

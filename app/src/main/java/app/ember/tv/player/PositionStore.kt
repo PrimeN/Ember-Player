@@ -17,6 +17,16 @@ class PositionStore(context: Context,scope:String=app.ember.tv.data.LocalActivit
         val dur = parts.getOrNull(1)?.toLongOrNull() ?: return null
         return SavedPosition(pos,dur,entry.second)
     }
+    internal fun savedAll():Map<String,SavedPosition> {
+        if(!app.ember.player.PrivateMedia.state.value.history)return emptyMap()
+        return sp.entries().mapNotNull {(key,entry)->
+            if(if(prefix.isEmpty())key.startsWith("profile:") else !key.startsWith(prefix))return@mapNotNull null
+            val parts=entry.first.split(',')
+            val position=parts.getOrNull(0)?.toLongOrNull() ?: return@mapNotNull null
+            val duration=parts.getOrNull(1)?.toLongOrNull() ?: return@mapNotNull null
+            key.removePrefix(prefix) to SavedPosition(position,duration,entry.second)
+        }.toMap()
+    }
     fun get(key: String): Pair<Long, Long>? = saved(key)?.let {it.position to it.duration}
 
     fun put(key: String, positionMs: Long, durationMs: Long) =
