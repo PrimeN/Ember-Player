@@ -90,14 +90,14 @@ class MediaDownloadService:Service() {
                         "finished"->if(active==command.id&&activeRun==command.run){active=null;task=null;advance()}
                         "pause"-> {
                             val paused=waiting.toList();waiting.clear()
-                            call?.cancel();task?.cancelAndJoin();task=null;active=null
+                            task?.cancel();call?.cancel();task?.join();task=null;active=null
                             withContext(Dispatchers.IO){paused.forEach {id->runCatching {DownloadStore(this@MediaDownloadService).change(id){it.copy(state="paused")}}}}
                             advance()
                         }
                         "remove"-> {
                             val id=command.id ?: continue
                             waiting-=id
-                            if(active==id){call?.cancel();task?.cancelAndJoin();task=null;active=null}
+                            if(active==id){task?.cancel();call?.cancel();task?.join();task=null;active=null}
                             withContext(Dispatchers.IO){runCatching {DownloadStore(this@MediaDownloadService).remove(id)}}
                             getSystemService(NotificationManager::class.java).cancel("download:$id",731)
                             advance()
@@ -106,7 +106,7 @@ class MediaDownloadService:Service() {
                 }
             } finally {
                 withContext(NonCancellable) {
-                    call?.cancel();task?.cancelAndJoin()
+                    task?.cancel();call?.cancel();task?.join()
                     val paused=(waiting+listOfNotNull(active,preparing)).distinct();waiting.clear()
                     withContext(Dispatchers.IO){paused.forEach {id->runCatching {DownloadStore(this@MediaDownloadService).change(id){if(it.state in setOf("queued","downloading"))it.copy(state="paused") else it}}}}
                 }
@@ -233,8 +233,8 @@ class MediaDownloadService:Service() {
             .setVisibility(Notification.VISIBILITY_PRIVATE).build()
         runCatching {getSystemService(NotificationManager::class.java).notify("download:${item.id}",731,notification)}
     }
-    override fun onDestroy(){commands.close();call?.cancel();scope.cancel();super.onDestroy()}
-    override fun onTimeout(startId:Int,fgsType:Int){call?.cancel();task?.cancel();stopSelf()}
+    override fun onDestroy(){commands.close();scope.cancel();call?.cancel();super.onDestroy()}
+    override fun onTimeout(startId:Int,fgsType:Int){task?.cancel();call?.cancel();stopSelf()}
     companion object {
         fun start(context:Context,id:String){context.startForegroundService(Intent(context,MediaDownloadService::class.java).putExtra("id",id))}
         fun pause(context:Context){context.startService(Intent(context,MediaDownloadService::class.java).setAction("pause"))}
