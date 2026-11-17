@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.net.Uri
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
@@ -52,7 +54,7 @@ internal suspend fun PlayerActivity.loadManualSubtitle(choice:ManualSubtitleFile
         val bitmap=temporary
         if(bitmap!=null) {
             val native=playbackEngine?.compatibility ?: if(playbackEngine?.switch()==true)playbackEngine?.compatibility else null
-            checkNotNull(native){"Compatibility playback unavailable"}
+            checkNotNull(native){resources.getString(R.string.ui_compatibility_playback_unavailable)}
             native.externalFile(bitmap.first,bitmap.second)
             temporary=null // The compatibility engine owns and removes these files.
             subs.selectManualNative()
@@ -63,7 +65,7 @@ internal suspend fun PlayerActivity.loadManualSubtitle(choice:ManualSubtitleFile
         if(remember&&!privatePlayback)SubtitleChoiceStorage.scope.launch {
             val saved=runCatching {ManualSubtitleChoices(context,profile).put(key,choice)}.getOrDefault(false)
             if(!saved)withContext(Dispatchers.Main){
-                Toast.makeText(context,"Subtitle loaded, but its choice could not be saved.",Toast.LENGTH_SHORT).show()
+                Toast.makeText(context,resources.getString(R.string.ui_subtitle_loaded_but_its_choice_could_not_be_saved),Toast.LENGTH_SHORT).show()
             }
         }
         changed()
@@ -79,7 +81,7 @@ internal fun PlayerActivity.restoreManualSubtitle(notify:Boolean=false) {
             val choice=withContext(SubtitleChoiceStorage.dispatcher){ManualSubtitleChoices(context,profile).get(key)}
             if(visit!=playbackVisit || subsTouched&&!notify)return@launch
             if(choice!=null)loadManualSubtitle(choice,remember=false)
-            else if(notify)Toast.makeText(context,"No saved subtitle for this video.",Toast.LENGTH_SHORT).show()
+            else if(notify)Toast.makeText(context,resources.getString(R.string.ui_no_saved_subtitle_for_this_video),Toast.LENGTH_SHORT).show()
         } catch(e:CancellationException){throw e}
         catch(_:Exception){if(notify)subtitleFileError()}
     }
@@ -90,7 +92,7 @@ internal fun PlayerActivity.findNearbySubtitles() {
     nearbySubtitleJob?.cancel()
     val media=fileQueue?.current ?: QueueMedia(currentUrl.orEmpty(),item.title)
     val visit=playbackVisit;val profile=watchProfileId
-    Toast.makeText(this,"Looking for nearby subtitle files…",Toast.LENGTH_SHORT).show()
+    Toast.makeText(this,resources.getString(R.string.ui_looking_for_nearby_subtitle_files),Toast.LENGTH_SHORT).show()
     nearbySubtitleJob=lifecycleScope.launch {
         try {
             val choices=withContext(Dispatchers.IO){
@@ -98,7 +100,7 @@ internal fun PlayerActivity.findNearbySubtitles() {
                 NearbySubtitles.find(applicationContext,profile,media){job.ensureActive()}
             }
             if(visit!=playbackVisit)return@launch
-            showPlayerActions("Nearby subtitles",choices.map {choice->PlayerDialogAction(choice.name){
+            showPlayerActions(resources.getString(R.string.ui_nearby_subtitles),choices.map {choice->PlayerDialogAction(choice.name){
                 if(visit!=playbackVisit)return@PlayerDialogAction
                 subtitleSelectionChanged()
                 manualSubtitleJob=lifecycleScope.launch {
@@ -106,8 +108,8 @@ internal fun PlayerActivity.findNearbySubtitles() {
                     catch(e:CancellationException){throw e}
                     catch(_:Exception){subtitleFileError()}
                 }
-            }}+PlayerDialogAction("Choose subtitle folder"){pickSubtitleFolder()},
-                message=if(choices.isEmpty())"No matching files found. Choose a folder or load a subtitle file directly." else null)
+            }}+PlayerDialogAction(resources.getString(R.string.ui_choose_subtitle_folder)){pickSubtitleFolder()},
+                message=if(choices.isEmpty())resources.getString(R.string.ui_no_matching_files_found_choose_a_folder_or_load) else null)
         } catch(e:CancellationException){throw e}
         catch(_:Exception){subtitleFileError()}
     }
@@ -120,7 +122,7 @@ internal fun PlayerActivity.pickSubtitleFolder() {
     try {subtitleFolderPicker.launch(null)}
     catch(_:android.content.ActivityNotFoundException){
         pickingSidecar=false;player?.playWhenReady=pickerWasPlaying
-        Toast.makeText(this,"No folder picker is installed on this device.",Toast.LENGTH_LONG).show()
+        Toast.makeText(this,resources.getString(R.string.ui_no_folder_picker_is_installed_on_this_device),Toast.LENGTH_LONG).show()
     }
 }
 
@@ -136,10 +138,10 @@ internal fun PlayerActivity.saveSubtitleFolder(uri:Uri) {
             }
             if(visit==playbackVisit)findNearbySubtitles()
         } catch(e:CancellationException){throw e}
-        catch(_:Exception){Toast.makeText(this@saveSubtitleFolder,"Could not keep access to that subtitle folder.",Toast.LENGTH_LONG).show()}
+        catch(_:Exception){Toast.makeText(this@saveSubtitleFolder,resources.getString(R.string.ui_could_not_keep_access_to_that_subtitle_folder),Toast.LENGTH_LONG).show()}
     }
 }
 
 private fun PlayerActivity.subtitleFileError() {
-    Toast.makeText(this,"Could not read this subtitle file. Check its format, encoding and folder access. For VobSub, select both IDX and SUB files.",Toast.LENGTH_LONG).show()
+    Toast.makeText(this,resources.getString(R.string.ui_could_not_read_this_subtitle_file_check_its_format),Toast.LENGTH_LONG).show()
 }

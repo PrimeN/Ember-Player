@@ -99,7 +99,7 @@ internal fun PlayerActivity.keepSound() {
     val ms = (audioDelay.us / 1000).toInt()
     config = if (bluetoothOutput) config.copy(bluetoothDelayMs = ms) else config.copy(audioDelayMs = ms)
     prefs.playbackConfig = config
-    Toast.makeText(this, if(bluetoothOutput) "Bluetooth timing saved" else getString(R.string.pl_sound_timing_saved_for_all_videos), Toast.LENGTH_SHORT).show()
+    Toast.makeText(this, if(bluetoothOutput) resources.getString(R.string.ui_bluetooth_timing_saved) else getString(R.string.pl_sound_timing_saved_for_all_videos), Toast.LENGTH_SHORT).show()
     updateSoundLabel()
 }
 
@@ -131,15 +131,15 @@ internal fun PlayerActivity.matchDisplayMode(p: ExoPlayer) {
 internal fun PlayerActivity.infoText(): String {
     val p = player ?: return ""
     val display = if (android.os.Build.VERSION.SDK_INT >= 30) display else @Suppress("DEPRECATION") windowManager.defaultDisplay
-    val mode = display?.mode?.let { m -> getString(R.string.pl_info_display, "${m.physicalWidth}×${m.physicalHeight} @ ${String.format(Locale.US, "%.3f", m.refreshRate).trimEnd('0').trimEnd('.')} Hz") }
+    val mode = display?.mode?.let { m -> getString(R.string.pl_info_display, resources.getString(R.string.ui_hz ,m.physicalWidth.toString(),m.physicalHeight.toString(),String.format(Locale.US, "%.3f", m.refreshRate).trimEnd('0').trimEnd('.'))) }
     val buffer = getString(R.string.pl_info_buffered, ((p.bufferedPosition - p.currentPosition) / 1000).coerceAtLeast(0))
     return listOfNotNull(
-        Playback.describeVideo(p.videoFormat, videoDecoder, hdr10PlusMetadata && playbackEngine?.compatibility == null, playbackEngine?.compatibility != null),
-        Playback.describeAudio(p.audioFormat, audioDecoder),
-        "Source HDR: ${HdrDiagnostics.source(p.videoFormat)}",
-        "Requested output: ${HdrDiagnostics.requested(PictureProfiles.effective(config,resumeKey).hdrOutput)}",
-        playbackEngine?.compatibility?.diagnostics()?.filterKeys {it in setOf("Renderer","HDR output","Android HDR surface","Expansion status") }?.entries?.joinToString("\n"){"${it.key}: ${it.value}"},
-        "Dolby Vision RPU/FEL reconstruction: not independently verified",
+        Playback.describeVideo(resources,p.videoFormat, videoDecoder, hdr10PlusMetadata && playbackEngine?.compatibility == null, playbackEngine?.compatibility != null),
+        Playback.describeAudio(resources,p.audioFormat, audioDecoder),
+        resources.getString(R.string.ui_source_hdr ,HdrDiagnostics.source(resources,p.videoFormat)),
+        resources.getString(R.string.ui_requested_output ,HdrDiagnostics.requested(resources,PictureProfiles.effective(config,resumeKey).hdrOutput)),
+        playbackEngine?.compatibility?.diagnostics()?.filterKeys {it in setOf(R.string.ui_renderer,R.string.ui_hdr_output,R.string.ui_android_hdr_surface,R.string.ui_expansion_status) }?.entries?.joinToString("\n"){"${resources.getString(it.key)}: ${it.value}"},
+        resources.getString(R.string.ui_dolby_vision_rpu_fel_reconstruction_not_independently_verified),
         mode,
         buffer,
         getString(R.string.pl_info_hide),
@@ -200,13 +200,13 @@ internal fun PlayerActivity.refreshSubtitlePanel() {
         val label = listOfNotNull(
             if (c.hashMatch) "★" else null,
             c.languageName,
-            if (c.forced) "Forced" else null, if (c.hearingImpaired) getString(R.string.pl_hi) else null,
+            if (c.forced) resources.getString(R.string.ui_forced) else null, if (c.hearingImpaired) getString(R.string.pl_hi) else null,
             c.provider,
             c.release?.take(60),
         ).joinToString(" · ")
         add(label, chosen) { subs.selectExternal(c) }
     }
-    val subtitleTiming = getString(R.string.pl_subtitle_timing, String.format(Locale.US, "%+.1f s", subs.engine.offsetMs / 1000.0))
+    val subtitleTiming = getString(R.string.pl_subtitle_timing, String.format(Locale.US, resources.getString(R.string.ui_1f_s), subs.engine.offsetMs / 1000.0))
     timingLabel.text = if (sel is SubtitleController.Selection.External) subtitleTiming
         else getString(R.string.pl_label_pair, subtitleTiming, getString(R.string.pl_for_downloaded))
     updateSoundLabel()
@@ -245,7 +245,7 @@ internal fun PlayerActivity.subtitleChoices(): Pair<List<Pair<String, Boolean>>,
         rows += getString(R.string.pl_in_the_video, label) to (sel == SubtitleController.Selection.Embedded(g, t)); acts += { subs.selectEmbedded(g, t) }
     }
     subs.candidates.take(12).forEach { c ->
-        val label = listOfNotNull(if (c.hashMatch) "★" else null, c.languageName, if (c.forced) "Forced" else null, if (c.hearingImpaired) getString(R.string.pl_hi) else null, c.provider).joinToString(" · ")
+        val label = listOfNotNull(if (c.hashMatch) "★" else null, c.languageName, if (c.forced) resources.getString(R.string.ui_forced) else null, if (c.hearingImpaired) getString(R.string.pl_hi) else null, c.provider).joinToString(" · ")
         rows += label to (sel is SubtitleController.Selection.External && sel.candidate == c); acts += { subs.selectExternal(c) }
     }
     if(sel is SubtitleController.Selection.Manual){rows+=sel.label to true;acts+={}}

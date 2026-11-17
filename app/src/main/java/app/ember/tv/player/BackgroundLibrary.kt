@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.session.*
@@ -10,7 +12,7 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-internal class BackgroundLibrary(context:android.content.Context,private val items:()->List<MediaItem>):MediaLibrarySession.Callback {
+internal class BackgroundLibrary(private val context:android.content.Context,private val items:()->List<MediaItem>):MediaLibrarySession.Callback {
     private val packages=context.applicationContext.packageManager
     override fun onConnectAsync(session:MediaSession,controller:MediaSession.ControllerInfo):ListenableFuture<MediaSession.ConnectionResult> {
         val automotive=(session.isAutoCompanionController(controller)||session.isAutomotiveController(controller))&&
@@ -23,8 +25,8 @@ internal class BackgroundLibrary(context:android.content.Context,private val ite
             .setAvailableSessionCommands(MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS)
         return Futures.immediateFuture(result.build())
     }
-    private val root=MediaItem.Builder().setMediaId(ROOT).setMediaMetadata(MediaMetadata.Builder()
-        .setTitle("Current playback").setIsBrowsable(true).setIsPlayable(false).setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED).build()).build()
+    private val root get()=MediaItem.Builder().setMediaId(ROOT).setMediaMetadata(MediaMetadata.Builder()
+        .setTitle(context.getString(R.string.ui_current_playback)).setIsBrowsable(true).setIsPlayable(false).setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED).build()).build()
     override fun onGetLibraryRoot(session:MediaLibrarySession,browser:MediaSession.ControllerInfo,params:LibraryParams?):ListenableFuture<LibraryResult<MediaItem>> = Futures.immediateFuture(LibraryResult.ofItem(root,params))
     override fun onGetItem(session:MediaLibrarySession,browser:MediaSession.ControllerInfo,mediaId:String):ListenableFuture<LibraryResult<MediaItem>> {
         val item=if(mediaId==ROOT)root else items().firstOrNull {it.mediaId==mediaId}

@@ -35,7 +35,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
     PlayerActivity.current = java.lang.ref.WeakReference(this)
     startOver = intent.getBooleanExtra(PlayRequest.EXTRA_START_OVER, false)
     queueId=intent.getStringExtra("ember.fileQueue");fileQueue=MediaQueues.get(queueId)
-    if(queueId!=null&&fileQueue==null){Toast.makeText(this,"Reopen your media files to restore this queue.",Toast.LENGTH_LONG).show();finish();return}
+    if(queueId!=null&&fileQueue==null){Toast.makeText(this,resources.getString(R.string.ui_reopen_your_media_files_to_restore_this_queue),Toast.LENGTH_LONG).show();finish();return}
 
     applyStreamHeaders(PlayRequest.headers(intent))
     audioUrl = intent.getStringExtra(PlayerActivity.EXTRA_AUDIO_URL)
@@ -137,7 +137,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
 
     playbackEngine=PlaybackEngine(this,standard,{renderConfig().copy(passthrough=config.passthrough&&!codecs.pcm)}) { compatible ->
         pictureBypassed=false;pictureSignature=null;pictureEffectsActive=false
-        videoDecoder=if(compatible)"Compatibility engine" else null
+        videoDecoder=if(compatible)resources.getString(R.string.ui_compatibility_engine) else null
         loudness?.release();loudness=null
         if(boostLevel>0)setBoost(boostLevel)
         if(compatible) {
@@ -148,7 +148,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
             playbackEngine?.compatibility?.audioDelay(audioDelay.us/1000)
             playbackEngine?.compatibility?.audioEffects(config.audioEffects)
             if(subsInitialized){playbackEngine?.compatibility?.subtitleSpeed(subs.engine.speed);playbackEngine?.compatibility?.subtitleDelay(subs.engine.offsetMs)}
-            Toast.makeText(this,"Trying compatibility playback",Toast.LENGTH_SHORT).show()
+            Toast.makeText(this,resources.getString(R.string.ui_trying_compatibility_playback),Toast.LENGTH_SHORT).show()
         }
     }
     val p=playbackEngine!!.player
@@ -300,7 +300,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
             if (!triedAsHls && playbackEngine?.compatibility == null && audioUrl == null &&
                 PlaybackErrors.mayBeHls(error.errorCode, currentUrl)) {
                 triedAsHls = true
-                app.ember.tv.data.CrashLog.note("Playback error ${error.errorCodeName} · trying the link as HLS", error)
+                app.ember.tv.data.CrashLog.note(resources.getString(R.string.ui_playback_error_trying_the_link_as_hls ,error.errorCodeName), error)
                 p.currentMediaItem?.buildUpon()?.setMimeType(MimeTypes.APPLICATION_M3U8)?.build()?.let {
                     val position = p.currentPosition
                     p.setMediaItem(it, position)
@@ -311,9 +311,9 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
             val what = describe((error as? androidx.media3.exoplayer.ExoPlaybackException)?.rendererFormat)
             // Every playback error goes to Settings > About > Crash log, with the decoders in use.
             app.ember.tv.data.CrashLog.note(
-                "Playback error ${error.errorCodeName}" + (if (what.isNotBlank()) " ($what)" else "") +
-                    " · video decoder ${videoDecoder ?: "none"} · audio decoder ${audioDecoder ?: "none"}" +
-                    " · FFmpeg video ${codecs.ffmpegVideo} · retries $recoveries/$ioRetries · at ${player?.currentPosition ?: 0} ms",
+                resources.getString(R.string.ui_playback_error ,error.errorCodeName) + (if (what.isNotBlank()) " ($what)" else "") +
+                    resources.getString(R.string.ui_video_decoder_audio_decoder ,videoDecoder ?: "none",audioDecoder ?: "none") +
+                    resources.getString(R.string.ui_ffmpeg_video_retries_at_ms ,codecs.ffmpegVideo.toString(),recoveries.toString(),ioRetries.toString(),(player?.currentPosition ?: 0).toString()),
                 error,
             )
             if(PlaybackErrors.decoding(error.errorCode)) {

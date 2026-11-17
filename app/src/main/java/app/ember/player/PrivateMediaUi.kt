@@ -1,5 +1,7 @@
 package app.ember.player
 
+import app.ember.tv.R
+
 import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -20,36 +22,40 @@ import kotlinx.coroutines.*
 
 @Composable
 internal fun PrivatePinPrompt(close:()->Unit,success:()->Unit,createNew:Boolean=false) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     val scope=rememberCoroutineScope()
     val create=createNew||!PrivateMedia.enabled
     val changing=createNew&&PrivateMedia.enabled
     var pin by remember {mutableStateOf("")};var confirm by remember {mutableStateOf("")}
     var notice by remember {mutableStateOf<String?>(null)};var busy by remember {mutableStateOf(false)}
     TvDialog({if(!busy)close()},width=460.dp,resizeForKeyboard=true,scrollContent=true) {
-        DialogHeading(if(changing)"Change private-media PIN" else if(create)"Create private-media PIN" else "Unlock private media")
-        Text(if(create)"Use 6–12 digits. Keep your PIN safe: it cannot be recovered." else "Enter your private-media PIN.",style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
-        TvTextField(pin,{pin=it.filter {c->c in '0'..'9'}.take(12)},Modifier.fillMaxWidth(),password=true,keyboardType=KeyboardType.NumberPassword,placeholder="PIN")
-        if(create)TvTextField(confirm,{confirm=it.filter {c->c in '0'..'9'}.take(12)},Modifier.fillMaxWidth(),password=true,keyboardType=KeyboardType.NumberPassword,placeholder="Confirm PIN")
+        DialogHeading(if(changing)uiResources.getString(R.string.ui_change_private_media_pin) else if(create)uiResources.getString(R.string.ui_create_private_media_pin) else uiResources.getString(R.string.ui_unlock_private_media))
+        Text(if(create)uiResources.getString(R.string.ui_use_6_12_digits_keep_your_pin_safe_it) else uiResources.getString(R.string.ui_enter_your_private_media_pin),style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+        TvTextField(pin,{pin=it.filter {c->c in '0'..'9'}.take(12)},Modifier.fillMaxWidth(),password=true,keyboardType=KeyboardType.NumberPassword,placeholder=uiResources.getString(R.string.ui_pin))
+        if(create)TvTextField(confirm,{confirm=it.filter {c->c in '0'..'9'}.take(12)},Modifier.fillMaxWidth(),password=true,keyboardType=KeyboardType.NumberPassword,placeholder=uiResources.getString(R.string.ui_confirm_pin))
         notice?.let {PlayerErrorText(it)}
         ButtonRow {
-            PlayerAction(if(busy)"Checking…" else if(changing)"Save PIN" else if(create)"Create PIN" else "Unlock",primary=true,enabled=!busy) {if(!busy){
-                if(!PrivatePin.valid(pin)||create&&pin!=confirm)notice="Use 6–12 digits and matching PINs."
+            PlayerAction(if(busy)uiResources.getString(R.string.ui_checking) else if(changing)uiResources.getString(R.string.ui_save_pin) else if(create)uiResources.getString(R.string.ui_create_pin) else uiResources.getString(R.string.ui_unlock),primary=true,enabled=!busy) {if(!busy){
+                if(!PrivatePin.valid(pin)||create&&pin!=confirm)notice=uiResources.getString(R.string.ui_use_6_12_digits_and_matching_pins)
                 else {val value=pin;pin="";confirm="";busy=true;scope.launch {
                     try {
                         val okay=withContext(Dispatchers.IO){if(create){PrivateMedia.configure(value);true}else PrivateMedia.authenticate(value)}
-                        if(okay)success() else notice="Incorrect PIN"
+                        if(okay)success() else notice=uiResources.getString(R.string.ui_incorrect_pin)
                     } catch(e:CancellationException){throw e}
-                    catch(e:Exception){notice=e.message?.take(180) ?: "Private storage is unavailable."}
+                    catch(e:Exception){notice=if(PrivateMedia.state.value.retryElapsed>android.os.SystemClock.elapsedRealtime())uiResources.getString(R.string.ui_too_many_attempts_wait_before_trying_again) else uiResources.getString(R.string.ui_private_storage_is_unavailable)}
                     finally {busy=false}
                 }}
             }}
-            app.ember.player.PlayerAction("Cancel"){if(!busy)close()}
+            app.ember.player.PlayerAction(uiResources.getString(R.string.ui_cancel)){if(!busy)close()}
         }
     }
 }
 
 @Composable
 internal fun PrivateMediaPanel(activity:ComponentActivity) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     val state by PrivateMedia.state.collectAsState()
     val unlocked by PrivateMedia.unlocked.collectAsState()
     val scope=rememberCoroutineScope()
@@ -67,7 +73,7 @@ internal fun PrivateMediaPanel(activity:ComponentActivity) {
         scope.launch {
             try {withContext(Dispatchers.IO){check(PrivateMedia.unlocked.value);PrivateMedia.addAll(block())}}
             catch(e:CancellationException){throw e}
-            catch(e:Exception){notice=e.message?.take(180) ?: "Could not save private media."}
+            catch(e:Exception){notice=uiResources.getString(R.string.ui_could_not_save_private_media_check_access_and_the)}
             finally {importing=false}
         }
     }
@@ -92,34 +98,34 @@ internal fun PrivateMediaPanel(activity:ComponentActivity) {
         if(!unlocked)return@LaunchedEffect
         try {entries=withContext(Dispatchers.IO){DeviceFiles.list(activity,android.net.Uri.parse(root.uri),parents.lastOrNull() ?: DeviceFiles.root(android.net.Uri.parse(root.uri))){ensureActive()}.entries.sortedWith(compareByDescending<DeviceFile> {it.directory}.thenBy(NaturalOrder) {it.name})}}
         catch(e:CancellationException){throw e}
-        catch(_:Exception){notice="Private folder is unavailable. Add it again to renew access."}
+        catch(_:Exception){notice=uiResources.getString(R.string.ui_private_folder_is_unavailable_add_it_again_to_renew)}
     }
-    PlayerSection(PlayerUiLabels.PRIVATE_MEDIA) {
-        Chip(if(open&&unlocked)"Close private media" else "Open private media"){
+    PlayerSection(uiResources.getString(PlayerUiLabels.PRIVATE_MEDIA)) {
+        Chip(if(open&&unlocked)uiResources.getString(R.string.ui_close_private_media) else uiResources.getString(R.string.ui_open_private_media)){
             if(open)open=false else if(PrivateMedia.enabled&&unlocked)open=true else prompt=true
         }
         if(prompt)PrivatePinPrompt({prompt=false},{prompt=false;open=true})
         if(open&&unlocked) {
-            Text("Hidden inside Ember Player. Original files remain available to other apps; this is access protection, not file encryption. Private playback does not save activity or expose system media controls.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+            Text(uiResources.getString(R.string.ui_hidden_inside_ember_player_original_files_remain_available_to),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
             ButtonRow {
-                Chip(if(importing)"Adding files…" else "Add files"){if(!importing){PrivateMedia.beginPicker();runCatching {files.launch(arrayOf("video/*","audio/*","application/octet-stream"))}.onFailure {PrivateMedia.endPicker();notice="No file picker is installed."}}}
-                Chip("Add folder"){if(!importing){PrivateMedia.beginPicker();runCatching {folders.launch(null)}.onFailure {PrivateMedia.endPicker();notice="No folder picker is installed."}}}
-                Chip("Lock"){PrivateMedia.lock()}
+                Chip(if(importing)uiResources.getString(R.string.ui_adding_files) else uiResources.getString(R.string.ui_add_files)){if(!importing){PrivateMedia.beginPicker();runCatching {files.launch(arrayOf("video/*","audio/*","application/octet-stream"))}.onFailure {PrivateMedia.endPicker();notice=uiResources.getString(R.string.ui_no_file_picker_is_installed)}}}
+                Chip(uiResources.getString(R.string.ui_add_folder)){if(!importing){PrivateMedia.beginPicker();runCatching {folders.launch(null)}.onFailure {PrivateMedia.endPicker();notice=uiResources.getString(R.string.ui_no_folder_picker_is_installed)}}}
+                Chip(uiResources.getString(R.string.ui_lock)){PrivateMedia.lock()}
             }
             if(folder==null)LazyColumn(Modifier.fillMaxWidth().heightIn(max=360.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
                 items(state.items.sortedWith(compareByDescending<PrivateItem> {it.folder}.thenBy(NaturalOrder) {it.name}),key={it.uri}) {item->ButtonRow {
-                    DeviceMediaRow(DeviceFile(android.net.Uri.parse(item.uri),android.net.Uri.parse(item.uri),item.name,if(item.folder)android.provider.DocumentsContract.Document.MIME_TYPE_DIR else "video/*",-1,0,0)){if(item.folder){folder=item;parents=emptyList()}else runCatching {MediaFiles.launch(activity,listOf(QueueMedia(item.uri,item.name)))}.onFailure {notice="This media is unavailable. Add it again to renew access."}}
-                    Chip("Make visible"){scope.launch {runCatching {withContext(Dispatchers.IO){PrivateMedia.remove(item.uri)}}.onFailure {notice="Could not update private media."}}}
+                    DeviceMediaRow(DeviceFile(android.net.Uri.parse(item.uri),android.net.Uri.parse(item.uri),item.name,if(item.folder)android.provider.DocumentsContract.Document.MIME_TYPE_DIR else "video/*",-1,0,0)){if(item.folder){folder=item;parents=emptyList()}else runCatching {MediaFiles.launch(activity,listOf(QueueMedia(item.uri,item.name)))}.onFailure {notice=uiResources.getString(R.string.ui_this_media_is_unavailable_add_it_again_to_renew)}}
+                    Chip(uiResources.getString(R.string.ui_make_visible)){scope.launch {runCatching {withContext(Dispatchers.IO){PrivateMedia.remove(item.uri)}}.onFailure {notice=uiResources.getString(R.string.ui_could_not_update_private_media)}}}
                 }}
             } else {
-                Chip("Back"){if(parents.isEmpty())folder=null else parents=parents.dropLast(1)}
+                Chip(uiResources.getString(R.string.ui_back)){if(parents.isEmpty())folder=null else parents=parents.dropLast(1)}
                 LazyColumn(Modifier.fillMaxWidth().heightIn(max=360.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
                     items(entries,key={it.uri.toString()}) {entry->DeviceMediaRow(entry){
-                        if(entry.directory)parents=parents+entry.uri else runCatching {MediaFiles.launch(activity,listOf(QueueMedia(entry.uri.toString(),entry.name,directory=entry.parent.toString())))}.onFailure {notice="Could not open private media."}
+                        if(entry.directory)parents=parents+entry.uri else runCatching {MediaFiles.launch(activity,listOf(QueueMedia(entry.uri.toString(),entry.name,directory=entry.parent.toString())))}.onFailure {notice=uiResources.getString(R.string.ui_could_not_open_private_media)}
                     }}
                 }
             }
-            PlayerAction("Remove PIN protection",destructive=true){removing=true}
+            PlayerAction(uiResources.getString(R.string.ui_remove_pin_protection),destructive=true){removing=true}
         }
         if(removing&&unlocked)RemovePrivateProtectionPrompt({removing=false}){notice=it}
         notice?.let {PlayerErrorText(it)}
@@ -128,9 +134,11 @@ internal fun PrivateMediaPanel(activity:ComponentActivity) {
 
 @Composable
 private fun RemovePrivateProtectionPrompt(close:()->Unit,error:(String)->Unit) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     val scope=rememberCoroutineScope()
     var busy by remember {mutableStateOf(false)}
-    PlayerConfirmationDialog("Make private media visible?","Removes the PIN and makes all private entries visible in normal browsing. Original files are kept.","Remove protection",close,busy) {
+    PlayerConfirmationDialog(uiResources.getString(R.string.ui_make_private_media_visible),uiResources.getString(R.string.ui_removes_the_pin_and_makes_all_private_entries_visible),uiResources.getString(R.string.ui_remove_protection),close,busy) {
         if(!busy){busy=true;scope.launch {
             try {withContext(Dispatchers.IO){PrivateMedia.removeProtection()};close()}
             catch(e:CancellationException){throw e}
@@ -141,6 +149,8 @@ private fun RemovePrivateProtectionPrompt(close:()->Unit,error:(String)->Unit) {
 }
 
 @Composable internal fun PrivacySettings() {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     val state by PrivateMedia.state.collectAsState();val scope=rememberCoroutineScope()
     val unlocked by PrivateMedia.unlocked.collectAsState()
     var notice by remember {mutableStateOf<String?>(null)}
@@ -150,36 +160,36 @@ private fun RemovePrivateProtectionPrompt(close:()->Unit,error:(String)->Unit) {
     var clearing by remember {mutableStateOf(false)}
     var disabling by remember {mutableStateOf(false)}
     var status by remember {mutableStateOf<String?>(null)}
-    Text("Private media PIN",style=androidx.tv.material3.MaterialTheme.typography.bodyLarge)
-    Text("Protect access inside Ember Player. Add and browse protected files from Private media in the library.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+    Text(uiResources.getString(R.string.ui_private_media_pin),style=androidx.tv.material3.MaterialTheme.typography.bodyLarge)
+    Text(uiResources.getString(R.string.ui_protect_access_inside_ember_player_add_and_browse_protected),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
     when {
-        !PrivateMedia.enabled->Chip("Create PIN"){editingPin=true}
+        !PrivateMedia.enabled->Chip(uiResources.getString(R.string.ui_create_pin)){editingPin=true}
         unlocked->ButtonRow {
-            Chip("Change PIN"){editingPin=true}
-            PlayerAction("Remove PIN protection",destructive=true){removing=true}
+            Chip(uiResources.getString(R.string.ui_change_pin)){editingPin=true}
+            PlayerAction(uiResources.getString(R.string.ui_remove_pin_protection),destructive=true){removing=true}
         }
-        else->Chip("Unlock private media"){unlocking=true}
+        else->Chip(uiResources.getString(R.string.ui_unlock_private_media)){unlocking=true}
     }
     if(editingPin)PrivatePinPrompt({editingPin=false},{editingPin=false},createNew=true)
     if(unlocking)PrivatePinPrompt({unlocking=false},{unlocking=false})
     if(removing&&unlocked)RemovePrivateProtectionPrompt({removing=false}){notice=it}
-    SwitchChip("Save recent activity and resume positions",state.history){
+    SwitchChip(uiResources.getString(R.string.ui_save_recent_activity_and_resume_positions),state.history){
         if(state.history)disabling=true else scope.launch {
             try {withContext(Dispatchers.IO){PrivateMedia.recordHistory(true)}}
             catch(e:CancellationException){throw e}
-            catch(_:Exception){notice="Could not update privacy settings."}
+            catch(_:Exception){notice=uiResources.getString(R.string.ui_could_not_update_privacy_settings)}
         }
     }
-    Text("Turning this off clears recent activity and resume positions. Playlists and bookmarks are kept.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
-    PlayerAction("Clear recent activity and resume positions",destructive=true){clearing=true}
-    if(clearing||disabling)PlayerConfirmationDialog(if(disabling)"Turn off activity history?" else "Clear recent activity?",
-        "Recent activity and resume positions will be cleared. Playlists and bookmarks will be kept."+(if(disabling)" New activity will no longer be saved." else ""),
-        if(disabling)"Turn off and clear" else "Clear activity",{clearing=false;disabling=false}) {
+    Text(uiResources.getString(R.string.ui_turning_this_off_clears_recent_activity_and_resume_positions),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+    PlayerAction(uiResources.getString(R.string.ui_clear_recent_activity_and_resume_positions),destructive=true){clearing=true}
+    if(clearing||disabling)PlayerConfirmationDialog(if(disabling)uiResources.getString(R.string.ui_turn_off_activity_history) else uiResources.getString(R.string.ui_clear_recent_activity),
+        uiResources.getString(R.string.ui_recent_activity_and_resume_positions_will_be_cleared_playlists)+(if(disabling)uiResources.getString(R.string.ui_new_activity_will_no_longer_be_saved) else ""),
+        if(disabling)uiResources.getString(R.string.ui_turn_off_and_clear) else uiResources.getString(R.string.ui_clear_activity),{clearing=false;disabling=false}) {
         val stopRecording=disabling;clearing=false;disabling=false;notice=null;status=null
         scope.launch {
-            try {withContext(Dispatchers.IO){if(stopRecording)PrivateMedia.recordHistory(false) else PrivateMedia.clearHistory()};status="Recent activity cleared"}
+            try {withContext(Dispatchers.IO){if(stopRecording)PrivateMedia.recordHistory(false) else PrivateMedia.clearHistory()};status=uiResources.getString(R.string.ui_recent_activity_cleared)}
             catch(e:CancellationException){throw e}
-            catch(_:Exception){notice="Could not clear all recent activity."}
+            catch(_:Exception){notice=uiResources.getString(R.string.ui_could_not_clear_all_recent_activity)}
         }
     }
     notice?.let {PlayerErrorText(it)}

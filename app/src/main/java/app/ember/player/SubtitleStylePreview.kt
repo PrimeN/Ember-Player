@@ -1,5 +1,7 @@
 package app.ember.player
 
+import app.ember.tv.R
+
 import android.content.Context
 import android.graphics.*
 import android.text.Layout
@@ -45,7 +47,7 @@ internal data class SubtitlePreviewStyle(val typeface:Typeface,val foreground:In
     }
 }
 internal class SubtitlePreviewView(context:Context):View(context) {
-    private val sample="A moment worth watching.\nSubtitles, just the way you like them."
+    private val sample get()=context.getString(R.string.ui_a_moment_worth_watching_subtitles_just_the_way_you)
     private val paint=TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG)
     private val backgroundPaint=Paint(Paint.ANTI_ALIAS_FLAG)
     private var config=SubtitleConfig()
@@ -58,7 +60,12 @@ internal class SubtitlePreviewView(context:Context):View(context) {
         override fun onUserStyleChanged(userStyle:CaptioningManager.CaptionStyle){refresh()}
         override fun onFontScaleChanged(fontScale:Float){refresh()}
     }
-    init {contentDescription="Subtitle style preview";importantForAccessibility=IMPORTANT_FOR_ACCESSIBILITY_YES}
+    init {contentDescription=context.getString(R.string.ui_subtitle_style_preview);importantForAccessibility=IMPORTANT_FOR_ACCESSIBILITY_YES}
+    override fun onConfigurationChanged(configuration:android.content.res.Configuration) {
+        super.onConfigurationChanged(configuration)
+        contentDescription=context.getString(R.string.ui_subtitle_style_preview)
+        refresh()
+    }
     fun configure(value:SubtitleConfig) {
         val file=if(value.font==SubtitleFonts.CUSTOM)SubtitleFonts.file(context) else null
         val stamp="${value.font}|${file?.length()}|${file?.lastModified()}"

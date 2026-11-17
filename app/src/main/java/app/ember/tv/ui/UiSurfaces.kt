@@ -1,5 +1,7 @@
 package app.ember.tv.ui
 
+import app.ember.tv.R
+
 import androidx.compose.material.icons.outlined.Close
 
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -96,5 +98,5 @@ internal fun CompactPanelContent(content: @Composable () -> Unit) {
 
 @Composable
 fun DialogClose(close:()->Unit,modifier:Modifier=Modifier) {
-    ToolbarIcon(androidx.compose.ui.res.stringResource(app.ember.tv.R.string.ui_close),androidx.compose.material.icons.Icons.Outlined.Close,modifier,onClick=close)
+    ToolbarIcon(androidx.compose.ui.res.stringResource(R.string.ui_close),androidx.compose.material.icons.Icons.Outlined.Close,modifier,onClick=close)
 }

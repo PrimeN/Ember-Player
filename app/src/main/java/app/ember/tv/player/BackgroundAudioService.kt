@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.app.*
 import android.content.*
 import android.content.pm.ServiceInfo
@@ -69,7 +71,7 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
         }
         sleepWatch=app.ember.tv.data.SleepTimer.listen {stopPlayback()}
         getSharedPreferences("ember",MODE_PRIVATE).registerOnSharedPreferenceChangeListener(preferences)
-        getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel(CHANNEL,"Background playback",NotificationManager.IMPORTANCE_LOW))
+        getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel(CHANNEL,resources.getString(R.string.ui_background_playback),NotificationManager.IMPORTANCE_LOW))
         configureNotifications()
         wake=(getSystemService(POWER_SERVICE) as PowerManager).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"EmberPlayer:background").apply {setReferenceCounted(false)}
 
@@ -191,7 +193,7 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
         if(closing)return
         updatePower()
         val player=audio?.player
-        id?.let {playingState.value=BackgroundNowPlaying(it,source?.title ?: "Ember Player",player?.isPlaying==true)}
+        id?.let {playingState.value=BackgroundNowPlaying(it,source?.title ?: resources.getString(R.string.ui_ember_player),player?.isPlaying==true)}
         sessionPlayer?.refresh()
         handler.removeCallbacks(ticker)
         if(player?.playWhenReady==true)handler.postDelayed(ticker,5000)
@@ -223,7 +225,7 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
     }
     private fun configureNotifications() {
         val delegate=DefaultMediaNotificationProvider.Builder(this).setNotificationId(NOTIFICATION).setChannelId(CHANNEL).build()
-        delegate.setSmallIcon(app.ember.tv.R.drawable.ic_player_notification)
+        delegate.setSmallIcon(R.drawable.ic_player_notification)
         fun privateNotification(value:MediaNotification):MediaNotification {value.notification.visibility=Notification.VISIBILITY_PRIVATE;return value}
         setMediaNotificationProvider(object:MediaNotification.Provider {
             override fun getNotificationChannelInfo()=delegate.notificationChannelInfo
@@ -246,8 +248,8 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
     private fun control(action:String):PendingIntent = PendingIntent.getService(this,action.hashCode(),Intent(this,BackgroundAudioService::class.java)
         .setAction(action).setData(Uri.Builder().scheme("emberplayer").authority("background").appendPath(id).appendPath(action).build())
         .putExtra(EXTRA_ID,id),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-    private fun preparingNotification():Notification=Notification.Builder(this,CHANNEL).setSmallIcon(app.ember.tv.R.drawable.ic_player_notification)
-        .setContentTitle("Ember Player").setContentText("Preparing background playback").setVisibility(Notification.VISIBILITY_PRIVATE).setOnlyAlertOnce(true).build()
+    private fun preparingNotification():Notification=Notification.Builder(this,CHANNEL).setSmallIcon(R.drawable.ic_player_notification)
+        .setContentTitle(resources.getString(R.string.ui_ember_player)).setContentText(resources.getString(R.string.ui_preparing_background_playback)).setVisibility(Notification.VISIBILITY_PRIVATE).setOnlyAlertOnce(true).build()
     private fun releaseSession(releaseQueue:Boolean) {
         usbWatch?.close();usbWatch=null
         closing=true
@@ -306,9 +308,9 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
             val id=java.util.UUID.randomUUID().toString()
             pending[id]=BackgroundHandoff(request)
             val intent=Intent(context,BackgroundAudioService::class.java).putExtra(EXTRA_ID,id)
-            intent.clipData=request.resumeIntent.clipData ?: request.source.urls.firstOrNull {it.startsWith("content://")}?.let {ClipData.newRawUri("Media",Uri.parse(it))}
+            intent.clipData=request.resumeIntent.clipData ?: request.source.urls.firstOrNull {it.startsWith("content://")}?.let {ClipData.newRawUri(context.resources.getString(R.string.ui_media),Uri.parse(it))}
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            try {checkNotNull(ContextCompat.startForegroundService(context,intent)) {"Background service unavailable."}} catch(e:Exception){pending.remove(id);throw e}
+            try {checkNotNull(ContextCompat.startForegroundService(context,intent)) {context.resources.getString(R.string.ui_background_service_unavailable)}} catch(e:Exception){pending.remove(id);throw e}
             return id
         }
         internal fun commit(id:String,request:BackgroundAudioRequest):Boolean {

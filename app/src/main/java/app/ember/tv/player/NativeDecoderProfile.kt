@@ -1,12 +1,14 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 internal data class NativeDecoderChoice(val hardware:String,val light:Boolean,val hi10p:Boolean) {
     val options get()=linkedMapOf("hwdec" to hardware,"vd-lavc-skiploopfilter" to if(light)"nonref" else "default",
         "framedrop" to "vo","vd-lavc-threads" to "0")
 }
 internal object NativeDecoderProfile {
-    val choices=listOf("auto" to "Automatic","direct" to "Direct hardware","copy" to "Hardware with copied frames",
-        "software" to "Software · full quality","light" to "Software · lighter decoding")
+    val choices=listOf("auto" to R.string.ui_automatic,"direct" to R.string.ui_direct_hardware,"copy" to R.string.ui_hardware_with_copied_frames,
+        "software" to R.string.ui_software_full_quality,"light" to R.string.ui_software_lighter_decoding)
     private val highBitDepth=Regex("(?:p|p0)(?:10|12|16)(?:le|be)?$")
     fun normalized(value:String)=value.takeIf {v->choices.any {it.first==v}} ?: "auto"
     fun hi10p(codec:String?,profile:String?,pixel:String?):Boolean {

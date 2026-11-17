@@ -1,5 +1,7 @@
 package app.ember.tv.ui
 
+import app.ember.tv.R
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
@@ -18,16 +20,16 @@ import androidx.tv.material3.MaterialTheme
  * Shadow Ember, Blue ember, Green flame, Rose ember, Modern Ember and Cinema red).
  */
 val Accents = listOf(
-    "Ember" to Color(0xFFFF7A2F),
-    "Charcoal" to ShadowEmberColors.Accent,
+    R.string.ui_ember to Color(0xFFFF7A2F),
+    R.string.ui_charcoal to ShadowEmberColors.Accent,
     // Sulphur burns blue.
-    "Blue" to Color(0xFF4F94FF),
+    R.string.ui_blue to Color(0xFF4F94FF),
     // Copper burns green.
-    "Green" to Color(0xFF34D399),
+    R.string.ui_green to Color(0xFF34D399),
     // Strontium burns crimson.
-    "Rose" to Color(0xFFFF5C8A),
-    "Android TV" to ModernEmberColors.Focus,
-    "Red" to Color(0xFFE50914),
+    R.string.ui_rose to Color(0xFFFF5C8A),
+    R.string.ui_android_tv to ModernEmberColors.Focus,
+    R.string.ui_red to Color(0xFFE50914),
 )
 
 /** The accent's position in [Accents], for drawings that come in each colourway (the logo). */

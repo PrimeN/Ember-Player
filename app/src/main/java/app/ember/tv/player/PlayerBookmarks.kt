@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import androidx.lifecycle.lifecycleScope
 import app.ember.tv.ui.*
 import androidx.compose.runtime.*
@@ -12,23 +14,23 @@ import kotlinx.coroutines.*
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal fun PlayerActivity.showBookmarks() {
-    if(privatePlayback){android.widget.Toast.makeText(this,"Bookmarks are not saved for private playback.",android.widget.Toast.LENGTH_SHORT).show();return}
+    if(privatePlayback){android.widget.Toast.makeText(this,resources.getString(R.string.ui_bookmarks_are_not_saved_for_private_playback),android.widget.Toast.LENGTH_SHORT).show();return}
     val key=resumeKey;val visit=playbackVisit
     val store=PlaybackBookmarks(this,localActivityScope)
     lifecycleScope.launch {
         val list=withContext(Dispatchers.IO){store.read(key)}
         if(visit!=playbackVisit || resumeKey!=key)return@launch
-        showPlayerActions("Bookmarks",listOf(PlayerDialogAction("Save current position") {
-            if(visit==playbackVisit && resumeKey==key)player?.currentPosition?.let {at->bookmarkName("Bookmark name",clock(at)) {label->
-                lifecycleScope.launch {val saved=withContext(Dispatchers.IO){store.add(key,at,label)};if(!saved)android.widget.Toast.makeText(this@showBookmarks,"Could not save bookmark. Limit: 50 per title, 512 titles.",android.widget.Toast.LENGTH_LONG).show();if(visit==playbackVisit)showBookmarks()}
+        showPlayerActions(resources.getString(R.string.ui_bookmarks),listOf(PlayerDialogAction(resources.getString(R.string.ui_save_current_position)) {
+            if(visit==playbackVisit && resumeKey==key)player?.currentPosition?.let {at->bookmarkName(resources.getString(R.string.ui_bookmark_name),clock(at)) {label->
+                lifecycleScope.launch {val saved=withContext(Dispatchers.IO){store.add(key,at,label)};if(!saved)android.widget.Toast.makeText(this@showBookmarks,resources.getString(R.string.ui_could_not_save_bookmark_limit_50_per_title_512),android.widget.Toast.LENGTH_LONG).show();if(visit==playbackVisit)showBookmarks()}
             }}
         })+list.map {bookmark->PlayerDialogAction("${clock(bookmark.positionMs)} · ${bookmark.name}") {
             showPlayerActions(bookmark.name,listOf(
-                PlayerDialogAction("Play from ${clock(bookmark.positionMs)}") {if(visit==playbackVisit)player?.seekTo(bookmark.positionMs)},
-                PlayerDialogAction("Rename") {bookmarkName("Rename bookmark",bookmark.name) {label->lifecycleScope.launch {val saved=withContext(Dispatchers.IO){store.rename(key,bookmark.id,label)};if(!saved)bookmarkWriteFailed();if(visit==playbackVisit)showBookmarks()}}},
-                PlayerDialogAction("Remove",destructive=true) {lifecycleScope.launch {val saved=withContext(Dispatchers.IO){store.remove(key,bookmark.id)};if(!saved)bookmarkWriteFailed();if(visit==playbackVisit)showBookmarks()}},
+                PlayerDialogAction(resources.getString(R.string.ui_play_from ,clock(bookmark.positionMs))) {if(visit==playbackVisit)player?.seekTo(bookmark.positionMs)},
+                PlayerDialogAction(resources.getString(R.string.ui_rename)) {bookmarkName(resources.getString(R.string.ui_rename_bookmark),bookmark.name) {label->lifecycleScope.launch {val saved=withContext(Dispatchers.IO){store.rename(key,bookmark.id,label)};if(!saved)bookmarkWriteFailed();if(visit==playbackVisit)showBookmarks()}}},
+                PlayerDialogAction(resources.getString(R.string.ui_remove),destructive=true) {lifecycleScope.launch {val saved=withContext(Dispatchers.IO){store.remove(key,bookmark.id)};if(!saved)bookmarkWriteFailed();if(visit==playbackVisit)showBookmarks()}},
             ))
-        }},message=if(list.isEmpty())"Save a scene to return to it later." else null)
+        }},message=if(list.isEmpty())resources.getString(R.string.ui_save_a_scene_to_return_to_it_later) else null)
     }
 }
 
@@ -49,12 +51,12 @@ internal fun PlayerActivity.bookmarkName(title:String,initial:String,saved:(Stri
             val view=androidx.compose.ui.platform.LocalView.current
             DisposableEffect(view) {dialog.target=view;onDispose {dialog.target=null}}
             DialogHeading(title)
-            TvTextField(text,{text=it.take(80)},Modifier.fillMaxWidth(),placeholder="Name")
-            ButtonRow {app.ember.player.PlayerAction("Save",primary=true) {val value=PlaybackBookmarks.label(text);if(value.isNotEmpty()){dialog.dismiss();saved(value)}};app.ember.player.PlayerAction("Cancel") {dialog.dismiss()}}
+            TvTextField(text,{text=it.take(80)},Modifier.fillMaxWidth(),placeholder=resources.getString(R.string.ui_name))
+            ButtonRow {app.ember.player.PlayerAction(resources.getString(R.string.ui_save),primary=true) {val value=PlaybackBookmarks.label(text);if(value.isNotEmpty()){dialog.dismiss();saved(value)}};app.ember.player.PlayerAction(resources.getString(R.string.ui_cancel)) {dialog.dismiss()}}
         }
     }}}
 }
 
 private fun PlayerActivity.bookmarkWriteFailed() {
-    android.widget.Toast.makeText(this,"Could not update bookmark. Please try again.",android.widget.Toast.LENGTH_LONG).show()
+    android.widget.Toast.makeText(this,resources.getString(R.string.ui_could_not_update_bookmark_please_try_again),android.widget.Toast.LENGTH_LONG).show()
 }

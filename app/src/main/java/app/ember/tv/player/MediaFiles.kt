@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -19,7 +21,7 @@ internal object MediaFiles {
     }
     fun name(context:Context,uri:Uri):String=runCatching {
         context.contentResolver.query(uri,arrayOf(OpenableColumns.DISPLAY_NAME),android.os.Bundle.EMPTY,null)?.use {if(it.moveToFirst())it.getString(0) else null}
-    }.getOrNull()?.take(180) ?: "Media file"
+    }.getOrNull()?.take(180) ?: context.resources.getString(R.string.ui_media_file)
     fun retain(context:Context,uri:Uri) {runCatching {context.contentResolver.takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION)}}
     fun subtitle(context:Context,uri:Uri):Pair<String,String> {
         val bytes=context.contentResolver.openInputStream(uri)?.use {SubtitleFiles.read(it)} ?: error("File unavailable.")

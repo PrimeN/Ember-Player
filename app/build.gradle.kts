@@ -244,8 +244,9 @@ android {
             }
         }
     }
+    androidResources { generateLocaleConfig = true }
     buildTypes {
-        debug { applicationIdSuffix = ".debug"; versionNameSuffix = "-debug" }
+        debug { isPseudoLocalesEnabled = true; applicationIdSuffix = ".debug"; versionNameSuffix = "-debug" }
         release {
             if (releaseKeystore != null) signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true

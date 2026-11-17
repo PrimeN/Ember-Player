@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.content.Intent
 import android.widget.Toast
 import androidx.media3.common.util.UnstableApi
@@ -36,7 +38,7 @@ internal fun PlayerActivity.commitBackgroundAudio():Boolean {
     if(request==null){stage?.let(BackgroundAudioService::cancelStage);backgroundStage=null;return false}
     if(stage==null) {
         stage=runCatching {BackgroundAudioService.stage(this,request)}.getOrNull()
-        if(stage==null){Toast.makeText(this,"This device blocked background playback.",Toast.LENGTH_SHORT).show();return false}
+        if(stage==null){Toast.makeText(this,resources.getString(R.string.ui_this_device_blocked_background_playback),Toast.LENGTH_SHORT).show();return false}
         backgroundStage=stage
     }
     // The compatibility backend allows one native player per process. Release video first.

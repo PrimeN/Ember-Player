@@ -1,5 +1,7 @@
 package app.ember.player
 
+import app.ember.tv.R
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.asImageBitmap
@@ -43,14 +45,16 @@ internal fun PlayerStatusText(message:String) {
 
 @Composable
 internal fun PlayerConfirmationDialog(title:String,message:String,confirmLabel:String,close:()->Unit,busy:Boolean=false,confirm:()->Unit) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     val cancelFocus=remember {FocusRequester()}
     val television=LocalPlayerTelevision.current
     TvDialog({if(!busy)close()},width=520.dp,scrollContent=true) {
         DialogHeading(title)
         Text(message,style=androidx.tv.material3.MaterialTheme.typography.bodyMedium)
         ButtonRow {
-            PlayerAction(if(busy)"Working…" else confirmLabel,destructive=true,enabled=!busy,onClick=confirm)
-            PlayerAction("Cancel",modifier=Modifier.focusRequester(cancelFocus),enabled=!busy,onClick=close)
+            PlayerAction(if(busy)uiResources.getString(R.string.ui_working) else confirmLabel,destructive=true,enabled=!busy,onClick=confirm)
+            PlayerAction(uiResources.getString(R.string.ui_cancel),modifier=Modifier.focusRequester(cancelFocus),enabled=!busy,onClick=close)
         }
     }
     LaunchedEffect(television){if(television){withFrameNanos {};runCatching {cancelFocus.requestFocus()}}}
@@ -58,9 +62,11 @@ internal fun PlayerConfirmationDialog(title:String,message:String,confirmLabel:S
 
 @Composable
 internal fun PlayerFileRow(name:String,directory:Boolean,modifier:Modifier=Modifier,selected:Boolean=false,preview:BrowserPreview=BrowserPreview(),audio:Boolean=false,click:()->Unit) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     val scheme=MaterialTheme.colorScheme
     Focusable(click,modifier.fillMaxWidth().heightIn(min=48.dp).semantics {
-        this.selected=selected;contentDescription=if(directory)"Folder: $name" else name
+        this.selected=selected;contentDescription=if(directory)uiResources.getString(R.string.ui_folder ,name) else name
     },container=if(selected)scheme.primaryContainer else scheme.surfaceVariant,focusedContainer=scheme.primary,
         contentColor=if(selected)scheme.onPrimaryContainer else scheme.onSurfaceVariant,
         focusedContent=scheme.onPrimary,outline=false,focusedScale=1f) {
@@ -71,7 +77,7 @@ internal fun PlayerFileRow(name:String,directory:Boolean,modifier:Modifier=Modif
                 Text(name,style=androidx.tv.material3.MaterialTheme.typography.bodyLarge,maxLines=2,overflow=TextOverflow.Ellipsis)
                 if(!directory&&preview.duration>0)Text(playerMediaTime(preview.duration),style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
             }
-            if(selected)Icon(Icons.Outlined.Check,"Selected",Modifier.size(20.dp))
+            if(selected)Icon(Icons.Outlined.Check,uiResources.getString(R.string.ui_selected),Modifier.size(20.dp))
         }
     }
 }

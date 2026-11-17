@@ -1,5 +1,7 @@
 package app.ember.tv.data
 
+import app.ember.tv.R
+
 import kotlinx.serialization.Serializable
 import java.util.Locale
 
@@ -39,10 +41,10 @@ data class SubtitleLayout(
 }
 
 object SubtitleEncodings {
-    val options=listOf("auto" to "Automatic","UTF-8" to "UTF-8","UTF-16LE" to "UTF-16 little-endian","UTF-16BE" to "UTF-16 big-endian",
-        "windows-1250" to "Central European","windows-1251" to "Cyrillic","windows-1252" to "Western European","windows-1253" to "Greek",
-        "windows-1254" to "Turkish","windows-1255" to "Hebrew","windows-1256" to "Arabic","windows-1257" to "Baltic","windows-1258" to "Vietnamese",
-        "windows-874" to "Thai","Shift_JIS" to "Japanese · Shift-JIS","GB18030" to "Chinese · GB18030","Big5" to "Chinese · Big5","EUC-KR" to "Korean")
+    val options=listOf("auto" to R.string.ui_automatic,"UTF-8" to R.string.ui_utf_8,"UTF-16LE" to R.string.ui_utf_16_little_endian,"UTF-16BE" to R.string.ui_utf_16_big_endian,
+        "windows-1250" to R.string.ui_central_european,"windows-1251" to R.string.ui_cyrillic,"windows-1252" to R.string.ui_western_european,"windows-1253" to R.string.ui_greek,
+        "windows-1254" to R.string.ui_turkish,"windows-1255" to R.string.ui_hebrew,"windows-1256" to R.string.ui_arabic,"windows-1257" to R.string.ui_baltic,"windows-1258" to R.string.ui_vietnamese,
+        "windows-874" to R.string.ui_thai,"Shift_JIS" to R.string.ui_japanese_shift_jis,"GB18030" to R.string.ui_chinese_gb18030,"Big5" to R.string.ui_chinese_big5,"EUC-KR" to R.string.ui_korean)
     fun decode(bytes:ByteArray,language:String,encoding:String):String {
         if(bytes.size>=3 && bytes[0]==0xEF.toByte() && bytes[1]==0xBB.toByte() && bytes[2]==0xBF.toByte())return String(bytes,3,bytes.size-3,Charsets.UTF_8)
         SubtitleFiles.bom(bytes)?.let {return it}

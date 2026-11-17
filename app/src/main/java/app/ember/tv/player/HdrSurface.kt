@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.content.Context
 import android.hardware.display.DisplayManager
 import android.view.Display
@@ -13,8 +15,8 @@ internal data class HdrDisplayInfo(val pq:Boolean,val summary:String) {
                 else (context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager).getDisplay(Display.DEFAULT_DISPLAY)
             val types=display?.hdrCapabilities?.supportedHdrTypes ?: intArrayOf()
             HdrDisplayInfo(types.any {it==Display.HdrCapabilities.HDR_TYPE_HDR10 || it==Display.HdrCapabilities.HDR_TYPE_HDR10_PLUS},
-                types.joinToString {when(it){1->"Dolby Vision";2->"HDR10";3->"HLG";4->"HDR10+";else->"HDR type $it"}}.ifBlank {"SDR / HDR not reported"})
-        }.getOrDefault(HdrDisplayInfo(false,"Display capabilities unavailable"))
+                types.joinToString {when(it){1->"Dolby Vision";2->"HDR10";3->"HLG";4->"HDR10+";else->context.getString(R.string.ui_hdr_type,it.toString())}}.ifBlank {context.getString(R.string.ui_sdr_hdr_not_reported)})
+        }.getOrDefault(HdrDisplayInfo(false,context.getString(R.string.ui_display_capabilities_unavailable)))
     }
 }
 @Keep

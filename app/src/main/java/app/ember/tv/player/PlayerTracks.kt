@@ -34,7 +34,7 @@ internal fun PlayerActivity.audioTracks(): List<Pair<String, Boolean>> {
         (0 until g.length).filter { g.isTrackSupported(it, true) }.map { i ->
             val f = g.getTrackFormat(i)
             val lang = f.language?.let { Locale.forLanguageTag(it).displayLanguage.takeIf { d -> d.isNotBlank() } ?: it }
-            val label = listOfNotNull(lang, f.label, Playback.audioName(f), if (f.channelCount > 0) "${f.channelCount} ch" else null)
+            val label = listOfNotNull(lang, f.label, Playback.audioName(f), if (f.channelCount > 0) resources.getString(R.string.ui_ch ,f.channelCount.toString()) else null)
                 .distinct().joinToString(" · ").ifBlank { getString(R.string.pl_track_n, i + 1) }
             label to g.isTrackSelected(i)
         }

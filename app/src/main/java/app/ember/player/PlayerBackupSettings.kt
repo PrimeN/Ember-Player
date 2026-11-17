@@ -1,5 +1,7 @@
 package app.ember.player
 
+import app.ember.tv.R
+
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,6 +18,8 @@ import kotlinx.coroutines.*
 
 @Composable
 internal fun PlayerBackupSettings(restored:()->Unit) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     val context=LocalContext.current
     val scope=rememberCoroutineScope()
     var busy by remember {mutableStateOf(false)}
@@ -38,18 +42,18 @@ internal fun PlayerBackupSettings(restored:()->Unit) {
                         try {context.contentResolver.openOutputStream(uri,"wt")?.use {it.write(bytes)} ?: error("Could not open the backup file.")}
                         finally {bytes.fill(0)}
                     }
-                    notice=PlayerFeedback("Encrypted backup saved",false)
+                    notice=PlayerFeedback(uiResources.getString(R.string.ui_encrypted_backup_saved),false)
                 } catch(e:CancellationException) {throw e}
-                catch(_:Exception) {notice=PlayerFeedback("Could not save the backup. Check file access and available storage.")}
+                catch(_:Exception) {notice=PlayerFeedback(uiResources.getString(R.string.ui_could_not_save_the_backup_check_file_access_and))}
                 finally {password.fill('\u0000');busy=false}
             }
         }
     }
     val select=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {uri->PrivateMedia.endPicker();if(uri!=null){source=uri;mode="restore"}}
-    Text("Settings, saved positions, bookmarks, playlists and connection details are protected by your backup password. Video files are not copied. Keep the password safe; it cannot be recovered.",style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
+    Text(uiResources.getString(R.string.ui_settings_saved_positions_bookmarks_playlists_and_connection_details_are),style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
     ButtonRow {
-        Chip(if(busy)"Working…" else "Export encrypted backup") {if(!busy){notice=null;mode="export"}}
-        Chip("Restore backup") {if(!busy)runCatching {if(PrivateMedia.enabled)PrivateMedia.beginPicker();select.launch(arrayOf("application/octet-stream","*/*"))}.onFailure {PrivateMedia.endPicker();notice=PlayerFeedback("No document picker is installed on this device.")}}
+        Chip(if(busy)uiResources.getString(R.string.ui_working) else uiResources.getString(R.string.ui_export_encrypted_backup)) {if(!busy){notice=null;mode="export"}}
+        Chip(uiResources.getString(R.string.ui_restore_backup)) {if(!busy)runCatching {if(PrivateMedia.enabled)PrivateMedia.beginPicker();select.launch(arrayOf("application/octet-stream","*/*"))}.onFailure {PrivateMedia.endPicker();notice=PlayerFeedback(uiResources.getString(R.string.ui_no_document_picker_is_installed_on_this_device))}}
     }
     notice?.let {PlayerFeedbackText(it)}
     mode?.let {operation->
@@ -57,19 +61,19 @@ internal fun PlayerBackupSettings(restored:()->Unit) {
         var confirm by remember(operation) {mutableStateOf("")}
         var error by remember(operation) {mutableStateOf<String?>(null)}
         TvDialog({mode=null;source=null},width=520.dp,resizeForKeyboard=true,scrollContent=true) {
-            DialogHeading(if(operation=="export")"Protect your backup" else "Unlock backup")
-            TvTextField(password,{password=it.take(256)},Modifier.fillMaxWidth(),placeholder="Password · at least 10 characters",password=true)
-            if(operation=="export")TvTextField(confirm,{confirm=it.take(256)},Modifier.fillMaxWidth(),placeholder="Confirm password",password=true)
+            DialogHeading(if(operation=="export")uiResources.getString(R.string.ui_protect_your_backup) else uiResources.getString(R.string.ui_unlock_backup))
+            TvTextField(password,{password=it.take(256)},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_password_at_least_10_characters),password=true)
+            if(operation=="export")TvTextField(confirm,{confirm=it.take(256)},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_confirm_password),password=true)
             error?.let {PlayerErrorText(it)}
             ButtonRow {
-                PlayerAction("Continue",primary=true) {
-                    if(password.length<10)error="Use at least 10 characters."
-                    else if(operation=="export" && password!=confirm)error="Passwords do not match."
+                PlayerAction(uiResources.getString(R.string.ui_continue),primary=true) {
+                    if(password.length<10)error=uiResources.getString(R.string.ui_use_at_least_10_characters)
+                    else if(operation=="export" && password!=confirm)error=uiResources.getString(R.string.ui_passwords_do_not_match)
                     else {
                         val key=password.toCharArray();password="";confirm="";mode=null
                         if(operation=="export") {
                             exportKey=key
-                            runCatching {if(PrivateMedia.enabled)PrivateMedia.beginPicker();export.launch("Ember Player.epbackup")}.onFailure {PrivateMedia.endPicker();key.fill('\u0000');exportKey=null;notice=PlayerFeedback("No document picker is installed on this device.")}
+                            runCatching {if(PrivateMedia.enabled)PrivateMedia.beginPicker();export.launch(uiResources.getString(R.string.ui_ember_player_epbackup))}.onFailure {PrivateMedia.endPicker();key.fill('\u0000');exportKey=null;notice=PlayerFeedback(uiResources.getString(R.string.ui_no_document_picker_is_installed_on_this_device))}
                         } else {
                             val uri=source;source=null;busy=true
                             scope.launch {
@@ -80,24 +84,24 @@ internal fun PlayerBackupSettings(restored:()->Unit) {
                                         try {PlayerBackups.decode(bytes,key)} finally {bytes.fill(0)}
                                     }
                                 } catch(e:CancellationException) {throw e}
-                                catch(_:Exception) {notice=PlayerFeedback("Could not unlock this backup. Check the password and make sure the file is complete.")}
+                                catch(_:Exception) {notice=PlayerFeedback(uiResources.getString(R.string.ui_could_not_unlock_this_backup_check_the_password_and))}
                                 finally {key.fill('\u0000');busy=false}
                             }
                         }
                     }
                 }
-                app.ember.player.PlayerAction("Cancel") {password="";confirm="";source=null;mode=null}
+                app.ember.player.PlayerAction(uiResources.getString(R.string.ui_cancel)) {password="";confirm="";source=null;mode=null}
             }
         }
     }
-    restoreData?.let {data->PlayerConfirmationDialog("Restore this backup?",
-        "This replaces your player settings and saved activity. Folder permissions may need to be granted again on another device.",
-        "Restore",{restoreData=null}) {
+    restoreData?.let {data->PlayerConfirmationDialog(uiResources.getString(R.string.ui_restore_this_backup),
+        uiResources.getString(R.string.ui_this_replaces_your_player_settings_and_saved_activity_folder),
+        uiResources.getString(R.string.ui_restore),{restoreData=null}) {
                 restoreData=null;busy=true
                 scope.launch {
-                    try {withContext(Dispatchers.IO) {PlayerBackups.restore(context,data)};restored();notice=PlayerFeedback("Backup restored",false)}
+                    try {withContext(Dispatchers.IO) {PlayerBackups.restore(context,data)};restored();notice=PlayerFeedback(uiResources.getString(R.string.ui_backup_restored),false)}
                     catch(e:CancellationException) {throw e}
-                    catch(e:Exception) {notice=PlayerFeedback(e.message?.take(180) ?: "Restore failed.")}
+                    catch(e:Exception) {notice=PlayerFeedback(when {e is BackupRestoreException&&e.rollbackFailed->uiResources.getString(R.string.ui_restore_failed_and_the_previous_configuration_could_not_be);e is BackupRestoreException->uiResources.getString(R.string.ui_restore_failed_the_previous_configuration_was_kept);else->uiResources.getString(R.string.ui_restore_failed)})}
                     finally {busy=false}
                 }
     }}

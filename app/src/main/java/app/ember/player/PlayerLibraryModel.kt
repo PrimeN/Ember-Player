@@ -1,5 +1,7 @@
 package app.ember.player
 
+import app.ember.tv.R
+
 import android.content.Context
 import app.ember.tv.data.LocalActivity
 import app.ember.tv.player.*
@@ -9,13 +11,13 @@ internal data class PlayerLibraryMedia(val media:QueueMedia,val position:Long=0,
     val continuing get()=PositionStore.canResume(position,duration)
     val watched get()=duration>0 && position>=duration*.95
 }
-internal enum class PlayerLibraryFilter(val id:String,val label:String) {
-    ALL("all","All media"),CONTINUING("continuing","Continue watching"),UNWATCHED("unwatched","Unwatched"),WATCHED("watched","Watched");
+internal enum class PlayerLibraryFilter(val id:String,@androidx.annotation.StringRes val label:Int) {
+    ALL("all",R.string.ui_all_media),CONTINUING("continuing",R.string.ui_continue_watching),UNWATCHED("unwatched",R.string.ui_unwatched),WATCHED("watched",R.string.ui_watched);
     fun accepts(value:PlayerLibraryMedia)=when(this){ALL->true;CONTINUING->value.continuing;UNWATCHED->!value.watched;WATCHED->value.watched}
     companion object {fun from(id:String)=entries.firstOrNull {it.id==id} ?: ALL}
 }
-internal enum class PlayerLibrarySort(val id:String,val label:String) {
-    MODIFIED("modified","Date modified"),NAME("name","Name A–Z");
+internal enum class PlayerLibrarySort(val id:String,@androidx.annotation.StringRes val label:Int) {
+    MODIFIED("modified",R.string.ui_date_modified),NAME("name",R.string.ui_name_a_z);
     companion object {fun from(id:String)=entries.firstOrNull {it.id==id} ?: MODIFIED}
 }
 internal data class PlayerLibraryPage(val entries:List<PlayerLibraryMedia>,val next:Int?,val indexUnavailable:Boolean=false)

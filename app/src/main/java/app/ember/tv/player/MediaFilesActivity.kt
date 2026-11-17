@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -31,7 +33,7 @@ class MediaFilesActivity:ComponentActivity() {
                 withContext(Dispatchers.IO){MediaHistory(this@MediaFilesActivity).add(items)}
                 MediaFiles.launch(this@MediaFilesActivity,items)
             } catch(e:CancellationException) {throw e}
-              catch(_:Exception) {Toast.makeText(this@MediaFilesActivity,"Could not open the selected files.",Toast.LENGTH_LONG).show()}
+              catch(_:Exception) {Toast.makeText(this@MediaFilesActivity,resources.getString(R.string.ui_could_not_open_the_selected_files),Toast.LENGTH_LONG).show()}
             finally {preparing=false}
         }
     }
@@ -52,7 +54,7 @@ class MediaFilesActivity:ComponentActivity() {
                 val picker=rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()){uris->openFiles(uris)}
                 app.ember.player.PlayerLibraryScreen(this,refresh+privacy.hashCode(),preparing) {
                     if(!preparing)runCatching {picker.launch(arrayOf("video/*","audio/*","application/octet-stream"))}
-                        .onFailure {Toast.makeText(this,"No file picker is installed on this device.",Toast.LENGTH_LONG).show()}
+                        .onFailure {Toast.makeText(this,resources.getString(R.string.ui_no_file_picker_is_installed_on_this_device),Toast.LENGTH_LONG).show()}
                 }
             }
         }

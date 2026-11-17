@@ -26,6 +26,8 @@ import kotlinx.serialization.json.Json
 
 @Composable
 internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     val scope=rememberCoroutineScope();val json=remember {Json {ignoreUnknownKeys=true}}
     val profile=remember {Prefs(activity).currentProfile}
     val key=remember {"media.network."+profile}
@@ -39,12 +41,12 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
         if(!handledRequest && activity.intent.getStringExtra("network.profile")==profile) {
             handledRequest=true
             val id=activity.intent.getStringExtra("network.account")
-            if(id!=null){browse=accounts.firstOrNull {it.id==id};if(browse==null)error="This saved folder was removed. Add it again to use this shortcut."}
+            if(id!=null){browse=accounts.firstOrNull {it.id==id};if(browse==null)error=uiResources.getString(R.string.ui_this_saved_folder_was_removed_add_it_again_to)}
         }
     }
     app.ember.player.PlayerSection(stringResource(R.string.tx_network_folders)) {
         LazyRow(horizontalArrangement=Arrangement.spacedBy(10.dp)) {
-            item {Chip("Add network folder"){edit=true}}
+            item {Chip(uiResources.getString(R.string.ui_add_network_folder)){edit=true}}
             items(accounts,key={it.id}) {a->Chip(a.label){browse=a}}
         }
         error?.let {app.ember.player.PlayerErrorText(it)}
@@ -63,9 +65,9 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                     importing=true
                     try {
                         privateKey=withContext(Dispatchers.IO){activity.contentResolver.openInputStream(uri)?.use(SftpCredentials::read) ?: error("Unavailable key file")}
-                        note=app.ember.player.PlayerFeedback("Private key imported. It will be encrypted when you save the folder.",false)
+                        note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_private_key_imported_it_will_be_encrypted_when_you),false)
                     }catch(e:CancellationException){throw e}
-                    catch(_:Exception){note=app.ember.player.PlayerFeedback("Could not import this key. Choose an OpenSSH or PEM private key smaller than 64 KiB.")}
+                    catch(_:Exception){note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_could_not_import_this_key_choose_an_openssh_or))}
                     finally {importing=false}
                 }
             }
@@ -76,7 +78,7 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
             var shareJob by remember {mutableStateOf<Job?>(null)}
             LaunchedEffect(finding) {
                 if(finding) {
-                    val discovery=SmbDiscovery(activity,{servers=it},{failed->finding=false;note=app.ember.player.PlayerFeedback(if(failed)"Discovery unavailable. Enter a server address manually." else "Discovery finished. Servers must advertise SMB on your local network; you can also enter an address manually.",failed)})
+                    val discovery=SmbDiscovery(activity,{servers=it},{failed->finding=false;note=app.ember.player.PlayerFeedback(if(failed)uiResources.getString(R.string.ui_discovery_unavailable_enter_a_server_address_manually) else uiResources.getString(R.string.ui_discovery_finished_servers_must_advertise_smb_on_your_local),failed)})
                     try {awaitCancellation()} finally {discovery.close()}
                 }
             }
@@ -84,27 +86,27 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
             LaunchedEffect(address,user,password,domain,unencryptedSmb) {shareJob?.cancel();shares=emptyList();note=null}
             TvDialog({if(!saving)edit=false},width=540.dp,resizeForKeyboard=true) {
                 LazyColumn(Modifier.fillMaxWidth().weight(1f,false),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-                    item {DialogHeading("Add network folder")}
+                    item {DialogHeading(uiResources.getString(R.string.ui_add_network_folder))}
                     item {Text(stringResource(R.string.tx_smb3_encrypted_smb_server_share_sftp),style=androidx.tv.material3.MaterialTheme.typography.bodySmall)}
-                    item {NetworkField("Name",label){label=it}}
-                    item {NetworkField("Address",address){address=it}}
+                    item {NetworkField(uiResources.getString(R.string.ui_name),label){label=it}}
+                    item {NetworkField(uiResources.getString(R.string.ui_address),address){address=it}}
                     item {ButtonRow(spacing=8.dp) {
-                        Chip(if(finding)"Stop discovery" else "Find SMB servers") {if(!finding)servers=emptyList();note=null;finding=!finding}
-                        Chip(if(shareJob?.isActive==true)"Cancel share browsing" else "Browse SMB shares") {
-                            if(shareJob?.isActive==true){shareJob?.cancel();shareJob=null;note=app.ember.player.PlayerFeedback("Share browsing canceled.",false)}
+                        Chip(if(finding)uiResources.getString(R.string.ui_stop_discovery) else uiResources.getString(R.string.ui_find_smb_servers)) {if(!finding)servers=emptyList();note=null;finding=!finding}
+                        Chip(if(shareJob?.isActive==true)uiResources.getString(R.string.ui_cancel_share_browsing) else uiResources.getString(R.string.ui_browse_smb_shares)) {
+                            if(shareJob?.isActive==true){shareJob?.cancel();shareJob=null;note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_share_browsing_canceled),false)}
                             else {
                                 val endpoint=runCatching {NetworkLocation.parse(address,allowSmbRoot=true).also {require(it.scheme=="smb")}}.getOrNull()
-                                if(endpoint==null)note=app.ember.player.PlayerFeedback("Enter an SMB server address first, for example smb://server.")
+                                if(endpoint==null)note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_enter_an_smb_server_address_first_for_example_smb))
                                 else {
                                     val account=NetworkAccount(label="",address=address,username=user,password=password,domain=domain,allowUnencryptedSmb=unencryptedSmb)
                                     shareJob=editScope.launch {
-                                        note=app.ember.player.PlayerFeedback("Opening shares…",false);shares=emptyList()
+                                        note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_opening_shares),false);shares=emptyList()
                                         try {
                                             val names=withTimeout(20_000) {runInterruptible(Dispatchers.IO) {NetworkFiles.smbShares(account)}}
-                                            ensureActive();shares=names;note=app.ember.player.PlayerFeedback(if(names.isEmpty())"No visible disk shares. Enter the share path manually if it is hidden." else "Select a share below.",false)
-                                        } catch(_:TimeoutCancellationException){note=app.ember.player.PlayerFeedback("Share browsing timed out. Check the server or enter its share path manually.")}
+                                            ensureActive();shares=names;note=app.ember.player.PlayerFeedback(if(names.isEmpty())uiResources.getString(R.string.ui_no_visible_disk_shares_enter_the_share_path_manually) else uiResources.getString(R.string.ui_select_a_share_below),false)
+                                        } catch(_:TimeoutCancellationException){note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_share_browsing_timed_out_check_the_server_or_enter))}
                                           catch(e:CancellationException){throw e}
-                                          catch(_:Exception){note=app.ember.player.PlayerFeedback("Could not browse shares. Check credentials, SMB encryption and server permissions, or enter the share path manually.")}
+                                          catch(_:Exception){note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_could_not_browse_shares_check_credentials_smb_encryption_and))}
                                     }
                                 }
                             }
@@ -112,50 +114,50 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                     }}
                     items(servers,key={"server:"+it.address}) {server->Chip(server.name){finding=false;address=server.address;if(label.isBlank())label=server.name}}
                     items(shares,key={"share:"+it}) {share->Chip(share){address=NetworkLocation.parse(address,allowSmbRoot=true).smbShare(share);if(label.isBlank())label=share;shares=emptyList()}}
-                    item {NetworkField("Username",user){user=it}}
+                    item {NetworkField(uiResources.getString(R.string.ui_username),user){user=it}}
                     val sftp=address.trim().startsWith("sftp://")
                     if(sftp)item {ButtonRow {
-                        Chip("Password",selected=authentication=="password"){authentication="password"}
-                        Chip("Private key",selected=authentication=="key"){authentication="key"}
+                        Chip(uiResources.getString(R.string.ui_password),selected=authentication=="password"){authentication="password"}
+                        Chip(uiResources.getString(R.string.ui_private_key),selected=authentication=="key"){authentication="key"}
                     }}
-                    if(!sftp||authentication=="password")item {NetworkField("Password",password,true){password=it}}
+                    if(!sftp||authentication=="password")item {NetworkField(uiResources.getString(R.string.ui_password),password,true){password=it}}
                     if(sftp&&authentication=="key") {
-                        item {Chip(if(importing)"Importing key…" else if(privateKey.isEmpty())"Import private key" else "Replace private key") {
+                        item {Chip(if(importing)uiResources.getString(R.string.ui_importing_key) else if(privateKey.isEmpty())uiResources.getString(R.string.ui_import_private_key) else uiResources.getString(R.string.ui_replace_private_key)) {
                             if(!importing)runCatching {
                                 if(app.ember.player.PrivateMedia.enabled&&app.ember.player.PrivateMedia.unlocked.value)app.ember.player.PrivateMedia.beginPicker()
                                 importKey.launch(arrayOf("*/*"))
-                            }.onFailure {app.ember.player.PrivateMedia.endPicker();note=app.ember.player.PlayerFeedback("No file picker is available.")}
+                            }.onFailure {app.ember.player.PrivateMedia.endPicker();note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_no_file_picker_is_available))}
                         }}
-                        item {NetworkField("Private key passphrase (optional)",keyPassphrase,true){keyPassphrase=it}}
+                        item {NetworkField(uiResources.getString(R.string.ui_private_key_passphrase_optional),keyPassphrase,true){keyPassphrase=it}}
                     }
-                    item {NetworkField("SMB domain (optional)",domain){domain=it}}
-                    item {NetworkField("SFTP verified SHA256 fingerprint (optional)",fingerprint){fingerprint=it}}
-                    if(sftp)item {Text("Leave the fingerprint empty to verify and confirm the server's key on your first connection.",style=androidx.tv.material3.MaterialTheme.typography.bodySmall)}
+                    item {NetworkField(uiResources.getString(R.string.ui_smb_domain_optional),domain){domain=it}}
+                    item {NetworkField(uiResources.getString(R.string.ui_sftp_verified_sha256_fingerprint_optional),fingerprint){fingerprint=it}}
+                    if(sftp)item {Text(uiResources.getString(R.string.ui_leave_the_fingerprint_empty_to_verify_and_confirm_the),style=androidx.tv.material3.MaterialTheme.typography.bodySmall)}
                     if(address.trim().startsWith("smb://",ignoreCase=true))item {
                         Column(verticalArrangement=Arrangement.spacedBy(6.dp)) {
-                            Chip(if(unencryptedSmb)"SMB encryption: not required" else "SMB encryption: required",selected=unencryptedSmb) {unencryptedSmb=!unencryptedSmb}
+                            Chip(if(unencryptedSmb)uiResources.getString(R.string.ui_smb_encryption_not_required) else uiResources.getString(R.string.ui_smb_encryption_required),selected=unencryptedSmb) {unencryptedSmb=!unencryptedSmb}
                             if(unencryptedSmb)Text(stringResource(R.string.tx_for_older_nas_devices_without_smb3),style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
                         }
                     }
                     note?.let {item {app.ember.player.PlayerFeedbackText(it)}}
                     item {Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                        app.ember.player.PlayerAction(if(saving)"Saving…" else "Save",primary=true,enabled=!saving) {if(!saving&&!importing)scope.launch {
+                        app.ember.player.PlayerAction(if(saving)uiResources.getString(R.string.ui_saving) else uiResources.getString(R.string.ui_save),primary=true,enabled=!saving) {if(!saving&&!importing)scope.launch {
                             note=null
                             val pin=NetworkLocation.normalizeFingerprint(fingerprint)
-                            if(sftp&&fingerprint.isNotBlank()&&pin==null){note=app.ember.player.PlayerFeedback("Enter a valid SHA256 host key fingerprint verified with the server owner.");return@launch}
+                            if(sftp&&fingerprint.isNotBlank()&&pin==null){note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_enter_a_valid_sha256_host_key_fingerprint_verified_with));return@launch}
                             val valid=runCatching {val l=NetworkLocation.parse(address);require(label.isNotBlank());require(user.none {it.isISOControl()});NetworkAccount(label=label.trim().take(80),address=address.trim(),username=user,password=if(sftp&&authentication=="key")"" else password,domain=domain,fingerprint=pin ?: "",allowUnencryptedSmb=unencryptedSmb&&l.scheme=="smb",authentication=if(sftp)authentication else "password",privateKey=if(sftp&&authentication=="key")privateKey else "",keyPassphrase=if(sftp&&authentication=="key")keyPassphrase else "")}.getOrNull()
-                            if(valid==null){note=app.ember.player.PlayerFeedback("Check the name, address and SFTP host fingerprint.");return@launch}
+                            if(valid==null){note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_check_the_name_address_and_sftp_host_fingerprint));return@launch}
                             saving=true
                             if(sftp&&authentication=="key") {
                                 val validKey=withContext(Dispatchers.IO){runCatching {val ssh=com.jcraft.jsch.JSch();try {SftpCredentials.install(ssh,valid)}finally {ssh.removeAllIdentity()}}.isSuccess}
-                                if(!validKey){saving=false;note=app.ember.player.PlayerFeedback("Could not unlock this private key. Check its format and passphrase.");return@launch}
+                                if(!validKey){saving=false;note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_could_not_unlock_this_private_key_check_its_format));return@launch}
                             }
                             val updated=accounts+valid
                             val saved=withContext(Dispatchers.IO){TokenStore(activity).putEncrypted(key,json.encodeToString(updated))}
                             saving=false
-                            if(saved){accounts=updated;edit=false}else note=app.ember.player.PlayerFeedback("Encrypted storage is unavailable. The folder was not saved.")
+                            if(saved){accounts=updated;edit=false}else note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_encrypted_storage_is_unavailable_the_folder_was_not_saved))
                         }}
-                        app.ember.player.PlayerAction("Cancel"){if(!saving)edit=false}
+                        app.ember.player.PlayerAction(uiResources.getString(R.string.ui_cancel)){if(!saving)edit=false}
                     }}
                 }
             }
@@ -179,31 +181,31 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                     val page=withContext(Dispatchers.IO){NetworkFiles.listPage(account,path,offset){context.ensureActive()}}
                     ensureActive();entries=page.entries;next=page.next}
                 catch(e:CancellationException){throw e}
-                catch(_:ListingLimitException){note=app.ember.player.PlayerFeedback("This directory listing is too large. Open a smaller folder.")}
+                catch(_:ListingLimitException){note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_this_directory_listing_is_too_large_open_a_smaller))}
                 catch(e:SftpHostKeyConfirmationException){hostKey=e.fingerprint}
-                catch(e:SftpHostKeyMismatchException){note=e.message?.let {app.ember.player.PlayerFeedback(it)}}
-                catch(_:Exception){note=app.ember.player.PlayerFeedback("Could not open this folder. Check its address, credentials, permissions and host key.")}
+                catch(e:SftpHostKeyMismatchException){note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_the_sftp_server_host_key_does_not_match_the))}
+                catch(_:Exception){note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_could_not_open_this_folder_check_its_address_credentials))}
                 finally {busy=false}
             }
             hostKey?.let {fingerprint->TvDialog({if(!trusting){hostKey=null;browse=null}},width=560.dp,scrollContent=true) {
-                DialogHeading("Verify SFTP server")
+                DialogHeading(uiResources.getString(R.string.ui_verify_sftp_server))
                 val server=NetworkLocation.parse(account.address)
                 Text("${server.host}:${server.port}")
                 androidx.compose.foundation.text.selection.SelectionContainer {Text(fingerprint)}
-                Text("Verify this fingerprint with the server owner through another trusted channel. Trusting an unverified key could connect you to the wrong server. A changed key will be rejected.",style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+                Text(uiResources.getString(R.string.ui_verify_this_fingerprint_with_the_server_owner_through_another),style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
                 note?.let {app.ember.player.PlayerFeedbackText(it)}
                 ButtonRow {
-                    app.ember.player.PlayerAction(if(trusting)"Saving…" else "Trust this key",primary=true,enabled=!trusting) {if(!trusting)scope.launch {
+                    app.ember.player.PlayerAction(if(trusting)uiResources.getString(R.string.ui_saving) else uiResources.getString(R.string.ui_trust_this_key),primary=true,enabled=!trusting) {if(!trusting)scope.launch {
                         trusting=true
                         val current=accounts.firstOrNull {it.id==account.id}
-                        if(current==null||current.fingerprint.isNotBlank()){trusting=false;hostKey=null;note=app.ember.player.PlayerFeedback("The saved folder changed. Reopen it before verifying its key.");return@launch}
+                        if(current==null||current.fingerprint.isNotBlank()){trusting=false;hostKey=null;note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_the_saved_folder_changed_reopen_it_before_verifying_its));return@launch}
                         val trusted=current.copy(fingerprint=fingerprint)
                         val updated=accounts.map {if(it.id==trusted.id)trusted else it}
                         val saved=withContext(Dispatchers.IO){TokenStore(activity).putEncrypted(key,json.encodeToString(updated))}
                         trusting=false
-                        if(saved){accounts=updated;browse=trusted;hostKey=null;reload++}else note=app.ember.player.PlayerFeedback("Could not save the trusted key in encrypted storage.")
+                        if(saved){accounts=updated;browse=trusted;hostKey=null;reload++}else note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_could_not_save_the_trusted_key_in_encrypted_storage))
                     }}
-                    app.ember.player.PlayerAction("Cancel"){if(!trusting){hostKey=null;browse=null}}
+                    app.ember.player.PlayerAction(uiResources.getString(R.string.ui_cancel)){if(!trusting){hostKey=null;browse=null}}
                 }
             }}
             fun play(all:Boolean) {
@@ -218,48 +220,48 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                         QueueMedia(relay.register(NetworkFiles.resource(account,relative,e.size),e.name),e.name,identity,NetworkQueueEntry(account.id,relative,e.size))
                     }
                     MediaFiles.launch(activity,items,listOf(relay))
-                } catch(e:SftpHostKeyMismatchException) {cleanup?.close();note=e.message?.let {app.ember.player.PlayerFeedback(it)}}
-                  catch(_:Exception) {cleanup?.close();note=app.ember.player.PlayerFeedback("Could not start file playback.")}
+                } catch(e:SftpHostKeyMismatchException) {cleanup?.close();note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_the_sftp_server_host_key_does_not_match_the))}
+                  catch(_:Exception) {cleanup?.close();note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_could_not_start_file_playback))}
             }
             if(hostKey==null)TvDialog({browse=null},width=620.dp,scrollContent=true) {
                 androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth(),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
                     DialogHeading(account.label,Modifier.weight(1f))
                     app.ember.tv.ui.DialogClose({browse=null})
                 }
-                Text(if(path.isEmpty())"Root folder" else path,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+                Text(if(path.isEmpty())uiResources.getString(R.string.ui_root_folder) else path,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
                 ButtonRow(spacing=8.dp) {
-                    if(path.isNotEmpty())Chip("Up"){path=path.substringBeforeLast('/',"")}
-                    Chip("Play selected (${selected.size})"){play(false)}
-                    Chip("Play media on page"){play(true)}
+                    if(path.isNotEmpty())Chip(uiResources.getString(R.string.ui_up)){path=path.substringBeforeLast('/',"")}
+                    Chip(uiResources.getString(R.string.ui_play_selected ,selected.size.toString())){play(false)}
+                    Chip(uiResources.getString(R.string.ui_play_media_on_page)){play(true)}
                 }
                 ButtonRow(spacing=8.dp) {
-                    if(offset>0)Chip("Previous page"){offset=(offset-200).coerceAtLeast(0)}
-                    next?.let {at->Chip("Next page"){if(!busy)offset=at}}
-                    Chip("Refresh"){if(!busy)reload++}
+                    if(offset>0)Chip(uiResources.getString(R.string.ui_previous_page)){offset=(offset-200).coerceAtLeast(0)}
+                    next?.let {at->Chip(uiResources.getString(R.string.ui_next_page)){if(!busy)offset=at}}
+                    Chip(uiResources.getString(R.string.ui_refresh)){if(!busy)reload++}
                 }
                 ButtonRow(spacing=8.dp) {
-                    Chip(if(testJob?.isActive==true)"Cancel test" else "Test connection") {
-                        if(testJob?.isActive==true){testJob?.cancel();probeNote=app.ember.player.PlayerFeedback("Test canceled.",false)}
+                    Chip(if(testJob?.isActive==true)uiResources.getString(R.string.ui_cancel_test) else uiResources.getString(R.string.ui_test_connection)) {
+                        if(testJob?.isActive==true){testJob?.cancel();probeNote=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_test_canceled),false)}
                         else {
                             val sample=entries.firstOrNull {MediaFileTypes.playable(it)}
-                            if(sample==null)probeNote=app.ember.player.PlayerFeedback("Open a folder containing a media file to test its connection.")
+                            if(sample==null)probeNote=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_open_a_folder_containing_a_media_file_to_test))
                             else testJob=scope.launch {
-                                probeNote=app.ember.player.PlayerFeedback("Reading up to 8 MiB. No file is saved…",false)
+                                probeNote=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_reading_up_to_8_mib_no_file_is_saved),false)
                                 try {
                                     val result=ConnectionProbe.run(NetworkFiles.resource(account,NetworkLocation.child(path,sample.name),sample.size))
-                                    probeNote=app.ember.player.PlayerFeedback(String.format(java.util.Locale.US,"%.1f Mbps average · %.1f MiB sampled · first data %d ms",result.averageMbps,result.bytes/(1024.0*1024),result.firstByteMs)+
-                                        (result.slowestMbps?.let {String.format(java.util.Locale.US," · slowest sample %.1f Mbps",it)}?:"")+". Short sample; actual playback may vary.",false)
-                                } catch(_:TimeoutCancellationException){probeNote=app.ember.player.PlayerFeedback("Test timed out. Check the connection and try again.")}
+                                    probeNote=app.ember.player.PlayerFeedback(String.format(java.util.Locale.US,uiResources.getString(R.string.ui_1f_mbps_average_1f_mib_sampled_first_data_d),result.averageMbps,result.bytes/(1024.0*1024),result.firstByteMs)+
+                                        (result.slowestMbps?.let {String.format(java.util.Locale.US,uiResources.getString(R.string.ui_slowest_sample_1f_mbps),it)}?:"")+uiResources.getString(R.string.ui_short_sample_actual_playback_may_vary),false)
+                                } catch(_:TimeoutCancellationException){probeNote=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_test_timed_out_check_the_connection_and_try_again))}
                                   catch(e:CancellationException){throw e}
-                                  catch(e:SftpHostKeyMismatchException){probeNote=e.message?.let {app.ember.player.PlayerFeedback(it)}}
-                                  catch(_:Exception){probeNote=app.ember.player.PlayerFeedback("Could not read the sample. Check server access and connection.")}
+                                  catch(e:SftpHostKeyMismatchException){probeNote=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_the_sftp_server_host_key_does_not_match_the))}
+                                  catch(_:Exception){probeNote=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_could_not_read_the_sample_check_server_access_and))}
                             }
                         }
                     }
                 }
                 probeNote?.let {app.ember.player.PlayerFeedbackText(it)}
                 if(busy)Text(stringResource(R.string.tx_opening_folder))
-                else Text(stringResource(R.string.tx_entries_page, entries.size, (offset/200+1)),style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+                else Text(uiResources.getQuantityString(R.plurals.ui_entries_page,entries.size,entries.size,offset/200+1),style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
                 note?.let {app.ember.player.PlayerFeedbackText(it)}
                 LazyColumn(Modifier.fillMaxWidth().heightIn(max=360.dp),verticalArrangement=Arrangement.spacedBy(7.dp)) {
                     items(entries,key={it.name}) {entry->
@@ -269,12 +271,12 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                         }
                     }
                 }
-                app.ember.player.PlayerAction("Remove saved folder",destructive=true){removing=true}
-                if(removing)app.ember.player.PlayerConfirmationDialog("Remove network folder?","Remove ${account.label}, its saved credentials and any private key from this device? Files on the server will be kept.","Remove folder",{removing=false}) {
+                app.ember.player.PlayerAction(uiResources.getString(R.string.ui_remove_saved_folder),destructive=true){removing=true}
+                if(removing)app.ember.player.PlayerConfirmationDialog(uiResources.getString(R.string.ui_remove_network_folder),uiResources.getString(R.string.ui_remove_its_saved_credentials_and_any_private_key_from ,account.label),uiResources.getString(R.string.ui_remove_folder),{removing=false}) {
                   removing=false;scope.launch {
                     val updated=accounts.filterNot {it.id==account.id}
                     if(withContext(Dispatchers.IO){TokenStore(activity).putEncrypted(key,json.encodeToString(updated))}){accounts=updated;browse=null}
-                    else note=app.ember.player.PlayerFeedback("Could not update encrypted folder storage.")
+                    else note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_could_not_update_encrypted_folder_storage))
                   }
                 }
 

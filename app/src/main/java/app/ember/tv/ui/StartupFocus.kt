@@ -1,5 +1,7 @@
 package app.ember.tv.ui
 
+import app.ember.tv.R
+
 import androidx.compose.foundation.focusGroup
 import androidx.compose.runtime.*
 import androidx.compose.ui.input.key.*
@@ -58,6 +60,8 @@ internal fun Modifier.initialNavigationFocusGroup(state:InitialNavigationFocusSt
 /** Seed the real tab after placement and replay early directional input from that tab. */
 @Composable
 internal fun Modifier.initialNavigationFocus(owner:NavigationFocus,tab:String,enabled:Boolean,available:Boolean=true):Modifier {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     if (!available) return this
     var focused by remember(owner){mutableStateOf(false)}
     val pending=remember(owner){StartupDirections()}
@@ -94,7 +98,7 @@ internal fun Modifier.initialNavigationFocus(owner:NavigationFocus,tab:String,en
                 val direction=pending.take() ?: break
                 try {manager.moveFocus(direction)}
                 catch(error:IllegalStateException) {
-                    app.ember.tv.data.CrashLog.note("Startup focus target changed during navigation",error)
+                    app.ember.tv.data.CrashLog.note(uiResources.getString(R.string.ui_startup_focus_target_changed_during_navigation),error)
                     pending.clear()
                     break
                 }

@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.content.Context
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
@@ -9,11 +11,11 @@ import kotlinx.coroutines.*
 internal fun PlayerActivity.saveFilePlaylist() {
     if(privatePlayback)return
     val queue=fileQueue ?: return
-    bookmarkName("Save playlist","Playlist") {name->
+    bookmarkName(resources.getString(R.string.ui_save_playlist),resources.getString(R.string.ui_playlist)) {name->
         val items=queue.items.toList();val index=queue.index;val repeat=queue.repeat;val shuffle=queue.shuffle
         lifecycleScope.launch {
             val saved=withContext(Dispatchers.IO) {SavedPlaylists(applicationContext,watchProfileId).save(name,items,index,repeat,shuffle)}
-            Toast.makeText(this@saveFilePlaylist,if(saved)"Playlist saved" else "Could not save playlist. Check encrypted storage and the 50-playlist limit.",Toast.LENGTH_LONG).show()
+            Toast.makeText(this@saveFilePlaylist,if(saved)resources.getString(R.string.ui_playlist_saved) else resources.getString(R.string.ui_could_not_save_playlist_check_encrypted_storage_and_the),Toast.LENGTH_LONG).show()
         }
     }
 }

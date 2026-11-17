@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import androidx.media3.common.Format
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
@@ -78,9 +80,9 @@ internal object PlaybackErrors {
     }
 
     /** The failed format, e.g. "video HEVC dvhe.08.06 3840×2160", for the error message. */
-    fun describe(f: Format?): String {
+    fun describe(resources:android.content.res.Resources,f: Format?): String {
         if (f == null) return ""
-        val kind = if (f.sampleMimeType?.let { MimeTypes.isAudio(it) } == true) "sound" else "video"
+        val kind = if (f.sampleMimeType?.let { MimeTypes.isAudio(it) } == true) resources.getString(R.string.ui_sound_5e2e97) else resources.getString(R.string.ui_video_ffbaf5)
         return listOfNotNull(
             kind,
             f.sampleMimeType?.substringAfter('/')?.uppercase(),

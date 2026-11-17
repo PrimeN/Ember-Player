@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.widget.FrameLayout
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
@@ -19,8 +21,8 @@ internal fun PlayerActivity.updateCaptionAssistance(text:String,playing:Boolean)
         }
         captionOverlay=overlay
         captionAssistant=CaptionAssistant(options,OfflineCaptions.translator(applicationContext,options),
-            if(options.readAloud)OfflineCaptionSpeaker(applicationContext,options){voices->if(voices.isEmpty())android.widget.Toast.makeText(this,"No installed offline speech voice is available.",android.widget.Toast.LENGTH_LONG).show()} else null,
-            unavailable={android.widget.Toast.makeText(this,"Offline translation is unavailable. Original subtitles remain visible.",android.widget.Toast.LENGTH_LONG).show()}) {translated->
+            if(options.readAloud)OfflineCaptionSpeaker(applicationContext,options){voices->if(voices.isEmpty())android.widget.Toast.makeText(this,resources.getString(R.string.ui_no_installed_offline_speech_voice_is_available),android.widget.Toast.LENGTH_LONG).show()} else null,
+            unavailable={android.widget.Toast.makeText(this,resources.getString(R.string.ui_offline_translation_is_unavailable_original_subtitles_remain_visible),android.widget.Toast.LENGTH_LONG).show()}) {translated->
             overlay.setCues(if(translated.isBlank())emptyList() else listOf(androidx.media3.common.text.Cue.Builder().setText(translated).build()))
         }
     }

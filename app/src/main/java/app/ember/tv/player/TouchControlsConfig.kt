@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import kotlinx.serialization.Serializable
 import kotlin.math.roundToInt
 
@@ -45,8 +47,8 @@ internal object TouchPlaybackMath {
 
 /** Invalid restored values fall back to the familiar layout rather than disabling controls. */
 internal object TouchActions {
-    val options=listOf("seek" to "Seek", "play_pause" to "Play / pause", "previous" to "Previous file",
-        "next" to "Next file", "controls" to "Show / hide controls", "none" to "Do nothing")
+    val options=listOf("seek" to R.string.ui_seek, "play_pause" to R.string.ui_play_pause, "previous" to R.string.ui_previous_file,
+        "next" to R.string.ui_next_file, "controls" to R.string.ui_show_hide_controls, "none" to R.string.ui_do_nothing)
     fun region(fraction:Float,percent:Int):Int {
         val edge=percent.coerceIn(20,45)/100f
         return if(fraction<edge)0 else if(fraction>1-edge)2 else 1

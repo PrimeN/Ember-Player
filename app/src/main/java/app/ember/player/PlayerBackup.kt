@@ -154,8 +154,11 @@ internal object PlayerBackups {
         try {write(target);check(read()==target) {"Restored settings did not match the backup."}}
         catch(e:Exception) {
             try {write(previous);check(read()==previous)}
-            catch(rollback:Exception) {throw IllegalStateException("Restore failed and the previous configuration could not be fully recovered.",rollback)}
-            throw IllegalStateException("Restore failed. The previous configuration was kept.",e)
+            catch(rollback:Exception) {throw BackupRestoreException(true,rollback)}
+            throw BackupRestoreException(false,e)
         }
     }
 }
+
+internal class BackupRestoreException(val rollbackFailed:Boolean,cause:Throwable):IllegalStateException(
+    if(rollbackFailed)"Restore failed and the previous configuration could not be fully recovered." else "Restore failed. The previous configuration was kept.",cause)

@@ -1,5 +1,7 @@
 package app.ember.tv.ui
 
+import app.ember.tv.R
+
 import androidx.compose.runtime.*
 
 import androidx.compose.ui.draw.alpha
@@ -59,6 +61,8 @@ fun Focusable(
     contentColor: Color = Fg,
     content: @Composable () -> Unit,
 ) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     if(app.ember.player.LocalPlayerDesign.current && !app.ember.player.LocalPlayerTelevision.current) {
         app.ember.player.PlayerTouchSurface(onClick,onLongClick,modifier,role,radius,container,focusedContainer,contentColor,focusedContent,enabled,content)
         return
@@ -91,7 +95,7 @@ fun Focusable(
         onLongClick = onLongClick,
         modifier = focusModifier.onFocusChanged {cardFocused=it.isFocused}.semantics(mergeDescendants = true) {
             this.role = role
-            if (onLongClick != null) onLongClick("Options") { onLongClick(); true }
+            if (onLongClick != null) onLongClick(uiResources.getString(R.string.ui_options)) { onLongClick(); true }
         },
         shape = ClickableSurfaceDefaults.shape(shape),
         colors = ClickableSurfaceDefaults.colors(
@@ -175,11 +179,13 @@ fun ButtonRow(
  * and [onClick] should say why.
  */
 fun SwitchChip(label: String, on: Boolean, modifier: Modifier = Modifier, locked: Boolean = false, onClick: () -> Unit) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     if(app.ember.player.LocalPlayerDesign.current && !app.ember.player.LocalPlayerTelevision.current) {
         val scheme=androidx.compose.material3.MaterialTheme.colorScheme
         Row(modifier.fillMaxWidth().sizeIn(minHeight=56.dp).semantics {
             role=Role.Switch;toggleableState=if(on&&!locked)ToggleableState.On else ToggleableState.Off
-            stateDescription=if(locked)"Off, not available" else if(on)"On" else "Off"
+            stateDescription=if(locked)uiResources.getString(R.string.ui_off_not_available) else if(on)uiResources.getString(R.string.ui_on) else uiResources.getString(R.string.ui_off)
         }.then(Modifier.clickable(role=Role.Switch,onClick=onClick)).padding(horizontal=8.dp,vertical=4.dp),
             verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
             androidx.compose.material3.Text(label,Modifier.weight(1f),color=scheme.onSurface,maxLines=3,overflow=TextOverflow.Ellipsis)
@@ -196,7 +202,7 @@ fun SwitchChip(label: String, on: Boolean, modifier: Modifier = Modifier, locked
         modifier = modifier.semantics {
             role = Role.Switch
             toggleableState = if (shownOn) ToggleableState.On else ToggleableState.Off
-            stateDescription = if (locked) "Off, not available" else if (on) "On" else "Off"
+            stateDescription = if (locked) uiResources.getString(R.string.ui_off_not_available) else if (on) uiResources.getString(R.string.ui_on) else uiResources.getString(R.string.ui_off)
         }.onFocusChanged { focused = it.isFocused || it.hasFocus }.then(if (locked) Modifier.alpha(0.5f) else Modifier),
         radius = TvTokens.Shape.Pill,
         container = Wash,

@@ -85,10 +85,10 @@ class IntroDbAndFormatsTest {
     }
 
     @Test fun hdrReportingDoesNotInferDynamicMetadataOrOutputSupportFromTheFilename() {
-        assertEquals("HDR10/PQ", PlaybackFormats.hdr("video/hevc", null, 6))
-        assertEquals("HDR10+ metadata observed", PlaybackFormats.hdr("video/hevc", null, 6, true))
-        assertEquals("HDR not reported", PlaybackFormats.hdr("video/hevc", null, null, unknown = true))
-        assertEquals("Dolby Vision", PlaybackFormats.hdr("video/av01", "dav1.10.08", 6))
+        assertEquals(app.ember.tv.R.string.ui_hdr10_pq, PlaybackFormats.hdr("video/hevc", null, 6))
+        assertEquals(app.ember.tv.R.string.ui_hdr10_metadata_observed, PlaybackFormats.hdr("video/hevc", null, 6, true))
+        assertEquals(app.ember.tv.R.string.ui_hdr_not_reported, PlaybackFormats.hdr("video/hevc", null, null, unknown = true))
+        assertEquals(app.ember.tv.R.string.ui_dolby_vision, PlaybackFormats.hdr("video/av01", "dav1.10.08", 6))
         assertEquals("AV1", PlaybackFormats.video("video/dolby-vision", "dav1.10.08"))
         assertEquals("H.264", PlaybackFormats.video("video/dolby-vision", "dvav.09.06"))
     }

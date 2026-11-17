@@ -1,0 +1,1080 @@
+<resources>
+    <string name="ui_0_1_s" formatted="false">"−0.1 s"</string>
+    <string name="ui_0_1_s_254a32" formatted="false">"+0.1 s"</string>
+    <string name="ui_0_5_s" formatted="false">"+0.5 s"</string>
+    <string name="ui_100_ms" formatted="false">"−100 ms"</string>
+    <string name="ui_100_ms_d618f2" formatted="false">"+100 ms"</string>
+    <string name="ui_10_bands_12_to_12_db" formatted="false">"10 bands · −12 to +12 dB"</string>
+    <string name="ui_10_seconds" formatted="false">"10 seconds"</string>
+    <string name="ui_15_minutes" formatted="false">"15 minutes"</string>
+    <string name="ui_15_seconds" formatted="false">"15 seconds"</string>
+    <string name="ui_1f_mbps">"%1$.1f Mbps"</string>
+    <string name="ui_1f_mbps_average_1f_mib_sampled_first_data_d">"%1$.1f Mbps average · %2$.1f MiB sampled · first data %3$d ms"</string>
+    <string name="ui_1f_s">"%1$+.1f s"</string>
+    <string name="ui_25_ms" formatted="false">"−25 ms"</string>
+    <string name="ui_25_ms_ca896a" formatted="false">"+25 ms"</string>
+    <string name="ui_2f_gb">"%1$.2f GB"</string>
+    <string name="ui_2f_gbps">"%1$.2f Gbps"</string>
+    <string name="ui_2f_gib_2f_gib">"%1$.2f GiB / %2$.2f GiB"</string>
+    <string name="ui_2f_s">"%1$+.2f s"</string>
+    <string name="ui_30_minutes" formatted="false">"30 minutes"</string>
+    <string name="ui_30_s" formatted="false">"−30 s"</string>
+    <string name="ui_30_s_224790" formatted="false">"+30 s"</string>
+    <string name="ui_30_seconds" formatted="false">"30 seconds"</string>
+    <string name="ui_5_seconds" formatted="false">"5 seconds"</string>
+    <string name="ui_60_minutes" formatted="false">"60 minutes"</string>
+    <string name="ui_60_seconds" formatted="false">"60 seconds"</string>
+    <string name="ui_90_minutes" formatted="false">"90 minutes"</string>
+    <string name="ui_a_moment_worth_watching_subtitles_just_the_way_you" formatted="false">"A moment worth watching.\nSubtitles, just the way you like them."</string>
+    <string name="ui_about" formatted="false">"About"</string>
+    <string name="ui_about_version_licenses_legal_terms_source_credits" formatted="false">"about version licenses legal terms source credits"</string>
+    <string name="ui_active_output" formatted="false">"Active output"</string>
+    <string name="ui_add">"Add %1$s"</string>
+    <string name="ui_add_a_media_folder" formatted="false">"Add a media folder"</string>
+    <string name="ui_add_a_media_folder_before_refreshing" formatted="false">"Add a media folder before refreshing."</string>
+    <string name="ui_add_files" formatted="false">"Add files"</string>
+    <string name="ui_add_files_to_queue" formatted="false">"Add files to queue"</string>
+    <string name="ui_add_folder" formatted="false">"Add folder"</string>
+    <string name="ui_add_network_folder" formatted="false">"Add network folder"</string>
+    <string name="ui_add_queue_to_playlist" formatted="false">"Add queue to playlist"</string>
+    <string name="ui_add_to_playlist" formatted="false">"Add to playlist"</string>
+    <string name="ui_add_to_playlist_d2410e">"Add %1$s to playlist"</string>
+    <string name="ui_adding_files" formatted="false">"Adding files…"</string>
+    <string name="ui_address" formatted="false">"Address"</string>
+    <string name="ui_adjust_equalizer_bands" formatted="false">"Adjust equalizer bands"</string>
+    <string name="ui_adjust_separately" formatted="false">"Adjust separately"</string>
+    <string name="ui_advanced_enables_inverse_tone_mapping_renderer_failures_retry_stable" formatted="false">"Advanced enables inverse tone mapping. Renderer failures retry stable GPU output."</string>
+    <string name="ui_advanced_gpu" formatted="false">"Advanced GPU"</string>
+    <string name="ui_advanced_renderer_required" formatted="false">"Advanced renderer required"</string>
+    <string name="ui_advanced_renderer_unavailable_trying_stable_gpu_output" formatted="false">"Advanced renderer unavailable. Trying stable GPU output."</string>
+    <string name="ui_alignment" formatted="false">"Alignment"</string>
+    <string name="ui_alignment_spacing_and_custom_outline_width_use_compatibility_playback" formatted="false">"Alignment, spacing and custom outline width use Compatibility playback. System caption settings take priority. Turn off authored styling to override a subtitle file’s fonts and colors."</string>
+    <string name="ui_all_media" formatted="false">"All media"</string>
+    <string name="ui_all_player_options" formatted="false">"All player options"</string>
+    <string name="ui_always" formatted="false">"Always"</string>
+    <string name="ui_always_software" formatted="false">"Always software"</string>
+    <string name="ui_an_independent_player_for_android_and_android_tv_no" formatted="false">"An independent player for Android and Android TV. No service credentials are bundled. Codec and HDR playback depend on the device, display and selected engine."</string>
+    <string name="ui_analyze_scene_peaks" formatted="false">"Analyze scene peaks"</string>
+    <string name="ui_and_is_trashed_0" formatted="false">" AND is_trashed = 0"</string>
+    <string name="ui_and_its_downloaded_file_will_be_removed_from_this">"%1$s and its downloaded file will be removed from this device."</string>
+    <string name="ui_android_could_not_start_receiver_playback" formatted="false">"Android could not start receiver playback."</string>
+    <string name="ui_android_could_not_start_this_download" formatted="false">"Android could not start this download."</string>
+    <string name="ui_android_hdr_surface" formatted="false">"Android HDR surface"</string>
+    <string name="ui_android_ndk_notices" formatted="false">"Android NDK notices"</string>
+    <string name="ui_android_sdk_terms" formatted="false">"Android SDK terms"</string>
+    <string name="ui_android_tv" formatted="false">"Android TV"</string>
+    <string name="ui_apache_2_0_androidx_media3_and_libraries" formatted="false">"Apache 2.0 — AndroidX Media3 and libraries"</string>
+    <string name="ui_apache_commons_net_notices" formatted="false">"Apache Commons Net notices"</string>
+    <string name="ui_apache_commons_notices" formatted="false">"Apache Commons notices"</string>
+    <string name="ui_app_version_credits_licenses" formatted="false">"App version, credits, licenses"</string>
+    <string name="ui_appearance" formatted="false">"Appearance"</string>
+    <string name="ui_appearance_and_performance" formatted="false">"Appearance and performance"</string>
+    <string name="ui_appearance_only_language_and_provider_settings_stay_as_they" formatted="false">"Appearance only; language and provider settings stay as they are."</string>
+    <string name="ui_appearance_only_languages_subtitle_providers_and_speech_services_stay" formatted="false">"Appearance only. Languages, subtitle providers and speech services stay unchanged. Custom font files may need to be reimported after restoring a backup."</string>
+    <string name="ui_appearance_performance_colors_colours_display_mode_ember_charcoal_android" formatted="false">"appearance performance colors colours display mode ember charcoal android TV modern cinema red theme day night glass surfaces"</string>
+    <string name="ui_apply">"Apply %1$s"</string>
+    <string name="ui_apply_cfea41" formatted="false">"Apply"</string>
+    <string name="ui_apply_custom_colors" formatted="false">"Apply custom colors"</string>
+    <string name="ui_apply_style" formatted="false">"Apply style"</string>
+    <string name="ui_arabic" formatted="false">"Arabic"</string>
+    <string name="ui_ask" formatted="false">"Ask"</string>
+    <string name="ui_ask_before_leaving_playback" formatted="false">"Ask before leaving playback"</string>
+    <string name="ui_at_start" formatted="false">"At start"</string>
+    <string name="ui_audio" formatted="false">"Audio"</string>
+    <string name="ui_audio_0a429f">"Audio: %1$s"</string>
+    <string name="ui_audio_channels" formatted="false">"Audio channels"</string>
+    <string name="ui_audio_decoding" formatted="false">"Audio decoding"</string>
+    <string name="ui_audio_effects" formatted="false">"Audio effects"</string>
+    <string name="ui_audio_effects_apply_to_decoded_sound_passthrough_stays_untouched" formatted="false">"Audio effects apply to decoded sound; passthrough stays untouched."</string>
+    <string name="ui_audio_effects_are_unavailable_for_this_output" formatted="false">"Audio effects are unavailable for this output"</string>
+    <string name="ui_audio_none" formatted="false">"Audio: none"</string>
+    <string name="ui_audio_output" formatted="false">"Audio output"</string>
+    <string name="ui_audio_preset" formatted="false">"Audio preset"</string>
+    <string name="ui_audio_track" formatted="false">"Audio track"</string>
+    <string name="ui_automatic" formatted="false">"Automatic"</string>
+    <string name="ui_automatic_handles_interlaced_video_always_is_for_streams_detected" formatted="false">"Automatic handles interlaced video. Always is for streams detected incorrectly. Uses more processing; leave Off for progressive video."</string>
+    <string name="ui_automatic_hi10p_fallback" formatted="false">"Automatic Hi10P fallback"</string>
+    <string name="ui_automatic_hi10p_software_fallback" formatted="false">"Automatic · Hi10P software fallback"</string>
+    <string name="ui_automatic_rotation" formatted="false">"Automatic rotation"</string>
+    <string name="ui_automatic_source_driven" formatted="false">"Automatic / source-driven"</string>
+    <string name="ui_back" formatted="false">"Back"</string>
+    <string name="ui_back_10_seconds" formatted="false">"Back 10 seconds"</string>
+    <string name="ui_background_audio" formatted="false">"Background audio"</string>
+    <string name="ui_background_playback" formatted="false">"Background playback"</string>
+    <string name="ui_background_service_unavailable" formatted="false">"Background service unavailable."</string>
+    <string name="ui_backup_export_import_restore_password_encrypted_settings" formatted="false">"backup export import restore password encrypted settings"</string>
+    <string name="ui_backup_restored" formatted="false">"Backup restored"</string>
+    <string name="ui_backups" formatted="false">"Backups"</string>
+    <string name="ui_balanced" formatted="false">"Balanced"</string>
+    <string name="ui_baltic" formatted="false">"Baltic"</string>
+    <string name="ui_basic" formatted="false">"Basic"</string>
+    <string name="ui_bass" formatted="false">"Bass"</string>
+    <string name="ui_best_quality" formatted="false">"Best quality"</string>
+    <string name="ui_blue" formatted="false">"Blue"</string>
+    <string name="ui_bluetooth" formatted="false">"Bluetooth · "</string>
+    <string name="ui_bluetooth_delay">"Bluetooth delay: %1$s"</string>
+    <string name="ui_bluetooth_timing_saved" formatted="false">"Bluetooth timing saved"</string>
+    <string name="ui_bookmark_name" formatted="false">"Bookmark name"</string>
+    <string name="ui_bookmarks" formatted="false">"Bookmarks"</string>
+    <string name="ui_bookmarks_are_not_saved_for_private_playback" formatted="false">"Bookmarks are not saved for private playback."</string>
+    <string name="ui_bottom_margin" formatted="false">"Bottom margin"</string>
+    <string name="ui_box" formatted="false">"Box"</string>
+    <string name="ui_box_color_rrggbb_or_aarrggbb" formatted="false">"Box color · #RRGGBB or #AARRGGBB"</string>
+    <string name="ui_bright" formatted="false">"Bright"</string>
+    <string name="ui_brightness">"Brightness %1$s%%"</string>
+    <string name="ui_brightness_e1a2b6" formatted="false">"Brightness"</string>
+    <string name="ui_brightness_swipe" formatted="false">"Brightness swipe"</string>
+    <string name="ui_browse_smb_shares" formatted="false">"Browse SMB shares"</string>
+    <string name="ui_bt_2020_pq_confirmed" formatted="false">"BT.2020 / PQ confirmed"</string>
+    <string name="ui_bt_2020_pq_surface_confirmed" formatted="false">"BT.2020 / PQ surface confirmed"</string>
+    <string name="ui_bt_2390" formatted="false">"BT.2390"</string>
+    <string name="ui_buffer" formatted="false">"Buffer"</string>
+    <string name="ui_buffer_ahead" formatted="false">"Buffer ahead"</string>
+    <string name="ui_buffer_preset">"Buffer preset · %1$s"</string>
+    <string name="ui_buffer_preset_7a2060" formatted="false">"Buffer preset"</string>
+    <string name="ui_bypassed_after_renderer_recovery" formatted="false">"Bypassed after renderer recovery"</string>
+    <string name="ui_cache" formatted="false">"Cache"</string>
+    <string name="ui_cache_cleared" formatted="false">"Cache cleared"</string>
+    <string name="ui_cache_management_disposable_clear_image_artwork_thumbnails_temporary_data" formatted="false">"cache management disposable clear image artwork thumbnails temporary data"</string>
+    <string name="ui_cancel" formatted="false">"Cancel"</string>
+    <string name="ui_cancel_clip_export" formatted="false">"Cancel clip export"</string>
+    <string name="ui_cancel_discovery" formatted="false">"Cancel discovery"</string>
+    <string name="ui_cancel_loading" formatted="false">"Cancel loading"</string>
+    <string name="ui_cancel_share_browsing" formatted="false">"Cancel share browsing"</string>
+    <string name="ui_cancel_test" formatted="false">"Cancel test"</string>
+    <string name="ui_cancel_timer" formatted="false">"Cancel timer"</string>
+    <string name="ui_captions_subtitles_language_size_background_authored_system_translate_translation" formatted="false">"captions subtitles language size background authored system translate translation offline voice speech read aloud timing font import colors outline spacing encoding saved styles providers"</string>
+    <string name="ui_cast_receiver" formatted="false">"Cast receiver"</string>
+    <string name="ui_cast_to_a_receiver" formatted="false">"Cast to a receiver"</string>
+    <string name="ui_center" formatted="false">"Center"</string>
+    <string name="ui_center_double_tap" formatted="false">"Center double-tap"</string>
+    <string name="ui_central_european" formatted="false">"Central European"</string>
+    <string name="ui_ch">"%1$s ch"</string>
+    <string name="ui_change_pin" formatted="false">"Change PIN"</string>
+    <string name="ui_change_private_media_pin" formatted="false">"Change private-media PIN"</string>
+    <string name="ui_changes_apply_to_files_loaded_next_reload_the_saved" formatted="false">"Changes apply to files loaded next. Reload the saved subtitle to apply now."</string>
+    <string name="ui_channels" formatted="false">"Channels"</string>
+    <string name="ui_chapters" formatted="false">"Chapters"</string>
+    <string name="ui_character_encoding" formatted="false">"Character encoding"</string>
+    <string name="ui_charcoal" formatted="false">"Charcoal"</string>
+    <string name="ui_check_the_name_address_and_sftp_host_fingerprint" formatted="false">"Check the name, address and SFTP host fingerprint."</string>
+    <string name="ui_checking" formatted="false">"Checking…"</string>
+    <string name="ui_checking_drives" formatted="false">"Checking drives…"</string>
+    <string name="ui_checking_installed_offline_voices" formatted="false">"Checking installed offline voices…"</string>
+    <string name="ui_chinese_big5" formatted="false">"Chinese · Big5"</string>
+    <string name="ui_chinese_gb18030" formatted="false">"Chinese · GB18030"</string>
+    <string name="ui_choose_0_25_4_0_for_example_1_1" formatted="false">"Choose 0.25–4.0×, for example 1.1 or 1.35"</string>
+    <string name="ui_choose_1_1440_minutes" formatted="false">"Choose 1–1440 minutes."</string>
+    <string name="ui_choose_a_media_file_or_a_supported_stream_url" formatted="false">"Choose a media file or a supported stream URL."</string>
+    <string name="ui_choose_a_receiver" formatted="false">"Choose a receiver"</string>
+    <string name="ui_choose_a_time_within">"Choose a time within %1$s."</string>
+    <string name="ui_choose_an_end_at_least_one_second_after_the" formatted="false">"Choose an end at least one second after the start."</string>
+    <string name="ui_choose_installed_languages_in_settings_subtitles_offline_subtitle_assistance" formatted="false">"Choose installed languages in Settings &gt; Subtitles &gt; Offline subtitle assistance. No cloud service or model downloads."</string>
+    <string name="ui_choose_installed_translation_languages_in_subtitle_settings_first" formatted="false">"Choose installed translation languages in subtitle settings first."</string>
+    <string name="ui_choose_subtitle_folder" formatted="false">"Choose subtitle folder"</string>
+    <string name="ui_choose_up_to_eight_controls_select_an_existing_shortcut" formatted="false">"Choose up to eight controls. Select an existing shortcut to move or remove it."</string>
+    <string name="ui_clear_activity" formatted="false">"Clear activity"</string>
+    <string name="ui_clear_dialogue" formatted="false">"Clear dialogue"</string>
+    <string name="ui_clear_disposable_caches" formatted="false">"Clear disposable caches"</string>
+    <string name="ui_clear_recent_activity" formatted="false">"Clear recent activity?"</string>
+    <string name="ui_clear_recent_activity_and_resume_positions" formatted="false">"Clear recent activity and resume positions"</string>
+    <string name="ui_clear_recent_media" formatted="false">"Clear recent media"</string>
+    <string name="ui_clear_recent_media_6abe06" formatted="false">"Clear recent media?"</string>
+    <string name="ui_clear_repeat_range" formatted="false">"Clear repeat range"</string>
+    <string name="ui_clear_the_recent_media_list_resume_positions_playlists_and" formatted="false">"Clear the recent-media list? Resume positions, playlists and bookmarks will be kept."</string>
+    <string name="ui_clip_highlights" formatted="false">"Clip highlights"</string>
+    <string name="ui_clip_out_of_range_colors" formatted="false">"Clip out-of-range colors"</string>
+    <string name="ui_clip_saved" formatted="false">"Clip saved"</string>
+    <string name="ui_close_browser" formatted="false">"Close browser"</string>
+    <string name="ui_close_private_media" formatted="false">"Close private media"</string>
+    <string name="ui_colors" formatted="false">"Colors"</string>
+    <string name="ui_colors_display_mode_performance" formatted="false">"Colors, display mode, performance"</string>
+    <string name="ui_community_subtitle_search" formatted="false">"Community subtitle search"</string>
+    <string name="ui_compare_original_and_saved_processing_closing_the_comparison_restores" formatted="false">"Compare original and saved processing; closing the comparison restores saved settings."</string>
+    <string name="ui_compare_picture" formatted="false">"Compare picture"</string>
+    <string name="ui_compare_picture_processing" formatted="false">"Compare picture processing"</string>
+    <string name="ui_compatibility" formatted="false">"Compatibility"</string>
+    <string name="ui_compatibility_decoder_profile" formatted="false">"Compatibility decoder profile"</string>
+    <string name="ui_compatibility_engine" formatted="false">"Compatibility engine"</string>
+    <string name="ui_compatibility_libmpv" formatted="false">"Compatibility (libmpv)"</string>
+    <string name="ui_compatibility_only_automatic_detects_nvidia_shield_10_bit_h" formatted="false">"Compatibility only. Automatic detects NVIDIA Shield 10-bit H.264 and uses full-quality software decoding. Lighter software skips some deblocking for lower CPU load; explicit track rules and manual choices take priority."</string>
+    <string name="ui_compatibility_only_normal_hdr_output_stays_automatic_when_off" formatted="false">"Compatibility only. Normal HDR output stays automatic when off. Separate from SDR picture enhancement."</string>
+    <string name="ui_compatibility_playback_only_active_above_1_2_in_both" formatted="false">"Compatibility playback only; active above 1.2× in both dimensions."</string>
+    <string name="ui_compatibility_playback_unavailable" formatted="false">"Compatibility playback unavailable"</string>
+    <string name="ui_compatibility_renderer" formatted="false">"Compatibility renderer"</string>
+    <string name="ui_condensed" formatted="false">"Condensed"</string>
+    <string name="ui_confirm_password" formatted="false">"Confirm password"</string>
+    <string name="ui_confirm_pin" formatted="false">"Confirm PIN"</string>
+    <string name="ui_connect_connection_timeout_read_forward_rewind_memory_custom_buffering" formatted="false">"connect connection timeout read forward rewind memory custom buffering cache read ahead refill"</string>
+    <string name="ui_connect_timeout" formatted="false">"Connect timeout"</string>
+    <string name="ui_continue" formatted="false">"Continue"</string>
+    <string name="ui_continue_watching" formatted="false">"Continue watching"</string>
+    <string name="ui_contrast" formatted="false">"Contrast"</string>
+    <string name="ui_controls" formatted="false">"Controls"</string>
+    <string name="ui_could_not_browse_shares_check_credentials_smb_encryption_and" formatted="false">"Could not browse shares. Check credentials, SMB encryption and server permissions, or enter the share path manually."</string>
+    <string name="ui_could_not_clear_all_recent_activity" formatted="false">"Could not clear all recent activity."</string>
+    <string name="ui_could_not_clear_saved_history" formatted="false">"Could not clear saved history."</string>
+    <string name="ui_could_not_connect_to_the_cast_receiver" formatted="false">"Could not connect to the Cast receiver."</string>
+    <string name="ui_could_not_discover_receivers_check_the_local_network" formatted="false">"Could not discover receivers. Check the local network."</string>
+    <string name="ui_could_not_finish_refreshing_check_folder_access_existing_indexed" formatted="false">"Could not finish refreshing. Check folder access; existing indexed files are kept."</string>
+    <string name="ui_could_not_import_this_key_choose_an_openssh_or" formatted="false">"Could not import this key. Choose an OpenSSH or PEM private key smaller than 64 KiB."</string>
+    <string name="ui_could_not_install_this_font_choose_a_valid_ttf" formatted="false">"Could not install this font. Choose a valid TTF or OTF file, up to 12 MB."</string>
+    <string name="ui_could_not_keep_access_to_that_subtitle_folder" formatted="false">"Could not keep access to that subtitle folder."</string>
+    <string name="ui_could_not_list_connected_usb_drives" formatted="false">"Could not list connected USB drives."</string>
+    <string name="ui_could_not_load_saved_media" formatted="false">"Could not load saved media."</string>
+    <string name="ui_could_not_load_that_subtitle_try_another_one" formatted="false">"Could not load that subtitle. Try another one."</string>
+    <string name="ui_could_not_open_private_media" formatted="false">"Could not open private media."</string>
+    <string name="ui_could_not_open_receiver_controls" formatted="false">"Could not open receiver controls."</string>
+    <string name="ui_could_not_open_the_selected_files" formatted="false">"Could not open the selected files."</string>
+    <string name="ui_could_not_open_this_folder_check_its_address_credentials" formatted="false">"Could not open this folder. Check its address, credentials, permissions and host key."</string>
+    <string name="ui_could_not_open_this_media" formatted="false">"Could not open this media."</string>
+    <string name="ui_could_not_open_this_stream" formatted="false">"Could not open this stream."</string>
+    <string name="ui_could_not_read_the_sample_check_server_access_and" formatted="false">"Could not read the sample. Check server access and connection."</string>
+    <string name="ui_could_not_read_this_subtitle_file_check_its_format" formatted="false">"Could not read this subtitle file. Check its format, encoding and folder access. For VobSub, select both IDX and SUB files."</string>
+    <string name="ui_could_not_read_those_files" formatted="false">"Could not read those files."</string>
+    <string name="ui_could_not_remove_this_download" formatted="false">"Could not remove this download."</string>
+    <string name="ui_could_not_save_bookmark_limit_50_per_title_512" formatted="false">"Could not save bookmark. Limit: 50 per title, 512 titles."</string>
+    <string name="ui_could_not_save_playlist_check_encrypted_storage_and_the" formatted="false">"Could not save playlist. Check encrypted storage and the 50-playlist limit."</string>
+    <string name="ui_could_not_save_private_media_check_access_and_the" formatted="false">"Could not save private media. Check access and the 256-entry limit."</string>
+    <string name="ui_could_not_save_the_backup_check_file_access_and" formatted="false">"Could not save the backup. Check file access and available storage."</string>
+    <string name="ui_could_not_save_the_clip" formatted="false">"Could not save the clip."</string>
+    <string name="ui_could_not_save_the_screenshot" formatted="false">"Could not save the screenshot."</string>
+    <string name="ui_could_not_save_the_trusted_key_in_encrypted_storage" formatted="false">"Could not save the trusted key in encrypted storage."</string>
+    <string name="ui_could_not_save_this_playlist_check_the_name_storage" formatted="false">"Could not save this playlist. Check the name, storage and playlist limits. Private media and temporary USB addresses cannot be saved."</string>
+    <string name="ui_could_not_start_clip_export" formatted="false">"Could not start clip export."</string>
+    <string name="ui_could_not_start_compatibility_playback" formatted="false">"Could not start compatibility playback."</string>
+    <string name="ui_could_not_start_file_playback" formatted="false">"Could not start file playback."</string>
+    <string name="ui_could_not_start_receiver_playback_check_the_connection_and" formatted="false">"Could not start receiver playback. Check the connection and supported formats."</string>
+    <string name="ui_could_not_start_this_download_check_available_space_and" formatted="false">"Could not start this download. Check available space and saved downloads."</string>
+    <string name="ui_could_not_unlock_this_backup_check_the_password_and" formatted="false">"Could not unlock this backup. Check the password and make sure the file is complete."</string>
+    <string name="ui_could_not_unlock_this_private_key_check_its_format" formatted="false">"Could not unlock this private key. Check its format and passphrase."</string>
+    <string name="ui_could_not_update_bookmark_please_try_again" formatted="false">"Could not update bookmark. Please try again."</string>
+    <string name="ui_could_not_update_encrypted_folder_storage" formatted="false">"Could not update encrypted folder storage."</string>
+    <string name="ui_could_not_update_encrypted_playlist_storage" formatted="false">"Could not update encrypted playlist storage."</string>
+    <string name="ui_could_not_update_privacy_settings" formatted="false">"Could not update privacy settings."</string>
+    <string name="ui_could_not_update_private_media" formatted="false">"Could not update private media."</string>
+    <string name="ui_create_pin" formatted="false">"Create PIN"</string>
+    <string name="ui_create_playlist" formatted="false">"Create playlist"</string>
+    <string name="ui_create_private_media_pin" formatted="false">"Create private-media PIN"</string>
+    <string name="ui_current_playback" formatted="false">"Current playback"</string>
+    <string name="ui_custom" formatted="false">"Custom"</string>
+    <string name="ui_custom_alignment_and_spacing_use_compatibility_playback_authored_and" formatted="false">"Custom alignment and spacing use compatibility playback. Authored and system caption styles take priority."</string>
+    <string name="ui_custom_buffering" formatted="false">"Custom buffering"</string>
+    <string name="ui_custom_buffering_7e833c">"Custom buffering · %1$s"</string>
+    <string name="ui_custom_colors_font_import_outline_and_default_timing_are" formatted="false">"Custom colors, font import, outline and default timing are in Settings &gt; Subtitles."</string>
+    <string name="ui_custom_duration" formatted="false">"Custom duration"</string>
+    <string name="ui_custom_font" formatted="false">"Custom font"</string>
+    <string name="ui_custom_playback_speed" formatted="false">"Custom playback speed"</string>
+    <string name="ui_customize_shortcuts" formatted="false">"Customize shortcuts"</string>
+    <string name="ui_cyan" formatted="false">"Cyan"</string>
+    <string name="ui_cyrillic" formatted="false">"Cyrillic"</string>
+    <string name="ui_d_kbps">"%1$d kbps"</string>
+    <string name="ui_dark" formatted="false">"Dark"</string>
+    <string name="ui_date_modified" formatted="false">"Date modified"</string>
+    <string name="ui_db">"%1$s · %2$s dB"</string>
+    <string name="ui_db_024cae">"+%1$s dB"</string>
+    <string name="ui_db_276a0e">"%1$s%2$s dB"</string>
+    <string name="ui_debanding" formatted="false">"Debanding"</string>
+    <string name="ui_decoded_audio_only_boosts_reserve_headroom_to_reduce_clipping" formatted="false">"Decoded audio only; boosts reserve headroom to reduce clipping."</string>
+    <string name="ui_decoded_audio_only_reduces_loud_effects_relative_to_dialogue" formatted="false">"Decoded audio only. Reduces loud effects relative to dialogue; passthrough stays untouched."</string>
+    <string name="ui_decoded_by_ffmpeg_to_pcm" formatted="false">"decoded by FFmpeg to PCM"</string>
+    <string name="ui_decoded_by_to_pcm">"decoded by %1$s to PCM"</string>
+    <string name="ui_decoded_sound_only_passthrough_keeps_the_original_audio" formatted="false">"Decoded sound only. Passthrough keeps the original audio."</string>
+    <string name="ui_decoded_video_transfer" formatted="false">"Decoded video transfer"</string>
+    <string name="ui_decoder">"\n  decoder %1$s"</string>
+    <string name="ui_decoder_profile" formatted="false">"Decoder profile"</string>
+    <string name="ui_default" formatted="false">"Default"</string>
+    <string name="ui_default_picture_settings_updated" formatted="false">"Default picture settings updated"</string>
+    <string name="ui_default_timing_ms">"Default timing · %1$s ms"</string>
+    <string name="ui_defaults" formatted="false">"Defaults"</string>
+    <string name="ui_deinterlacing" formatted="false">"Deinterlacing"</string>
+    <string name="ui_deinterlacing_mode" formatted="false">"Deinterlacing mode"</string>
+    <string name="ui_delete">"Delete %1$s"</string>
+    <string name="ui_delete_download" formatted="false">"Delete download?"</string>
+    <string name="ui_delete_download_d41b50" formatted="false">"Delete download"</string>
+    <string name="ui_delete_f6fdbe" formatted="false">"Delete"</string>
+    <string name="ui_delete_picture_profile" formatted="false">"Delete picture profile?"</string>
+    <string name="ui_delete_playlist" formatted="false">"Delete playlist"</string>
+    <string name="ui_delete_playlist_5894f5" formatted="false">"Delete playlist?"</string>
+    <string name="ui_delete_profile" formatted="false">"Delete profile"</string>
+    <string name="ui_delete_sound_preset" formatted="false">"Delete sound preset?"</string>
+    <string name="ui_delete_style" formatted="false">"Delete style"</string>
+    <string name="ui_delete_subtitle_style" formatted="false">"Delete subtitle style?"</string>
+    <string name="ui_details" formatted="false">"Details"</string>
+    <string name="ui_device_cap_mib_timeouts_apply_on_reopen_standard_buffers">"Device cap: %1$s+%2$s MiB. Timeouts apply on reopen; Standard buffers update on prepare. Rewind memory is Compatibility-only."</string>
+    <string name="ui_device_decoders_only" formatted="false">"Device decoders only"</string>
+    <string name="ui_device_folders" formatted="false">"Device folders"</string>
+    <string name="ui_device_limit_mib_forward_mib_rewind_standard_uses_the">"Device limit: %1$s MiB forward + %2$s MiB rewind. Standard uses the forward cap; byte-limited rewind is Compatibility-only. Standard applies buffer changes on prepare; Compatibility applies them while playing. Larger buffers cannot fix a persistently slow connection."</string>
+    <string name="ui_device_renderer_active_hdr_signal_not_independently_verified" formatted="false">"Device renderer; active HDR signal not independently verified"</string>
+    <string name="ui_direct_hardware" formatted="false">"Direct hardware"</string>
+    <string name="ui_direct_media_files_download_one_at_a_time_additional" formatted="false">"Direct media files download one at a time; additional requests wait in the queue. Adaptive playlists and protected streams are not downloaded. Pause stops the active download and clears the waiting queue. If Android stops the task, choose Resume to continue."</string>
+    <string name="ui_direct_usb" formatted="false">"Direct USB"</string>
+    <string name="ui_disconnect" formatted="false">"Disconnect"</string>
+    <string name="ui_discovery_finished_servers_must_advertise_smb_on_your_local" formatted="false">"Discovery finished. Servers must advertise SMB on your local network; you can also enter an address manually."</string>
+    <string name="ui_discovery_unavailable_enter_a_server_address_manually" formatted="false">"Discovery unavailable. Enter a server address manually."</string>
+    <string name="ui_display">"Display: %1$s"</string>
+    <string name="ui_display_capabilities_unavailable" formatted="false">"Display capabilities unavailable"</string>
+    <string name="ui_display_capability_does_not_confirm_the_active_output_signal" formatted="false">"Display capability does not confirm the active output signal"</string>
+    <string name="ui_display_hdr_capabilities" formatted="false">"Display HDR capabilities"</string>
+    <string name="ui_disposable_artwork_thumbnails_and_temporary_data_can_be_recreated" formatted="false">"Disposable artwork, thumbnails and temporary data can be recreated. Saved positions, settings and connection details are kept."</string>
+    <string name="ui_dlna_receivers" formatted="false">"DLNA receivers"</string>
+    <string name="ui_do_nothing" formatted="false">"Do nothing"</string>
+    <string name="ui_dolby_vision" formatted="false">"Dolby Vision"</string>
+    <string name="ui_dolby_vision_fel_reconstruction" formatted="false">"Dolby Vision FEL reconstruction"</string>
+    <string name="ui_dolby_vision_profile_level">"Dolby Vision profile %1$s · level %2$s"</string>
+    <string name="ui_dolby_vision_profile_not_reported" formatted="false">"Dolby Vision · profile not reported"</string>
+    <string name="ui_dolby_vision_rpu_fel" formatted="false">"Dolby Vision RPU / FEL"</string>
+    <string name="ui_dolby_vision_rpu_fel_reconstruction_not_independently_verified" formatted="false">"Dolby Vision RPU/FEL reconstruction: not independently verified"</string>
+    <string name="ui_dolby_vision_rpu_processing" formatted="false">"Dolby Vision RPU processing"</string>
+    <string name="ui_dolby_vision_source_profile" formatted="false">"Dolby Vision source profile"</string>
+    <string name="ui_done" formatted="false">"Done"</string>
+    <string name="ui_done_selecting" formatted="false">"Done selecting"</string>
+    <string name="ui_double_tap_seek" formatted="false">"Double-tap seek"</string>
+    <string name="ui_download" formatted="false">"Download"</string>
+    <string name="ui_download_complete" formatted="false">"Download complete"</string>
+    <string name="ui_download_failed" formatted="false">"Download failed"</string>
+    <string name="ui_download_media" formatted="false">"Download media"</string>
+    <string name="ui_download_media_url" formatted="false">"Download media URL"</string>
+    <string name="ui_downloaded" formatted="false">"Downloaded"</string>
+    <string name="ui_downloading">"Downloading · %1$s%%"</string>
+    <string name="ui_downloading_9b4592" formatted="false">"Downloading"</string>
+    <string name="ui_downloading_mb">"Downloading · %1$s MB"</string>
+    <string name="ui_downloads" formatted="false">"Downloads"</string>
+    <string name="ui_dual_subtitles" formatted="false">"Dual subtitles"</string>
+    <string name="ui_dynamic_compression_reduces_loud_effects_relative_to_dialogue_decoded" formatted="false">"Dynamic compression reduces loud effects relative to dialogue. Decoded audio only; passthrough stays untouched."</string>
+    <string name="ui_each_side">"%1$s%% each side"</string>
+    <string name="ui_edge_tap_region" formatted="false">"Edge tap region"</string>
+    <string name="ui_edits_update_this_saved_profile" formatted="false">"Edits update this saved profile."</string>
+    <string name="ui_ember" formatted="false">"Ember"</string>
+    <string translatable="false" name="ui_ember_player" formatted="false">"Ember Player"</string>
+    <string translatable="false" name="ui_ember_player_epbackup" formatted="false">"Ember Player.epbackup"</string>
+    <string name="ui_enable_google_cast_for_this_session" formatted="false">"Enable Google Cast for this session"</string>
+    <string name="ui_enabled_by_default_gpu_processing_uses_more_power_turn" formatted="false">"Enabled by default. GPU processing uses more power; turn it off for longer battery life or if playback stutters. HDR, Dolby Vision, protected and tunneled video keep their supported output path."</string>
+    <string name="ui_encrypted_backup_saved" formatted="false">"Encrypted backup saved"</string>
+    <string name="ui_encrypted_storage_is_unavailable_the_folder_was_not_saved" formatted="false">"Encrypted storage is unavailable. The folder was not saved."</string>
+    <string name="ui_end_of_item" formatted="false">"End of item"</string>
+    <string name="ui_engine" formatted="false">"Engine"</string>
+    <string name="ui_enter_a_direct_non_private_media_url" formatted="false">"Enter a direct, non-private media URL."</string>
+    <string name="ui_enter_a_name_you_can_keep_up_to_12" formatted="false">"Enter a name. You can keep up to 12 sound presets."</string>
+    <string name="ui_enter_a_profile_name_you_can_save_up_to">"Enter a profile name. You can save up to %1$s profiles; replace one with the same name or delete one first."</string>
+    <string name="ui_enter_a_speed_between_0_25_and_4_0" formatted="false">"Enter a speed between 0.25 and 4.0."</string>
+    <string name="ui_enter_a_style_name_you_can_save_up_to" formatted="false">"Enter a style name. You can save up to 12 subtitle styles; replace one with the same name or delete one first."</string>
+    <string name="ui_enter_a_supported_network_stream_url" formatted="false">"Enter a supported network stream URL."</string>
+    <string name="ui_enter_a_valid_filename" formatted="false">"Enter a valid filename."</string>
+    <string name="ui_enter_a_valid_sha256_host_key_fingerprint_verified_with" formatted="false">"Enter a valid SHA256 host key fingerprint verified with the server owner."</string>
+    <string name="ui_enter_a_valid_time_such_as_90_1_30" formatted="false">"Enter a valid time, such as 90, 1:30 or 01:02:03.250."</string>
+    <string name="ui_enter_an_smb_server_address_first_for_example_smb" formatted="false">"Enter an SMB server address first, for example smb://server."</string>
+    <string name="ui_enter_up_to_8_language_codes_separated_by_commas" formatted="false">"Enter up to 8 language codes separated by commas, such as en, fr or pt-BR. Invalid edits are not saved."</string>
+    <string name="ui_enter_your_private_media_pin" formatted="false">"Enter your private-media PIN."</string>
+    <string name="ui_equalizer" formatted="false">"Equalizer"</string>
+    <string name="ui_equalizer_bands" formatted="false">"Equalizer bands"</string>
+    <string name="ui_expanded_hdr_peak" formatted="false">"Expanded HDR peak"</string>
+    <string name="ui_expansion_status" formatted="false">"Expansion status"</string>
+    <string name="ui_export_canceled_because_playback_changed" formatted="false">"Export canceled because playback changed."</string>
+    <string name="ui_export_clip" formatted="false">"Export clip"</string>
+    <string name="ui_export_encrypted_backup" formatted="false">"Export encrypted backup"</string>
+    <string name="ui_exporting_clip_keep_this_page_open_cancel_from_playback" formatted="false">"Exporting clip. Keep this page open; cancel from Playback options."</string>
+    <string name="ui_extra_gpu_work_off_uses_available_video_metadata" formatted="false">"Extra GPU work; off uses available video metadata."</string>
+    <string name="ui_extra_large" formatted="false">"Extra large"</string>
+    <string name="ui_fast_keyframes" formatted="false">"Fast keyframes"</string>
+    <string name="ui_fast_nearby_keyframe" formatted="false">"Fast / nearby keyframe"</string>
+    <string name="ui_fast_upscaling_shader" formatted="false">"Fast upscaling shader"</string>
+    <string name="ui_fast_upscaling_shader_mit" formatted="false">"Fast upscaling shader — MIT"</string>
+    <string name="ui_ffmpeg_video_retries_at_ms">" · FFmpeg video %1$s · retries %2$s/%3$s · at %4$s ms"</string>
+    <string name="ui_file_default" formatted="false">"File default"</string>
+    <string name="ui_filename" formatted="false">"Filename"</string>
+    <string name="ui_files_moved" formatted="false">"Files moved"</string>
+    <string name="ui_find_receivers" formatted="false">"Find receivers"</string>
+    <string name="ui_find_smb_servers" formatted="false">"Find SMB servers"</string>
+    <string name="ui_first_page" formatted="false">"First page"</string>
+    <string name="ui_folder">"Folder: %1$s"</string>
+    <string name="ui_folder_30baa2" formatted="false">"Folder"</string>
+    <string name="ui_folders" formatted="false">"Folders"</string>
+    <string name="ui_follow_device_setting" formatted="false">"Follow device setting"</string>
+    <string name="ui_follow_system" formatted="false">"Follow system"</string>
+    <string name="ui_font" formatted="false">"Font"</string>
+    <string name="ui_font_installed" formatted="false">"Font installed"</string>
+    <string name="ui_for_foreign_audio" formatted="false">"For foreign audio"</string>
+    <string name="ui_forced" formatted="false">"Forced"</string>
+    <string name="ui_forced_4ce31f" formatted="false">" (forced)"</string>
+    <string name="ui_forget_folder" formatted="false">"Forget folder"</string>
+    <string name="ui_forward_10_seconds" formatted="false">"Forward 10 seconds"</string>
+    <string name="ui_forward_buffer" formatted="false">"Forward buffer"</string>
+    <string name="ui_found">"%1$s found"</string>
+    <string name="ui_found_made_for_this_exact_file">"%1$s found · ★ made for this exact file"</string>
+    <string name="ui_fps" formatted="false">" fps"</string>
+    <string name="ui_frame_inspection" formatted="false">"Frame inspection"</string>
+    <string name="ui_frame_inspection_requires_compatibility_playback_and_a_supported_audio" formatted="false">"Frame inspection requires Compatibility playback and a supported audio track."</string>
+    <string name="ui_frame_rate_matching" formatted="false">"Frame rate matching"</string>
+    <string name="ui_frame_smoothing" formatted="false">"Frame smoothing"</string>
+    <string name="ui_framing_and_playback_position_stay_the_same_closing_restores" formatted="false">"Framing and playback position stay the same. Closing restores your saved processing."</string>
+    <string name="ui_fraunhofer_mpeg_h" formatted="false">"Fraunhofer MPEG-H"</string>
+    <string name="ui_from_position_setting" formatted="false">"From position setting"</string>
+    <string name="ui_from_subtitle_file" formatted="false">"From subtitle file"</string>
+    <string name="ui_gamma" formatted="false">"Gamma"</string>
+    <string name="ui_gamut_mapping" formatted="false">"Gamut mapping"</string>
+    <string name="ui_gentle_compression" formatted="false">"Gentle compression"</string>
+    <string name="ui_gentle_contrast" formatted="false">"Gentle contrast"</string>
+    <string name="ui_gestures_rotation_double_tap_brightness_volume_pinch_zoom_temporary" formatted="false">"gestures rotation double tap brightness volume pinch zoom temporary hold speed subtitle touch orientation"</string>
+    <string name="ui_glass" formatted="false">"Glass"</string>
+    <string name="ui_glass_surfaces" formatted="false">"Glass surfaces"</string>
+    <string name="ui_go" formatted="false">"Go"</string>
+    <string name="ui_go_to_time" formatted="false">"Go to time"</string>
+    <string name="ui_google_cast" formatted="false">"Google Cast"</string>
+    <string name="ui_google_cast_is_unavailable_on_this_device_dlna_discovery" formatted="false">"Google Cast is unavailable on this device. DLNA discovery can still be used."</string>
+    <string name="ui_google_cast_sdk_terms" formatted="false">"Google Cast SDK terms"</string>
+    <string name="ui_gpl_v3_mpv_ffmpeg_and_nextlib" formatted="false">"GPL v3 — mpv, FFmpeg and Nextlib"</string>
+    <string name="ui_gpu_effects_use_more_power_hdr_dolby_vision_protected" formatted="false">"GPU effects use more power. HDR, Dolby Vision, protected and tunneled video keep their supported output path. Standard uses Lanczos; Compatibility can also use the bundled shader when enlarging video."</string>
+    <string name="ui_gpu_upscaling" formatted="false">"GPU upscaling"</string>
+    <string name="ui_gpu_upscaling_fast_shader_brightness_contrast_saturation_gamma_hue" formatted="false">"GPU upscaling fast shader brightness contrast saturation gamma hue sharpness preset reset"</string>
+    <string name="ui_greek" formatted="false">"Greek"</string>
+    <string name="ui_green" formatted="false">"Green"</string>
+    <string name="ui_grid_view" formatted="false">"Grid view"</string>
+    <string name="ui_hable" formatted="false">"Hable"</string>
+    <string name="ui_hardware_with_copied_frames" formatted="false">"Hardware with copied frames"</string>
+    <string name="ui_hdmi_passthrough" formatted="false">"HDMI passthrough"</string>
+    <string name="ui_hdr10_base_layer_when_available" formatted="false">"HDR10 base layer when available"</string>
+    <string name="ui_hdr10_display_not_reported" formatted="false">"HDR10 display not reported"</string>
+    <string name="ui_hdr10_metadata_observed" formatted="false">"HDR10+ metadata observed"</string>
+    <string name="ui_hdr10_pq" formatted="false">"HDR10/PQ"</string>
+    <string name="ui_hdr_not_reported" formatted="false">"HDR not reported"</string>
+    <string name="ui_hdr_output" formatted="false">"HDR output"</string>
+    <string name="ui_hdr_sdr_tone_mapping_gamut_peak_scene_analysis_renderer" formatted="false">"HDR SDR tone mapping gamut peak scene analysis renderer stable advanced expansion"</string>
+    <string name="ui_hdr_surface_unavailable_or_input_already_hdr" formatted="false">"HDR surface unavailable or input already HDR"</string>
+    <string name="ui_hdr_to_sdr" formatted="false">"HDR to SDR"</string>
+    <string name="ui_hdr_to_sdr_61a246">"HDR to SDR · %1$s"</string>
+    <string name="ui_hdr_to_sdr_output" formatted="false">"HDR to SDR output"</string>
+    <string name="ui_hdr_type">"HDR type %1$s"</string>
+    <string name="ui_hebrew" formatted="false">"Hebrew"</string>
+    <string name="ui_hidden_files" formatted="false">"Hidden files"</string>
+    <string name="ui_hidden_inside_ember_player_original_files_remain_available_to" formatted="false">"Hidden inside Ember Player. Original files remain available to other apps; this is access protection, not file encryption. Private playback does not save activity or expose system media controls."</string>
+    <string name="ui_hide_equalizer_bands" formatted="false">"Hide equalizer bands"</string>
+    <string name="ui_hide_offline_assistance" formatted="false">"Hide offline assistance"</string>
+    <string name="ui_hide_saved_subtitle_styles" formatted="false">"Hide saved subtitle styles"</string>
+    <string name="ui_hide_subtitle_details" formatted="false">"Hide subtitle details"</string>
+    <string name="ui_high" formatted="false">"High"</string>
+    <string name="ui_hlg" formatted="false">"HLG"</string>
+    <string name="ui_hlg_input" formatted="false">"HLG input"</string>
+    <string name="ui_hold_video_for_temporary_speed" formatted="false">"Hold video for temporary speed"</string>
+    <string name="ui_horizontal_swipe_to_seek" formatted="false">"Horizontal swipe to seek"</string>
+    <string name="ui_https_or_rtsp" formatted="false">"https:// or rtsp://"</string>
+    <string translatable="false" name="ui_https_video_mp4" formatted="false">"https://…/video.mp4"</string>
+    <string name="ui_hue" formatted="false">"Hue"</string>
+    <string name="ui_huge" formatted="false">"Huge"</string>
+    <string name="ui_hz">"%1$s×%2$s @ %3$s Hz"</string>
+    <string name="ui_hz_648ee5">"%1$s Hz"</string>
+    <string name="ui_hz_717dec" formatted="false">" Hz"</string>
+    <string name="ui_iamf_decoder_notices" formatted="false">"IAMF decoder notices"</string>
+    <string name="ui_id_and_media_type_in_and_is_pending_0" formatted="false">"_id &gt; ? AND media_type IN (?, ?) AND is_pending = 0"</string>
+    <string name="ui_id_asc" formatted="false">"_id ASC"</string>
+    <string name="ui_import_private_key" formatted="false">"Import private key"</string>
+    <string name="ui_importing_key" formatted="false">"Importing key…"</string>
+    <string name="ui_includes_picture_shader_and_hdr_output_settings" formatted="false">"Includes picture, shader and HDR output settings."</string>
+    <string name="ui_incorrect_pin" formatted="false">"Incorrect PIN"</string>
+    <string name="ui_installed_offline_voices">"%1$s installed offline voices"</string>
+    <string name="ui_installed_translation_languages" formatted="false">"Installed translation languages"</string>
+    <string name="ui_introdb_community_timings" formatted="false">"IntroDB (community timings)"</string>
+    <string name="ui_introdb_markers" formatted="false">"IntroDB markers"</string>
+    <string name="ui_japanese_shift_jis" formatted="false">"Japanese · Shift-JIS"</string>
+    <string name="ui_jsch_compression_notices" formatted="false">"JSch compression notices"</string>
+    <string name="ui_jsch_password_hashing_notices" formatted="false">"JSch password hashing notices"</string>
+    <string name="ui_keep_private" formatted="false">"Keep private"</string>
+    <string name="ui_keep_sound_playing_when_the_screen_is_off_or" formatted="false">"Keep sound playing when the screen is off or you switch apps. Picture in picture takes priority when enabled."</string>
+    <string name="ui_keep_watching" formatted="false">"Keep watching"</string>
+    <string name="ui_korean" formatted="false">"Korean"</string>
+    <string name="ui_label_colon_value">"%1$s: %2$s"</string>
+    <string name="ui_label_value">"%1$s · %2$s"</string>
+    <string name="ui_landscape" formatted="false">"Landscape"</string>
+    <string name="ui_language_style_timing" formatted="false">"Language, style, timing"</string>
+    <string name="ui_languages_en_fr_ja" formatted="false">"Languages: en, fr, ja"</string>
+    <string name="ui_large" formatted="false">"Large"</string>
+    <string name="ui_largest_first" formatted="false">"Largest first"</string>
+    <string name="ui_leave_the_fingerprint_empty_to_verify_and_confirm_the" formatted="false">"Leave the fingerprint empty to verify and confirm the server\'s key on your first connection."</string>
+    <string name="ui_left" formatted="false">"Left"</string>
+    <string name="ui_left_double_tap" formatted="false">"Left double-tap"</string>
+    <string name="ui_letter_spacing" formatted="false">"Letter spacing"</string>
+    <string name="ui_libaums_usb_notices" formatted="false">"libaums USB notices"</string>
+    <string name="ui_libmpv_android_wrapper" formatted="false">"libmpv Android wrapper"</string>
+    <string name="ui_library_refreshed" formatted="false">"Library refreshed"</string>
+    <string name="ui_library_unavailable_add_a_folder_and_refresh_its_index" formatted="false">"Library unavailable. Add a folder and refresh its index."</string>
+    <string name="ui_license_unavailable_see_the_source_repository" formatted="false">"License unavailable. See the source repository."</string>
+    <string name="ui_light" formatted="false">"Light"</string>
+    <string name="ui_lighter_software_decoding_skips_some_deblocking_to_reduce_cpu" formatted="false">"Lighter software decoding skips some deblocking to reduce CPU work. Explicit track rules and manual decoder choices take priority."</string>
+    <string name="ui_line_spacing" formatted="false">"Line spacing"</string>
+    <string name="ui_lip_sync" formatted="false">"Lip sync"</string>
+    <string name="ui_list_view" formatted="false">"List view"</string>
+    <string name="ui_load_a_font_file" formatted="false">"Load a font file"</string>
+    <string name="ui_load_audio_file" formatted="false">"Load audio file"</string>
+    <string name="ui_load_subtitle_file" formatted="false">"Load subtitle file"</string>
+    <string name="ui_loading_folder" formatted="false">"Loading folder…"</string>
+    <string name="ui_loading_license" formatted="false">"Loading license…"</string>
+    <string name="ui_loading_playlists" formatted="false">"Loading playlists…"</string>
+    <string name="ui_loading_subtitles_from">"Loading %1$s subtitles from %2$s..."</string>
+    <string name="ui_local_inverse_tone_mapping_off_by_default_requires_advanced" formatted="false">"Local inverse tone mapping, off by default. Requires Advanced/Automatic renderer, a reported HDR10 display and confirmed SurfaceView color metadata. No AI model or online service. It can alter the intended look and increase banding or GPU load."</string>
+    <string name="ui_local_inverse_tone_mapping_requires_an_hdr10_display_advanced" formatted="false">"Local inverse tone mapping. Requires an HDR10 display, Advanced renderer and a signaled SurfaceView. It cannot recover missing source detail."</string>
+    <string name="ui_lock" formatted="false">"Lock"</string>
+    <string name="ui_lock_playback" formatted="false">"Lock playback"</string>
+    <string name="ui_looking_for_nearby_subtitle_files" formatted="false">"Looking for nearby subtitle files…"</string>
+    <string name="ui_low" formatted="false">"Low"</string>
+    <string name="ui_made_for_this_file" formatted="false">" · ★ made for this file"</string>
+    <string name="ui_make_private_media_visible" formatted="false">"Make private media visible?"</string>
+    <string name="ui_make_visible" formatted="false">"Make visible"</string>
+    <string name="ui_manual_bitmap_subtitles" formatted="false">"Manual bitmap subtitles"</string>
+    <string name="ui_manual_subtitle_file" formatted="false">"Manual subtitle file"</string>
+    <string name="ui_mark_a_clip_start_and_end_at_least_one" formatted="false">"Mark a clip start and end at least one second apart."</string>
+    <string name="ui_mark_clip_end" formatted="false">"Mark clip end"</string>
+    <string name="ui_mark_clip_start" formatted="false">"Mark clip start"</string>
+    <string name="ui_mark_the_start_then_seek_at_least_one_second" formatted="false">"Mark the start, then seek at least one second ahead."</string>
+    <string name="ui_match_subtitle_language" formatted="false">"Match subtitle language"</string>
+    <string name="ui_match_video" formatted="false">"Match video"</string>
+    <string name="ui_match_video_resolution" formatted="false">"Match video resolution"</string>
+    <string name="ui_matroska_mkv" formatted="false">"Matroska / MKV"</string>
+    <string name="ui_media" formatted="false">"Media"</string>
+    <string name="ui_media_downloads" formatted="false">"Media downloads"</string>
+    <string name="ui_media_file" formatted="false">"Media file"</string>
+    <string name="ui_media_folders" formatted="false">"Media folders"</string>
+    <string name="ui_media_permission_was_not_granted_you_can_still_use" formatted="false">"Media permission was not granted. You can still use Choose files or Add a media folder."</string>
+    <string name="ui_min">"%1$s min"</string>
+    <string name="ui_min_remaining">"%1$s min remaining"</string>
+    <string name="ui_minutes_1_to_1440" formatted="false">"Minutes · 1 to 1440"</string>
+    <string name="ui_mobius" formatted="false">"Mobius"</string>
+    <string name="ui_mono" formatted="false">"Mono"</string>
+    <string name="ui_mono_68caaf" formatted="false">"mono"</string>
+    <string name="ui_monospace" formatted="false">"Monospace"</string>
+    <string name="ui_more_appearance_options" formatted="false">"More appearance options"</string>
+    <string name="ui_more_options" formatted="false">"More options"</string>
+    <string name="ui_more_options_for">"More options for %1$s"</string>
+    <string name="ui_more_subtitle_controls" formatted="false">"More subtitle controls"</string>
+    <string name="ui_move" formatted="false">"Move"</string>
+    <string name="ui_move_earlier">"Move %1$s earlier"</string>
+    <string name="ui_move_earlier_07dd6f" formatted="false">"Move earlier"</string>
+    <string name="ui_move_entries_earlier_or_later_your_resume_item_stays" formatted="false">"Move entries earlier or later. Your resume item stays selected."</string>
+    <string name="ui_move_later">"Move %1$s later"</string>
+    <string name="ui_move_later_bb4c84" formatted="false">"Move later"</string>
+    <string name="ui_mp4_using_device_encoders_original_kept" formatted="false">"MP4 using device encoders · original kept"</string>
+    <string name="ui_ms">"%1$s ms"</string>
+    <string name="ui_name" formatted="false">"Name"</string>
+    <string name="ui_name_a_z" formatted="false">"Name A–Z"</string>
+    <string name="ui_name_this_profile_an_existing_name_replaces_that_profile" formatted="false">"Name this profile. An existing name replaces that profile."</string>
+    <string name="ui_nearby_subtitle_files" formatted="false">"Nearby subtitle files"</string>
+    <string name="ui_nearby_subtitles" formatted="false">"Nearby subtitles"</string>
+    <string name="ui_network" formatted="false">"Network"</string>
+    <string name="ui_network_and_buffering" formatted="false">"Network and buffering"</string>
+    <string name="ui_network_cache" formatted="false">"Network &amp; cache"</string>
+    <string name="ui_neutral" formatted="false">"Neutral"</string>
+    <string name="ui_new_activity_will_no_longer_be_saved" formatted="false">" New activity will no longer be saved."</string>
+    <string name="ui_new_playlist_from_files" formatted="false">"New playlist from files"</string>
+    <string name="ui_new_playlist_name" formatted="false">"New playlist name"</string>
+    <string name="ui_newest_first" formatted="false">"Newest first"</string>
+    <string name="ui_next_file" formatted="false">"Next file"</string>
+    <string name="ui_next_files" formatted="false">"Next files"</string>
+    <string name="ui_next_frame" formatted="false">"Next frame"</string>
+    <string name="ui_next_page" formatted="false">"Next page"</string>
+    <string name="ui_night_listening" formatted="false">"Night listening"</string>
+    <string name="ui_nits">"%1$s nits"</string>
+    <string name="ui_no_app_is_available_to_share_these_files" formatted="false">"No app is available to share these files."</string>
+    <string name="ui_no_dlna_media_receiver_found" formatted="false">"No DLNA media receiver found."</string>
+    <string name="ui_no_document_picker_is_installed" formatted="false">"No document picker is installed."</string>
+    <string name="ui_no_document_picker_is_installed_on_this_device" formatted="false">"No document picker is installed on this device."</string>
+    <string name="ui_no_file_in_that_direction" formatted="false">"No file in that direction"</string>
+    <string name="ui_no_file_picker_is_available" formatted="false">"No file picker is available."</string>
+    <string name="ui_no_file_picker_is_installed" formatted="false">"No file picker is installed."</string>
+    <string name="ui_no_file_picker_is_installed_on_this_device" formatted="false">"No file picker is installed on this device."</string>
+    <string name="ui_no_file_picker_is_installed_on_this_tv" formatted="false">"No file picker is installed on this TV."</string>
+    <string name="ui_no_folder_picker_is_installed" formatted="false">"No folder picker is installed."</string>
+    <string name="ui_no_folder_picker_is_installed_on_this_device" formatted="false">"No folder picker is installed on this device."</string>
+    <string name="ui_no_installed_offline_speech_voice_is_available" formatted="false">"No installed offline speech voice is available."</string>
+    <string name="ui_no_installed_offline_voice_is_available" formatted="false">"No installed offline voice is available."</string>
+    <string name="ui_no_matching_files_found_choose_a_folder_or_load" formatted="false">"No matching files found. Choose a folder or load a subtitle file directly."</string>
+    <string name="ui_no_matching_media" formatted="false">"No matching media"</string>
+    <string name="ui_no_matching_media_in_this_folder" formatted="false">"No matching media in this folder"</string>
+    <string name="ui_no_mounted_removable_drive_found" formatted="false">"No mounted removable drive found"</string>
+    <string name="ui_no_other_sound_tracks" formatted="false">"No other sound tracks"</string>
+    <string name="ui_no_permitted_indexed_media_found_on_this_drive" formatted="false">"No permitted, indexed media found on this drive."</string>
+    <string name="ui_no_saved_subtitle_for_this_video" formatted="false">"No saved subtitle for this video."</string>
+    <string name="ui_no_settings_match">"No settings match “%1$s”."</string>
+    <string name="ui_no_subtitles_found_in_your_languages" formatted="false">"No subtitles found in your languages."</string>
+    <string name="ui_no_supported_usb_mass_storage_drive_found" formatted="false">"No supported USB mass-storage drive found."</string>
+    <string name="ui_no_visible_disk_shares_enter_the_share_path_manually" formatted="false">"No visible disk shares. Enter the share path manually if it is hidden."</string>
+    <string name="ui_normal" formatted="false">"Normal"</string>
+    <string name="ui_not_exposed_by_this_native_build" formatted="false">"Not exposed by this native build"</string>
+    <string name="ui_not_independently_verified" formatted="false">"Not independently verified"</string>
+    <string name="ui_not_needed" formatted="false">"Not needed"</string>
+    <string name="ui_not_reported" formatted="false">"Not reported"</string>
+    <string name="ui_numbered_item">"%1$d. %2$s"</string>
+    <string name="ui_of">"%1$s of %2$s"</string>
+    <string name="ui_off_flat" formatted="false">"Off / flat"</string>
+    <string name="ui_off_not_available" formatted="false">"Off, not available"</string>
+    <string name="ui_offline_subtitle_assistance" formatted="false">"Offline subtitle assistance"</string>
+    <string name="ui_offline_translation_is_unavailable_original_subtitles_remain_visible" formatted="false">"Offline translation is unavailable. Original subtitles remain visible."</string>
+    <string name="ui_offline_voice" formatted="false">"Offline voice"</string>
+    <string name="ui_ok_to_type">"%1$s  (OK to type)"</string>
+    <string name="ui_on" formatted="false">"On"</string>
+    <string name="ui_open_a_file_or_add_a_media_folder_to" formatted="false">"Open a file or add a media folder to begin."</string>
+    <string name="ui_open_a_folder_containing_a_media_file_to_test" formatted="false">"Open a folder containing a media file to test its connection."</string>
+    <string name="ui_open_file" formatted="false">"Open file"</string>
+    <string name="ui_open_private_media" formatted="false">"Open private media"</string>
+    <string name="ui_open_protected_files_from_private_media" formatted="false">"Open protected files from Private media."</string>
+    <string name="ui_open_receiver_controls_from_the_media_you_want_to" formatted="false">"Open receiver controls from the media you want to play."</string>
+    <string name="ui_open_stream_url" formatted="false">"Open stream URL"</string>
+    <string name="ui_opening" formatted="false">"Opening…"</string>
+    <string name="ui_opening_shares" formatted="false">"Opening shares…"</string>
+    <string name="ui_optional_compatibility_output_for_sdr_screens_automatic_engine_selection" formatted="false">"Optional Compatibility output for SDR screens. Automatic engine selection can switch supported HDR video; explicit Standard, protected video and unsupported Compatibility audio keep their current path. The SDR picture-enhancement switch is separate."</string>
+    <string name="ui_options" formatted="false">"Options"</string>
+    <string name="ui_orientation" formatted="false">"Orientation"</string>
+    <string name="ui_original" formatted="false">"Original"</string>
+    <string name="ui_original_channels" formatted="false">"Original channels"</string>
+    <string name="ui_original_data_space_no_forced_hdr" formatted="false">"Original data space / no forced HDR"</string>
+    <string name="ui_original_output" formatted="false">"Original output"</string>
+    <string name="ui_original_preview" formatted="false">"Original preview"</string>
+    <string name="ui_original_subtitles_stay_visible_if_assistance_is_unavailable_subtitles" formatted="false">"Original subtitles stay visible if assistance is unavailable. Subtitles are read only during playback and speech stops when you pause or leave."</string>
+    <string name="ui_outline" formatted="false">"Outline"</string>
+    <string name="ui_outline_color_rrggbb_or_aarrggbb" formatted="false">"Outline color · #RRGGBB or #AARRGGBB"</string>
+    <string name="ui_outline_width" formatted="false">"Outline width"</string>
+    <string name="ui_output_tracks_sound_effects" formatted="false">"Output, tracks, sound effects"</string>
+    <string name="ui_partition">"Partition %1$s"</string>
+    <string name="ui_passthrough_bitstream_to_receiver" formatted="false">"passthrough (bitstream to receiver)"</string>
+    <string name="ui_passthrough_is_unchanged_use_decoded_output_to_apply_effects" formatted="false">"Passthrough is unchanged. Use decoded output to apply effects to this track."</string>
+    <string name="ui_password" formatted="false">"Password"</string>
+    <string name="ui_password_at_least_10_characters" formatted="false">"Password · at least 10 characters"</string>
+    <string name="ui_passwords_do_not_match" formatted="false">"Passwords do not match."</string>
+    <string name="ui_pause" formatted="false">"Pause"</string>
+    <string name="ui_pause_downloads" formatted="false">"Pause downloads"</string>
+    <string name="ui_paused" formatted="false">"Paused"</string>
+    <string name="ui_paused_on">"Paused on %1$s"</string>
+    <string name="ui_paused_precise_frames" formatted="false">"Paused · precise frames"</string>
+    <string name="ui_peak_analysis_adds_gpu_work_with_it_off_mapping" formatted="false">"Peak analysis adds GPU work. With it off, mapping uses the video\'s available metadata."</string>
+    <string name="ui_performance" formatted="false">"Performance"</string>
+    <string name="ui_picture_comparison" formatted="false">"Picture comparison"</string>
+    <string name="ui_picture_detail_processing_requires_sdr" formatted="false">"Picture detail processing requires SDR"</string>
+    <string name="ui_picture_enhancement" formatted="false">"Picture enhancement"</string>
+    <string name="ui_picture_enhancement_unavailable_for_this_video_continuing_without_effects" formatted="false">"Picture enhancement unavailable for this video. Continuing without effects."</string>
+    <string name="ui_picture_fit" formatted="false">"Picture fit"</string>
+    <string name="ui_picture_hdr" formatted="false">"Picture &amp; HDR"</string>
+    <string name="ui_picture_in_picture" formatted="false">"Picture in picture"</string>
+    <string name="ui_picture_preset" formatted="false">"Picture preset"</string>
+    <string name="ui_picture_shader_profiles" formatted="false">"Picture / shader profiles"</string>
+    <string name="ui_pin" formatted="false">"PIN"</string>
+    <string name="ui_pin_history_and_backups" formatted="false">"PIN, history and backups"</string>
+    <string name="ui_pinch_to_zoom" formatted="false">"Pinch to zoom"</string>
+    <string name="ui_play" formatted="false">"Play"</string>
+    <string name="ui_play_9507b9">"Play %1$s"</string>
+    <string name="ui_play_folder" formatted="false">"Play folder"</string>
+    <string name="ui_play_from">"Play from %1$s"</string>
+    <string name="ui_play_from_beginning" formatted="false">"Play from beginning"</string>
+    <string name="ui_play_media_on_page" formatted="false">"Play media on page"</string>
+    <string name="ui_play_pause" formatted="false">"Play / pause"</string>
+    <string name="ui_play_selected">"Play selected (%1$s)"</string>
+    <string name="ui_play_selected_media_on_this_receiver" formatted="false">"Play selected media on this receiver"</string>
+    <string name="ui_play_this_page" formatted="false">"Play this page"</string>
+    <string name="ui_playback" formatted="false">"Playback"</string>
+    <string name="ui_playback_engine" formatted="false">"Playback engine"</string>
+    <string name="ui_playback_error">"Playback error %1$s"</string>
+    <string name="ui_playback_error_trying_the_link_as_hls">"Playback error %1$s · trying the link as HLS"</string>
+    <string name="ui_playback_locked_back_also_unlocks" formatted="false">"Playback locked · Back also unlocks"</string>
+    <string name="ui_playback_speed" formatted="false">"Playback speed"</string>
+    <string name="ui_playback_stays_paused_backward_steps_may_take_longer_while" formatted="false">"Playback stays paused. Backward steps may take longer while the previous keyframe is decoded."</string>
+    <string name="ui_player_interface_glass_ember_basic_streaming_controls_engine_resume" formatted="false">"player interface glass ember basic streaming controls engine resume seeking buffer decoder memory picture in picture background audio exit IntroDB skip markers"</string>
+    <string name="ui_player_settings" formatted="false">"Player settings"</string>
+    <string name="ui_player_shortcuts" formatted="false">"Player shortcuts"</string>
+    <string name="ui_playing" formatted="false">"Playing"</string>
+    <string name="ui_playing_on">"Playing on %1$s"</string>
+    <string name="ui_playlist" formatted="false">"Playlist"</string>
+    <string name="ui_playlist_name" formatted="false">"Playlist name"</string>
+    <string name="ui_playlist_saved" formatted="false">"Playlist saved"</string>
+    <string name="ui_playlist_summary">"%1$s · %2$d"</string>
+    <string name="ui_playlists" formatted="false">"Playlists"</string>
+    <string name="ui_portrait" formatted="false">"Portrait"</string>
+    <string name="ui_pq_hdr10_family_input" formatted="false">"PQ / HDR10-family input"</string>
+    <string name="ui_precise" formatted="false">"Precise"</string>
+    <string name="ui_prefer_hardware" formatted="false">"Prefer hardware"</string>
+    <string name="ui_prefer_software" formatted="false">"Prefer software"</string>
+    <string name="ui_preferred_language" formatted="false">"Preferred language"</string>
+    <string name="ui_preparing_background_playback" formatted="false">"Preparing background playback"</string>
+    <string name="ui_preparing_download" formatted="false">"Preparing download…"</string>
+    <string name="ui_preparing_files" formatted="false">"Preparing files"</string>
+    <string name="ui_preparing_media" formatted="false">"Preparing media…"</string>
+    <string name="ui_preparing_receiver" formatted="false">"Preparing receiver…"</string>
+    <string name="ui_preserve_authored_styling" formatted="false">"Preserve authored styling"</string>
+    <string name="ui_preserve_hue_reduce_saturation" formatted="false">"Preserve hue / reduce saturation"</string>
+    <string name="ui_preset_name" formatted="false">"Preset name"</string>
+    <string name="ui_preset_saved" formatted="false">"Preset saved"</string>
+    <string name="ui_preview_of_your_defaults_a_subtitle_file_s_authored" formatted="false">"Preview of your defaults. A subtitle file’s authored styling takes priority during playback."</string>
+    <string name="ui_preview_of_your_selected_subtitle_style" formatted="false">"Preview of your selected subtitle style."</string>
+    <string name="ui_previous_file" formatted="false">"Previous file"</string>
+    <string name="ui_previous_frame" formatted="false">"Previous frame"</string>
+    <string name="ui_previous_page" formatted="false">"Previous page"</string>
+    <string name="ui_privacy_pin_create_change_remove_protection_private_media_hidden" formatted="false">"privacy PIN create change remove protection private media hidden history recent activity"</string>
+    <string name="ui_private_folder_is_unavailable_add_it_again_to_renew" formatted="false">"Private folder is unavailable. Add it again to renew access."</string>
+    <string name="ui_private_key" formatted="false">"Private key"</string>
+    <string name="ui_private_key_imported_it_will_be_encrypted_when_you" formatted="false">"Private key imported. It will be encrypted when you save the folder."</string>
+    <string name="ui_private_key_passphrase_optional" formatted="false">"Private key passphrase (optional)"</string>
+    <string name="ui_private_media" formatted="false">"Private media"</string>
+    <string name="ui_private_media_pin" formatted="false">"Private media PIN"</string>
+    <string name="ui_private_storage_is_unavailable" formatted="false">"Private storage is unavailable."</string>
+    <string name="ui_processed" formatted="false">"Processed"</string>
+    <string name="ui_processing_display_decoding" formatted="false">"Processing, display, decoding"</string>
+    <string name="ui_profile_and_its_media_assignments_removed" formatted="false">"Profile and its media assignments removed"</string>
+    <string name="ui_profile_name" formatted="false">"Profile name"</string>
+    <string name="ui_profile_saved" formatted="false">"Profile saved"</string>
+    <string name="ui_protect_access_inside_ember_player_add_and_browse_protected" formatted="false">"Protect access inside Ember Player. Add and browse protected files from Private media in the library."</string>
+    <string name="ui_protect_your_backup" formatted="false">"Protect your backup"</string>
+    <string name="ui_protected_media_cannot_be_sent_to_a_receiver" formatted="false">"Protected media cannot be sent to a receiver."</string>
+    <string name="ui_px">"%1$s px"</string>
+    <string name="ui_queue" formatted="false">"Queue"</string>
+    <string name="ui_queue_of">"Queue · %1$s–%2$s of %3$s"</string>
+    <string name="ui_read_ahead_target" formatted="false">"Read-ahead target"</string>
+    <string name="ui_read_only_fat32_browsing_including_files_android_has_not" formatted="false">"Read-only FAT32 browsing, including files Android has not indexed. Drive access is requested only when you select one."</string>
+    <string name="ui_read_subtitles_aloud" formatted="false">"Read subtitles aloud"</string>
+    <string name="ui_read_timeout" formatted="false">"Read timeout"</string>
+    <string name="ui_reading_up_to_8_mib_no_file_is_saved" formatted="false">"Reading up to 8 MiB. No file is saved…"</string>
+    <string name="ui_receiver" formatted="false">"Receiver"</string>
+    <string name="ui_receiver_a3878e">"Receiver · %1$s"</string>
+    <string name="ui_receiver_disconnected" formatted="false">"Receiver disconnected"</string>
+    <string name="ui_receiver_playback" formatted="false">"Receiver playback"</string>
+    <string name="ui_recent_activity_and_resume_positions_will_be_cleared_playlists" formatted="false">"Recent activity and resume positions will be cleared. Playlists and bookmarks will be kept."</string>
+    <string name="ui_recent_activity_cleared" formatted="false">"Recent activity cleared"</string>
+    <string name="ui_recently_modified" formatted="false">"Recently modified"</string>
+    <string name="ui_red" formatted="false">"Red"</string>
+    <string name="ui_refill_before_resuming" formatted="false">"Refill before resuming"</string>
+    <string name="ui_refresh" formatted="false">"Refresh"</string>
+    <string name="ui_refresh_drives" formatted="false">"Refresh drives"</string>
+    <string name="ui_refresh_indexes_the_folders_you_chose_including_subfolders_the" formatted="false">"Refresh indexes the folders you chose, including subfolders. The encrypted index stays on this device; nothing is scanned at startup."</string>
+    <string name="ui_refresh_library" formatted="false">"Refresh library"</string>
+    <string name="ui_refresh_library_view" formatted="false">"Refresh library view"</string>
+    <string name="ui_refresh_usb_drives" formatted="false">"Refresh USB drives"</string>
+    <string name="ui_reinhard" formatted="false">"Reinhard"</string>
+    <string name="ui_release_to_return">"%1$s× · release to return"</string>
+    <string name="ui_reload_saved_subtitle" formatted="false">"Reload saved subtitle"</string>
+    <string name="ui_remaining_min">"Remaining · %1$s min"</string>
+    <string name="ui_remember_geometry_for_this_media" formatted="false">"Remember geometry for this media"</string>
+    <string name="ui_remember_working_decoders" formatted="false">"Remember working decoders"</string>
+    <string name="ui_remove" formatted="false">"Remove"</string>
+    <string name="ui_remove_folder" formatted="false">"Remove folder"</string>
+    <string name="ui_remove_from_saved_sound_presets_current_sound_settings_will">"Remove %1$s from saved sound presets? Current sound settings will be kept."</string>
+    <string name="ui_remove_from_saved_subtitle_styles_current_subtitle_settings_will">"Remove %1$s from saved subtitle styles? Current subtitle settings will be kept."</string>
+    <string name="ui_remove_its_saved_credentials_and_any_private_key_from">"Remove %1$s, its saved credentials and any private key from this device? Files on the server will be kept."</string>
+    <string name="ui_remove_network_folder" formatted="false">"Remove network folder?"</string>
+    <string name="ui_remove_pin_protection" formatted="false">"Remove PIN protection"</string>
+    <string name="ui_remove_protection" formatted="false">"Remove protection"</string>
+    <string name="ui_remove_saved_folder" formatted="false">"Remove saved folder"</string>
+    <string name="ui_remove_shortcut" formatted="false">"Remove shortcut"</string>
+    <string name="ui_removes_the_pin_and_makes_all_private_entries_visible" formatted="false">"Removes the PIN and makes all private entries visible in normal browsing. Original files are kept."</string>
+    <string name="ui_rename" formatted="false">"Rename"</string>
+    <string name="ui_rename_bookmark" formatted="false">"Rename bookmark"</string>
+    <string name="ui_rename_file" formatted="false">"Rename file"</string>
+    <string name="ui_rename_playlist" formatted="false">"Rename playlist"</string>
+    <string name="ui_renderer" formatted="false">"Renderer"</string>
+    <string name="ui_renderer_input_transfer" formatted="false">"Renderer input transfer"</string>
+    <string name="ui_renderer_recovery" formatted="false">"Renderer recovery"</string>
+    <string name="ui_reopen_your_media_files_to_restore_this_queue" formatted="false">"Reopen your media files to restore this queue."</string>
+    <string name="ui_reorder_entries" formatted="false">"Reorder entries"</string>
+    <string name="ui_repeat" formatted="false">"Repeat"</string>
+    <string name="ui_repeat_item" formatted="false">"Repeat item"</string>
+    <string name="ui_repeat_queue" formatted="false">"Repeat queue"</string>
+    <string name="ui_replace_private_key" formatted="false">"Replace private key"</string>
+    <string name="ui_requested_output">"Requested output: %1$s"</string>
+    <string name="ui_requested_output_ef90cd" formatted="false">"Requested output"</string>
+    <string name="ui_reset_decoder_memory" formatted="false">"Reset decoder memory"</string>
+    <string name="ui_reset_picture_adjustments" formatted="false">"Reset picture adjustments"</string>
+    <string name="ui_reset_shortcuts" formatted="false">"Reset shortcuts"</string>
+    <string name="ui_reset_sound_effects" formatted="false">"Reset sound effects"</string>
+    <string name="ui_reset_timing" formatted="false">"Reset timing"</string>
+    <string name="ui_restore" formatted="false">"Restore"</string>
+    <string name="ui_restore_backup" formatted="false">"Restore backup"</string>
+    <string name="ui_restore_failed" formatted="false">"Restore failed."</string>
+    <string name="ui_restore_failed_and_the_previous_configuration_could_not_be" formatted="false">"Restore failed and the previous configuration could not be fully recovered."</string>
+    <string name="ui_restore_failed_the_previous_configuration_was_kept" formatted="false">"Restore failed. The previous configuration was kept."</string>
+    <string name="ui_restore_this_backup" formatted="false">"Restore this backup?"</string>
+    <string name="ui_resume" formatted="false">"Resume"</string>
+    <string name="ui_resume_automatically" formatted="false">"Resume automatically"</string>
+    <string name="ui_resume_c596cf">"Resume · %1$s"</string>
+    <string name="ui_resume_controls_seeking" formatted="false">"Resume, controls, seeking"</string>
+    <string name="ui_resume_playlist" formatted="false">"Resume playlist"</string>
+    <string name="ui_resume_positions_and_chapter_intro_jumps_stay_precise" formatted="false">"Resume positions and chapter/intro jumps stay precise."</string>
+    <string name="ui_retrying_with_automatic_hdr_output" formatted="false">"Retrying with automatic HDR output"</string>
+    <string name="ui_retrying_without_picture_enhancement" formatted="false">"Retrying without picture enhancement"</string>
+    <string name="ui_rewind_buffer_compatibility" formatted="false">"Rewind buffer · Compatibility"</string>
+    <string name="ui_right" formatted="false">"Right"</string>
+    <string name="ui_right_double_tap" formatted="false">"Right double-tap"</string>
+    <string name="ui_root_folder" formatted="false">"Root folder"</string>
+    <string name="ui_rose" formatted="false">"Rose"</string>
+    <string name="ui_sans" formatted="false">"Sans"</string>
+    <string name="ui_saturation" formatted="false">"Saturation"</string>
+    <string name="ui_save" formatted="false">"Save"</string>
+    <string name="ui_save_a_scene_to_return_to_it_later" formatted="false">"Save a scene to return to it later."</string>
+    <string name="ui_save_and_reuse_picture_shader_and_hdr_settings" formatted="false">"Save and reuse picture, shader and HDR settings."</string>
+    <string name="ui_save_aspect_ratio_picture_fit_and_magnification_for_this" formatted="false">"Save aspect ratio, picture fit and magnification for this item."</string>
+    <string name="ui_save_current_picture_settings" formatted="false">"Save current picture settings"</string>
+    <string name="ui_save_current_position" formatted="false">"Save current position"</string>
+    <string name="ui_save_current_settings" formatted="false">"Save current settings"</string>
+    <string name="ui_save_current_style" formatted="false">"Save current style"</string>
+    <string name="ui_save_picture_shader_profile" formatted="false">"Save picture / shader profile"</string>
+    <string name="ui_save_pin" formatted="false">"Save PIN"</string>
+    <string name="ui_save_playlist" formatted="false">"Save playlist"</string>
+    <string name="ui_save_queue_as_playlist" formatted="false">"Save queue as playlist"</string>
+    <string name="ui_save_queue_to_playlist" formatted="false">"Save queue to playlist"</string>
+    <string name="ui_save_recent_activity_and_resume_positions" formatted="false">"Save recent activity and resume positions"</string>
+    <string name="ui_save_screenshot" formatted="false">"Save screenshot"</string>
+    <string name="ui_save_sound_preset" formatted="false">"Save sound preset"</string>
+    <string name="ui_save_subtitle_style" formatted="false">"Save subtitle style"</string>
+    <string name="ui_save_up_to_16_profiles_optionally_remember_one_for" formatted="false">"Save up to 16 profiles; optionally remember one for a media item."</string>
+    <string name="ui_save_upscaling_shader_color_debanding_smoothing_and_hdr_choices" formatted="false">"Save upscaling, shader, color, debanding, smoothing and HDR choices together. Using an existing name replaces that profile. Media-specific assignments are made while watching."</string>
+    <string name="ui_saved_folder_library" formatted="false">"Saved folder library"</string>
+    <string name="ui_saved_picture_processing" formatted="false">"Saved picture processing"</string>
+    <string name="ui_saved_picture_shader_profile_name_save_delete" formatted="false">"saved picture shader profile name save delete"</string>
+    <string name="ui_saved_picture_shader_profiles" formatted="false">"Saved picture / shader profiles"</string>
+    <string name="ui_saved_processing" formatted="false">"Saved processing"</string>
+    <string name="ui_saved_profile" formatted="false">"Saved profile"</string>
+    <string name="ui_saved_subtitle_styles" formatted="false">"Saved subtitle styles"</string>
+    <string name="ui_saving" formatted="false">"Saving…"</string>
+    <string name="ui_screenshot_canceled_because_playback_changed" formatted="false">"Screenshot canceled because playback changed."</string>
+    <string name="ui_screenshot_saved" formatted="false">"Screenshot saved"</string>
+    <string name="ui_screenshots_are_unavailable_for_protected_playback" formatted="false">"Screenshots are unavailable for protected playback."</string>
+    <string name="ui_sdh" formatted="false">" (SDH)"</string>
+    <string name="ui_sdr" formatted="false">"SDR"</string>
+    <string name="ui_sdr_hdr_not_reported" formatted="false">"SDR / HDR not reported"</string>
+    <string name="ui_sdr_input" formatted="false">"SDR input"</string>
+    <string name="ui_sdr_screen_peak" formatted="false">"SDR screen peak"</string>
+    <string name="ui_sdr_to_hdr_experimental" formatted="false">"SDR to HDR · experimental"</string>
+    <string name="ui_seamless_only" formatted="false">"Seamless only"</string>
+    <string name="ui_search" formatted="false">"Search"</string>
+    <string name="ui_search_and_sorting_apply_to_this_page_use_library" formatted="false">"Search and sorting apply to this page. Use Library search to find files across folders."</string>
+    <string name="ui_search_media" formatted="false">"Search media"</string>
+    <string name="ui_search_media_library" formatted="false">"Search media library"</string>
+    <string name="ui_search_results" formatted="false">"Search results"</string>
+    <string name="ui_search_settings" formatted="false">"Search settings"</string>
+    <string name="ui_search_this_folder" formatted="false">"Search this folder"</string>
+    <string name="ui_search_videos" formatted="false">"Search videos"</string>
+    <string name="ui_searching_for_subtitles" formatted="false">"Searching for subtitles..."</string>
+    <string name="ui_secondary_subtitles" formatted="false">"Secondary subtitles"</string>
+    <string name="ui_secondary_timing" formatted="false">"Secondary timing"</string>
+    <string name="ui_seconds">"%1$s%2$s seconds"</string>
+    <string name="ui_seconds_mm_ss_or_hh_mm_ss_milliseconds_are" formatted="false">"Seconds, MM:SS or HH:MM:SS · milliseconds are optional"</string>
+    <string name="ui_see_all">"See all · %1$s"</string>
+    <string name="ui_seek" formatted="false">"Seek"</string>
+    <string name="ui_seeking" formatted="false">"Seeking"</string>
+    <string name="ui_select_a_share_below" formatted="false">"Select a share below."</string>
+    <string name="ui_select_files" formatted="false">"Select files"</string>
+    <string name="ui_select_media_in_the_player_to_send_it_to" formatted="false">"Select media in the player to send it to a receiver."</string>
+    <string name="ui_selected" formatted="false">"Selected"</string>
+    <string name="ui_serif" formatted="false">"Serif"</string>
+    <string name="ui_set_repeat_end" formatted="false">"Set repeat end"</string>
+    <string name="ui_set_repeat_start" formatted="false">"Set repeat start"</string>
+    <string name="ui_setting_up_cast" formatted="false">"Setting up Cast…"</string>
+    <string name="ui_settings" formatted="false">"Settings"</string>
+    <string name="ui_settings_saved_positions_bookmarks_playlists_and_connection_details_are" formatted="false">"Settings, saved positions, bookmarks, playlists and connection details are protected by your backup password. Video files are not copied. Keep the password safe; it cannot be recovered."</string>
+    <string name="ui_sftp_verified_sha256_fingerprint_optional" formatted="false">"SFTP verified SHA256 fingerprint (optional)"</string>
+    <string name="ui_shadow" formatted="false">"Shadow"</string>
+    <string name="ui_share" formatted="false">"Share"</string>
+    <string name="ui_share_browsing_canceled" formatted="false">"Share browsing canceled."</string>
+    <string name="ui_share_browsing_timed_out_check_the_server_or_enter" formatted="false">"Share browsing timed out. Check the server or enter its share path manually."</string>
+    <string name="ui_share_media" formatted="false">"Share media"</string>
+    <string name="ui_sharpness" formatted="false">"Sharpness"</string>
+    <string name="ui_short_sample_actual_playback_may_vary" formatted="false">". Short sample; actual playback may vary."</string>
+    <string name="ui_show_hide_controls" formatted="false">"Show / hide controls"</string>
+    <string name="ui_show_media" formatted="false">"Show media"</string>
+    <string name="ui_show_skip_button" formatted="false">"Show skip button"</string>
+    <string name="ui_shows_media_android_has_mounted_and_indexed_android_s" formatted="false">"Shows media Android has mounted and indexed. Android’s supported filesystems and your media permissions determine what is visible. The system picker remains available for other files."</string>
+    <string name="ui_shuffle" formatted="false">"Shuffle"</string>
+    <string name="ui_skip_automatically" formatted="false">"Skip automatically"</string>
+    <string name="ui_skip_markers" formatted="false">"Skip markers"</string>
+    <string name="ui_sleep_timer" formatted="false">"Sleep timer"</string>
+    <string name="ui_sleep_timer_is_off" formatted="false">"Sleep timer is off"</string>
+    <string name="ui_sleep_timer_stop_after_end_item" formatted="false">"sleep timer stop after end item"</string>
+    <string name="ui_slowest_sample_1f_mbps">" · slowest sample %1$.1f Mbps"</string>
+    <string name="ui_small" formatted="false">"Small"</string>
+    <string name="ui_smb_domain_optional" formatted="false">"SMB domain (optional)"</string>
+    <string name="ui_smb_encryption_not_required" formatted="false">"SMB encryption: not required"</string>
+    <string name="ui_smb_encryption_required" formatted="false">"SMB encryption: required"</string>
+    <string name="ui_soft_picture" formatted="false">"Soft picture"</string>
+    <string name="ui_software_deblocking" formatted="false">"Software deblocking"</string>
+    <string name="ui_software_full_quality" formatted="false">"Software · full quality"</string>
+    <string name="ui_software_hardware_video_decoder_hi10p_frame_rate_resolution_dolby" formatted="false">"software hardware video decoder Hi10P frame rate resolution Dolby Vision deinterlacing"</string>
+    <string name="ui_software_lighter_decoding" formatted="false">"Software · lighter decoding"</string>
+    <string name="ui_software_video" formatted="false">"Software video"</string>
+    <string name="ui_software_when_needed" formatted="false">"Software when needed"</string>
+    <string name="ui_some_cached_data_could_not_be_cleared" formatted="false">"Some cached data could not be cleared"</string>
+    <string name="ui_sort_media" formatted="false">"Sort media"</string>
+    <string name="ui_sound" formatted="false">"Sound"</string>
+    <string name="ui_sound_5e2e97" formatted="false">"sound"</string>
+    <string name="ui_sound_audio_night_listening_compression_hdmi_passthrough_decoding_track" formatted="false">"sound audio night listening compression HDMI passthrough decoding track language lip sync delay Bluetooth equalizer preset bass treble stereo width channels"</string>
+    <string name="ui_sound_delay_ms">"Sound delay: %1$s ms"</string>
+    <string name="ui_sound_settings" formatted="false">"Sound settings…"</string>
+    <string name="ui_source_hdr">"Source HDR: %1$s"</string>
+    <string name="ui_source_hdr_f0e76b" formatted="false">"Source HDR"</string>
+    <string name="ui_srt_vtt_ass_ttml_sup_or_idx_sub" formatted="false">"SRT, VTT, ASS, TTML, SUP or IDX + SUB"</string>
+    <string name="ui_stable_fallback_active" formatted="false">"Stable fallback active"</string>
+    <string name="ui_stable_gpu" formatted="false">"Stable GPU"</string>
+    <string name="ui_standard" formatted="false">"Standard"</string>
+    <string name="ui_standard_uses_lanczos_when_enlarging_video_compatibility_can_also" formatted="false">"Standard uses Lanczos when enlarging video. Compatibility can also use a bundled lightweight shader above 1.2× in both dimensions. No downloads are needed."</string>
+    <string name="ui_start" formatted="false">"Start"</string>
+    <string name="ui_start_over" formatted="false">"Start over"</string>
+    <string name="ui_startup_focus_target_changed_during_navigation" formatted="false">"Startup focus target changed during navigation"</string>
+    <string name="ui_stereo_width" formatted="false">"Stereo width"</string>
+    <string name="ui_stop" formatted="false">"Stop"</string>
+    <string name="ui_stop_discovery" formatted="false">"Stop discovery"</string>
+    <string name="ui_stop_watching" formatted="false">"Stop watching?"</string>
+    <string name="ui_stops_after_the_current_item" formatted="false">"Stops after the current item"</string>
+    <string name="ui_stream" formatted="false">"Stream"</string>
+    <string name="ui_streaming" formatted="false">"Streaming"</string>
+    <string name="ui_streaming_buffering_cached_data" formatted="false">"Streaming, buffering, cached data"</string>
+    <string name="ui_style_applied" formatted="false">"Style applied"</string>
+    <string name="ui_style_name" formatted="false">"Style name"</string>
+    <string name="ui_style_saved" formatted="false">"Style saved"</string>
+    <string name="ui_subtitle_loaded_but_its_choice_could_not_be_saved" formatted="false">"Subtitle loaded, but its choice could not be saved."</string>
+    <string name="ui_subtitle_position">"Subtitle position %1$s%%"</string>
+    <string name="ui_subtitle_settings" formatted="false">"Subtitle settings"</string>
+    <string name="ui_subtitle_settings_fdfc57" formatted="false">"Subtitle settings…"</string>
+    <string name="ui_subtitle_size">"Subtitle size %1$s%%"</string>
+    <string name="ui_subtitle_speed" formatted="false">"Subtitle speed"</string>
+    <string name="ui_subtitle_style_presets" formatted="false">"Subtitle style presets"</string>
+    <string name="ui_subtitle_style_preview" formatted="false">"Subtitle style preview"</string>
+    <string name="ui_subtitle_styles" formatted="false">"Subtitle styles"</string>
+    <string name="ui_subtitle_timing_2f_s">"Subtitle timing %1$+.2f s"</string>
+    <string name="ui_subtitle_touch_gestures" formatted="false">"Subtitle touch gestures"</string>
+    <string name="ui_subtitles" formatted="false">"Subtitles"</string>
+    <string name="ui_swap_brightness_and_volume_sides" formatted="false">"Swap brightness and volume sides"</string>
+    <string name="ui_swap_left_and_right" formatted="false">"Swap left and right"</string>
+    <string name="ui_system_caption_colors_font_and_edge_style_take_priority" formatted="false">"System caption colors, font and edge style take priority."</string>
+    <string name="ui_tap_to_show_controls_double_tap_the_center_to" formatted="false">"Tap to show controls. Double-tap the center to pause; double-tap an edge to seek. Swipe horizontally to preview a seek, then release. Playback lock is in the player options; Back unlocks it."</string>
+    <string name="ui_temporarily_bypassed_for_this_video_toggle_to_retry" formatted="false">"Temporarily bypassed for this video. Toggle to retry."</string>
+    <string name="ui_temporarily_bypassed_toggle_to_retry" formatted="false">"Temporarily bypassed. Toggle to retry."</string>
+    <string name="ui_temporary_hold_speed" formatted="false">"Temporary hold speed"</string>
+    <string name="ui_test_canceled" formatted="false">"Test canceled."</string>
+    <string name="ui_test_connection" formatted="false">"Test connection"</string>
+    <string name="ui_test_timed_out_check_the_connection_and_try_again" formatted="false">"Test timed out. Check the connection and try again."</string>
+    <string name="ui_text_background" formatted="false">"Text background"</string>
+    <string name="ui_text_color" formatted="false">"Text color"</string>
+    <string name="ui_text_color_rrggbb_or_aarrggbb" formatted="false">"Text color · #RRGGBB or #AARRGGBB"</string>
+    <string name="ui_text_encoding" formatted="false">"Text encoding"</string>
+    <string name="ui_text_scale" formatted="false">"Text scale"</string>
+    <string name="ui_text_size" formatted="false">"Text size"</string>
+    <string name="ui_thai" formatted="false">"Thai"</string>
+    <string name="ui_the_downloaded_file_is_unavailable" formatted="false">"The downloaded file is unavailable."</string>
+    <string name="ui_the_file_operation_could_not_be_completed" formatted="false">"The file operation could not be completed."</string>
+    <string name="ui_the_media_changed_reopen_this_control" formatted="false">"The media changed. Reopen this control."</string>
+    <string name="ui_the_queue_is_full_create_a_separate_playlist" formatted="false">"The queue is full. Create a separate playlist."</string>
+    <string name="ui_the_receiver_could_not_play_this_format" formatted="false">"The receiver could not play this format."</string>
+    <string name="ui_the_saved_folder_changed_reopen_it_before_verifying_its" formatted="false">"The saved folder changed. Reopen it before verifying its key."</string>
+    <string name="ui_the_saved_folder_index_is_unavailable_check_folder_access" formatted="false">"The saved folder index is unavailable. Check folder access or refresh it in Files."</string>
+    <string name="ui_the_saved_folder_index_is_unavailable_on_this_device" formatted="false">"The saved folder index is unavailable on this device."</string>
+    <string name="ui_the_saved_profile_and_its_media_assignments_will_be" formatted="false">"The saved profile and its media assignments will be removed. Current picture settings will be kept."</string>
+    <string name="ui_the_sftp_server_host_key_does_not_match_the" formatted="false">"The SFTP server host key does not match the saved fingerprint. Verify the server\'s key independently before updating the saved folder."</string>
+    <string name="ui_theme" formatted="false">"Theme"</string>
+    <string name="ui_this_device_blocked_background_playback" formatted="false">"This device blocked background playback."</string>
+    <string name="ui_this_directory_listing_is_too_large_open_a_smaller" formatted="false">"This directory listing is too large. Open a smaller folder."</string>
+    <string name="ui_this_drive_is_unavailable_reconnect_it_refresh_or_use" formatted="false">"This drive is unavailable. Reconnect it, refresh, or use the system picker."</string>
+    <string name="ui_this_file_is_unavailable_refresh_the_library_or_renew" formatted="false">"This file is unavailable. Refresh the library or renew folder access."</string>
+    <string name="ui_this_file_is_unavailable_renew_folder_access_or_select" formatted="false">"This file is unavailable. Renew folder access or select it again."</string>
+    <string name="ui_this_folder_is_unavailable" formatted="false">"This folder is unavailable."</string>
+    <string name="ui_this_folder_is_unavailable_choose_it_again_to_renew" formatted="false">"This folder is unavailable. Choose it again to renew access."</string>
+    <string name="ui_this_format_cannot_be_exported_with_the_device_s" formatted="false">"This format cannot be exported with the device\'s encoders."</string>
+    <string name="ui_this_media_is_unavailable_add_it_again_to_renew" formatted="false">"This media is unavailable. Add it again to renew access."</string>
+    <string name="ui_this_media_is_unavailable_refresh_the_drive" formatted="false">"This media is unavailable. Refresh the drive."</string>
+    <string name="ui_this_media_uses_edits_update_that_saved_profile">"This media uses %1$s. Edits update that saved profile."</string>
+    <string name="ui_this_playlist_is_unavailable_check_folder_permissions_and_saved" formatted="false">"This playlist is unavailable. Check folder permissions and saved network connections."</string>
+    <string name="ui_this_receiver_did_not_accept_the_control" formatted="false">"This receiver did not accept the control."</string>
+    <string name="ui_this_removes_the_selected_files_from_storage" formatted="false">"This removes the selected files from storage."</string>
+    <string name="ui_this_replaces_your_player_settings_and_saved_activity_folder" formatted="false">"This replaces your player settings and saved activity. Folder permissions may need to be granted again on another device."</string>
+    <string name="ui_this_saved_folder_was_removed_add_it_again_to" formatted="false">"This saved folder was removed. Add it again to use this shortcut."</string>
+    <string name="ui_this_source_cannot_be_sent_to_a_receiver" formatted="false">"This source cannot be sent to a receiver."</string>
+    <string name="ui_this_source_cannot_resume_starting_from_the_beginning" formatted="false">"This source cannot resume. Starting from the beginning."</string>
+    <string name="ui_this_source_does_not_allow_playback_speed_changes" formatted="false">"This source does not allow playback speed changes."</string>
+    <string name="ui_this_source_does_not_support_seeking_to_a_time" formatted="false">"This source does not support seeking to a time."</string>
+    <string name="ui_this_video_does_not_support_frame_inspection" formatted="false">"This video does not support frame inspection."</string>
+    <string name="ui_this_video_surface_cannot_be_captured" formatted="false">"This video surface cannot be captured."</string>
+    <string name="ui_timeouts_apply_when_a_stream_is_reopened_these_http" formatted="false">"Timeouts apply when a stream is reopened. These HTTP limits are shared by both playback engines and background audio."</string>
+    <string name="ui_tone_mapping" formatted="false">"Tone mapping"</string>
+    <string name="ui_too_many_attempts_wait_before_trying_again" formatted="false">"Too many attempts. Wait before trying again."</string>
+    <string name="ui_touch_and_rotation" formatted="false">"Touch and rotation"</string>
+    <string name="ui_touch_gestures" formatted="false">"Touch gestures"</string>
+    <string name="ui_touch_gestures_apply_on_phones_and_tablets_remote_navigation" formatted="false">"Touch gestures apply on phones and tablets. Remote navigation stays available on TVs."</string>
+    <string name="ui_transfer_not_reported" formatted="false">"Transfer not reported"</string>
+    <string name="ui_translate_subtitles" formatted="false">"Translate subtitles"</string>
+    <string name="ui_translation_is_unavailable_no_installed_language_pair_is_reported" formatted="false">"Translation is unavailable: no installed language pair is reported by this device. Android 12 or newer and an on-device translation service are required."</string>
+    <string name="ui_treble" formatted="false">"Treble"</string>
+    <string name="ui_trust_this_key" formatted="false">"Trust this key"</string>
+    <string name="ui_try_another_filename_or_media_filter" formatted="false">"Try another filename or media filter."</string>
+    <string name="ui_trying_another_audio_decoder" formatted="false">"Trying another audio decoder"</string>
+    <string name="ui_trying_another_video_decoder" formatted="false">"Trying another video decoder"</string>
+    <string name="ui_trying_compatibility_playback" formatted="false">"Trying compatibility playback"</string>
+    <string name="ui_trying_decoded_audio_output" formatted="false">"Trying decoded audio output"</string>
+    <string name="ui_trying_pcm_audio_output" formatted="false">"Trying PCM audio output"</string>
+    <string name="ui_turkish" formatted="false">"Turkish"</string>
+    <string name="ui_turn_off_activity_history" formatted="false">"Turn off activity history?"</string>
+    <string name="ui_turn_off_and_clear" formatted="false">"Turn off and clear"</string>
+    <string name="ui_turning_this_off_clears_recent_activity_and_resume_positions" formatted="false">"Turning this off clears recent activity and resume positions. Playlists and bookmarks are kept."</string>
+    <string name="ui_tv_receiver" formatted="false">"TV receiver"</string>
+    <string name="ui_unavailable" formatted="false">"Unavailable"</string>
+    <string name="ui_unlock" formatted="false">"Unlock"</string>
+    <string name="ui_unlock_backup" formatted="false">"Unlock backup"</string>
+    <string name="ui_unlock_playback" formatted="false">"Unlock playback"</string>
+    <string name="ui_unlock_private_media" formatted="false">"Unlock private media"</string>
+    <string name="ui_unwatched" formatted="false">"Unwatched"</string>
+    <string name="ui_up" formatted="false">"Up"</string>
+    <string name="ui_upscaling" formatted="false">"Upscaling"</string>
+    <string name="ui_usb_access_failed_check_the_drive_and_permission_fat32" formatted="false">"USB access failed. Check the drive and permission. FAT32 is supported; use Android\'s mounted-drive browser for other formats."</string>
+    <string name="ui_usb_drive" formatted="false">"USB drive"</string>
+    <string name="ui_usb_drive_disconnected" formatted="false">"USB drive disconnected"</string>
+    <string name="ui_usb_drives" formatted="false">"USB drives"</string>
+    <string name="ui_usb_permission_was_not_granted" formatted="false">"USB permission was not granted."</string>
+    <string name="ui_use">"Use %1$s"</string>
+    <string name="ui_use_6_12_digits_and_matching_pins" formatted="false">"Use 6–12 digits and matching PINs."</string>
+    <string name="ui_use_6_12_digits_keep_your_pin_safe_it" formatted="false">"Use 6–12 digits. Keep your PIN safe: it cannot be recovered."</string>
+    <string name="ui_use_a_receiver_on_the_same_network_playback_depends" formatted="false">"Use a receiver on the same network. Playback depends on its supported formats; the app does not transcode video for receivers. Private or protected playback cannot be sent."</string>
+    <string name="ui_use_as_default" formatted="false">"Use as default"</string>
+    <string name="ui_use_at_least_10_characters" formatted="false">"Use at least 10 characters."</string>
+    <string name="ui_use_compatibility_playback" formatted="false">"Use compatibility playback"</string>
+    <string name="ui_use_default" formatted="false">"Use default"</string>
+    <string name="ui_use_dolby_vision" formatted="false">"Use Dolby Vision"</string>
+    <string name="ui_use_for_this_media" formatted="false">"Use for this media"</string>
+    <string name="ui_use_global_picture_settings" formatted="false">"Use global picture settings"</string>
+    <string name="ui_use_rrggbb_or_aarrggbb_colors" formatted="false">"Use #RRGGBB or #AARRGGBB colors."</string>
+    <string name="ui_use_sound_delay" formatted="false">"Use sound delay"</string>
+    <string name="ui_use_system_caption_style" formatted="false">"Use system caption style"</string>
+    <string name="ui_use_the_mounted_drive_or_saved_folder_browser_while" formatted="false">"Use the mounted-drive or saved-folder browser while private media is enabled, so protected files keep their Android document identities."</string>
+    <string name="ui_use_the_private_media_area_to_access_protected_files" formatted="false">"Use the private-media area to access protected files."</string>
+    <string name="ui_use_the_unlock_button_or_back_to_restore_controls" formatted="false">"Use the unlock button or Back to restore controls."</string>
+    <string name="ui_username" formatted="false">"Username"</string>
+    <string name="ui_uses_an_installed_offline_voice_only" formatted="false">"Uses an installed offline voice only."</string>
+    <string name="ui_uses_compatibility_playback_and_leaves_the_video_paused" formatted="false">"Uses Compatibility playback and leaves the video paused."</string>
+    <string name="ui_uses_full_quality_software_decoding_for_detected_10_bit" formatted="false">"Uses full-quality software decoding for detected 10-bit H.264 on NVIDIA Shield in Automatic mode."</string>
+    <string name="ui_uses_more_graphics_processing_turn_off_if_playback_slows" formatted="false">"Uses more graphics processing. Turn off if playback slows."</string>
+    <string name="ui_uses_only_installed_on_device_language_models_and_offline" formatted="false">"Uses only installed on-device language models and offline speech voices. No cloud translation, API keys or automatic model downloads. Bitmap subtitles have no text to translate or read."</string>
+    <string name="ui_utf_16_big_endian" formatted="false">"UTF-16 big-endian"</string>
+    <string name="ui_utf_16_little_endian" formatted="false">"UTF-16 little-endian"</string>
+    <string name="ui_utf_8" formatted="false">"UTF-8"</string>
+    <string name="ui_verify_sftp_server" formatted="false">"Verify SFTP server"</string>
+    <string name="ui_verify_this_fingerprint_with_the_server_owner_through_another" formatted="false">"Verify this fingerprint with the server owner through another trusted channel. Trusting an unverified key could connect you to the wrong server. A changed key will be rejected."</string>
+    <string name="ui_video">"Video: %1$s"</string>
+    <string name="ui_video_decoder" formatted="false">"Video decoder"</string>
+    <string name="ui_video_decoder_audio_decoder">" · video decoder %1$s · audio decoder %2$s"</string>
+    <string name="ui_video_decoding" formatted="false">"Video decoding"</string>
+    <string name="ui_video_ffbaf5" formatted="false">"video"</string>
+    <string name="ui_video_none" formatted="false">"Video: none"</string>
+    <string name="ui_videos" formatted="false">"Videos"</string>
+    <string name="ui_vietnamese" formatted="false">"Vietnamese"</string>
+    <string name="ui_vivid" formatted="false">"Vivid"</string>
+    <string name="ui_volume" formatted="false">"Volume −"</string>
+    <string name="ui_volume_066105" formatted="false">"Volume +"</string>
+    <string name="ui_volume_15d608">"Volume %1$s%%"</string>
+    <string name="ui_volume_swipe" formatted="false">"Volume swipe"</string>
+    <string name="ui_wait_for_buffer_refill" formatted="false">"Wait for buffer refill"</string>
+    <string name="ui_wait_for_refill">"Wait for refill · %1$s"</string>
+    <string name="ui_waiting" formatted="false">"Waiting"</string>
+    <string name="ui_warm" formatted="false">"Warm"</string>
+    <string name="ui_watched" formatted="false">"Watched"</string>
+    <string name="ui_western_european" formatted="false">"Western European"</string>
+    <string name="ui_when_needed" formatted="false">"When needed"</string>
+    <string name="ui_white" formatted="false">"White"</string>
+    <string name="ui_whole_title_soundtrack_compatibility_playback" formatted="false">"Whole-title soundtrack · compatibility playback"</string>
+    <string name="ui_will_be_removed_its_media_files_will_stay_on">"%1$s will be removed. Its media files will stay on your device."</string>
+    <string name="ui_with_subtitles_selected_and_controls_hidden_start_in_the" formatted="false">"With subtitles selected and controls hidden, start in the lower third: swipe sideways for timing, up/down for position, or pinch for text size. System captions keep their own style."</string>
+    <string name="ui_working" formatted="false">"Working…"</string>
+    <string name="ui_yellow" formatted="false">"Yellow"</string>
+    <string name="ui_your_folders" formatted="false">"Your folders"</string>
+    <string name="ui_your_media_ready_to_play" formatted="false">"Your media, ready to play"</string>
+    <string name="ui_your_videos" formatted="false">"Your videos"</string>
+    <string name="ui_zoom">"Zoom %1$s%%"</string>
+</resources>

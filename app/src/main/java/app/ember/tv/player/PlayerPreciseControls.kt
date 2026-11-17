@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.widget.FrameLayout
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
@@ -16,7 +18,7 @@ import app.ember.tv.ui.*
 internal fun PlayerActivity.goToPlaybackTime() {
     val p=player ?: return
     val visit=playbackVisit
-    playbackValueDialog("Go to time",clock(p.currentPosition),"Seconds, MM:SS or HH:MM:SS · milliseconds are optional","Go") {text->
+    playbackValueDialog(resources.getString(R.string.ui_go_to_time),clock(p.currentPosition),resources.getString(R.string.ui_seconds_mm_ss_or_hh_mm_ss_milliseconds_are),resources.getString(R.string.ui_go)) {text->
         seekToEnteredTime(text,p,visit)
     }
 }
@@ -25,10 +27,10 @@ internal fun PlayerActivity.goToPlaybackTime() {
 internal fun PlayerActivity.seekToEnteredTime(text:String,p:androidx.media3.exoplayer.ExoPlayer,visit:Long):String? {
     val target=PlaybackControlInput.position(text)
     return when {
-        player!==p || playbackVisit!=visit -> "The media changed. Reopen this control."
-        !p.isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM) || p.duration<=0 -> "This source does not support seeking to a time."
-        target==null -> "Enter a valid time, such as 90, 1:30 or 01:02:03.250."
-        target>p.duration -> "Choose a time within ${clock(p.duration)}."
+        player!==p || playbackVisit!=visit -> resources.getString(R.string.ui_the_media_changed_reopen_this_control)
+        !p.isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM) || p.duration<=0 -> resources.getString(R.string.ui_this_source_does_not_support_seeking_to_a_time)
+        target==null -> resources.getString(R.string.ui_enter_a_valid_time_such_as_90_1_30)
+        target>p.duration -> resources.getString(R.string.ui_choose_a_time_within ,clock(p.duration))
         else -> {if(playbackEngine!=null)playbackEngine?.navigate(target,false,coalesce=false) else PlaybackSeeking.seek(p,target,false);null}
     }
 }
@@ -38,12 +40,12 @@ internal fun PlayerActivity.customPlaybackSpeed() {
     val p=player ?: return
     val visit=playbackVisit
     val initial=String.format(java.util.Locale.US,"%.3f",p.playbackParameters.speed).trimEnd('0').trimEnd('.')
-    playbackValueDialog("Custom playback speed",initial,"Choose 0.25–4.0×, for example 1.1 or 1.35","Apply") {text->
+    playbackValueDialog(resources.getString(R.string.ui_custom_playback_speed),initial,resources.getString(R.string.ui_choose_0_25_4_0_for_example_1_1),resources.getString(R.string.ui_apply_cfea41)) {text->
         val value=PlaybackControlInput.speed(text)
         when {
-            player!==p || playbackVisit!=visit -> "The media changed. Reopen this control."
-            value==null -> "Enter a speed between 0.25 and 4.0."
-            !p.isCommandAvailable(Player.COMMAND_SET_SPEED_AND_PITCH) -> "This source does not allow playback speed changes."
+            player!==p || playbackVisit!=visit -> resources.getString(R.string.ui_the_media_changed_reopen_this_control)
+            value==null -> resources.getString(R.string.ui_enter_a_speed_between_0_25_and_4_0)
+            !p.isCommandAvailable(Player.COMMAND_SET_SPEED_AND_PITCH) -> resources.getString(R.string.ui_this_source_does_not_allow_playback_speed_changes)
             else -> {p.setPlaybackSpeed(value);speed=value;changed();null}
         }
     }
@@ -58,7 +60,7 @@ internal fun PlayerActivity.playbackValueDialog(title:String,initial:String,hint
         Text(hint,color=Soft,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
         TvTextField(text,{text=it.take(32);error=null},Modifier.fillMaxWidth(),onSubmit={apply()},startEditing=!PlayerTouchControls.isTelevision(this@playbackValueDialog))
         error?.let {app.ember.player.PlayerErrorText(it)}
-        ButtonRow {app.ember.player.PlayerAction(button,primary=true){apply()};app.ember.player.PlayerAction("Cancel"){dialog.dismiss()}}
+        ButtonRow {app.ember.player.PlayerAction(button,primary=true){apply()};app.ember.player.PlayerAction(resources.getString(R.string.ui_cancel)){dialog.dismiss()}}
     }
 }
 
@@ -92,11 +94,11 @@ internal fun PlayerActivity.inspectFrames() {
     p.playWhenReady=false
     if(engine.compatibility==null && !engine.switch()) {
         p.playWhenReady=wanted
-        android.widget.Toast.makeText(this,"Frame inspection requires Compatibility playback and a supported audio track.",android.widget.Toast.LENGTH_LONG).show()
+        android.widget.Toast.makeText(this,resources.getString(R.string.ui_frame_inspection_requires_compatibility_playback_and_a_supported_audio),android.widget.Toast.LENGTH_LONG).show()
         return
     }
     val visit=playbackVisit
-    playerControlDialog("Frame inspection") {dialog->
+    playerControlDialog(resources.getString(R.string.ui_frame_inspection)) {dialog->
         var at by remember {mutableLongStateOf(p.currentPosition)}
         var error by remember {mutableStateOf<String?>(null)}
         LaunchedEffect(visit) {
@@ -107,13 +109,13 @@ internal fun PlayerActivity.inspectFrames() {
             }
         }
         Text(String.format(java.util.Locale.US,"%s.%03d",clock(at),at.coerceAtLeast(0)%1000),style=androidx.tv.material3.MaterialTheme.typography.headlineSmall)
-        Text("Playback stays paused. Backward steps may take longer while the previous keyframe is decoded.",color=Soft,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+        Text(resources.getString(R.string.ui_playback_stays_paused_backward_steps_may_take_longer_while),color=Soft,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
         fun step(forward:Boolean) {
             if(playbackVisit!=visit || player!==p){dialog.dismiss();return}
-            error=if(engine.compatibility?.stepFrame(forward)==true)null else "This video does not support frame inspection."
+            error=if(engine.compatibility?.stepFrame(forward)==true)null else resources.getString(R.string.ui_this_video_does_not_support_frame_inspection)
         }
-        ButtonRow {Chip("Previous frame"){step(false)};Chip("Next frame"){step(true)}}
+        ButtonRow {Chip(resources.getString(R.string.ui_previous_frame)){step(false)};Chip(resources.getString(R.string.ui_next_frame)){step(true)}}
         error?.let {app.ember.player.PlayerErrorText(it)}
-        app.ember.player.PlayerAction("Done",primary=true){dialog.dismiss()}
+        app.ember.player.PlayerAction(resources.getString(R.string.ui_done),primary=true){dialog.dismiss()}
     }
 }

@@ -55,7 +55,7 @@ internal fun PlayerActivity.buildLayout(): View {
     }
     val timing = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL
-        listOf(getString(R.string.pl_0_5_s) to -500L, "−0.1 s" to -100L, "+0.1 s" to 100L, "+0.5 s" to 500L, getString(R.string.pl_reset) to null).forEach { (label, d) ->
+        listOf(getString(R.string.pl_0_5_s) to -500L, resources.getString(R.string.ui_0_1_s) to -100L, resources.getString(R.string.ui_0_1_s_254a32) to 100L, resources.getString(R.string.ui_0_5_s) to 500L, getString(R.string.pl_reset) to null).forEach { (label, d) ->
             addView(styled(Button(this@buildLayout)).apply {
                 text = label
                 isAllCaps = false
@@ -72,7 +72,7 @@ internal fun PlayerActivity.buildLayout(): View {
         orientation = LinearLayout.HORIZONTAL
         listOf("−100" to -100, "−20" to -20, "+20" to 20, "+100" to 100, getString(R.string.pl_reset) to null).forEach { (label, d) ->
             addView(styled(Button(this@buildLayout)).apply {
-                text = if (d == null) label else "$label ms"
+                text = if (d == null) label else resources.getString(R.string.ui_ms ,label)
                 isAllCaps = false
                 setOnClickListener { shiftSound(d) }
             })

@@ -1,5 +1,7 @@
 package app.ember.player
 
+import app.ember.tv.R
+
 import android.app.*
 import android.content.*
 import android.media.MediaMetadata as PlatformMetadata
@@ -38,13 +40,13 @@ class CastPlaybackService:Service() {
     }
     private val observer=object:CastSessionObserver() {
         override fun onSessionEnded(session:CastSession,error:Int){if(request?.dlna==null)stopRemote(false)}
-        override fun onSessionSuspended(session:CastSession,error:Int){if(request?.dlna==null)fail("Receiver disconnected")}
+        override fun onSessionSuspended(session:CastSession,error:Int){if(request?.dlna==null)fail(resources.getString(R.string.ui_receiver_disconnected))}
     }
     override fun onBind(intent:Intent?)=null
     override fun onCreate() {
         super.onCreate();current=WeakReference(this)
         getSharedPreferences("ember",MODE_PRIVATE).registerOnSharedPreferenceChangeListener(profileListener)
-        getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel("casting","Receiver playback",NotificationManager.IMPORTANCE_LOW))
+        getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel("casting",resources.getString(R.string.ui_receiver_playback),NotificationManager.IMPORTANCE_LOW))
         session=MediaSession(this,"Ember remote playback").apply {
             setCallback(object:MediaSession.Callback() {
                 override fun onPlay(){control("play")};override fun onPause(){control("pause")}
@@ -54,17 +56,17 @@ class CastPlaybackService:Service() {
             isActive=true
         }
         sleep=SleepTimer.listen {stopRemote()}
-        privacy=scope.launch {PrivateMedia.state.collect {if(request?.let(::protected)==true)fail("Protected media cannot be sent to a receiver.")}}
+        privacy=scope.launch {PrivateMedia.state.collect {if(request?.let(::protected)==true)fail(resources.getString(R.string.ui_protected_media_cannot_be_sent_to_a_receiver))}}
         CastRuntime.context?.sessionManager?.addSessionManagerListener(observer,CastSession::class.java)
     }
     override fun onStartCommand(intent:Intent?,flags:Int,startId:Int):Int {
         if(intent?.action!=null){when(intent.action){"stop"->stopRemote();"play"->control("play");"pause"->control("pause")};return START_NOT_STICKY}
-        startForeground(740,notification("Preparing receiver…",false))
+        startForeground(740,notification(resources.getString(R.string.ui_preparing_receiver),false))
         val next=CastRequests.take(intent?.getStringExtra("request")) ?: run {stopSelf();return START_NOT_STICKY}
         val before=loading;before?.cancel();polling?.cancel();releaseSource()
         request=next;stopping=false;session?.isActive=true
         val visit=++generation
-        state.value=CastingState(next.title,next.dlna?.name ?: CastRuntime.context?.sessionManager?.currentCastSession?.castDevice?.friendlyName ?: "Cast receiver",next.key)
+        state.value=CastingState(next.title,next.dlna?.name ?: CastRuntime.context?.sessionManager?.currentCastSession?.castDevice?.friendlyName ?: resources.getString(R.string.ui_cast_receiver),next.key)
         loading=scope.launch {
             before?.join()
             var prepared:CastLanSource?=null
@@ -79,7 +81,7 @@ class CastPlaybackService:Service() {
                 if(next.dlna!=null) {
                     withContext(Dispatchers.IO) {
                         DlnaReceivers.load(next.dlna,media,next.title)
-                        if(next.position>0&&!next.live)runCatching {DlnaReceivers.soap(next.dlna,"Seek",mapOf("Unit" to "REL_TIME","Target" to DlnaReceivers.clock(next.position)))}
+                        if(next.position>0&&!next.live)runCatching {DlnaReceivers.control(next.dlna,"seek",next.position.toDouble())}
                     }
                     if(visit==generation)ready(visit)
                 } else {
@@ -87,11 +89,11 @@ class CastPlaybackService:Service() {
                     val metadata=MediaMetadata(if(media.mime.startsWith("audio/"))MediaMetadata.MEDIA_TYPE_MUSIC_TRACK else MediaMetadata.MEDIA_TYPE_MOVIE).apply {putString(MediaMetadata.KEY_TITLE,next.title)}
                     val info=MediaInfo.Builder(media.url).setContentType(media.mime).setStreamType(if(next.live)MediaInfo.STREAM_TYPE_LIVE else MediaInfo.STREAM_TYPE_BUFFERED).setMetadata(metadata).apply {if(next.duration>0)setStreamDuration(next.duration)}.build()
                     remote.load(MediaLoadRequestData.Builder().setMediaInfo(info).setAutoplay(true).setCurrentTime(if(next.live)0 else next.position).build()).setResultCallback {
-                        if(visit==generation&&!stopping){if(it.status.isSuccess)ready(visit) else fail("The receiver could not play this format.")}
+                        if(visit==generation&&!stopping){if(it.status.isSuccess)ready(visit) else fail(resources.getString(R.string.ui_the_receiver_could_not_play_this_format))}
                     }
                 }
             } catch(e:CancellationException){throw e}
-              catch(_:Exception){if(visit==generation)fail("Could not start receiver playback. Check the connection and supported formats.")}
+              catch(_:Exception){if(visit==generation)fail(resources.getString(R.string.ui_could_not_start_receiver_playback_check_the_connection_and))}
             finally {prepared?.close()}
         }
         return START_NOT_STICKY
@@ -111,7 +113,7 @@ class CastPlaybackService:Service() {
             while(isActive&&visit==generation) {
                 val active=request ?: break
                 try {
-                    if(protected(active)){fail("Protected media cannot be sent to a receiver.");break}
+                    if(protected(active)){fail(resources.getString(R.string.ui_protected_media_cannot_be_sent_to_a_receiver));break}
                     val status=if(active.dlna!=null)withContext(Dispatchers.IO){DlnaReceivers.status(active.dlna,state.value?.status?.volume ?: .5)} else {
                         val cast=CastRuntime.context?.sessionManager?.currentCastSession ?: error("Disconnected")
                         val remote=cast.remoteMediaClient ?: error("Disconnected")
@@ -121,10 +123,10 @@ class CastPlaybackService:Service() {
                     failures=0;state.value=state.value?.copy(status=status)
                     val platform=if(status.playing)PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED
                     session?.setPlaybackState(PlaybackState.Builder().setState(platform,status.position,if(status.playing)1f else 0f,SystemClock.elapsedRealtime()).setActions(PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PLAY_FROM_SEARCH or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_STOP or PlaybackState.ACTION_SEEK_TO).build())
-                    val text=if(status.playing)"Playing on ${state.value?.receiver}" else "Paused on ${state.value?.receiver}"
+                    val text=if(status.playing)resources.getString(R.string.ui_playing_on ,state.value?.receiver) else resources.getString(R.string.ui_paused_on ,state.value?.receiver)
                     if(text!=lastNotification){lastNotification=text;getSystemService(NotificationManager::class.java).notify(740,notification(text,status.playing))}
                     if(status.finished&&SystemClock.elapsedRealtime()-started>10000){SleepTimer.itemEnded();stopRemote();break}
-                }catch(e:CancellationException){throw e}catch(_:Exception){if(++failures>=3){fail("Receiver disconnected");break}}
+                }catch(e:CancellationException){throw e}catch(_:Exception){if(++failures>=3){fail(resources.getString(R.string.ui_receiver_disconnected));break}}
                 delay(2000)
             }
         }
@@ -138,14 +140,9 @@ class CastPlaybackService:Service() {
         if(active.dlna!=null) {
             commandBusy=true;state.value=state.value?.copy(busy=true)
             scope.launch {
-                try {withContext(Dispatchers.IO) {when(action) {
-                    "play"->DlnaReceivers.soap(active.dlna,"Play",mapOf("Speed" to "1"))
-                    "pause"->DlnaReceivers.soap(active.dlna,"Pause")
-                    "seek"->DlnaReceivers.soap(active.dlna,"Seek",mapOf("Unit" to "REL_TIME","Target" to DlnaReceivers.clock(argument.toLong())))
-                    "volume"->DlnaReceivers.soap(active.dlna,"SetVolume",mapOf("Channel" to "Master","DesiredVolume" to (argument*100).toInt().toString()),true)
-                }}
+                try {withContext(Dispatchers.IO) {DlnaReceivers.control(active.dlna,action,argument)}
                     if(action=="volume")state.value=state.value?.let {it.copy(status=it.status.copy(volume=argument))}
-                }catch(e:CancellationException){throw e}catch(_:Exception){android.widget.Toast.makeText(this@CastPlaybackService,"This receiver did not accept the control.",android.widget.Toast.LENGTH_SHORT).show()}
+                }catch(e:CancellationException){throw e}catch(_:Exception){android.widget.Toast.makeText(this@CastPlaybackService,resources.getString(R.string.ui_this_receiver_did_not_accept_the_control),android.widget.Toast.LENGTH_SHORT).show()}
                 finally {commandBusy=false;state.value=state.value?.copy(busy=false)}
             }
         } else runCatching {
@@ -156,12 +153,12 @@ class CastPlaybackService:Service() {
     private fun notification(text:String,playing:Boolean):Notification {
         val open=PendingIntent.getActivity(this,740,Intent(this,CastActivity::class.java),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         fun action(name:String)=PendingIntent.getService(this,name.hashCode(),Intent(this,CastPlaybackService::class.java).setAction(name),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        return Notification.Builder(this,"casting").setSmallIcon(app.ember.tv.R.drawable.ic_player_notification).setContentTitle("Ember Player").setContentText(text).setContentIntent(open).setOngoing(true)
+        return Notification.Builder(this,"casting").setSmallIcon(R.drawable.ic_player_notification).setContentTitle(resources.getString(R.string.ui_ember_player)).setContentText(text).setContentIntent(open).setOngoing(true)
             .setStyle(Notification.MediaStyle().setMediaSession(session?.sessionToken).setShowActionsInCompactView(0,1))
-            .addAction(Notification.Action.Builder(null,if(playing)"Pause" else "Play",action(if(playing)"pause" else "play")).build())
-            .addAction(Notification.Action.Builder(null,"Disconnect",action("stop")).build()).build()
+            .addAction(Notification.Action.Builder(null,if(playing)resources.getString(R.string.ui_pause) else resources.getString(R.string.ui_play),action(if(playing)"pause" else "play")).build())
+            .addAction(Notification.Action.Builder(null,resources.getString(R.string.ui_disconnect),action("stop")).build()).build()
     }
-    private fun fail(message:String){state.value=CastingState("Receiver playback","Receiver","",error=message);stopRemote()}
+    private fun fail(message:String){state.value=CastingState(resources.getString(R.string.ui_receiver_playback),resources.getString(R.string.ui_receiver),"",error=message);stopRemote()}
     private fun releaseSource(){source?.close();source=null;request?.close();request=null;if(wake?.isHeld==true)wake?.release();wake=null}
     internal fun stopRemote(endReceiver:Boolean=true) {
         if(stopping)return

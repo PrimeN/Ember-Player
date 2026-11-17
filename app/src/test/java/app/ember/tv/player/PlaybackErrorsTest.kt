@@ -6,6 +6,8 @@ import androidx.media3.common.PlaybackException
 import org.junit.Assert.*
 import org.junit.Test
 
+@org.junit.runner.RunWith(org.robolectric.RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk=[35],application=android.app.Application::class)
 class PlaybackErrorsTest {
     @Test fun connectionFailuresAreRetriedButHttpStatusOnlyForLive() {
         assertTrue(PlaybackErrors.connection(PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT))
@@ -63,11 +65,11 @@ class PlaybackErrorsTest {
     }
 
     @Test fun formatsAreDescribedForErrorMessages() {
-        assertEquals("", PlaybackErrors.describe(null))
+        assertEquals("", PlaybackErrors.describe(org.robolectric.RuntimeEnvironment.getApplication().resources,null))
         val video = Format.Builder().setSampleMimeType(MimeTypes.VIDEO_H265).setCodecs("dvhe.08.06").setWidth(3840).setHeight(2160).build()
-        assertEquals("video HEVC dvhe.08.06 3840×2160", PlaybackErrors.describe(video))
+        assertEquals("video HEVC dvhe.08.06 3840×2160", PlaybackErrors.describe(org.robolectric.RuntimeEnvironment.getApplication().resources,video))
         val sound = Format.Builder().setSampleMimeType(MimeTypes.AUDIO_E_AC3_JOC).setChannelCount(8).build()
-        assertEquals("sound EAC3-JOC 8 ch", PlaybackErrors.describe(sound))
+        assertEquals("sound EAC3-JOC 8 ch", PlaybackErrors.describe(org.robolectric.RuntimeEnvironment.getApplication().resources,sound))
     }
 
     @Test fun clockShowsHoursOnlyWhenNeeded() {

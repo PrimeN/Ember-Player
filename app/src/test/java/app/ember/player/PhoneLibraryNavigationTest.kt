@@ -25,9 +25,9 @@ class PhoneLibraryNavigationTest {
         compose.onNodeWithText("Videos").assertDoesNotExist()
         compose.onNodeWithText("Folders").assertDoesNotExist()
         for(destination in listOf(PlayerLibraryDestination.NETWORK,PlayerLibraryDestination.PLAYLISTS,PlayerLibraryDestination.DOWNLOADS,PlayerLibraryDestination.PRIVATE)) {
-            compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(destination.label))
-            compose.onNodeWithText(destination.label).performClick()
-            compose.onNodeWithText(destination.label).assert(SemanticsMatcher.expectValue(SemanticsProperties.Selected,true))
+            compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(org.robolectric.RuntimeEnvironment.getApplication().getString(destination.label)))
+            compose.onNodeWithText(org.robolectric.RuntimeEnvironment.getApplication().getString(destination.label)).performClick()
+            compose.onNodeWithText(org.robolectric.RuntimeEnvironment.getApplication().getString(destination.label)).assert(SemanticsMatcher.expectValue(SemanticsProperties.Selected,true))
             compose.onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.Selected,true)).assertCountEquals(1)
         }
     }

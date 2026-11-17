@@ -1,7 +1,9 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 internal object RendererPolicy {
-    val choices=listOf("auto" to "Automatic","gpu" to "Stable GPU","gpu-next" to "Advanced GPU")
+    val choices=listOf("auto" to R.string.ui_automatic,"gpu" to R.string.ui_stable_gpu,"gpu-next" to R.string.ui_advanced_gpu)
     fun normalized(value:String)=value.takeIf {v->choices.any {it.first==v}} ?: "auto"
     fun initial(value:String,expand:Boolean,pqDisplay:Boolean)=when(normalized(value)) {
         "gpu-next"->"gpu-next";"gpu"->"gpu";else->if(expand&&pqDisplay)"gpu-next" else "gpu"

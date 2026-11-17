@@ -1,5 +1,7 @@
 package app.ember.player
 
+import app.ember.tv.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -22,10 +24,12 @@ import app.ember.tv.data.ColorThemes
 
 @Composable
 internal fun PlayerPalettePicker(value:Int,pick:(Int)->Unit) {
-    Text("Colors",style=MaterialTheme.typography.titleSmall)
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
+    Text(uiResources.getString(R.string.ui_colors),style=MaterialTheme.typography.titleSmall)
     FlowRow(horizontalArrangement=Arrangement.spacedBy(10.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
         listOf(0,ColorThemes.SHADOW_EMBER,ColorThemes.MODERN_EMBER,ColorThemes.CINEMA_RED).forEach {id->
-            val name=Accents[id].first
+            val name=uiResources.getString(Accents[id].first)
             val color=emberColorScheme(id,day=!LocalNight.current,oled=false).primary
             Focusable({pick(id)},Modifier.widthIn(min=148.dp,max=220.dp).semantics {selected=value==id},
                 container=if(value==id)MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
@@ -33,7 +37,7 @@ internal fun PlayerPalettePicker(value:Int,pick:(Int)->Unit) {
                 Row(Modifier.heightIn(min=56.dp).padding(12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
                     Box(Modifier.size(24.dp).background(color,CircleShape).testTag("paletteSwatch_$id"))
                     Text(name,Modifier.weight(1f),maxLines=2,overflow=TextOverflow.Ellipsis)
-                    if(value==id)Icon(Icons.Outlined.Check,"Selected",Modifier.size(18.dp))
+                    if(value==id)Icon(Icons.Outlined.Check,uiResources.getString(R.string.ui_selected),Modifier.size(18.dp))
                 }
             }
         }

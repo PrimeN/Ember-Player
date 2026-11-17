@@ -1,5 +1,7 @@
 package app.ember.tv.ui
 
+import app.ember.tv.R
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
@@ -72,6 +74,8 @@ fun TvTextField(
     /** Search uses the shared glass surface; other forms keep their established field style. */
     glass: Boolean = false,
 ) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     if(app.ember.player.LocalPlayerDesign.current && !app.ember.player.LocalPlayerTelevision.current) {
         val keyboard=LocalSoftwareKeyboardController.current
         val focus=LocalFocusManager.current
@@ -195,7 +199,7 @@ fun TvTextField(
                     Box(Modifier.weight(1f)) {
                         if (value.isEmpty()) {
                             Text(
-                                if (focused && !editing && placeholder.isNotEmpty()) "$placeholder  (OK to type)" else placeholder,
+                                if (focused && !editing && placeholder.isNotEmpty()) uiResources.getString(R.string.ui_ok_to_type ,placeholder) else placeholder,
                                 color = Mute,
                                 fontSize = fontSize,
                                 maxLines = if (glass) 1 else Int.MAX_VALUE,

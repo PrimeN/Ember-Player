@@ -1,5 +1,7 @@
 package app.ember.tv.ui
 
+import app.ember.tv.R
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.*
@@ -30,7 +32,7 @@ import androidx.compose.ui.window.DialogWindowProvider
     val enabled=PolishMotion.duration(TvTokens.Motion.Panel,LocalRenderOptions.current,LocalReduceMotion.current)>0
     val window=(LocalView.current.parent as? DialogWindowProvider)?.window
     DisposableEffect(window,enabled) {
-        window?.setWindowAnimations(if(enabled)app.ember.tv.R.style.EmberPanelMotion else 0)
+        window?.setWindowAnimations(if(enabled)R.style.EmberPanelMotion else 0)
         onDispose { }
     }
     DialogBackdrop(window)

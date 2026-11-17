@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import androidx.activity.ComponentActivity
 import androidx.annotation.OptIn
 import androidx.lifecycle.lifecycleScope
@@ -74,13 +76,13 @@ class SubtitleController(
         autoSelection.reset()
         release = query.release
         if(preserve&&(manualFile!=null||manualBitmap)) {
-            autoSelection.manual();selection=Selection.Manual("Manual subtitle file");status="Manual subtitle file"
+            autoSelection.manual();selection=Selection.Manual(activity.resources.getString(R.string.ui_manual_subtitle_file));status=activity.resources.getString(R.string.ui_manual_subtitle_file)
             manualFile?.let {(text,format)->loadJob=activity.lifecycleScope.launch {loadManual(text,format,restoring=true)}}
             onChange();return
         }
         if (chosenOff) autoSelection.manual()
         val anyProvider = config.stremioOpenSubs || config.openSubsCom || config.subdl
-        status = if (anyProvider) "Searching for subtitles..." else null
+        status = if (anyProvider) activity.resources.getString(R.string.ui_searching_for_subtitles) else null
         onChange()
         autoSelect()
         searchJob = activity.lifecycleScope.launch {
@@ -95,9 +97,9 @@ class SubtitleController(
             candidates = Subtitles.rank((candidates + found).distinctBy {it.url ?: it.fileId.toString()}, config, release, player()?.videoFormat?.frameRate?.takeIf { it > 0 })
             searched = true
             status = when {
-                candidates.isEmpty() -> "No subtitles found in your languages."
-                candidates.any { it.hashMatch } -> "${candidates.size} found · ★ made for this exact file"
-                else -> "${candidates.size} found"
+                candidates.isEmpty() -> activity.resources.getString(R.string.ui_no_subtitles_found_in_your_languages)
+                candidates.any { it.hashMatch } -> activity.resources.getString(R.string.ui_found_made_for_this_exact_file ,candidates.size.toString())
+                else -> activity.resources.getString(R.string.ui_found ,candidates.size.toString())
             }
             onChange()
             autoSelect()
@@ -120,7 +122,7 @@ class SubtitleController(
                 if (!g.isTrackSupported(i, true)) continue
                 val f = g.getTrackFormat(i)
                 val lang = Subtitles.languageName(Subtitles.normalise(f.language))
-                val forced = (if (f.selectionFlags and C.SELECTION_FLAG_FORCED != 0) " (forced)" else "") + (if (f.roleFlags and C.ROLE_FLAG_DESCRIBES_MUSIC_AND_SOUND != 0) " (SDH)" else "")
+                val forced = (if (f.selectionFlags and C.SELECTION_FLAG_FORCED != 0) activity.resources.getString(R.string.ui_forced_4ce31f) else "") + (if (f.roleFlags and C.ROLE_FLAG_DESCRIBES_MUSIC_AND_SOUND != 0) activity.resources.getString(R.string.ui_sdh) else "")
                 out += Triple(gi, i, listOfNotNull(lang + forced, f.label?.takeIf { it.isNotBlank() && it != f.language }).joinToString(" · "))
             }
         }
@@ -179,10 +181,10 @@ class SubtitleController(
         if(manual) { choice=Choice(c.lang,true,c.provider,c.forced);chosenOff=false }
         autoSelection.manual()
         loadJob?.cancel()
-        status = "Loading ${c.languageName} subtitles from ${c.provider}..."
+        status = activity.resources.getString(R.string.ui_loading_subtitles_from ,c.languageName,c.provider)
         onChange()
         loadJob = activity.lifecycleScope.launch(kotlinx.coroutines.CoroutineExceptionHandler { _, _ ->
-            status = "Could not load that subtitle. Try another one."; runCatching { onChange() }
+            status = activity.resources.getString(R.string.ui_could_not_load_that_subtitle_try_another_one); runCatching { onChange() }
         }) {
             for (s in listOf(c) + fallbacks) {
                 val got = Subtitles.download(s,query,config.encoding)
@@ -206,12 +208,12 @@ class SubtitleController(
                 if (native != null) {
                     runCatching { if(native)engine.clear() else setMedia3Text(enabled = false) }
                     selection = Selection.External(s)
-                    status = "${s.languageName} · ${s.provider}" + if (s.hashMatch) " · ★ made for this file" else ""
+                    status = "${s.languageName} · ${s.provider}" + if (s.hashMatch) activity.resources.getString(R.string.ui_made_for_this_file) else ""
                     onChange()
                     return@launch
                 }
             }
-            status = "Could not load that subtitle. Try another one."
+            status = activity.resources.getString(R.string.ui_could_not_load_that_subtitle_try_another_one)
             onChange()
         }
     }
@@ -222,11 +224,11 @@ class SubtitleController(
         autoSelection.manual();chosenOff=false
         val fps=player()?.videoFormat?.frameRate?.takeIf {it>0}
         val converted=kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {when(format) {"microdvd"->app.ember.tv.data.SubtitleFiles.microDvd(text,fps)?:return@withContext null;"sami"->app.ember.tv.data.SamiSubtitles.toSrt(text,Subtitles.wanted(config));else->text}} ?: return false
-        if(nativeSubtitle(converted,if(format in setOf("microdvd","sami"))"srt" else format,true)){engine.clear();manualBitmap=false;manualFile=text to format;selection=Selection.Manual("Manual subtitle file");status="Manual subtitle file";onChange();return true}
+        if(nativeSubtitle(converted,if(format in setOf("microdvd","sami"))"srt" else format,true)){engine.clear();manualBitmap=false;manualFile=text to format;selection=Selection.Manual(activity.resources.getString(R.string.ui_manual_subtitle_file));status=activity.resources.getString(R.string.ui_manual_subtitle_file);onChange();return true}
         if(!engine.load(converted,if(format in setOf("microdvd","sami"))"srt" else format,fps))return false
-        setMedia3Text(false);manualBitmap=false;manualFile=text to format;selection=Selection.Manual("Manual subtitle file");status="Manual subtitle file";onChange();return true
+        setMedia3Text(false);manualBitmap=false;manualFile=text to format;selection=Selection.Manual(activity.resources.getString(R.string.ui_manual_subtitle_file));status=activity.resources.getString(R.string.ui_manual_subtitle_file);onChange();return true
     }
-    fun selectManualNative(){autoSelection.manual();loadJob?.cancel();chosenOff=false;manualFile=null;manualBitmap=true;engine.clear();selection=Selection.Manual("Manual bitmap subtitles");status="Manual bitmap subtitles";onChange()}
+    fun selectManualNative(){autoSelection.manual();loadJob?.cancel();chosenOff=false;manualFile=null;manualBitmap=true;engine.clear();selection=Selection.Manual(activity.resources.getString(R.string.ui_manual_bitmap_subtitles));status=activity.resources.getString(R.string.ui_manual_bitmap_subtitles);onChange()}
 
     /** Media3's own subtitle tracks on or off; off while a downloaded subtitle is shown. */
     private fun setMedia3Text(enabled: Boolean) {
