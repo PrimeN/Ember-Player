@@ -1,0 +1,49 @@
+name: Publish requested player release
+
+# Publishing requires an explicit version tag. Ordinary main/beta pushes only build.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Version to publish, matching main's versionName (for example v0.7.5)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: player-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    env:
+      REQUESTED_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
+      - name: Find successful production build
+        id: build
+        run: python3 .github/scripts/release.py find-build
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: Ember-Player-release
+          run-id: ${{ steps.build.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: dist
+      - name: Publish signed APK and changelog
+        run: python3 .github/scripts/release.py
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -8,7 +8,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/PrimeN/Ember-Player/actions/workflows/android.yml?query=branch%3Abeta"><img src="https://github.com/PrimeN/Ember-Player/actions/workflows/android.yml/badge.svg?branch=beta" alt="Android build and checks" /></a>
+  <a href="https://github.com/PrimeN/Ember-Player/actions/workflows/android.yml?query=branch%3Amain"><img src="https://github.com/PrimeN/Ember-Player/actions/workflows/android.yml/badge.svg?branch=main" alt="Android build and checks" /></a>
+  <a href="https://github.com/PrimeN/Ember-Player/releases/latest"><img src="https://img.shields.io/github/v/release/PrimeN/Ember-Player?color=ffb575" alt="Latest release" /></a>
   <img src="https://img.shields.io/badge/Android-10%2B-3DDC84?logo=android&amp;logoColor=white" alt="Android 10 or newer" />
   <img src="https://img.shields.io/badge/ARM-32%20%26%2064%20bit-ffb575" alt="ARM 32-bit and 64-bit" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-ffb575" alt="GNU GPL v3" /></a>
@@ -18,10 +19,11 @@
   <a href="https://github.com/PrimeN/Ember-Player/stargazers"><img src="https://img.shields.io/github/stars/PrimeN/Ember-Player?style=flat&amp;color=ffb575" alt="GitHub stars" /></a>
   <a href="https://github.com/PrimeN/Ember-Player/network/members"><img src="https://img.shields.io/github/forks/PrimeN/Ember-Player?style=flat&amp;color=ffb575" alt="GitHub forks" /></a>
   <a href="https://github.com/PrimeN/Ember-Player/issues"><img src="https://img.shields.io/github/issues/PrimeN/Ember-Player?color=ffb575" alt="Open issues" /></a>
-  <a href="https://github.com/PrimeN/Ember-Player/commits/beta/"><img src="https://img.shields.io/github/last-commit/PrimeN/Ember-Player/beta?color=ffb575" alt="Latest beta commit" /></a>
+  <a href="https://github.com/PrimeN/Ember-Player/commits/main/"><img src="https://img.shields.io/github/last-commit/PrimeN/Ember-Player/main?color=ffb575" alt="Latest main commit" /></a>
 </p>
 
 <p align="center">
+  <a href="https://github.com/PrimeN/Ember-Player/releases/latest">Download</a> ·
   <a href="#screenshots">Screenshots</a> ·
   <a href="docs/features.md">Features</a> ·
   <a href="docs/building.md">Build</a> ·
@@ -88,11 +90,13 @@ and is not supplied with the app.
 Ember Player supports **Android 10 or newer** on **ARM64 and ARM32**. Phones and
 tablets use touch controls; TVs support remotes and controllers.
 
+Download the APK from the [latest release](https://github.com/PrimeN/Ember-Player/releases/latest)
+and install it on your device. The current release is **0.7.5**;
+[the changelog](CHANGELOG.md) describes its features and requirements.
+
 Development happens on [`beta`](https://github.com/PrimeN/Ember-Player/tree/beta).
-The current preview version is **0.1.0**. Published packages, when available, are
-listed under [Releases](https://github.com/PrimeN/Ember-Player/releases). Maintainers
-can create a debug APK through a manual [Actions run](https://github.com/PrimeN/Ember-Player/actions/workflows/android.yml).
-Code pushes do not automatically publish a release.
+Code pushes build and validate the app, with downloadable APK artifacts. Publishing
+a release requires an explicit version tag or manual publication request.
 
 To build the preview with JDK 17, Gradle 9.8.2 and Android SDK platform 37:
 

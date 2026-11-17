@@ -4,9 +4,13 @@
 local.properties
 *.jks
 *.keystore
+*.p12
+*.pfx
 *.apk
 *.aab
 *.epbackup
 .env*
 .idea/
 *.iml
+dist/
+__pycache__/

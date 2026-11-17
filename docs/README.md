@@ -2,6 +2,7 @@
 
 | Guide | What you will find |
 | --- | --- |
+| [Changelog](../CHANGELOG.md) | Published versions, added features and compatibility notes |
 | [Features](features.md) | Playback engines, formats, subtitles, media tools and receivers |
 | [Library and settings](settings.md) | Navigation, browsing choices and the eight settings categories |
 | [Privacy](privacy.md) | Local data, optional connections, private media and backups |
