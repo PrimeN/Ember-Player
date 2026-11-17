@@ -18,7 +18,7 @@ import org.robolectric.annotation.Config
 class PlayerActionMenuTest {
     @get:Rule val compose=createComposeRule()
     @Test @Config(qualifiers="w480dp-h800dp-port-mdpi")
-    fun optionsUseSettingsNamesAndLongTabsRemainReachableByTouch() {
+    fun optionsUseSettingsNamesAndLongTabsSupportTouchAndRemoteNavigation() {
         val state=ControlsState().apply {menuTab="playback"}
         val actions=ControlsActions(playPause={},seekBy={},skip={},openMenu={_,_->},
             options={id->listOf(OptionRow("Options for $id"))},next={},touched={})
@@ -30,6 +30,10 @@ class PlayerActionMenuTest {
         compose.onNodeWithText("Subtitles").performScrollTo().performClick()
         compose.runOnIdle {assertEquals("subtitles",state.menuTab)}
         compose.onNodeWithText("Options for subtitles").assertExists()
+        compose.onNodeWithText("Subtitles").performSemanticsAction(SemanticsActions.RequestFocus)
+        compose.onNodeWithText("Subtitles").performKeyInput {keyDown(Key.DirectionLeft);keyUp(Key.DirectionLeft)}
+        compose.runOnIdle {assertEquals("audio",state.menuTab)}
+        compose.onNodeWithText("Options for audio").assertExists()
     }
     @Test fun exitConfirmationStartsOnKeepWatchingAndRunsOnlyTheChosenAction() {
         var stopped=0;var cancelled=0
