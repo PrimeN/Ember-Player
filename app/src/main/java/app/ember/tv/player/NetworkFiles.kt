@@ -66,10 +66,15 @@ internal object NetworkFiles {
     private fun smbPath(l:NetworkLocation,path:String)=listOf(l.root.substringAfter('/',""),path).filter {it.isNotEmpty()}.joinToString("\\").replace('/','\\')
     private fun sftp(a:NetworkAccount,o:Owner):ChannelSftp {
         val l=NetworkLocation.parse(a.address)
-        require(a.fingerprint.startsWith("SHA256:")) {"Enter the server's verified SHA256 host key fingerprint."}
+        val fingerprint=NetworkLocation.normalizeFingerprint(a.fingerprint)
+        require(fingerprint!=null) {"Enter the server's verified SHA256 host key fingerprint."}
         val jsch=JSch()
+        var mismatch=false
         jsch.setHostKeyRepository(object:HostKeyRepository {
-            override fun check(host:String,key:ByteArray)=if(NetworkLocation.fingerprintMatches(a.fingerprint,key))HostKeyRepository.OK else HostKeyRepository.CHANGED
+            override fun check(host:String,key:ByteArray):Int {
+                if(NetworkLocation.fingerprintMatches(fingerprint,key))return HostKeyRepository.OK
+                mismatch=true;return HostKeyRepository.CHANGED
+            }
             override fun add(hostkey:HostKey,ui:UserInfo?){}
             override fun remove(host:String,type:String?){}
             override fun remove(host:String,type:String?,key:ByteArray?){}
@@ -79,7 +84,8 @@ internal object NetworkFiles {
         })
         val session=jsch.getSession(a.username,l.host,l.port);o.add {session.disconnect()}
         session.setPassword(a.password.toByteArray(Charsets.UTF_8));session.setConfig("StrictHostKeyChecking","yes");session.setConfig("PreferredAuthentications","password,keyboard-interactive")
-        session.timeout=30_000;session.connect(20_000)
+        session.timeout=30_000
+        try {session.connect(20_000)}catch(e:JSchException){if(mismatch)throw SftpHostKeyMismatchException(e);throw e}
         return (session.openChannel("sftp") as ChannelSftp).also {channel->o.add {channel.disconnect()};channel.connect(20_000)}
     }
     private interface ListingFtp { fun listing(command:FTPCmd,path:String):java.net.Socket? }

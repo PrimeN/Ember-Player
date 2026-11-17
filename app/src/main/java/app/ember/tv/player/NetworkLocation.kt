@@ -30,10 +30,17 @@ internal data class NetworkLocation(val scheme:String,val host:String,val port:I
             return listOf(path.trim('/'),name).filter {it.isNotEmpty()}.joinToString("/")
         }
         fun fingerprintMatches(expected:String,key:ByteArray):Boolean {
-            if(!expected.startsWith("SHA256:"))return false
+            val normalized=normalizeFingerprint(expected) ?: return false
             val actual=java.security.MessageDigest.getInstance("SHA-256").digest(key)
-            val supplied=runCatching {java.util.Base64.getDecoder().decode(expected.removePrefix("SHA256:"))}.getOrNull()?:return false
+            val supplied=java.util.Base64.getDecoder().decode(normalized.removePrefix("SHA256:"))
             return java.security.MessageDigest.isEqual(actual,supplied)
+        }
+        fun normalizeFingerprint(value:String):String? {
+            val text=value.trim()
+            if(!text.startsWith("SHA256:"))return null
+            val bytes=runCatching {java.util.Base64.getDecoder().decode(text.removePrefix("SHA256:"))}.getOrNull() ?: return null
+            if(bytes.size!=32)return null
+            return "SHA256:"+java.util.Base64.getEncoder().withoutPadding().encodeToString(bytes)
         }
     }
     fun full(path:String):String=listOf(root,path.trim('/')).filter {it.isNotEmpty()}.joinToString("/")
@@ -44,3 +51,6 @@ internal data class NetworkLocation(val scheme:String,val host:String,val port:I
     }
 }
 internal data class NetworkEntry(val name:String,val directory:Boolean,val size:Long)
+
+internal class SftpHostKeyMismatchException(cause:Throwable?=null):java.io.IOException(
+    "The SFTP server host key does not match the saved fingerprint. Verify the server's key independently before updating the saved folder.",cause)
