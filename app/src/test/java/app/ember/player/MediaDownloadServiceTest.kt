@@ -85,12 +85,17 @@ class MediaDownloadServiceTest {
         assertTrue("Service cleanup should finish before the next test",waitFor {job.isCompleted})
     }
     private fun start(service:MediaDownloadService,id:String,startId:Int)=service.onStartCommand(Intent(context,MediaDownloadService::class.java).putExtra("id",id),0,startId)
+    private fun startAndWait(service:MediaDownloadService,item:MediaDownload,startId:Int,origin:Origin) {
+        start(service,item.id,startId)
+        val started=waitFor {DownloadStore(context).read().any {it.id==item.id&&it.state=="downloading"}}
+        assertTrue("First download should start; states=${DownloadStore(context).read().map {it.state}}, requests=${origin.requests.size}, private=${PrivateMedia.hidden(item.url)}",started)
+    }
     @Test fun anotherRequestWaitsAndDuplicateStartsDoNotInterruptTheActiveTransfer() {
         Origin().use {origin->
             val store=DownloadStore(context);val first=store.add("${origin.url}/first.mp4","first.mp4");val second=store.add("${origin.url}/second.mp4","second.mp4")
             val controller=create();val service=controller.get()
             try {
-                start(service,first.id,1);assertTrue("First download should start",waitFor {store.read().any {it.id==first.id&&it.state=="downloading"}})
+                startAndWait(service,first,1,origin)
                 start(service,second.id,2);start(service,first.id,3)
                 assertTrue("Second download should wait",waitFor {store.read().any {it.id==second.id&&it.state=="queued"}})
                 assertEquals(listOf("/first.mp4"),origin.requests.toList())
@@ -108,7 +113,7 @@ class MediaDownloadServiceTest {
             val store=DownloadStore(context);val first=store.add("${origin.url}/first.mp4","first.mp4");val second=store.add("${origin.url}/second.mp4","second.mp4")
             val controller=create();val service=controller.get()
             try {
-                start(service,first.id,1);assertTrue("First download should start",waitFor {store.read().any {it.id==first.id&&it.state=="downloading"}})
+                startAndWait(service,first,1,origin)
                 start(service,second.id,2);assertTrue("Second download should wait",waitFor {store.read().any {it.state=="queued"}})
                 service.onStartCommand(Intent(context,MediaDownloadService::class.java).setAction("pause"),0,3)
                 assertTrue("Pause should clear the queue",waitFor {store.read().all {it.state=="paused"}})
@@ -122,7 +127,7 @@ class MediaDownloadServiceTest {
             val store=DownloadStore(context);val first=store.add("${origin.url}/first.mp4","first.mp4");val second=store.add("${origin.url}/second.mp4","second.mp4")
             val controller=create();val service=controller.get()
             try {
-                start(service,first.id,1);assertTrue("First download should start",waitFor {store.read().any {it.id==first.id&&it.state=="downloading"}})
+                startAndWait(service,first,1,origin)
                 start(service,second.id,2);assertTrue("Second download should wait",waitFor {store.read().any {it.state=="queued"}})
                 service.onStartCommand(Intent(context,MediaDownloadService::class.java).setAction("remove").putExtra("id",first.id),0,3)
                 assertTrue("Removing the active file should advance the queue",waitFor {store.read().singleOrNull()?.let {it.id==second.id&&it.state=="complete"}==true})
@@ -142,7 +147,7 @@ class MediaDownloadServiceTest {
         Origin().use {origin->
             val store=DownloadStore(context);val first=store.add("${origin.url}/first.mp4","first.mp4");val second=store.add("${origin.url}/second.mp4","second.mp4")
             val controller=create();val service=controller.get()
-            start(service,first.id,1);assertTrue("First download should start",waitFor {store.read().any {it.id==first.id&&it.state=="downloading"}})
+            startAndWait(service,first,1,origin)
             start(service,second.id,2);assertTrue("Second download should wait",waitFor {store.read().any {it.state=="queued"}})
             destroy(controller)
             assertTrue("Stopping the service should pause the queue",waitFor {store.read().all {it.state=="paused"}})
