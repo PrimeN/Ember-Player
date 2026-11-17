@@ -41,7 +41,7 @@ class PlayerSettingsActivity:ComponentActivity() {
 private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:PlaybackConfig,subtitles:SubtitleConfig,
     update:((PlaybackConfig)->PlaybackConfig)->Unit,captions:((SubtitleConfig)->SubtitleConfig)->Unit,refresh:()->Unit,scope:CoroutineScope) {
     when(id) {
-        "playback"->PlayerSection("Playback") {
+        "playback"->PlayerSection(PlayerUiLabels.PLAYBACK) {
             PlayerChoice("Controls",PlayerInterfaces.options,PlayerInterfaces.resolve(config,"modern")){v->update {it.copy(playerInterface=v)}}
             PlayerChoice("Playback engine",listOf("auto" to "Automatic","standard" to "Standard","compatibility" to "Compatibility"),config.engine){v->update {it.copy(engine=v)}}
             PlayerChoice("Resume",listOf("ask" to "Ask","resume" to "Resume automatically","start" to "Start over"),config.resume){v->update {it.copy(resume=v)}}
@@ -99,7 +99,7 @@ private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:
             SwitchChip("Touch gestures",config.touch.enabled){update {it.copy(touch=it.touch.copy(enabled=!it.touch.enabled))}}
             PlayerChoice("Double-tap seek",listOf("5" to "5 seconds","10" to "10 seconds","15" to "15 seconds","30" to "30 seconds","60" to "60 seconds"),config.touch.seekSeconds.toString()){v->update {it.copy(touch=it.touch.copy(seekSeconds=v.toInt()))}}
             PlayerChoice("Left double-tap",TouchActions.options,config.touch.leftDoubleTap){v->update {it.copy(touch=it.touch.copy(leftDoubleTap=v))}}
-            PlayerChoice("Centre double-tap",TouchActions.options,config.touch.centerDoubleTap){v->update {it.copy(touch=it.touch.copy(centerDoubleTap=v))}}
+            PlayerChoice("Center double-tap",TouchActions.options,config.touch.centerDoubleTap){v->update {it.copy(touch=it.touch.copy(centerDoubleTap=v))}}
             PlayerChoice("Right double-tap",TouchActions.options,config.touch.rightDoubleTap){v->update {it.copy(touch=it.touch.copy(rightDoubleTap=v))}}
             PlayerChoice("Edge tap region",listOf(20,25,30,35,40,45).map {it.toString() to "$it% each side"},config.touch.seekAreaPercent.toString()){v->update {it.copy(touch=it.touch.copy(seekAreaPercent=v.toInt()))}}
             SwitchChip("Horizontal swipe to seek",config.touch.horizontalSeek){update {it.copy(touch=it.touch.copy(horizontalSeek=!it.touch.horizontalSeek))}}
@@ -112,9 +112,9 @@ private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:
             SwitchChip("Subtitle touch gestures",config.touch.subtitleGestures){update {it.copy(touch=it.touch.copy(subtitleGestures=!it.touch.subtitleGestures))}}
             Text("With subtitles selected and controls hidden, start in the lower third: swipe sideways for timing, up/down for position, or pinch for text size. System captions keep their own style.",color=Mute,fontSize=12.sp)
             PlayerChoice("Orientation",listOf("auto" to "Follow device setting","sensor" to "Automatic rotation","landscape" to "Landscape","portrait" to "Portrait"),config.touch.orientation){v->update {it.copy(touch=it.touch.copy(orientation=v))}}
-            Text("Tap to show controls. Double-tap the centre to pause; double-tap an edge to seek. Swipe horizontally to preview a seek, then release. Playback lock is in the player options; Back unlocks it.",color=Mute,fontSize=12.sp)
+            Text("Tap to show controls. Double-tap the center to pause; double-tap an edge to seek. Swipe horizontally to preview a seek, then release. Playback lock is in the player options; Back unlocks it.",color=Mute,fontSize=12.sp)
         }
-        "audio"->PlayerSection("Sound") {
+        "audio"->PlayerSection(PlayerUiLabels.AUDIO) {
             PlayerChoice("Night listening",NightListening.choices,config.audioEffects.compression){v->update {it.copy(audioEffects=it.audioEffects.copy(compression=v))}}
             Text("Dynamic compression reduces loud effects relative to dialogue. Decoded audio only; passthrough stays untouched.",color=Mute,fontSize=12.sp)
             SwitchChip("HDMI passthrough",config.passthrough){update {it.copy(passthrough=!it.passthrough)}}
@@ -132,7 +132,7 @@ private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:
             PlayerChoice("Channels",AudioEffects.channelChoices,config.audioEffects.channels){v->update {it.copy(audioEffects=it.audioEffects.copy(channels=v))}}
             Text("Audio effects apply to decoded sound; passthrough stays untouched.",color=Mute,fontSize=12.sp)
         }
-        "subtitles"->PlayerSection("Subtitles") {
+        "subtitles"->PlayerSection(PlayerUiLabels.SUBTITLES) {
             PlayerChoice("At start",listOf("foreign" to "For foreign audio","always" to "Always","off" to "Off"),subtitles.autoSelect){v->captions {it.copy(autoSelect=v)}}
             var languages by remember {mutableStateOf(subtitles.languages.joinToString(", "))}
             TvTextField(languages,{languages=it.take(120)},Modifier.fillMaxWidth(),placeholder="Languages: en, fr, ja")
@@ -152,7 +152,7 @@ private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:
             PlayerChoice("Display mode",listOf("night" to "Night","day" to "Day"),prefs.theme){v->prefs.theme=v;refresh()}
             SwitchChip("Glass surfaces",prefs.navigationGlass){prefs.navigationGlass=!prefs.navigationGlass;refresh()}
         }
-        "privacy"->PlayerSection("Privacy") {
+        "privacy"->PlayerSection(PlayerUiLabels.PRIVATE_MEDIA) {
             PrivacySettings()
         }
         "backups"->PlayerSection("Backups") {

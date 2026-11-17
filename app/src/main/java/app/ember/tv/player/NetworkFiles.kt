@@ -51,7 +51,7 @@ internal object NetworkFiles {
             private var bytes=0L
             private val deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(20)
             private fun checkRequest() {
-                if(Thread.currentThread().isInterrupted)throw InterruptedIOException("Share browsing cancelled.")
+                if(Thread.currentThread().isInterrupted)throw InterruptedIOException("Share browsing canceled.")
                 check(++packets<=1024 && bytes<=4L*1024*1024 && System.nanoTime()<deadline) {"Share listing exceeds limits."}
             }
             override fun transact(out:ByteArray,input:ByteArray):Int {checkRequest();return pipe.transact(out,input).also {bytes+=it}}

@@ -29,13 +29,13 @@ import app.ember.tv.ui.Focusable
 
 internal data class PlayerSettingsCategory(val id:String,val label:String,val description:String,val icon:ImageVector)
 internal val playerSettingsCategories=listOf(
-    PlayerSettingsCategory("playback","Playback","Resume, controls, seeking",Icons.Outlined.PlayArrow),
-    PlayerSettingsCategory("picture","Picture & HDR","Processing, display, decoding",Icons.Outlined.Image),
-    PlayerSettingsCategory("audio","Audio","Output, tracks, sound effects",Icons.AutoMirrored.Outlined.VolumeUp),
-    PlayerSettingsCategory("subtitles","Subtitles","Language, style, timing",Icons.Outlined.Subtitles),
+    PlayerSettingsCategory("playback",PlayerUiLabels.PLAYBACK,"Resume, controls, seeking",Icons.Outlined.PlayArrow),
+    PlayerSettingsCategory("picture",PlayerUiLabels.PICTURE,"Processing, display, decoding",Icons.Outlined.Image),
+    PlayerSettingsCategory("audio",PlayerUiLabels.AUDIO,"Output, tracks, sound effects",Icons.AutoMirrored.Outlined.VolumeUp),
+    PlayerSettingsCategory("subtitles",PlayerUiLabels.SUBTITLES,"Language, style, timing",Icons.Outlined.Subtitles),
     PlayerSettingsCategory("network","Network & cache","Streaming, buffering, cached data",Icons.Outlined.Wifi),
     PlayerSettingsCategory("appearance","Appearance","Theme, performance, layout",Icons.Outlined.Palette),
-    PlayerSettingsCategory("privacy","Privacy","Private media, history, backups",Icons.Outlined.Lock),
+    PlayerSettingsCategory("privacy",PlayerUiLabels.PRIVATE_MEDIA,"History and backups",Icons.Outlined.Lock),
     PlayerSettingsCategory("about","About","App version, credits, licenses",Icons.Outlined.Info),
 )
 

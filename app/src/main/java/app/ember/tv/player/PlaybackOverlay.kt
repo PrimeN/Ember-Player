@@ -93,7 +93,7 @@ internal fun PlaybackOverlay(s:ControlsState,a:ControlsActions) {
             Row(Modifier.fillMaxWidth().padding(horizontal=inset,vertical=20.dp),verticalAlignment=Alignment.CenterVertically) {
                 control("back",Icons.AutoMirrored.Outlined.ArrowBack,stringResource(R.string.player_back),action=a.close)
                 Spacer(Modifier.weight(1f))
-                EmberLogo(22.dp,Ivory)
+                app.ember.player.PlayerBrandMark(36.dp,Modifier.semantics {contentDescription="Ember Player"})
             }
             val dock=Modifier.align(Alignment.BottomCenter).padding(start=inset,end=inset,bottom=20.dp)
                 .fillMaxWidth().onSizeChanged {dockHeight=with(density){it.height.toDp()};s.overlayHeightDp=dockHeight.value}

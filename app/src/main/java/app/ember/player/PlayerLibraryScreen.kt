@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material.icons.automirrored.outlined.Sort
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,8 +35,8 @@ import app.ember.tv.ui.*
 import kotlinx.coroutines.*
 
 internal enum class PlayerLibraryDestination(val label:String,val icon:ImageVector) {
-    VIDEOS("Videos",Icons.Outlined.PlayArrow),FOLDERS("Folders",Icons.Outlined.Folder),NETWORK("Network",Icons.Outlined.Wifi),
-    PLAYLISTS("Playlists",Icons.AutoMirrored.Outlined.ViewList),DOWNLOADS("Downloads",Icons.Outlined.Download),PRIVATE("Private media",Icons.Outlined.Lock)
+    VIDEOS(PlayerUiLabels.VIDEOS,Icons.Outlined.PlayArrow),FOLDERS(PlayerUiLabels.FOLDERS,Icons.Outlined.Folder),NETWORK("Network",Icons.Outlined.Wifi),
+    PLAYLISTS("Playlists",Icons.AutoMirrored.Outlined.ViewList),DOWNLOADS("Downloads",Icons.Outlined.Download),PRIVATE(PlayerUiLabels.PRIVATE_MEDIA,Icons.Outlined.Lock)
 }
 
 @Composable
@@ -101,7 +102,7 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
                         LibraryUtility(sort.label,Icons.AutoMirrored.Outlined.Sort){sortMenu=true}
                         PlayerIconAction(if(grid)"List view" else "Grid view",if(grid)Icons.AutoMirrored.Outlined.ViewList else Icons.Outlined.GridView){grid=!grid;prefs.playerLibraryGrid=grid}
                     }
-                    PlayerIconAction(if(preparing||opening)"Preparing files" else "Open file",Icons.Outlined.FolderOpen,Modifier.focusRequester(openFocus),enabled=!preparing&&!opening,onClick=openFiles)
+                    PlayerIconAction(if(preparing||opening)"Preparing files" else "Open file",Icons.AutoMirrored.Outlined.InsertDriveFile,Modifier.focusRequester(openFocus),enabled=!preparing&&!opening,onClick=openFiles)
                     if(television) {
                         PlayerIconAction("Search media",Icons.Outlined.Search,onClick=::toggleSearch)
                         PlayerIconAction("Settings",Icons.Outlined.Settings,onClick=::settings)
@@ -120,9 +121,9 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
                     Spacer(Modifier.height(8.dp))
                 }
                 Row(Modifier.weight(1f).fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(16.dp)) {
-                    if(television)LazyColumn(Modifier.width(116.dp),contentPadding=PaddingValues(vertical=8.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+                    if(television)LazyColumn(Modifier.width(160.dp),contentPadding=PaddingValues(vertical=8.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
                         items(PlayerLibraryDestination.entries,key={it.name}) {item->
-                            LibraryNavigation(if(item==PlayerLibraryDestination.PRIVATE)"Private" else item.label,item.icon,Modifier.fillMaxWidth().focusRequester(navigationFocus.getValue(item)),destination==item){go(item)}
+                            LibraryNavigation(item.label,item.icon,Modifier.fillMaxWidth().focusRequester(navigationFocus.getValue(item)),destination==item){go(item)}
                         }
                     }
                     stateHolder.SaveableStateProvider(destination.name) {
@@ -144,8 +145,8 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
                 }
             }
             if(!television)LibraryDock(Modifier.align(Alignment.BottomCenter).padding(bottom=12.dp),
-                when {search->"search";destination==PlayerLibraryDestination.VIDEOS->"home";destination in setOf(PlayerLibraryDestination.FOLDERS,PlayerLibraryDestination.NETWORK)->"files";else->""},
-                {go(PlayerLibraryDestination.VIDEOS)}, {if(destination!=PlayerLibraryDestination.NETWORK){folderUri=null;go(PlayerLibraryDestination.FOLDERS)}},::toggleSearch,::settings)
+                when {search->"search";destination==PlayerLibraryDestination.VIDEOS->"home";destination==PlayerLibraryDestination.FOLDERS->"files";else->""},
+                {go(PlayerLibraryDestination.VIDEOS)}, {folderUri=null;go(PlayerLibraryDestination.FOLDERS)},::toggleSearch,::settings)
         }
     }
     LaunchedEffect(Unit){if(television){withFrameNanos {};runCatching {openFocus.requestFocus()}}}
@@ -159,10 +160,11 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
 
 @Composable
 internal fun PhoneLibraryNavigation(destination:PlayerLibraryDestination,go:(PlayerLibraryDestination)->Unit) {
+    val destinations=remember {PlayerLibraryDestination.entries.filterNot {it==PlayerLibraryDestination.VIDEOS||it==PlayerLibraryDestination.FOLDERS}}
     val state=rememberLazyListState()
-    LaunchedEffect(destination){state.animateScrollToItem(destination.ordinal)}
+    LaunchedEffect(destination){state.animateScrollToItem(destinations.indexOf(destination).coerceAtLeast(0))}
     LazyRow(Modifier.fillMaxWidth().padding(bottom=8.dp),state=state,horizontalArrangement=Arrangement.spacedBy(4.dp)) {
-        items(PlayerLibraryDestination.entries,key={it.name}) {item->
+        items(destinations,key={it.name}) {item->
             LibraryNavigation(item.label,item.icon,isSelected=destination==item){go(item)}
         }
     }
@@ -198,8 +200,8 @@ private fun LibraryDock(modifier:Modifier,selected:String,home:()->Unit,files:()
     Surface(modifier.widthIn(max=440.dp),shape=RoundedCornerShape(32.dp),color=scheme.surfaceVariant.copy(alpha=if(LocalRenderOptions.current.glass).96f else 1f),
         border=androidx.compose.foundation.BorderStroke(1.dp,scheme.outlineVariant),shadowElevation=4.dp) {
         Row(Modifier.padding(6.dp),horizontalArrangement=Arrangement.spacedBy(2.dp)) {
-            listOf(Triple("home",Icons.Outlined.Home,home),Triple("files",Icons.Outlined.Folder,files),Triple("search",Icons.Outlined.Search,search),Triple("settings",Icons.Outlined.Settings,settings)).forEach {(id,icon,action)->
-                val label=id.replaceFirstChar {it.uppercaseChar()}
+            listOf(Triple("home",PlayerLibraryDestination.VIDEOS.icon,home),Triple("files",PlayerLibraryDestination.FOLDERS.icon,files),Triple("search",Icons.Outlined.Search,search),Triple("settings",Icons.Outlined.Settings,settings)).forEach {(id,icon,action)->
+                val label=when(id){"home"->PlayerUiLabels.VIDEOS;"files"->PlayerUiLabels.FOLDERS;else->id.replaceFirstChar {it.uppercaseChar()}}
                 Surface(action,Modifier.weight(1f).heightIn(min=56.dp).semantics {this.selected=selected==id},shape=RoundedCornerShape(26.dp),
                     color=if(selected==id)scheme.primaryContainer else Color.Transparent,contentColor=if(selected==id)scheme.onPrimaryContainer else scheme.onSurface) {
                     Column(Modifier.padding(vertical=6.dp,horizontal=6.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(2.dp)) {

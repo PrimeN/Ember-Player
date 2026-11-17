@@ -34,7 +34,7 @@ internal class PlayerExports(private val activity:PlayerActivity):java.io.Closea
                 withContext(Dispatchers.IO) {
                     activity.contentResolver.openOutputStream(uri,"wt")?.use {out->out.write(bytes);out.flush()} ?: error("Cannot write screenshot")
                 }
-                if(permitted()&&visit==activity.playbackVisit)message("Screenshot saved") else {remove(uri);message("Screenshot cancelled because playback changed.")}
+                if(permitted()&&visit==activity.playbackVisit)message("Screenshot saved") else {remove(uri);message("Screenshot canceled because playback changed.")}
             } catch(e:CancellationException){remove(uri);throw e}
               catch(_:Exception){remove(uri);message("Could not save the screenshot.")}
         } else if(uri!=null)remove(uri)

@@ -18,7 +18,7 @@ import app.ember.tv.ui.Focusable
 
 @Composable
 internal fun PlayerPalettePicker(value:Int,pick:(Int)->Unit) {
-    Text("Colours",style=MaterialTheme.typography.titleSmall)
+    Text("Colors",style=MaterialTheme.typography.titleSmall)
     FlowRow(horizontalArrangement=Arrangement.spacedBy(10.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
         listOf(Triple(0,"Ember",Color(0xFFFF9A3C)),Triple(1,"Charcoal",Color(0xFF747B86)),
             Triple(5,"Modern Ember",Color(0xFFA8C7FA)),Triple(6,"Cinema Red",Color(0xFFE50914))).forEach {(id,name,color)->

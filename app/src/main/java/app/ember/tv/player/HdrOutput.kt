@@ -31,6 +31,6 @@ data class HdrOutput(
     companion object {
         val tones=listOf("bt.2390" to "BT.2390","reinhard" to "Reinhard","hable" to "Hable","mobius" to "Mobius","gamma" to "Gamma","clip" to "Clip highlights")
         // The gpu renderer implements desaturation and hard clipping. Other modes require gpu-next.
-        val gamuts=listOf("desaturate" to "Preserve hue / reduce saturation","clip" to "Clip out-of-range colours")
+        val gamuts=listOf("desaturate" to "Preserve hue / reduce saturation","clip" to "Clip out-of-range colors")
     }
 }

@@ -17,6 +17,20 @@ import org.robolectric.annotation.Config
 @Config(sdk=[35],application=Application::class)
 class PlayerActionMenuTest {
     @get:Rule val compose=createComposeRule()
+    @Test @Config(qualifiers="w480dp-h800dp-port-mdpi")
+    fun optionsUseSettingsNamesAndLongTabsRemainReachableByTouch() {
+        val state=ControlsState().apply {menuTab="playback"}
+        val actions=ControlsActions(playPause={},seekBy={},skip={},openMenu={_,_->},
+            options={id->listOf(OptionRow("Options for $id"))},next={},touched={})
+        compose.setContent {EmberTheme(0){OptionsPage(state,actions)}}
+        compose.onNodeWithText("Playback").assertExists()
+        compose.onNodeWithText("Picture & HDR").performScrollTo().performClick()
+        compose.runOnIdle {assertEquals("video",state.menuTab)}
+        compose.onNodeWithText("Options for video").assertExists()
+        compose.onNodeWithText("Subtitles").performScrollTo().performClick()
+        compose.runOnIdle {assertEquals("subtitles",state.menuTab)}
+        compose.onNodeWithText("Options for subtitles").assertExists()
+    }
     @Test fun exitConfirmationStartsOnKeepWatchingAndRunsOnlyTheChosenAction() {
         var stopped=0;var cancelled=0
         compose.setContent {EmberTheme(0) {

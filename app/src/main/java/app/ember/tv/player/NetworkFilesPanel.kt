@@ -91,7 +91,7 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                 item {ButtonRow(spacing=8.dp) {
                     Chip(if(finding)"Stop discovery" else "Find SMB servers") {if(!finding)servers=emptyList();note=null;finding=!finding}
                     Chip(if(shareJob?.isActive==true)"Cancel share browsing" else "Browse SMB shares") {
-                        if(shareJob?.isActive==true){shareJob?.cancel();shareJob=null;note="Share browsing cancelled."}
+                        if(shareJob?.isActive==true){shareJob?.cancel();shareJob=null;note="Share browsing canceled."}
                         else {
                             val endpoint=runCatching {NetworkLocation.parse(address,allowSmbRoot=true).also {require(it.scheme=="smb")}}.getOrNull()
                             if(endpoint==null)note="Enter an SMB server address first, for example smb://server."
@@ -238,7 +238,7 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
             }
             ButtonRow(spacing=8.dp) {
                 Chip(if(testJob?.isActive==true)"Cancel test" else "Test connection") {
-                    if(testJob?.isActive==true){testJob?.cancel();probeNote="Test cancelled."}
+                    if(testJob?.isActive==true){testJob?.cancel();probeNote="Test canceled."}
                     else {
                         val sample=entries.firstOrNull {MediaFileTypes.playable(it)}
                         if(sample==null)probeNote="Open a folder containing a media file to test its connection."
