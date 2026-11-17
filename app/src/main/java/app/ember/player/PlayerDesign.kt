@@ -44,19 +44,24 @@ internal fun PlayerTouchSurface(onClick:()->Unit,onLongClick:(()->Unit)?,modifie
 }
 
 @Composable
-internal fun PlayerAction(label:String,icon:ImageVector?=null,modifier:Modifier=Modifier,primary:Boolean=false,enabled:Boolean=true,onClick:()->Unit) {
+internal fun PlayerAction(label:String,icon:ImageVector?=null,modifier:Modifier=Modifier,primary:Boolean=false,enabled:Boolean=true,destructive:Boolean=false,onClick:()->Unit) {
+    val scheme=androidx.tv.material3.MaterialTheme.colorScheme
     if(LocalPlayerTelevision.current) {
-        Focusable(onClick,modifier.heightIn(min=48.dp),enabled=enabled,container=if(primary)MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-            focusedContainer=MaterialTheme.colorScheme.primary,focusedContent=MaterialTheme.colorScheme.onPrimary,outline=false,focusedScale=1.02f) {
-            Row(Modifier.padding(horizontal=18.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
-                icon?.let {Icon(it,null,Modifier.size(20.dp))};Text(label,maxLines=1,overflow=TextOverflow.Ellipsis)
+        Focusable(onClick,modifier.heightIn(min=48.dp),enabled=enabled,
+            container=when {destructive->scheme.errorContainer;primary->scheme.primaryContainer;else->Color.Transparent},
+            contentColor=when {destructive->scheme.onErrorContainer;primary->scheme.onPrimaryContainer;else->scheme.onSurface},
+            focusedContainer=if(destructive)scheme.error else scheme.primary,focusedContent=if(destructive)scheme.onError else scheme.onPrimary,outline=false,focusedScale=1.02f) {
+            CompositionLocalProvider(LocalContentColor provides androidx.tv.material3.LocalContentColor.current) {
+                Row(Modifier.padding(horizontal=18.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+                    icon?.let {Icon(it,null,Modifier.size(20.dp))};Text(label,style=androidx.tv.material3.MaterialTheme.typography.labelLarge,maxLines=2,overflow=TextOverflow.Ellipsis)
+                }
             }
         }
     } else {
-        val colors=if(primary)ButtonDefaults.filledTonalButtonColors() else ButtonDefaults.textButtonColors()
-        FilledTonalButton(onClick,modifier.heightIn(min=48.dp),enabled=enabled,colors=colors,shape=RoundedCornerShape(14.dp)) {
-            icon?.let {Icon(it,null,Modifier.size(20.dp));Spacer(Modifier.width(8.dp))};Text(label,maxLines=1,overflow=TextOverflow.Ellipsis)
-        }
+        val body:@Composable RowScope.()->Unit={icon?.let {Icon(it,null,Modifier.size(20.dp));Spacer(Modifier.width(8.dp))};Text(label,style=androidx.tv.material3.MaterialTheme.typography.labelLarge,maxLines=2,overflow=TextOverflow.Ellipsis)}
+        if(primary||destructive)FilledTonalButton(onClick,modifier.heightIn(min=48.dp),enabled=enabled,
+            colors=if(destructive)ButtonDefaults.filledTonalButtonColors(containerColor=scheme.errorContainer,contentColor=scheme.onErrorContainer) else ButtonDefaults.filledTonalButtonColors(containerColor=scheme.primaryContainer,contentColor=scheme.onPrimaryContainer),shape=RoundedCornerShape(14.dp),content=body)
+        else TextButton(onClick,modifier.heightIn(min=48.dp),enabled=enabled,colors=ButtonDefaults.textButtonColors(contentColor=scheme.primary),shape=RoundedCornerShape(14.dp),content=body)
     }
 }
 
@@ -82,11 +87,16 @@ internal fun PlayerHeading(title:String,modifier:Modifier=Modifier,back:(()->Uni
 @Composable
 internal fun PlayerSection(title:String,modifier:Modifier=Modifier,content:@Composable ColumnScope.()->Unit) {
     Column(modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        Text(title,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold,modifier=Modifier.semantics {heading()})
+        PlayerSectionTitle(title)
         Surface(color=MaterialTheme.colorScheme.surfaceContainer,shape=RoundedCornerShape(20.dp)) {
             Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp),content=content)
         }
     }
+}
+
+@Composable
+internal fun PlayerSectionTitle(title:String) {
+    Text(title,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold,modifier=Modifier.semantics {heading()})
 }
 
 @Composable

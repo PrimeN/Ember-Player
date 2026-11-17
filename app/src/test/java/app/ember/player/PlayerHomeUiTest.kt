@@ -27,6 +27,9 @@ class PlayerHomeUiTest {
     @Test fun browserDestinationsKeepFolderAndNetworkToolsReachable() {
         compose.onNodeWithText("Folders").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithText("Add a media folder").assertExists()
+        compose.onNodeWithText("USB drives").assert(SemanticsMatcher.keyIsDefined(androidx.compose.ui.semantics.SemanticsProperties.Heading))
+        compose.onNodeWithText("Search media library").assertExists()
+        compose.onNodeWithText("Browse USB drives").assertDoesNotExist()
         compose.onNodeWithText("Network").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithText("Add network folder").assertExists()
         compose.onNodeWithText("Folders").assertIsNotSelected().performSemanticsAction(SemanticsActions.OnClick){it()}

@@ -57,6 +57,7 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
     LaunchedEffect(pendingNavigation){pendingNavigation?.let {target->withFrameNanos {};runCatching {navigationFocus.getValue(target).requestFocus()};pendingNavigation=null}}
     var menu by remember {mutableStateOf(false)}
     var stream by remember {mutableStateOf(false)}
+    var clearingRecent by remember {mutableStateOf(false)}
     var filterMenu by remember {mutableStateOf(false)}
     var sortMenu by remember {mutableStateOf(false)}
     var notice by remember {mutableStateOf<String?>(null)}
@@ -154,7 +155,11 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
     if(sortMenu)OptionMenu("Sort media",PlayerLibrarySort.entries.map {value->MenuOption(value.label,sort==value){sort=value;prefs.playerLibrarySort=value.id}},{sortMenu=false})
     if(menu)OptionMenu("Ember Player",PlayerLibraryDestination.entries.map {item->MenuOption(item.label,destination==item){folderUri=null;go(item,restoreFocus=true)}}+
         listOf(MenuOption("Settings"){settings()},MenuOption("Open stream URL"){stream=true},MenuOption("Refresh library view"){localRevision++},
-            MenuOption("Clear recent media"){scope.launch {val ok=withContext(Dispatchers.IO){MediaHistory(activity).clear()};if(ok)localRevision++ else notice="Could not clear saved history."}}),{menu=false})
+            MenuOption("Clear recent media"){clearingRecent=true}),{menu=false})
+    if(clearingRecent)PlayerConfirmationDialog("Clear recent media?","Clear the recent-media list? Resume positions, playlists and bookmarks will be kept.","Clear recent media",{clearingRecent=false}) {
+        clearingRecent=false
+        scope.launch {val ok=withContext(Dispatchers.IO){MediaHistory(activity).clear()};if(ok)localRevision++ else notice="Could not clear saved history."}
+    }
     if(stream)PlayerStreamDialog(activity,{stream=false}){notice=it}
 }
 
@@ -189,7 +194,7 @@ private fun LibraryNavigation(label:String,icon:ImageVector,modifier:Modifier=Mo
     Focusable(click,modifier.heightIn(min=48.dp).semantics {selected=isSelected},radius=14,
         container=if(isSelected)scheme.primaryContainer else Color.Transparent,focusedContainer=scheme.primary,focusedContent=scheme.onPrimary,outline=false,focusedScale=1f) {
         Row(Modifier.padding(horizontal=10.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-            Icon(icon,null,Modifier.size(18.dp));Text(label,style=if(LocalPlayerTelevision.current)MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge,maxLines=1,overflow=TextOverflow.Ellipsis)
+            Icon(icon,null,Modifier.size(18.dp));Text(label,style=if(LocalPlayerTelevision.current)MaterialTheme.typography.bodyLarge else MaterialTheme.typography.labelLarge,maxLines=if(LocalPlayerTelevision.current)2 else 1,overflow=TextOverflow.Ellipsis)
         }
     }
 }
@@ -217,10 +222,10 @@ private fun LibraryDock(modifier:Modifier,selected:String,home:()->Unit,files:()
 private fun PlayerStreamDialog(activity:MediaFilesActivity,close:()->Unit,notice:(String)->Unit) {
     var url by rememberSaveable {mutableStateOf("")};var error by remember {mutableStateOf<String?>(null)};var busy by remember {mutableStateOf(false)}
     val scope=rememberCoroutineScope()
-    TvDialog({if(!busy)close()},width=560.dp,resizeForKeyboard=true) {
+    TvDialog({if(!busy)close()},width=560.dp,resizeForKeyboard=true,scrollContent=true) {
         DialogHeading("Open stream URL")
         TvTextField(url,{url=it.take(16384)},Modifier.fillMaxWidth(),placeholder="https:// or rtsp://",keyboardType=androidx.compose.ui.text.input.KeyboardType.Uri)
-        error?.let {Text(it,color=MaterialTheme.colorScheme.error)}
+        error?.let {PlayerErrorText(it)}
         ButtonRow {
             PlayerAction(if(busy)"Opening…" else "Play",Icons.Outlined.PlayArrow,primary=true,enabled=!busy) {
                 val value=url.trim()

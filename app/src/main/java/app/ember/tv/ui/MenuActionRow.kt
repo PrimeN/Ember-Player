@@ -26,7 +26,7 @@ import androidx.tv.material3.MaterialTheme
 /** Measurement and rendering must share font family and letter spacing as well as size. */
 @Composable
 internal fun actionMenuTextStyle():TextStyle = MaterialTheme.typography.bodyMedium.copy(
-    fontSize=TvTokens.Type.Compact.sp,lineHeight=18.sp,fontWeight=FontWeight.Medium,
+    fontWeight=FontWeight.Medium,
     platformStyle=PlatformTextStyle(includeFontPadding=false))
 
 /** One compact menu row. Center the content inside the entire hit area, including its minimum height. */

@@ -19,7 +19,7 @@ internal fun SleepTimerSettings() {
     var custom by remember {mutableStateOf(false)}
     val lifecycle=androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(state){lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED){while(state.deadline>0){now=android.os.SystemClock.elapsedRealtime();delay(1000)}}}
-    Text(when {state.endOfItem->"Stops after the current item";state.deadline>0->"Remaining · ${((state.remaining(now)+59999)/60000)} min";else->"Sleep timer is off"},fontSize=13.sp,color=Mute)
+    Text(when {state.endOfItem->"Stops after the current item";state.deadline>0->"Remaining · ${((state.remaining(now)+59999)/60000)} min";else->"Sleep timer is off"},style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
     ButtonRow {listOf(15,30,60,90).forEach {minutes->Chip("$minutes min"){SleepTimer.after(minutes)}}}
     ButtonRow {
         Chip("Custom duration"){custom=true}
@@ -29,13 +29,13 @@ internal fun SleepTimerSettings() {
     if(custom) {
         var text by remember {mutableStateOf("45")}
         var notice by remember {mutableStateOf<String?>(null)}
-        TvDialog({custom=false},width=420.dp,resizeForKeyboard=true){
+        TvDialog({custom=false},width=420.dp,resizeForKeyboard=true,scrollContent=true){
             DialogHeading("Sleep timer")
             TvTextField(text,{text=it.filter(Char::isDigit).take(4)},Modifier.fillMaxWidth(),placeholder="Minutes · 1 to 1440",keyboardType=KeyboardType.Number)
-            notice?.let {Text(it,fontSize=12.sp)}
+            notice?.let {app.ember.player.PlayerErrorText(it)}
             ButtonRow {
-                Chip("Start"){val minutes=text.toIntOrNull();if(minutes!=null&&minutes in 1..1440){SleepTimer.after(minutes);custom=false}else notice="Choose 1–1440 minutes."}
-                Chip("Back"){custom=false}
+                PlayerAction("Start",primary=true){val minutes=text.toIntOrNull();if(minutes!=null&&minutes in 1..1440){SleepTimer.after(minutes);custom=false}else notice="Choose 1–1440 minutes."}
+                PlayerAction("Back"){custom=false}
             }
         }
     }

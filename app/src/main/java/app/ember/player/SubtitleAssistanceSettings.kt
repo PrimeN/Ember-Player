@@ -23,8 +23,8 @@ internal fun SubtitleAssistanceSettings(config:SubtitleAssistance,save:(Subtitle
         val reader=OfflineCaptionSpeaker(context,config){voices=it;voiceStatus=if(it.isEmpty())"No installed offline voice is available." else "${it.size} installed offline voices"}
         onDispose {reader.close()}
     }
-    Text("Uses only installed on-device language models and offline speech voices. No cloud translation, API keys or automatic model downloads. Bitmap subtitles have no text to translate or read.",color=Mute,fontSize=12.sp)
-    if(pairs.isEmpty())Text("Translation is unavailable: no installed language pair is reported by this device. Android 12 or newer and an on-device translation service are required.",color=Mute,fontSize=12.sp)
+    Text("Uses only installed on-device language models and offline speech voices. No cloud translation, API keys or automatic model downloads. Bitmap subtitles have no text to translate or read.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+    if(pairs.isEmpty())Text("Translation is unavailable: no installed language pair is reported by this device. Android 12 or newer and an on-device translation service are required.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
     else PlayerChoice("Installed translation languages",pairs.map {"${it.source}|${it.target}" to it.label},"${config.source}|${config.target}"){value->
         val fields=value.split('|');save(config.copy(source=fields[0],target=fields[1]))
     }
@@ -33,8 +33,8 @@ internal fun SubtitleAssistanceSettings(config:SubtitleAssistance,save:(Subtitle
         else pairs.firstOrNull {it.source==config.source&&it.target==config.target}?.let {save(config.copy(translate=true))}
             ?: pairs.firstOrNull()?.let {save(config.copy(translate=true,source=it.source,target=it.target))}
     }
-    Text(voiceStatus,color=Mute,fontSize=12.sp)
+    Text(voiceStatus,color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
     if(voices.isNotEmpty())PlayerChoice("Offline voice",listOf("" to "Match subtitle language")+voices.map {it.name to "${it.locale.displayName} · ${it.name}"},config.voice){save(config.copy(voice=it))}
     SwitchChip("Read subtitles aloud",config.readAloud){if(config.readAloud||voices.isNotEmpty())save(config.copy(readAloud=!config.readAloud))}
-    Text("Original subtitles stay visible if assistance is unavailable. Subtitles are read only during playback and speech stops when you pause or leave.",color=Mute,fontSize=12.sp)
+    Text("Original subtitles stay visible if assistance is unavailable. Subtitles are read only during playback and speech stops when you pause or leave.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
 }

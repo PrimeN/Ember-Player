@@ -176,9 +176,9 @@ private fun MenuLine(s: ControlsState, icon: ImageVector?, title: String, value:
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (icon != null) Image(icon, null, colorFilter = ColorFilter.tint(fg), modifier = Modifier.size(18.dp))
-        Text(title, fontSize = 13.sp, color = fg, maxLines = 1, modifier = Modifier.weight(1f))
+        Text(title, style=androidx.tv.material3.MaterialTheme.typography.bodySmall, color = fg, maxLines = 1, modifier = Modifier.weight(1f))
         if (toggle != null) MenuSwitch(toggle, focused)
-        else if (value.isNotBlank()) Text(value, fontSize = 12.sp, color = if (focused) Color(0xFF555555) else Soft, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false), textAlign = TextAlign.End)
+        else if (value.isNotBlank()) Text(value, style=androidx.tv.material3.MaterialTheme.typography.bodySmall, color = if (focused) Color(0xFF555555) else Soft, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false), textAlign = TextAlign.End)
         if (chevron) Image(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, colorFilter = ColorFilter.tint(fg), modifier = Modifier.size(18.dp))
     }
 }
@@ -195,9 +195,9 @@ private fun Choices(row: OptionRow, compact: Boolean, done: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Image(Icons.AutoMirrored.Outlined.ArrowBack, null, colorFilter = ColorFilter.tint(Soft), modifier = Modifier.size(20.dp))
-            Text(row.title, fontSize = 13.sp, color = Soft, fontWeight = FontWeight.SemiBold)
+            Text(row.title, style=androidx.tv.material3.MaterialTheme.typography.bodySmall, color = Soft, fontWeight = FontWeight.SemiBold)
         }
-        row.note?.let { Text(it, fontSize = 14.sp, color = Soft, modifier = Modifier.padding(horizontal = if (compact) 28.dp else 16.dp, vertical = 4.dp)) }
+        row.note?.let { Text(it, style=androidx.tv.material3.MaterialTheme.typography.bodyMedium, color = Soft, modifier = Modifier.padding(horizontal = if (compact) 28.dp else 16.dp, vertical = 4.dp)) }
         LazyColumn(state = state) {
             itemsIndexed(row.choices) { i, label ->
                 ChoiceLine(label, chosen = i == row.selected, first = i == start, compact = compact) {
@@ -225,7 +225,7 @@ private fun ChoiceLine(label: String, chosen: Boolean, first: Boolean, compact: 
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, fontSize = 13.sp, color = fg, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        Text(label, style=androidx.tv.material3.MaterialTheme.typography.bodySmall, color = fg, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         if (chosen) Image(Icons.Outlined.Check, null, colorFilter = ColorFilter.tint(if (focused) Color(0xFF1F1F1F) else LocalPlayerAccent.current), modifier = Modifier.size(18.dp))
     }
 }
@@ -291,12 +291,12 @@ private fun OptionLine(s: ControlsState, r: OptionRow, focus: Boolean, onClick: 
                 .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(r.title, fontSize = 13.sp, color = fg, modifier = Modifier.weight(1f), maxLines = 1)
+            Text(r.title, style=androidx.tv.material3.MaterialTheme.typography.bodySmall, color = fg, modifier = Modifier.weight(1f), maxLines = 1)
             if (r.toggle != null) MenuSwitch(r.toggle, focused)
-            else if (r.value.isNotBlank()) Text(r.value, fontSize = 12.sp, color = if (focused) Color(0xFF555555) else Soft, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 10.dp).weight(1f, fill = false))
+            else if (r.value.isNotBlank()) Text(r.value, style=androidx.tv.material3.MaterialTheme.typography.bodySmall, color = if (focused) Color(0xFF555555) else Soft, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 10.dp).weight(1f, fill = false))
             if (r.action == null) Image(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, colorFilter = ColorFilter.tint(if (focused) fg else Soft), modifier = Modifier.size(18.dp))
         }
-        if (r.toggle != null) r.note?.let { Text(it, fontSize = 12.sp, color = Soft, modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp)) }
+        if (r.toggle != null) r.note?.let { Text(it, style=androidx.tv.material3.MaterialTheme.typography.bodySmall, color = Soft, modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp)) }
         Box(Modifier.fillMaxWidth().padding(horizontal = 10.dp).height(1.dp).background(Divider))
     }
 }
@@ -360,7 +360,7 @@ private fun TabBar(s: ControlsState, modifier: Modifier) {
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Image(icon, null, colorFilter = ColorFilter.tint(tint), modifier = Modifier.size(16.dp))
-                Text(label, fontSize = TvTokens.Type.Caption.sp, color = tint, maxLines = 1)
+                Text(label, style = androidx.tv.material3.MaterialTheme.typography.labelMedium, color = tint, maxLines = 1)
             }
         }
     }
@@ -379,8 +379,8 @@ fun StatsHud(s: ControlsState) {
     ) {
         s.stats.forEach { (k, v) ->
             Row {
-                Text(k, fontSize = 15.sp, color = Soft, modifier = Modifier.width(190.dp))
-                Text(v, fontSize = 15.sp, color = Color.White, maxLines = 2)
+                Text(k, style=androidx.tv.material3.MaterialTheme.typography.bodyMedium, color = Soft, modifier = Modifier.width(190.dp))
+                Text(v, style=androidx.tv.material3.MaterialTheme.typography.bodyMedium, color = Color.White, maxLines = 2)
             }
         }
     }

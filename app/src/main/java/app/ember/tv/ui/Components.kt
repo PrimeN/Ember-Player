@@ -56,10 +56,11 @@ fun Focusable(
     focusedScale: Float = TvTokens.Focus.Card,
     enabled: Boolean = true,
     card: Boolean = false,
+    contentColor: Color = Fg,
     content: @Composable () -> Unit,
 ) {
     if(app.ember.player.LocalPlayerDesign.current && !app.ember.player.LocalPlayerTelevision.current) {
-        app.ember.player.PlayerTouchSurface(onClick,onLongClick,modifier,role,radius,container,focusedContainer,Fg,focusedContent,enabled,content)
+        app.ember.player.PlayerTouchSurface(onClick,onLongClick,modifier,role,radius,container,focusedContainer,contentColor,focusedContent,enabled,content)
         return
     }
     val navigation = LocalNavigationFocus.current
@@ -83,7 +84,6 @@ fun Focusable(
     val motion=card && app.ember.tv.data.CardFocusStyle.animated(style,render.lowPower,reduced)
     val pulse=cardPulse(card && outline && app.ember.tv.data.CardFocusStyle.pulse(style,render.lowPower,reduced,cardFocused,LocalSceneInteractive.current))
     val cardScale=render.cardFocusScale(focusedScale,style,reduceFeedback)
-    val content = Fg
     val shape = RoundedCornerShape((if(isEmberX && radius==TvTokens.Shape.Card)EmberXLayout.Radius else radius).dp)
     Surface(
         enabled = enabled,
@@ -96,13 +96,13 @@ fun Focusable(
         shape = ClickableSurfaceDefaults.shape(shape),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = container,
-            contentColor = content,
+            contentColor = contentColor,
             focusedContainerColor = focusedContainer,
             focusedContentColor = focusedContent,
             pressedContainerColor = focusedContainer,
             pressedContentColor = focusedContent,
             disabledContainerColor = container,
-            disabledContentColor = content,
+            disabledContentColor = contentColor,
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = if(card)cardScale else render.focusScale(focusedScale,reduced),
             pressedScale=if(card && cardScale>1f){if(render.lowPower || render.automaticEffectsReduced).99f else .98f} else 1f),
@@ -149,7 +149,7 @@ fun Chip(label: String, selected: Boolean = false, modifier: Modifier = Modifier
     ) {
         Row((if(centered)Modifier.fillMaxWidth() else Modifier).padding(horizontal=18.dp,vertical=8.dp),
             verticalAlignment=Alignment.CenterVertically,horizontalArrangement=if(centered)Arrangement.Center else Arrangement.Start) {
-            Text(label,fontSize=TvTokens.Type.Label.sp,fontWeight=if(selected)FontWeight.SemiBold else FontWeight.Medium,
+            Text(label,style=MaterialTheme.typography.labelLarge,fontWeight=if(selected)FontWeight.SemiBold else FontWeight.Medium,
                 maxLines=maxLines,softWrap=maxLines>1,overflow=TextOverflow.Ellipsis,
                 textAlign=if(centered)androidx.compose.ui.text.style.TextAlign.Center else null)
         }
@@ -210,7 +210,7 @@ fun SwitchChip(label: String, on: Boolean, modifier: Modifier = Modifier, locked
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (label.isNotEmpty()) Text(label, fontSize = TvTokens.Type.Label.sp, fontWeight = FontWeight.Medium, maxLines = 1, softWrap = false)
+            if (label.isNotEmpty()) Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium, maxLines = 1, softWrap = false)
             // On: accent track (darker on the white focused pill); off: grey track.
             val track = when {
                 shownOn && focused -> lerp(accent, Color.Black, 0.25f)
@@ -232,8 +232,8 @@ fun SwitchChip(label: String, on: Boolean, modifier: Modifier = Modifier, locked
 @Composable
 fun Section(title:String,subtitle:String?=null,id:String?=null,content:@Composable ()->Unit) {
     Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(10.dp)) {
-        Text(title,fontSize=TvTokens.Type.Section.sp,fontWeight=FontWeight.SemiBold)
-        subtitle?.let {Text(it,color=Mute,fontSize=13.sp)}
+        Text(title,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold)
+        subtitle?.let {Text(it,color=Mute,style=MaterialTheme.typography.bodySmall)}
         content()
     }
 }

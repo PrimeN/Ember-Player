@@ -55,10 +55,10 @@ internal fun PlayerActivity.playbackValueDialog(title:String,initial:String,hint
         var text by remember {mutableStateOf(initial)}
         var error by remember {mutableStateOf<String?>(null)}
         fun apply() {error=submit(text);if(error==null)dialog.dismiss()}
-        Text(hint,color=Soft,fontSize=13.sp)
+        Text(hint,color=Soft,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
         TvTextField(text,{text=it.take(32);error=null},Modifier.fillMaxWidth(),onSubmit={apply()},startEditing=!PlayerTouchControls.isTelevision(this@playbackValueDialog))
-        error?.let {Text(it,fontSize=13.sp)}
-        ButtonRow {Chip(button){apply()};Chip("Cancel"){dialog.dismiss()}}
+        error?.let {app.ember.player.PlayerErrorText(it)}
+        ButtonRow {app.ember.player.PlayerAction(button,primary=true){apply()};app.ember.player.PlayerAction("Cancel"){dialog.dismiss()}}
     }
 }
 
@@ -106,14 +106,14 @@ internal fun PlayerActivity.inspectFrames() {
                 kotlinx.coroutines.delay(100)
             }
         }
-        Text(String.format(java.util.Locale.US,"%s.%03d",clock(at),at.coerceAtLeast(0)%1000),fontSize=22.sp)
-        Text("Playback stays paused. Backward steps may take longer while the previous keyframe is decoded.",color=Soft,fontSize=13.sp)
+        Text(String.format(java.util.Locale.US,"%s.%03d",clock(at),at.coerceAtLeast(0)%1000),style=androidx.tv.material3.MaterialTheme.typography.headlineSmall)
+        Text("Playback stays paused. Backward steps may take longer while the previous keyframe is decoded.",color=Soft,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
         fun step(forward:Boolean) {
             if(playbackVisit!=visit || player!==p){dialog.dismiss();return}
             error=if(engine.compatibility?.stepFrame(forward)==true)null else "This video does not support frame inspection."
         }
         ButtonRow {Chip("Previous frame"){step(false)};Chip("Next frame"){step(true)}}
-        error?.let {Text(it,fontSize=13.sp)}
-        Chip("Done"){dialog.dismiss()}
+        error?.let {app.ember.player.PlayerErrorText(it)}
+        app.ember.player.PlayerAction("Done",primary=true){dialog.dismiss()}
     }
 }

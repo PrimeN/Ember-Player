@@ -94,5 +94,23 @@ class PlayerSettingsUiTest {
         compose.onNodeWithTag("settingsContent").performScrollToNode(hasText("Backups"))
         compose.onNodeWithText("Backups").assertExists()
     }
+    @Test fun clearingActivityRequiresConfirmationAndKeepsBookmarks() {
+        val context=RuntimeEnvironment.getApplication()
+        PlayerUiStoreFixture(context).use {
+            val media=app.ember.tv.player.QueueMedia("https://example.test/recent.mkv","Recent")
+            val history=app.ember.tv.player.MediaHistory(context)
+            org.junit.Assert.assertTrue(history.add(listOf(media)))
+            val positions=app.ember.tv.player.PositionStore(context);positions.put(media.key,60_000,100_000)
+            val bookmarks=app.ember.tv.player.PlaybackBookmarks(context,"shared")
+            org.junit.Assert.assertTrue(bookmarks.add(media.key,50_000,"Keep bookmark"))
+            category("Private media")
+            fun openClear(){compose.onNodeWithTag("settingsContent").performScrollToNode(hasText("Clear recent activity and resume positions"));compose.onNodeWithText("Clear recent activity and resume positions").performSemanticsAction(SemanticsActions.OnClick){it()}}
+            openClear();compose.onNodeWithText("Cancel").performSemanticsAction(SemanticsActions.OnClick){it()}
+            compose.runOnIdle {assertEquals(1,history.read().size);org.junit.Assert.assertNotNull(positions.get(media.key))}
+            openClear();compose.onNodeWithText("Clear activity").performSemanticsAction(SemanticsActions.OnClick){it()}
+            compose.waitUntil(10_000){history.read().isEmpty()&&positions.get(media.key)==null}
+            compose.runOnIdle {assertEquals("Keep bookmark",bookmarks.read(media.key).single().name)}
+        }
+    }
 
 }

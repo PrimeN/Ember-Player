@@ -65,7 +65,7 @@ internal fun TvDialog(
             val shape=RoundedCornerShape(TvTokens.Shape.Panel.dp)
             val surface=if(glassSurface) Modifier.glassSurface(shape,panel=true)
                 else Modifier.background(Panel,shape)
-            CompositionLocalProvider(LocalContentColor provides Fg) {
+            CompositionLocalProvider(LocalContentColor provides Fg,androidx.compose.material3.LocalContentColor provides Fg) {
                 Column(modifier.guardOpeningPress().width(size.first).heightIn(max=size.second).onGloballyPositioned {panelBounds=it.boundsInRoot()}.then(surface)
                     .then(if(scrollContent)Modifier.verticalScroll(rememberMenuScrollState()) else Modifier).padding(contentPadding),
                     horizontalAlignment=horizontalAlignment,verticalArrangement=Arrangement.spacedBy(TvTokens.Space.M.dp),content=content)
@@ -77,7 +77,7 @@ internal fun TvDialog(
 /** Modal headings share one hierarchy and keep their full spoken title. */
 @Composable
 internal fun DialogHeading(title:String,modifier:Modifier=Modifier) {
-    androidx.tv.material3.Text(title,modifier=modifier.semantics {heading()},color=Fg,fontSize=TvTokens.Type.Dialog.sp,lineHeight=26.sp,
+    androidx.tv.material3.Text(title,modifier=modifier.semantics {heading()},color=Fg,style=MaterialTheme.typography.titleLarge,
         fontWeight=FontWeight.SemiBold,maxLines=3,overflow=TextOverflow.Ellipsis)
 }
 
