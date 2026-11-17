@@ -24,11 +24,14 @@ class PlayerBackNavigationTest {
         try {test(activity)}finally {activity.handler.removeCallbacksAndMessages(null);player.release()}
     }
     @Test fun systemBackDismissesTheSheetThenControlsBeforeLeaving()=fixture {activity->
+        assertFalse(activity.onBackPressedDispatcher.hasEnabledCallbacks())
         activity.controls.visible=true;activity.controls.sheet="subtitles"
+        assertTrue(activity.onBackPressedDispatcher.hasEnabledCallbacks())
         activity.onBackPressedDispatcher.onBackPressed()
         assertNull(activity.controls.sheet);assertTrue(activity.controls.visible);assertFalse(activity.isFinishing)
         activity.onBackPressedDispatcher.onBackPressed()
         assertFalse(activity.controls.visible);assertFalse(activity.isFinishing)
+        assertFalse(activity.onBackPressedDispatcher.hasEnabledCallbacks())
         activity.onBackPressedDispatcher.onBackPressed()
         assertTrue(activity.isFinishing)
     }
@@ -60,5 +63,20 @@ class PlayerBackNavigationTest {
         assertTrue(activity.controls.visible);assertFalse(activity.isFinishing)
         activity.onBackPressedDispatcher.onBackPressed()
         assertFalse(activity.controls.visible);assertEquals(1,cancelled)
+        assertFalse(activity.onBackPressedDispatcher.hasEnabledCallbacks())
+    }
+    @Test fun aDialogAloneTemporarilyEnablesInterception()=fixture {activity->
+        assertFalse(activity.onBackPressedDispatcher.hasEnabledCallbacks())
+        val dialog=PlayerActionDialog(ComposeView(activity),null,{})
+        activity.actionDialog=dialog
+        assertTrue(activity.onBackPressedDispatcher.hasEnabledCallbacks())
+        dialog.dismiss()
+        assertFalse(activity.onBackPressedDispatcher.hasEnabledCallbacks())
+    }
+    @Test fun configuredExitConfirmationInterceptsUntilPlaybackEnds()=fixture {activity->
+        activity.config=activity.config.copy(confirmExit=true);activity.updateBackHandler()
+        assertTrue(activity.onBackPressedDispatcher.hasEnabledCallbacks())
+        activity.ended=true
+        assertFalse(activity.onBackPressedDispatcher.hasEnabledCallbacks())
     }
 }

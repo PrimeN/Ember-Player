@@ -37,6 +37,7 @@ import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 @OptIn(UnstableApi::class)
 class PlayerActivity : ComponentActivity() {
     internal var player: ExoPlayer? = null
+        set(value){field=value;updateBackHandler()}
     internal var playbackEngine: PlaybackEngine? = null
     internal lateinit var view: PlayerView
     internal lateinit var positions: PositionStore
@@ -47,6 +48,7 @@ class PlayerActivity : ComponentActivity() {
     internal var resumeFraction = -1f
     internal var resumed = false
     internal var ended = false
+        set(value){field=value;updateBackHandler()}
     internal var seriesName = ""
     internal var playbackVisit = 0L
     internal var pendingRecovery: Runnable? = null
@@ -208,6 +210,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        playbackBackCallback?.remove();playbackBackCallback=null
         clips.close();exports.close();sleepWatch?.close();sleepWatch=null
         closeCaptionAssistance()
         backgroundStage?.let(BackgroundAudioService::cancelStage);backgroundStage=null
@@ -238,7 +241,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     // ---- advanced controls (Settings > Player > Player look) ----
-    internal val controls = ControlsState()
+    internal val controls = ControlsState {updateBackHandler()}
     internal var advanced = false
     internal var playerInterface = PlayerInterfaces.MODERN
     internal val playerLayoutStyle: String
@@ -468,14 +471,26 @@ class PlayerActivity : ComponentActivity() {
         installBackHandler()
     }
 
+    private var playbackBackCallback:OnBackPressedCallback?=null
     internal fun installBackHandler() {
-        onBackPressedDispatcher.addCallback(object:OnBackPressedCallback(true) {
+        playbackBackCallback?.remove()
+        val callback=object:OnBackPressedCallback(false) {
             override fun handleOnBackPressed() {
-                if(consumePlayerBack())return
+                if(consumePlayerBack()){updateBackHandler();return}
                 isEnabled=false
-                try {onBackPressedDispatcher.onBackPressed()}finally {isEnabled=true}
+                try {onBackPressedDispatcher.onBackPressed()}finally {updateBackHandler()}
             }
-        })
+        }
+        playbackBackCallback=callback;onBackPressedDispatcher.addCallback(callback)
+        if(viewInitialized)view.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener {updateBackHandler()})
+        updateBackHandler()
+    }
+
+    internal fun updateBackHandler() {
+        val callback=playbackBackCallback ?: return
+        callback.isEnabled=touchControls?.locked==true||actionDialog?.isShowing==true||panelVisible||
+            (player!=null&&(advanced&&(controls.menu!=null||controls.visible)||
+                configInitialized&&config.confirmExit&&!ended||!advanced&&viewInitialized&&view.isControllerFullyVisible))
     }
 
     /** System gestures and remote keys dismiss the same playback layer before leaving. */
@@ -569,6 +584,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     internal var actionDialog: PlayerActionDialog? = null
+        set(value){field=value;value?.onDismissed={updateBackHandler()};updateBackHandler()}
     internal var backgroundStage:String?=null
     internal var backgroundQueueTransferred=false
 

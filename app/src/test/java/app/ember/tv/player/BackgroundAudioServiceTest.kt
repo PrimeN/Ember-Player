@@ -96,6 +96,33 @@ class BackgroundAudioServiceTest {
         assertEquals(0,created.single().closed)
         controller.destroy()
     }
+    @Test fun unknownAndMissingStartIdsCannotStopActivePlayback() {
+        val request=request();val id=BackgroundAudioService.stage(context,request);val controller=service(id)
+        try {
+            BackgroundAudioService.commit(id,request)
+            val engine=created.single()
+            for(invalid in listOf("unknown","")) {
+                controller.get().onStartCommand(Intent(context,BackgroundAudioService::class.java)
+                    .putExtra(BackgroundAudioService.EXTRA_ID,invalid),0,2)
+                assertEquals(0,engine.closed);assertEquals(id,BackgroundAudioService.nowPlaying.value?.id)
+            }
+            controller.get().onStartCommand(null,0,3)
+            assertEquals(0,engine.closed);assertEquals(id,BackgroundAudioService.nowPlaying.value?.id)
+        }finally {controller.destroy()}
+    }
+    @Test fun unrelatedControllersCannotReadTheQueueButTrustedControllersCanConnect() {
+        val request=request();val id=BackgroundAudioService.stage(context,request);val controller=service(id)
+        try {
+            BackgroundAudioService.commit(id,request)
+            val session=controller.get().sessions.single()
+            val library=BackgroundLibrary {emptyList()}
+            fun info(uid:Int,trusted:Boolean)=androidx.media3.session.MediaSession.ControllerInfo.createTestOnlyControllerInfo(
+                "controller.example",123,uid,1,1,trusted,android.os.Bundle.EMPTY,true)
+            assertFalse(library.onConnectAsync(session,info(android.os.Process.myUid()+100,false)).get().isAccepted)
+            assertTrue(library.onConnectAsync(session,info(android.os.Process.myUid()+100,true)).get().isAccepted)
+            assertTrue(library.onConnectAsync(session,info(android.os.Process.myUid(),false)).get().isAccepted)
+        }finally {controller.destroy()}
+    }
     @Test fun replacingTheNotificationDoesNotRetargetItsOldPendingIntents() {
         val first=request();val firstId=BackgroundAudioService.stage(context,first);val firstController=service(firstId)
         BackgroundAudioService.commit(firstId,first)

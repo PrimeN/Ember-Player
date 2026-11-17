@@ -55,7 +55,7 @@ internal fun PlayerActivity.installTouchControls() {
             applySubLook(c.copy(layout=c.layout.copy(scalePercent=value.scalePercent,bottomMarginPercent=value.bottomMarginPercent)))
             refreshSubtitlePanel()
         }
-    }) { config.touch }
+    }, {config.touch}).also {it.onLockChanged={updateBackHandler()}}
 }
 
 @androidx.annotation.OptIn(UnstableApi::class)

@@ -149,6 +149,7 @@ internal fun PlayerActivity.infoText(): String {
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.showInfo(hideAfterMs: Long = 0) {
     panel.visibility = View.VISIBLE
+    updateBackHandler()
     refreshSubtitlePanel()
     handler.removeCallbacks(infoUpdater)
     handler.post(infoUpdater)
@@ -165,6 +166,7 @@ internal fun PlayerActivity.showInfo(hideAfterMs: Long = 0) {
 internal fun PlayerActivity.hidePanel() {
     if (!panelInitialized) return
     panel.visibility = View.GONE
+    updateBackHandler()
     panel.scrollTo(0,0)
     view.requestFocus()
 }

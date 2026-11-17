@@ -74,6 +74,7 @@ internal class PlayerTouchControls(
     private val originalBrightness = activity.window.attributes.screenBrightness
     var locked = false
         private set
+    var onLockChanged:()->Unit={}
     private val hint = TextView(activity).apply {
         setTextColor(Color.WHITE); textSize = 16f; gravity = Gravity.CENTER
         setPadding(dp(18), dp(10), dp(18), dp(10))
@@ -251,6 +252,7 @@ internal class PlayerTouchControls(
     fun setLocked(value: Boolean) {
         cancel()
         locked = value
+        onLockChanged()
         unlock.visibility = if (value) View.VISIBLE else View.GONE
         if (value) { host.hideControls(); unlock.requestFocus(); showHint("Playback locked · Back also unlocks") }
         else host.toggleControls()

@@ -204,8 +204,7 @@ internal object PrivateMedia {
     fun clearHistory() {
         check(MediaHistory(app).clear())
         check(TokenStore(app).putEncrypted("player.folderRecents","{}"))
-        listOf("positions").forEach {check(app.getSharedPreferences(it,Context.MODE_PRIVATE).edit().clear().commit())}
-        check(app.getSharedPreferences("playbackStateRecency",Context.MODE_PRIVATE).edit().remove("positions").commit())
+        check(PlaybackStateRetention.clearPositions(app))
     }
     fun lock(){session.lock();pickerUntil=0;if(enabled)DeviceThumbnails.clear()}
     fun beginPicker(){check(unlocked.value);pickerUntil=SystemClock.elapsedRealtime()+120000}

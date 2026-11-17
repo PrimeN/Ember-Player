@@ -61,7 +61,7 @@ internal object PlayerBackups {
     private val json=Json {ignoreUnknownKeys=false}
     private val configurationJson=Json {ignoreUnknownKeys=true}
     fun validate(data:PlayerBackupData) {
-        require(data.version==1 && data.preferences.keys==files) {"Unsupported backup version or settings sections."}
+        require(data.version in 1..2 && data.preferences.keys==files) {"Unsupported backup version or settings sections."}
         require(data.preferences.values.sumOf {it.size}<=50000 && data.secrets.size<=500) {"Backup contains too many entries."}
         data.preferences.forEach {(file,values)->values.forEach {(key,value)->
             require(key.isNotBlank() && key.length<=2048 && key.none {it.isISOControl()})
@@ -77,8 +77,7 @@ internal object PlayerBackups {
             }
             if(file in setOf("positions","trackMemory","bookmarks"))require(value.type=="string")
             if(file=="positions") {
-                val numbers=value.text.split(',').map {it.toLongOrNull()}
-                require(numbers.size==2 && numbers.all {it!=null && it>=0}) {"Invalid saved position."}
+                require(PlaybackStateRetention.validPosition(value.text) && (data.version==2||value.text.count {it==','}==1)) {"Invalid saved position."}
             }
             if(file=="ember" && key=="playbackConfig")configurationJson.decodeFromString<PlaybackConfig>(value.text)
             if(file=="ember" && key=="subtitlePresets") {
@@ -91,7 +90,7 @@ internal object PlayerBackups {
     }
     fun snapshot(context:Context):PlayerBackupData {
         check(!PrivateMedia.enabled||PrivateMedia.unlocked.value){"Unlock private media before exporting settings."}
-        PlaybackStateRetention.prune(context)
+        check(PlaybackStateRetention.prune(context)) {"Could not prepare saved playback state for backup."}
         val tokens=TokenStore(context)
         if(context.getSharedPreferences(app.ember.player.storage.SecretVault.FILE,Context.MODE_PRIVATE).all.isNotEmpty())
             check(tokens.encryptionAvailable) {"Stored connection details could not be unlocked. No backup was created."}
@@ -106,7 +105,7 @@ internal object PlayerBackups {
                 else->error("Unsupported preference value.")
             }
         }}
-        return PlayerBackupData(preferences=preferences,secrets=tokens.all())
+        return PlayerBackupData(version=2,preferences=preferences,secrets=tokens.all())
     }
     fun export(context:Context,password:CharArray):ByteArray {
         val value=snapshot(context);validate(value)
@@ -134,15 +133,14 @@ internal object PlayerBackups {
             }}
             check(edit.commit()) {"Could not write restored settings."}
         }
-        context.getSharedPreferences("playbackStateRecency",Context.MODE_PRIVATE).edit().clear().apply()
     }
     fun restore(context:Context,data:PlayerBackupData)=synchronized(this) {
         check(!PrivateMedia.enabled||PrivateMedia.unlocked.value){"Unlock private media before restoring settings."}
         validate(data)
-        val retained=data.copy(preferences=data.preferences.mapValues {(file,values)->
+        val retained=data.copy(version=2,preferences=data.preferences.mapValues {(file,values)->
             if(file in setOf("positions","trackMemory")) {
                 val kept=PlaybackStateRetention.bounded(file,values.mapValues {it.value.text})
-                values.filterKeys {it in kept}
+                kept.mapValues {(key,value)->values.getValue(key).copy(text=value)}
             } else values
         })
         replace(retained,{snapshot(context)},{write(context,it)})

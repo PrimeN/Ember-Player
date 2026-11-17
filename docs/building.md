@@ -74,6 +74,9 @@ cannot silently enable it. The key is decoded only into temporary runner storage
 and removed after the build. It is never uploaded with the APK artifact. The
 signing job stops if any required secret is missing.
 
+Gradle caching is disabled in the signing job; it does not restore or save the
+Gradle caches used by unsigned validation builds.
+
 Ordinary pushes do not publish releases. To publish a requested version:
 
 1. Set `versionName` and a larger `versionCode`, and add a matching section to
