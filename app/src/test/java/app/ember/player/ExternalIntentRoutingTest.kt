@@ -46,4 +46,9 @@ class ExternalIntentRoutingTest {
         assertFalse(resolves("file:///data/private.mp4","video/mp4"))
         assertFalse(resolves("unknown://media.example/live",null))
     }
+    @Test fun voiceSearchDoesNotAdvertiseAnUnsupportedServiceIntent() {
+        val app:Application=RuntimeEnvironment.getApplication()
+        val request=Intent("android.media.action.MEDIA_PLAY_FROM_SEARCH").setPackage(app.packageName)
+        assertTrue(app.packageManager.queryIntentServices(request,0).isEmpty())
+    }
 }
