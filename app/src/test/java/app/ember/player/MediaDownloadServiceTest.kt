@@ -6,9 +6,14 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.os.Looper
+import android.os.Handler
 import app.ember.tv.tracker.SecretCipher
 import app.ember.tv.tracker.SecretVault
 import app.ember.tv.tracker.TokenStore
+import kotlinx.coroutines.*
+import kotlinx.coroutines.android.asCoroutineDispatcher
+import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.test.resetMain
 import org.junit.*
 import org.junit.Assert.*
 import org.junit.runner.RunWith
@@ -17,6 +22,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.android.controller.ServiceController
 import java.io.Closeable
 import java.net.*
 import java.util.Collections
@@ -29,9 +35,13 @@ import javax.crypto.spec.GCMParameterSpec
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[35],application=Application::class)
+@OptIn(ExperimentalCoroutinesApi::class)
 class MediaDownloadServiceTest {
     private val context:Application get()=RuntimeEnvironment.getApplication()
+    private val controllers=mutableListOf<ServiceController<MediaDownloadService>>()
+    private val destroyed=mutableSetOf<ServiceController<MediaDownloadService>>()
     @Before fun setup() {
+        Dispatchers.setMain(Handler(Looper.getMainLooper()).asCoroutineDispatcher())
         val key=KeyGenerator.getInstance("AES").apply {init(256)}.generateKey()
         val cipher=object:SecretCipher {
             override fun encrypt(name:String,value:ByteArray):ByteArray {
@@ -48,64 +58,77 @@ class MediaDownloadServiceTest {
         org.robolectric.shadows.ShadowStatFs.registerStats(context.filesDir,4096,4096,4096)
     }
     @After fun cleanup() {
-        context.getSharedPreferences(SecretVault.FILE,Context.MODE_PRIVATE).edit().clear().commit()
-        PrivateMedia.reload(context)
-        TokenStore::class.java.getDeclaredField("instance").apply {isAccessible=true;set(null,null)}
+        try {
+            controllers.forEach(::destroy)
+            context.getSharedPreferences(SecretVault.FILE,Context.MODE_PRIVATE).edit().clear().commit()
+            PrivateMedia.reload(context)
+        }finally {
+            TokenStore::class.java.getDeclaredField("instance").apply {isAccessible=true;set(null,null)}
+            Dispatchers.resetMain()
+        }
     }
-    private fun waitFor(condition:()->Boolean) {
+    private fun waitFor(condition:()->Boolean):Boolean {
         val until=System.nanoTime()+TimeUnit.SECONDS.toNanos(10)
         while(System.nanoTime()<until) {
             shadowOf(Looper.getMainLooper()).idle()
-            if(condition())return
+            if(condition())return true
             Thread.sleep(10)
         }
-        fail("Download did not reach the expected state")
+        return false
+    }
+    private fun create()=Robolectric.buildService(MediaDownloadService::class.java).create().also {controllers+=it}
+    private fun destroy(controller:ServiceController<MediaDownloadService>) {
+        if(!destroyed.add(controller))return
+        val field=MediaDownloadService::class.java.getDeclaredField("scope").apply {isAccessible=true}
+        val job=(field.get(controller.get()) as CoroutineScope).coroutineContext[Job]!!
+        controller.destroy()
+        assertTrue("Service cleanup should finish before the next test",waitFor {job.isCompleted})
     }
     private fun start(service:MediaDownloadService,id:String,startId:Int)=service.onStartCommand(Intent(context,MediaDownloadService::class.java).putExtra("id",id),0,startId)
     @Test fun anotherRequestWaitsAndDuplicateStartsDoNotInterruptTheActiveTransfer() {
         Origin().use {origin->
             val store=DownloadStore(context);val first=store.add("${origin.url}/first.mp4","first.mp4");val second=store.add("${origin.url}/second.mp4","second.mp4")
-            val controller=Robolectric.buildService(MediaDownloadService::class.java).create();val service=controller.get()
+            val controller=create();val service=controller.get()
             try {
-                start(service,first.id,1);waitFor {store.read().any {it.id==first.id&&it.state=="downloading"}}
+                start(service,first.id,1);assertTrue("First download should start",waitFor {store.read().any {it.id==first.id&&it.state=="downloading"}})
                 start(service,second.id,2);start(service,first.id,3)
-                waitFor {store.read().any {it.id==second.id&&it.state=="queued"}}
+                assertTrue("Second download should wait",waitFor {store.read().any {it.id==second.id&&it.state=="queued"}})
                 assertEquals(listOf("/first.mp4"),origin.requests.toList())
                 origin.release.countDown()
-                waitFor {store.read().all {it.state=="complete"}}
-                waitFor {shadowOf(context.getSystemService(NotificationManager::class.java)).allNotifications.count {it.extras.getString(Notification.EXTRA_TEXT)=="Download complete"}==2}
+                assertTrue("Both downloads should complete",waitFor {store.read().all {it.state=="complete"}})
+                assertTrue("Both completions should be announced",waitFor {shadowOf(context.getSystemService(NotificationManager::class.java)).allNotifications.count {it.extras.getString(Notification.EXTRA_TEXT)=="Download complete"}==2})
                 assertEquals(listOf("/first.mp4","/second.mp4"),origin.requests.toList())
                 assertEquals("0123456789",DownloadStore.file(context,first).readText())
                 assertEquals("0123456789",DownloadStore.file(context,second).readText())
-            }finally {origin.release.countDown();controller.destroy();shadowOf(Looper.getMainLooper()).idle()}
+            }finally {origin.release.countDown();destroy(controller)}
         }
     }
     @Test fun pausingStopsTheActiveTransferAndClearsWaitingRequests() {
         Origin().use {origin->
             val store=DownloadStore(context);val first=store.add("${origin.url}/first.mp4","first.mp4");val second=store.add("${origin.url}/second.mp4","second.mp4")
-            val controller=Robolectric.buildService(MediaDownloadService::class.java).create();val service=controller.get()
+            val controller=create();val service=controller.get()
             try {
-                start(service,first.id,1);waitFor {store.read().any {it.id==first.id&&it.state=="downloading"}}
-                start(service,second.id,2);waitFor {store.read().any {it.state=="queued"}}
+                start(service,first.id,1);assertTrue("First download should start",waitFor {store.read().any {it.id==first.id&&it.state=="downloading"}})
+                start(service,second.id,2);assertTrue("Second download should wait",waitFor {store.read().any {it.state=="queued"}})
                 service.onStartCommand(Intent(context,MediaDownloadService::class.java).setAction("pause"),0,3)
-                waitFor {store.read().all {it.state=="paused"}}
+                assertTrue("Pause should clear the queue",waitFor {store.read().all {it.state=="paused"}})
                 assertEquals(listOf("/first.mp4"),origin.requests.toList())
                 assertFalse(DownloadStore.file(context,first).exists())
-            }finally {origin.release.countDown();controller.destroy();shadowOf(Looper.getMainLooper()).idle()}
+            }finally {origin.release.countDown();destroy(controller)}
         }
     }
     @Test fun removingAnActiveDownloadWaitsForItsWriterThenAdvancesTheQueue() {
         Origin().use {origin->
             val store=DownloadStore(context);val first=store.add("${origin.url}/first.mp4","first.mp4");val second=store.add("${origin.url}/second.mp4","second.mp4")
-            val controller=Robolectric.buildService(MediaDownloadService::class.java).create();val service=controller.get()
+            val controller=create();val service=controller.get()
             try {
-                start(service,first.id,1);waitFor {store.read().any {it.id==first.id&&it.state=="downloading"}}
-                start(service,second.id,2);waitFor {store.read().any {it.state=="queued"}}
+                start(service,first.id,1);assertTrue("First download should start",waitFor {store.read().any {it.id==first.id&&it.state=="downloading"}})
+                start(service,second.id,2);assertTrue("Second download should wait",waitFor {store.read().any {it.state=="queued"}})
                 service.onStartCommand(Intent(context,MediaDownloadService::class.java).setAction("remove").putExtra("id",first.id),0,3)
-                waitFor {store.read().singleOrNull()?.let {it.id==second.id&&it.state=="complete"}==true}
+                assertTrue("Removing the active file should advance the queue",waitFor {store.read().singleOrNull()?.let {it.id==second.id&&it.state=="complete"}==true})
                 assertFalse(DownloadStore.folder(context,first.id).exists())
                 assertEquals("0123456789",DownloadStore.file(context,second).readText())
-            }finally {origin.release.countDown();controller.destroy();shadowOf(Looper.getMainLooper()).idle()}
+            }finally {origin.release.countDown();destroy(controller)}
         }
     }
     @Test fun interruptedProcessStatesRemainResumable() {
@@ -118,17 +141,17 @@ class MediaDownloadServiceTest {
     @Test fun destroyingTheServiceLeavesWaitingDownloadsResumableInTheSameProcess() {
         Origin().use {origin->
             val store=DownloadStore(context);val first=store.add("${origin.url}/first.mp4","first.mp4");val second=store.add("${origin.url}/second.mp4","second.mp4")
-            val controller=Robolectric.buildService(MediaDownloadService::class.java).create();val service=controller.get()
-            start(service,first.id,1);waitFor {store.read().any {it.id==first.id&&it.state=="downloading"}}
-            start(service,second.id,2);waitFor {store.read().any {it.state=="queued"}}
-            controller.destroy()
-            waitFor {store.read().all {it.state=="paused"}}
-            val resumed=Robolectric.buildService(MediaDownloadService::class.java).create()
+            val controller=create();val service=controller.get()
+            start(service,first.id,1);assertTrue("First download should start",waitFor {store.read().any {it.id==first.id&&it.state=="downloading"}})
+            start(service,second.id,2);assertTrue("Second download should wait",waitFor {store.read().any {it.state=="queued"}})
+            destroy(controller)
+            assertTrue("Stopping the service should pause the queue",waitFor {store.read().all {it.state=="paused"}})
+            val resumed=create()
             try {
                 start(resumed.get(),second.id,3)
-                waitFor {store.read().any {it.id==second.id&&it.state=="complete"}}
+                assertTrue("Queued file should remain resumable",waitFor {store.read().any {it.id==second.id&&it.state=="complete"}})
                 assertEquals("paused",store.read().first {it.id==first.id}.state)
-            }finally {origin.release.countDown();resumed.destroy();shadowOf(Looper.getMainLooper()).idle()}
+            }finally {origin.release.countDown();destroy(resumed)}
         }
     }
     private class Origin:Closeable {
