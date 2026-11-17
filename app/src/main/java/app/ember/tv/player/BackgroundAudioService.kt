@@ -88,7 +88,10 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
         if(intent?.action==ACTION_NEXT){if(incoming==id)step(1);return START_NOT_STICKY}
         if(intent?.action==ACTION_PREVIOUS){if(incoming==id)step(-1);return START_NOT_STICKY}
         val entry=incoming?.let(pending::get)
-        if(entry==null || entry.state==BackgroundHandoff.State.CLOSED){stopPlayback();return START_NOT_STICKY}
+        if(entry==null || entry.state==BackgroundHandoff.State.CLOSED){
+            if(id==null)stopSelf(startId)
+            return START_NOT_STICKY
+        }
         if(id==incoming&&audio!=null)return START_NOT_STICKY
         if(id!=incoming||handoff==null&&session!=null)releaseSession(true)
         id=incoming;handoff=entry;closing=false;wanted=true

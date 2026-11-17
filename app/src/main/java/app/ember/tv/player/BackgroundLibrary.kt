@@ -11,6 +11,11 @@ import com.google.common.util.concurrent.ListenableFuture
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal class BackgroundLibrary(private val items:()->List<MediaItem>):MediaLibrarySession.Callback {
+    override fun onConnectAsync(session:MediaSession,controller:MediaSession.ControllerInfo):ListenableFuture<MediaSession.ConnectionResult> {
+        val allowed=controller.isTrusted||controller.uid==android.os.Process.myUid()
+        return Futures.immediateFuture(if(allowed)MediaSession.ConnectionResult.AcceptedResultBuilder(session,controller).build()
+            else MediaSession.ConnectionResult.reject())
+    }
     private val root=MediaItem.Builder().setMediaId(ROOT).setMediaMetadata(MediaMetadata.Builder()
         .setTitle("Current playback").setIsBrowsable(true).setIsPlayable(false).setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED).build()).build()
     override fun onGetLibraryRoot(session:MediaLibrarySession,browser:MediaSession.ControllerInfo,params:LibraryParams?):ListenableFuture<LibraryResult<MediaItem>> = Futures.immediateFuture(LibraryResult.ofItem(root,params))
