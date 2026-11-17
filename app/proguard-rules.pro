@@ -29,7 +29,7 @@
     native <methods>;
 }
 
-# EncryptedSharedPreferences (Tink) and OkHttp optional platform classes.
+# Optional platform classes from network dependencies.
 -dontwarn com.google.errorprone.annotations.**
 -dontwarn javax.annotation.**
 -dontwarn org.conscrypt.**

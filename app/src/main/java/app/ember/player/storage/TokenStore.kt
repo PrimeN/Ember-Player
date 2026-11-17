@@ -9,8 +9,7 @@ import androidx.core.content.edit
  * held in the Android Keystore (see [SecretVault]). Opening it touches the Keystore, so every
  * TokenStore shares one copy per process.
  *
- * Older versions used androidx.security-crypto's EncryptedSharedPreferences ("ember_tokens"),
- * and before that a plain file ("ember_tokens_plain"). Both are moved into the Keystore store
+ * Any values in the old plain file ("ember_tokens_plain") are moved into the Keystore store
  * once, verified, and only then cleared ([TokenMigration]). When the Keystore is unusable,
  * existing plain values stay readable but nothing new is written in cleartext.
  */
@@ -19,13 +18,12 @@ class TokenStore internal constructor(context: Context, private val vaultProvide
     private val app=context.applicationContext
     private val legacy=app.getSharedPreferences(TokenMigration.PLAIN,Context.MODE_PRIVATE)
     private val encrypted=app.getSharedPreferences(SecretVault.FILE,Context.MODE_PRIVATE)
-    private val oldEncrypted=app.getSharedPreferences(TokenMigration.ENCRYPTED,Context.MODE_PRIVATE)
     private val vaultState=lazy {vaultProvider(app)}
     private val vault: SecretVault? by vaultState
 
     /** Empty installations have nothing to decrypt or migrate. Do not generate a key to read null. */
     private fun existingVault():SecretVault? = if(vaultState.isInitialized() || encrypted.all.isNotEmpty() ||
-        legacy.all.isNotEmpty() || oldEncrypted.all.isNotEmpty())vault else null
+        legacy.all.isNotEmpty())vault else null
 
     companion object {
         // Reset by reflection in tests; a failed open is not cached, so a later call can retry.
@@ -92,38 +90,23 @@ class TokenStore internal constructor(context: Context, private val vaultProvide
     }
 }
 
-/** Moves values from the older stores into [SecretVault] once, clearing them only after verification. */
+/** Moves old plain values into [SecretVault], clearing them only after verification. */
 internal object TokenMigration {
     const val PLAIN = "ember_tokens_plain"
-    /** androidx.security-crypto EncryptedSharedPreferences file used up to October 2026. */
-    const val ENCRYPTED = "ember_tokens"
     private const val META = "ember_tokens_meta"
     private const val DONE = "keystoreMigrated"
 
     fun run(context: Context, vault: SecretVault) {
         val meta=context.getSharedPreferences(META,Context.MODE_PRIVATE)
         val plain=context.getSharedPreferences(PLAIN,Context.MODE_PRIVATE)
-        val oldFile=context.getSharedPreferences(ENCRYPTED,Context.MODE_PRIVATE)
-        if(meta.getBoolean(DONE,false) && plain.all.isEmpty() && oldFile.all.isEmpty()) return
-        // A Keystore problem that hides the old values must not mark them migrated: retry next start.
-        val old = if (oldFile.all.isEmpty()) emptyMap() else readEncrypted(context) ?: return
-        val values = strings(plain) + old
+        if(meta.getBoolean(DONE,false) && plain.all.isEmpty()) return
+        val values = strings(plain)
         val pending = values.filter { (k, _) -> vault.get(k) == null }
         if (pending.isNotEmpty() && !vault.write(pending)) return
         if (!values.all { (k, v) -> vault.get(k) == v || k !in pending }) return
-        oldFile.edit(commit = true) { clear() }
         plain.edit(commit = true) { clear() }
         meta.edit(commit = true) { putBoolean(DONE, true) }
     }
 
     private fun strings(prefs: SharedPreferences) = prefs.all.mapNotNull { (k, v) -> (v as? String)?.let { k to it } }.toMap()
-
-    @Suppress("DEPRECATION")
-    private fun readEncrypted(context: Context): Map<String, String>? = runCatching {
-        val key = androidx.security.crypto.MasterKey.Builder(context)
-            .setKeyScheme(androidx.security.crypto.MasterKey.KeyScheme.AES256_GCM).build()
-        strings(androidx.security.crypto.EncryptedSharedPreferences.create(context, ENCRYPTED, key,
-            androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM))
-    }.getOrNull()
 }

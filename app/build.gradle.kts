@@ -286,8 +286,6 @@ dependencies {
     // Compose 1.12's BOM no longer lists the icon libraries, so the last release is named here.
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
 
-    implementation("androidx.security:security-crypto:1.1.0")
-
     // Built-in Media3 playback engine
     implementation("androidx.media3:media3-exoplayer:1.11.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.11.1")
