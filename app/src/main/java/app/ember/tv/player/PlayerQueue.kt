@@ -12,7 +12,7 @@ internal fun PlayerActivity.playFile(media:QueueMedia) {
     closeMenu();controls.sheet=null;controls.details=null
     controls.localUri=media.uri.takeIf {it.startsWith("content://")}
     if(subsInitialized)subs.config=subConfigFor(prefs.subtitleConfig)
-    start(media.uri,media.title,emptyList(),media.title);refreshControlsTitle()
+    start(media.uri,media.title,media.title);refreshControlsTitle()
     platformSession?.nextAvailable(fileQueue?.hasNext(::queueItemAllowed)==true)
     fileQueue?.let {q->q.playlistId?.let {PlaylistProgress.save(applicationContext,watchProfileId,it,media.key)}}
 }

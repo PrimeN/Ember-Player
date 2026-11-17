@@ -12,14 +12,13 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.MergingMediaSource
-import app.ember.tv.data.SubtitleOption
 import app.ember.tv.player.Kind
 import java.util.Locale
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 
 @OptIn(UnstableApi::class)
 /** Loads a source into the player and starts it. Used for the first episode and every next one. */
-internal fun PlayerActivity.start(url: String, title: String, addonSubs: List<SubtitleOption>, release: String?) {
+internal fun PlayerActivity.start(url: String, title: String, release: String?) {
     touchControls?.cancel()
     closeCaptionAssistance();captionConfig=null;embeddedCaptionText=""
     manualSubtitleJob?.cancel();manualSubtitleJob=null
@@ -63,7 +62,6 @@ internal fun PlayerActivity.start(url: String, title: String, addonSubs: List<Su
                 hash = null,
                 size = null,
             ),
-            addonSubs,
             headers=sourceHeaders,
         )
     }

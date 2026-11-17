@@ -44,8 +44,6 @@ data class SubtitleConfig(
     val openSubsCom: Boolean = false,
     /** SubDL: needs a free API key. */
     val subdl: Boolean = false,
-    /** Subtitles from your Stremio addons (as before). */
-    val addonSubs: Boolean = true,
     // ---- matching ----
     /** Read 128 KB of the video to compute its OpenSubtitles hash, for subtitles made for this exact file. */
     val hashMatch: Boolean = true,
@@ -444,16 +442,6 @@ object Subtitles {
         }
         return String(raw, runCatching { Charset.forName(cp) }.getOrDefault(Charsets.ISO_8859_1))
     }
-
-    /** Keep provenance/forced/SDH facts for sidecar files beside embedded and online tracks. */
-    fun fromOptions(options: List<SubtitleOption>): List<SubtitleCandidate> = options.mapIndexed { i, option ->
-        SubtitleCandidate(option.addonName.ifBlank { "Addon" }, normalise(option.lang), null, option.url,
-            downloads = 500 - i, hearingImpaired = option.hearingImpaired, forced = option.forced)
-    }
-
-    /** Addon subtitle links, as candidates ranked like the rest. */
-    fun fromAddons(urls: List<String>, langs: List<String>): List<SubtitleCandidate> =
-        urls.mapIndexed { i, u -> SubtitleCandidate("Addon", normalise(langs.getOrNull(i)), null, u, downloads = 500 - i) }
 
     @Suppress("unused")
     private fun JsonElement?.asText(): String? = (this as? JsonPrimitive)?.content

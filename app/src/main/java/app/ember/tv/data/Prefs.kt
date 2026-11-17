@@ -24,7 +24,7 @@ class Prefs(context:Context) {
         get()=decoded("cacheConfig",CacheConfig())
         set(value)=put("cacheConfig",value)
     var subtitleConfig:SubtitleConfig
-        get()=decoded("subtitleConfig",SubtitleConfig(stremioOpenSubs=false,addonSubs=false))
+        get()=decoded("subtitleConfig",SubtitleConfig(stremioOpenSubs=false))
         set(value)=put("subtitleConfig",value)
     var playbackConfig:PlaybackConfig
         get()=decoded("playbackConfig",PlaybackConfig(playerInterface="modern"))

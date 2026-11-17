@@ -361,7 +361,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
     }
     subtitleTicker.refresh()
     handler.post(markerTicker)
-    start(url, title, emptyList(), intent.getStringExtra(PlayRequest.EXTRA_RELEASE))
+    start(url, title, intent.getStringExtra(PlayRequest.EXTRA_RELEASE))
     view.requestFocus()
     handler.postDelayed(saver, 5_000)
 }
