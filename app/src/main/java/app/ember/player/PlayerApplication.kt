@@ -12,10 +12,8 @@ class PlayerApplication:Application(),ImageLoaderFactory {
         super.onCreate()
         PrivateMedia.install(this)
         CrashLog.install(this)
-        app.ember.tv.remote.RemoteBridge.install(this)
         Net.init(this)
         CacheManagement.init(this)
-        LocalLibrary.init(this)
         scope.launch {app.ember.tv.player.PlaybackStateRetention.prune(this@PlayerApplication)}
         scope.launch {ApiKeys.init(this@PlayerApplication)}
     }
@@ -23,7 +21,6 @@ class PlayerApplication:Application(),ImageLoaderFactory {
         .okHttpClient {Net.artworkClient()}.allowRgb565(true)
         .memoryCache {coil.memory.MemoryCache.Builder(this).maxSizePercent(.12).build()}
         .diskCache {coil.disk.DiskCache.Builder().directory(cacheDir.resolve("images")).maxSizeBytes(128L*1024*1024).build()}
-        .components {add(app.ember.tv.mediaserver.ServerArtwork.Factory())}
         .build()
     override fun onTrimMemory(level:Int) {
         super.onTrimMemory(level)

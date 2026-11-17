@@ -3,7 +3,6 @@ package app.ember.tv.player
 import app.ember.tv.ui.TvTokens
 
 import androidx.compose.ui.graphics.toArgb
-import app.ember.tv.iptv.*
 import app.ember.tv.R
 import android.graphics.Color
 import android.util.TypedValue
@@ -21,9 +20,6 @@ import android.widget.TextView
 internal fun PlayerActivity.buildLayout(): View {
     val root = FrameLayout(this)
     root.addView(view, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-    if (live) root.addView(androidx.compose.ui.platform.ComposeView(this).apply {
-        setContent { app.ember.tv.ui.EmberTheme(prefs.accent,prefs.uiStyle) { app.ember.tv.ui.LivePlaybackBanner(liveBanner.value) } }
-    }, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP))
     if (advanced) {
         view.useController = false
         root.addView(
@@ -42,12 +38,6 @@ internal fun PlayerActivity.buildLayout(): View {
         )
     }
 
-    // #225: the Up next card in the corner, as streaming apps show it.
-    upNext = androidx.compose.ui.platform.ComposeView(this).apply {
-        visibility = View.GONE
-        isFocusable = true
-        setContent { UpNextCard(upNextUi) { playNext() } }
-    }
     info = TextView(this).apply {
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
         setTextColor(Color.WHITE)
@@ -150,7 +140,6 @@ internal fun PlayerActivity.buildLayout(): View {
         FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM or Gravity.END)
             .apply { setMargins(dp(48), dp(48), dp(56), dp(110)) },
     )
-    root.addView(upNext, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
     return root
 }
 

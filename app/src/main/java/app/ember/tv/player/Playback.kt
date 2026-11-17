@@ -3,7 +3,6 @@ package app.ember.tv.player
 import android.app.Activity
 import android.content.Context
 import android.media.AudioFormat
-import android.os.Build
 import android.view.Display
 import androidx.annotation.OptIn
 import androidx.media3.common.C
@@ -12,19 +11,16 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.DefaultLoadControl
 import android.os.Handler
 import android.os.Looper
 import androidx.media3.exoplayer.Renderer
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.text.TextOutput
-import androidx.media3.exoplayer.text.TextRenderer
 import androidx.media3.exoplayer.video.VideoRendererEventListener
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.NextRenderersFactory
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderManager
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 import io.github.anilbeesetti.nextlib.media3ext.renderer.NextTextRenderer
-import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.audio.AudioCapabilities
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
@@ -86,8 +82,6 @@ data class PlaybackConfig(
     val quickReturn: Boolean = true,
     /** The key for "Back to …" on Home: "play" (Play or Play/Pause) or "back" (Back twice quickly). */
     val returnKey: String = "play",
-    /** EXPERIMENTAL: play YouTube trailers in the built-in player (NewPipe Extractor), falling back to the YouTube app. */
-    val trailersInApp: Boolean = false,
     /** Picture on screen (player Options > Video > Zoom): "fit", "crop", "stretch". */
     val zoom: String = "fit",
     /** Playback stats over the video: "off", "simple", "full". */

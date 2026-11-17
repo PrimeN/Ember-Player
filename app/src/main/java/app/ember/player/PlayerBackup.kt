@@ -5,7 +5,7 @@ import app.ember.tv.data.SubtitleConfig
 import app.ember.tv.player.PlaybackBookmarks
 import app.ember.tv.player.PlaybackConfig
 import app.ember.tv.player.PlaybackStateRetention
-import app.ember.tv.tracker.TokenStore
+import app.ember.player.storage.TokenStore
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -93,7 +93,7 @@ internal object PlayerBackups {
         check(!PrivateMedia.enabled||PrivateMedia.unlocked.value){"Unlock private media before exporting settings."}
         PlaybackStateRetention.prune(context)
         val tokens=TokenStore(context)
-        if(context.getSharedPreferences(app.ember.tv.tracker.SecretVault.FILE,Context.MODE_PRIVATE).all.isNotEmpty())
+        if(context.getSharedPreferences(app.ember.player.storage.SecretVault.FILE,Context.MODE_PRIVATE).all.isNotEmpty())
             check(tokens.encryptionAvailable) {"Stored connection details could not be unlocked. No backup was created."}
         val preferences=files.associateWith {file->context.getSharedPreferences(file,Context.MODE_PRIVATE).all.mapValues {(_,value)->
             when(value) {

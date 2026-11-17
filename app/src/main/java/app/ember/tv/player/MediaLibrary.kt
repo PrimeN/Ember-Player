@@ -3,7 +3,7 @@ package app.ember.tv.player
 import android.content.Context
 import android.net.Uri
 import app.ember.player.PrivateMedia
-import app.ember.tv.tracker.TokenStore
+import app.ember.player.storage.TokenStore
 import net.zetetic.database.sqlcipher.SQLiteDatabase
 import java.io.Closeable
 import java.security.MessageDigest

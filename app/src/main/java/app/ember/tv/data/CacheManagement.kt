@@ -1,9 +1,10 @@
 package app.ember.tv.data
 
-import android.content.Context
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+
+import android.content.Context
+import androidx.compose.runtime.mutableStateOf
 import coil.imageLoader
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
@@ -28,7 +29,6 @@ object CacheManagement {
     fun init(context: Context) {
         if (application != null) return
         application = context.applicationContext
-        ArtworkCaches.init(context)
         configuration = Prefs(context).cacheConfig
         CachePolicy.config = configuration
         scope.launch {
@@ -116,10 +116,8 @@ object CacheManagement {
         }
         if (CacheKind.IMAGES in kinds) {
             app.ember.tv.player.DeviceThumbnails.clear()
-            attempt { ArtworkCaches.clear() }
-            attempt { context.imageLoader.diskCache?.clear(); context.imageLoader.memoryCache?.clear(); app.ember.tv.ui.FrostCache.clear() }
+            attempt { context.imageLoader.diskCache?.clear(); context.imageLoader.memoryCache?.clear() }
             attempt { check(CacheFiles.delete(File(context.cacheDir,"hero-art-v1"))) }
-            ArtworkCaches.imageClearCompleted()
         }
         if (CacheKind.METADATA in kinds) attempt { check(CacheFiles.delete(File(context.cacheDir,"discover"))) }
         if (CacheKind.NETWORK in kinds) attempt { Net.base.cache?.evictAll() }
@@ -142,7 +140,7 @@ object CacheManagement {
     suspend fun usage(context: Context): Usage = withContext(Dispatchers.IO) {
         awaitReady()
         gate.withLock { Usage(CacheKind.entries.associateWith { kind -> when (kind) {
-            CacheKind.IMAGES -> (context.imageLoader.diskCache?.size ?: 0L) + 0L + size(File(context.cacheDir,"hero-art-v1")) + ArtworkCaches.size(context)
+            CacheKind.IMAGES -> (context.imageLoader.diskCache?.size ?: 0L) + 0L + size(File(context.cacheDir,"hero-art-v1"))
             CacheKind.METADATA -> size(File(root(context), kind.directory)) + size(File(context.cacheDir, "discover"))
             CacheKind.CATALOGS -> size(File(root(context), kind.directory)) + 0L
             CacheKind.NETWORK -> Net.base.cache?.size() ?: 0L

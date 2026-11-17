@@ -1,7 +1,6 @@
 package app.ember.tv.player
 
 import app.ember.tv.data.Net
-import app.ember.tv.data.SubtitleFiles
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.msfscc.FileAttributes
 import com.hierynomus.mssmb2.*
@@ -10,7 +9,6 @@ import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.share.DiskShare
 import com.jcraft.jsch.*
 import okhttp3.*
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.apache.commons.net.ftp.*

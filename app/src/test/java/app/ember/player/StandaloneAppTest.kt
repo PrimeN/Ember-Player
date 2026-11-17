@@ -32,13 +32,13 @@ class StandaloneAppTest {
     @Test fun externalEntryForwardsTheMediaGrantButDropsPrivateProfileAndServerCommands() {
         val uri=Uri.parse("content://files.example/video/1")
         val request=Intent(Intent.ACTION_VIEW,uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            .putExtra(PlayRequest.EXTRA_PROFILE,"other-profile").putExtra(PlayRequest.EXTRA_SERVER_SESSION,"untrusted")
+            .putExtra("watchProfile","other-profile").putExtra("serverSession","untrusted")
             .putExtra("title","A movie")
         val activity=Robolectric.buildActivity(OpenMediaActivity::class.java,request).create().get()
         val next=shadowOf(activity).nextStartedActivity
         assertEquals(uri,next.data);assertEquals("A movie",next.getStringExtra(PlayRequest.EXTRA_TITLE))
         assertNotEquals(0,next.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        assertFalse(next.hasExtra(PlayRequest.EXTRA_PROFILE));assertFalse(next.hasExtra(PlayRequest.EXTRA_SERVER_SESSION))
+        assertFalse(next.hasExtra("watchProfile"));assertFalse(next.hasExtra("serverSession"))
     }
     @Test fun standalonePreferencesPersistPlaybackChoicesAndDefaultToOfflineSubtitleUse() {
         val app:Application=RuntimeEnvironment.getApplication();val prefs=Prefs(app)

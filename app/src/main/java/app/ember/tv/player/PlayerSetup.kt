@@ -1,65 +1,30 @@
 package app.ember.tv.player
 
-import androidx.core.view.isVisible
-import androidx.compose.ui.graphics.toArgb
-import app.ember.tv.iptv.*
 import app.ember.tv.R
 import android.graphics.Color
-import android.net.Uri
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.util.TypedValue
-import android.view.Gravity
-import android.view.KeyEvent
-import android.view.View
-import android.view.ViewGroup
-import android.widget.Button
-import android.widget.FrameLayout
-import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.annotation.OptIn
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
-import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.common.Tracks
 import androidx.media3.common.Format
 import androidx.media3.common.C
-import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
-import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.PlayerView
-import app.ember.tv.data.Episode
 import app.ember.tv.data.Prefs
-import app.ember.tv.data.SubtitleOption
-import app.ember.tv.mediaserver.MediaServers
-import app.ember.tv.mediaserver.ReportState
-import app.ember.tv.tracker.Kind
-import app.ember.tv.tracker.ScrobbleState
-import app.ember.tv.tracker.TrackedItem
-import app.ember.tv.tracker.TrackerHub
-import kotlinx.coroutines.CoroutineScope
+import app.ember.tv.player.Kind
+import app.ember.tv.player.PlaybackItem
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.ensureActive
-import java.util.Locale
-import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderManager
-import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleDelayMilliseconds
 import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleSpeed
 
@@ -72,36 +37,20 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
     queueId=intent.getStringExtra("ember.fileQueue");fileQueue=MediaQueues.get(queueId)
     if(queueId!=null&&fileQueue==null){Toast.makeText(this,"Reopen your media files to restore this queue.",Toast.LENGTH_LONG).show();finish();return}
 
-    trailer = intent.getBooleanExtra(PlayerActivity.EXTRA_TRAILER, false) || intent.getBooleanExtra(PlayerActivity.EXTRA_LIVE, false)
-    live = intent.getBooleanExtra(PlayerActivity.EXTRA_LIVE, false)
-    zapUrls = intent.getStringArrayExtra(PlayerActivity.EXTRA_ZAP_URLS) ?: emptyArray()
-    zapNames = intent.getStringArrayExtra(PlayerActivity.EXTRA_ZAP_NAMES) ?: emptyArray()
-    zapAgents = intent.getStringArrayExtra(PlayerActivity.EXTRA_ZAP_AGENTS) ?: emptyArray()
-    zapReferrers = intent.getStringArrayExtra(PlayerActivity.EXTRA_ZAP_REFERRERS) ?: emptyArray()
-    zapIndex = intent.getIntExtra(PlayerActivity.EXTRA_ZAP_INDEX, 0)
-    liveSessionId = intent.getStringExtra(PlayerActivity.EXTRA_LIVE_SESSION)
-    if (liveSessionId != null) {
-        liveSession = LiveSessions.get(liveSessionId!!)
-        if (!syncSession()) {
-            Toast.makeText(this, "Open Live TV to choose an available channel.", Toast.LENGTH_LONG).show()
-            finish(); return
-        }
-    }
-    applyChannelHeaders(zapIndex)
-    if (liveSession == null) applyStreamHeaders(PlayRequest.headers(intent))
+    applyStreamHeaders(PlayRequest.headers(intent))
     audioUrl = intent.getStringExtra(PlayerActivity.EXTRA_AUDIO_URL)
-    val url = if (liveSession != null) zapUrls.getOrNull(zapIndex) else intent.getStringExtra(PlayRequest.EXTRA_URL)
-    if (url.isNullOrBlank() && intent.getStringExtra(PlayRequest.EXTRA_SERVER_REF) == null) {
+    val url = intent.getStringExtra(PlayRequest.EXTRA_URL)
+    if (url.isNullOrBlank()) {
         finish()
         return
     }
     privatePlayback=app.ember.player.PrivateMedia.hidden(url.orEmpty())
     if(privatePlayback&&!app.ember.player.PrivateMedia.unlocked.value){finish();return}
     if(privatePlayback)window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
-    val title = if (liveSession != null) zapNames.getOrNull(zapIndex).orEmpty() else intent.getStringExtra(PlayRequest.EXTRA_TITLE).orEmpty()
+    val title = intent.getStringExtra(PlayRequest.EXTRA_TITLE).orEmpty()
     resumeKey = intent.getStringExtra(PlayRequest.EXTRA_RESUME_KEY) ?: url.orEmpty()
     resumeFraction = intent.getFloatExtra(PlayRequest.EXTRA_RESUME_FRACTION, -1f)
-    item = TrackedItem(
+    item = PlaybackItem(
         key = resumeKey,
         title = title,
         kind = runCatching { Kind.valueOf(intent.getStringExtra(PlayRequest.EXTRA_KIND) ?: "") }.getOrDefault(Kind.MOVIE),
@@ -111,26 +60,10 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         episode = intent.getIntExtra(PlayRequest.EXTRA_EPISODE, -1).takeIf { it >= 0 },
     )
     seriesName = intent.getStringExtra(PlayRequest.EXTRA_SERIES_NAME) ?: title
-    prevAddon = intent.getStringExtra(PlayRequest.EXTRA_PREV_ADDON)
-    prevQuality = intent.getStringExtra(PlayRequest.EXTRA_PREV_QUALITY)
-    prevBingeGroup = intent.getStringExtra(PlayRequest.EXTRA_BINGE_GROUP)
-    sourceHash = intent.getStringExtra(PlayRequest.EXTRA_VIDEO_HASH)?.let { it to intent.getLongExtra(PlayRequest.EXTRA_VIDEO_SIZE, -1L).takeIf { s -> s > 0 } }
-    readNextEpisodes()
-    serverRef = intent.getStringExtra(PlayRequest.EXTRA_SERVER_REF)
-    if (serverRef != null) servers = MediaServers.forPlayback(applicationContext)
-
     prefs = Prefs(this)
-    watchProfileId=app.ember.tv.data.WatchedStore.playProfile(prefs.currentProfile,intent.getStringExtra(PlayRequest.EXTRA_PROFILE)) ?: run {finish();return}
+    watchProfileId=prefs.currentProfile
     if(!contentPlaybackAllowed()){finish();return}
     getSharedPreferences("ember",android.content.Context.MODE_PRIVATE).registerOnSharedPreferenceChangeListener(contentProfileListener)
-    hub = TrackerHub(applicationContext).also { h ->
-        // Trackers switched off in Settings > Features: no reports at all.
-        // A Kids profile (or one without personal rows) never reports to your trackers.
-        val profile = prefs.profiles.firstOrNull { it.id == prefs.currentProfile }
-        val privateProfile = profile != null && (profile.kids || !profile.personal)
-        // Hiding a tracker from Home no longer stops reports; "Report what I watch" does (#80).
-        h.quiet = if (privateProfile || app.ember.tv.data.Features.TRACKERS in prefs.featuresOff) h.trackers.map { it.id }.toSet() else prefs.trackersQuiet
-    }
     localActivityScope=app.ember.tv.data.LocalActivity.scope(this,watchProfileId)
     memory=TrackMemory(this,localActivityScope)
     positions = PositionStore(this,localActivityScope)
@@ -149,7 +82,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
     audioEffectState.value = config.audioEffects
     playerInterface = PlayerInterfaces.resolve(config, prefs.uiStyle)
     controls.design = playerInterface
-    advanced = PlayerInterfaces.customControls(playerInterface, live, trailer)
+    advanced = true
     // The accent colour (Settings > Appearance) for the progress bar and menus, in both player looks.
     val accent = app.ember.tv.ui.emberColorScheme(prefs.accent, day = false, oled = false).primary
     controls.accent = accent
@@ -160,7 +93,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
     }
     styleNativeIcons(view)
     controls.localUri=url?.takeIf {fileQueue!=null&&it.startsWith("content://")}
-    controls.details = PlayerDetails.get(resumeKey)
+    controls.details = null
     refreshControlsTitle()
     setContentView(buildLayout())
     androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
@@ -181,10 +114,9 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         },
     )
 
-    // Debrid and addon links often redirect, sometimes from http to https. High-bitrate
-    // sources can be slow to start, so the timeouts are generous.
+    // Media links can redirect and high-bitrate sources may need longer timeouts.
     val http = httpFactory
-    audioDelay.us = if (trailer) 0 else config.audioDelayMs * 1000L
+    audioDelay.us = config.audioDelayMs * 1000L
     // Dolby Vision only where the screen shows it; projectors and most TVs without it get the HDR10 picture.
     codecs.dvAsHevc = when (config.dolbyVision) {
         "hdr10" -> true
@@ -230,7 +162,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         bluetoothOutput = bluetooth
         val sound=intent.getBundleExtra(BackgroundAudioService.FORCE_SOUND)
         val timing=if(sound==null)config.outputDelay(bluetooth) else if(bluetooth && sound.containsKey("bluetooth"))sound.getInt("bluetooth") else sound.getInt("delay")
-        audioDelay.us = if (trailer) 0 else timing.coerceIn(-10000,10000) * 1000L
+        audioDelay.us = timing.coerceIn(-10000,10000) * 1000L
         playbackEngine?.compatibility?.audioDelay(audioDelay.us / 1000)
         changed(); updateSoundLabel()
     }
@@ -320,7 +252,6 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         }
 
         override fun onPlaybackStateChanged(state: Int) {
-            if (live) liveBudget.playback(state == Player.STATE_READY, android.os.SystemClock.elapsedRealtime())
             // Playing again after a retry: a later drop (an hour into a film or a channel) gets its
             // own retries, but not if it keeps failing right after starting.
             if (state == Player.STATE_READY && android.os.SystemClock.elapsedRealtime() - lastRetryAt > 60_000L) {
@@ -335,29 +266,14 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
             }
             if (state == Player.STATE_ENDED && !ended) {
                 ended = true
-                reportedPlaying = false
-                scrobble(ScrobbleState.STOP, 1f)
-                serverReport(ReportState.STOP)
-                if(!trailer&&!privatePlayback&&app.ember.player.PrivateMedia.historyAllowed(currentUrl.orEmpty()))positions.finished(resumeKey,playbackDuration(p))
+                if(!privatePlayback&&app.ember.player.PrivateMedia.historyAllowed(currentUrl.orEmpty()))positions.finished(resumeKey,playbackDuration(p))
                 else positions.clear(resumeKey)
-                if (!trailer && !privatePlayback && app.ember.player.PrivateMedia.state.value.history) {app.ember.tv.data.LocalLibrary.finished(resumeKey,localActivityScope);recordWatched()}
                 onEpisodeEnded()
             }
         }
 
         override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
-            serverPlayback?.takeIf { it.parts.size > 1 && it.parts.any { part -> (part.durationMs ?: 0L) <= 0L } }?.let { transport ->
-                if (timeline.periodCount == transport.parts.size) {
-                    val durations = (0 until timeline.periodCount).map { timeline.getPeriod(it, androidx.media3.common.Timeline.Period()).durationMs }
-                    transport.withProbedDurations(durations)?.let { serverPlayback = it }
-                }
-            }
             if (p.playbackState == Player.STATE_READY && !resumed) resumed = resume(p)
-        }
-
-        override fun onPlaybackSuppressionReasonChanged(playbackSuppressionReason: Int) {
-            if (playbackSuppressionReason != Player.PLAYBACK_SUPPRESSION_REASON_NONE) serverReport(ReportState.PAUSE)
-            else if (p.isPlaying) serverReport(ReportState.START)
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -368,52 +284,19 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
             if (advanced && !isPlaying && !p.playWhenReady && p.playbackState == Player.STATE_READY) showControls()
             // Keep the screen on only while video plays, so a paused video lets the screensaver start.
             view.keepScreenOn = isPlaying
-            // isPlaying also flips around buffering and seeks; report only real play and pause changes.
-            if (isPlaying && !reportedPlaying) {
-                reportedPlaying = true
-                scrobble(ScrobbleState.START, progress())
-                serverReport(ReportState.START)
-            } else if (!isPlaying && reportedPlaying && p.playbackState == Player.STATE_READY && !p.playWhenReady) {
-                reportedPlaying = false
-                scrobble(ScrobbleState.PAUSE, progress())
-                serverReport(ReportState.PAUSE)
-            }
         }
 
         override fun onPlayerError(error: PlaybackException) {
             if(recoverPicture(error))return
-            if (live) {
-                // A live stream that fell behind its window just jumps back to live.
-                if (error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
-                    p.seekToDefaultPosition()
-                    p.prepare()
-                    return
-                }
-                app.ember.tv.data.CrashLog.note("Live TV error ${error.errorCodeName} · channel ${zapNames.getOrNull(zapIndex).orEmpty()} · try $liveRetries", error)
-                if (retryLive(error)) return
-                val http = generateSequence<Throwable>(error) { it.cause }
-                    .filterIsInstance<androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException>().firstOrNull()?.responseCode
-                Toast.makeText(
-                    this@createPlayer,
-                    listOfNotNull(
-                        getString(R.string.pl_channel_unavailable, error.errorCodeName + (http?.let { ", HTTP $it" } ?: "")),
-                        if (http == 401 || http == 403) getString(R.string.pl_channel_refused) else null,
-                        if (http == 429) "Provider request limit reached. Wait before trying again." else null,
-                        if (zapUrls.size > 1) getString(R.string.pl_channel_other) else null,
-                    ).joinToString(" "),
-                    Toast.LENGTH_LONG,
-                ).show()
-                if (zapUrls.size < 2) finish()
-                return
-            }
-            // An addon's live channel plays here too: one that fell behind its window jumps back to live.
+
+            // A network stream behind its live window jumps back to the current position.
             if (error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
                 p.seekToDefaultPosition()
                 p.prepare()
                 return
             }
             // A link with no extension that is not a file ExoPlayer knows: try it once as HLS.
-            if (!triedAsHls && playbackEngine?.compatibility == null && serverPlayback == null && audioUrl == null &&
+            if (!triedAsHls && playbackEngine?.compatibility == null && audioUrl == null &&
                 PlaybackErrors.mayBeHls(error.errorCode, currentUrl)) {
                 triedAsHls = true
                 app.ember.tv.data.CrashLog.note("Playback error ${error.errorCodeName} · trying the link as HLS", error)
@@ -439,7 +322,6 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
             }
             if (recover(error)) return
             if(playbackEngine?.recover(error.errorCode)==true)return
-            if (serverPlayback != null) { showServerRecovery(); return }
             // The underlying cause, e.g. "FfmpegDecoderException: ..." or "EOFException".
             val cause = generateSequence(error.cause) { it.cause }.lastOrNull()?.let { c ->
                 (c.javaClass.simpleName + (c.message?.let { ": " + app.ember.tv.data.CrashLog.redact(it).take(80) } ?: ""))
@@ -462,7 +344,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         if(player===p && right>left && bottom>top &&
             (right-left!=oldRight-oldLeft || bottom-top!=oldBottom-oldTop))applyPictureEnhancement()
     }
-    platformSession = if(privatePlayback)null else PlatformPlaybackSession(this, p, { endPlayback() }, { if (nextEpisodes.isNotEmpty() || fileQueue!=null) playNext() }).also { it.nextAvailable(nextEpisodes.isNotEmpty() || (fileQueue?.items?.size?:0)>1) }
+    platformSession = if(privatePlayback)null else PlatformPlaybackSession(this, p, { endPlayback() }, { if (fileQueue!=null) playNext() }).also { it.nextAvailable((fileQueue?.items?.size?:0)>1) }
     val subCfg = prefs.subtitleConfig
     view.subtitleView?.let { sv ->
         SubtitleEngine.style(sv, subCfg)
@@ -478,30 +360,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
     }
     subtitleTicker.refresh()
     handler.post(markerTicker)
-    liveSession?.let { session -> lifecycleScope.launch {
-        lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
-            androidx.compose.runtime.snapshotFlow { session.channels().map { it.key } }.collect { keys ->
-                if (session.currentKey !in keys) endPlayback()
-            }
-        }
-    } }
-    if (serverRef != null) lifecycleScope.launch {
-        val cached = app.ember.tv.mediaserver.ServerPlaybackRegistry.get(intent.getStringExtra(PlayRequest.EXTRA_SERVER_SESSION))
-        val selected = intent.getStringExtra(PlayRequest.EXTRA_SERVER_SOURCE)
-        val quality = app.ember.tv.mediaserver.ServerQuality.from(intent.getStringExtra(PlayRequest.EXTRA_SERVER_QUALITY))
-        serverPlayback = cached?.takeIf { it.ref.value == serverRef && it.sourceId == selected && it.quality == quality }
-            ?: runCatching {
-                if (selected != null) servers?.playback(serverRef!!, selected, quality)?.serverPlayback
-                else servers?.sourcesFor(serverRef!!)?.firstOrNull()?.serverPlayback
-            }.getOrNull()
-        val transport = serverPlayback
-        if (transport == null || transport.parts.isEmpty()) {
-            Toast.makeText(this@createPlayer, "Server unavailable. Reopen the title to choose another version.", Toast.LENGTH_LONG).show()
-            finish(); return@launch
-        }
-        start(transport.parts.first().url, title, transport.parts.first().subtitles, intent.getStringExtra(PlayRequest.EXTRA_RELEASE))
-        findNextServerEpisode()
-    } else start(url.orEmpty(), title, addonSubtitlesFromIntent(), intent.getStringExtra(PlayRequest.EXTRA_RELEASE))
+    start(url, title, emptyList(), intent.getStringExtra(PlayRequest.EXTRA_RELEASE))
     view.requestFocus()
     handler.postDelayed(saver, 5_000)
 }

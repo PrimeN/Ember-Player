@@ -458,9 +458,9 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
             }
         }
     }
-    fun chapters():List<app.ember.tv.mediaserver.Chapter> =(0 until (native.getPropertyInt("chapter-list/count")?:0).coerceAtMost(2000)).mapNotNull {i->
+    fun chapters():List<app.ember.tv.player.Chapter> =(0 until (native.getPropertyInt("chapter-list/count")?:0).coerceAtMost(2000)).mapNotNull {i->
         val time=native.getPropertyDouble("chapter-list/$i/time")?:return@mapNotNull null
-        app.ember.tv.mediaserver.Chapter(native.getPropertyString("chapter-list/$i/title")?:"Chapter ${i+1}",(time*1000).toLong()+prefix(partIndex))
+        app.ember.tv.player.Chapter(native.getPropertyString("chapter-list/$i/title")?:"Chapter ${i+1}",(time*1000).toLong()+prefix(partIndex))
     }
     val audioEffectsAvailable get() = AudioProcessingPolicy.allowed(
         tracks.groups.firstOrNull {it.type==C.TRACK_TYPE_AUDIO && it.isSelected}?.getTrackFormat(0)?.sampleMimeType,

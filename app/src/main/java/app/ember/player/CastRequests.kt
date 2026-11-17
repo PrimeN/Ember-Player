@@ -2,7 +2,6 @@ package app.ember.player
 
 import android.os.Handler
 import android.os.Looper
-import app.ember.tv.player.MediaQueues
 import java.io.Closeable
 import java.util.concurrent.ConcurrentHashMap
 

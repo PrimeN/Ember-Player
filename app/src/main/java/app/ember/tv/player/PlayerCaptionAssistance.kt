@@ -1,7 +1,6 @@
 package app.ember.tv.player
 
 import android.widget.FrameLayout
-import app.ember.tv.data.SubtitleAssistance
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal fun PlayerActivity.updateCaptionAssistance(text:String,playing:Boolean) {

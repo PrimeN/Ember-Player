@@ -3,68 +3,19 @@ package app.ember.tv.player
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 
-import androidx.core.view.isVisible
-import androidx.compose.ui.graphics.toArgb
-import app.ember.tv.iptv.*
-import app.ember.tv.R
-import android.graphics.Color
-import android.net.Uri
-import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.util.TypedValue
-import android.view.Gravity
-import android.view.KeyEvent
-import android.view.View
-import android.view.ViewGroup
-import android.widget.Button
-import android.widget.FrameLayout
-import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.annotation.OptIn
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.media3.common.MediaItem
-import androidx.media3.exoplayer.DecoderReuseEvaluation
-import androidx.media3.exoplayer.analytics.AnalyticsListener
-import androidx.media3.common.Tracks
-import androidx.media3.common.Format
 import androidx.media3.common.C
 import androidx.media3.common.MediaMetadata
-import androidx.media3.common.MimeTypes
-import androidx.media3.common.PlaybackException
-import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MergingMediaSource
-import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
-import androidx.media3.ui.PlayerView
-import app.ember.tv.data.Episode
-import app.ember.tv.data.Prefs
 import app.ember.tv.data.SubtitleOption
-import app.ember.tv.mediaserver.MediaServers
-import app.ember.tv.mediaserver.ReportState
-import app.ember.tv.tracker.Kind
-import app.ember.tv.tracker.ScrobbleState
-import app.ember.tv.tracker.TrackedItem
-import app.ember.tv.tracker.TrackerHub
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.ensureActive
+import app.ember.tv.player.Kind
 import java.util.Locale
-import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderManager
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
-import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleDelayMilliseconds
-import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleSpeed
 
 @OptIn(UnstableApi::class)
 /** Loads a source into the player and starts it. Used for the first episode and every next one. */
@@ -73,9 +24,7 @@ internal fun PlayerActivity.start(url: String, title: String, addonSubs: List<Su
     closeCaptionAssistance();captionConfig=null;embeddedCaptionText=""
     manualSubtitleJob?.cancel();manualSubtitleJob=null
     nearbySubtitleJob?.cancel();nearbySubtitleJob=null
-    supplementarySubtitles?.cancel(); supplementarySubtitles = null
     cancelRecovery()
-    cancelNextEpisodeLookup()
     playbackVisit++
     compareOriginal=false;pictureBypassed=false;pictureSignature=null;pictureEffectsActive=false
     val p = player ?: return
@@ -83,21 +32,16 @@ internal fun PlayerActivity.start(url: String, title: String, addonSubs: List<Su
     httpFactory.setConnectTimeoutMs(config.stream.normalized().connectSeconds*1000).setReadTimeoutMs(config.stream.normalized().readSeconds*1000)
     hdr10PlusMetadata = false
     decoderStableSince=0;decoderLearned=false
-    liveRetryJob?.cancel(); liveRetryJob = null
-    handler.removeCallbacks(commitNumber); numberDigits = ""; numberToast?.cancel()
     repeatRange.clear()
     playbackEngine?.configure(EngineSource(
-        urls=serverPlayback?.parts?.map {it.url} ?: listOf(url),title=title,key=resumeKey,
-        durations=serverPlayback?.parts?.map {it.durationMs} ?: listOf(null),durationMs=serverPlayback?.durationMs,
-        audio=audioUrl,headers=sourceHeaders,live=live,filename=release,
+        urls=listOf(url),title=title,key=resumeKey,
+        audio=audioUrl,headers=sourceHeaders,filename=release,
         audioLanguages=listOfNotNull(showKey()?.let(memory::get)?.audio,java.util.Locale.getDefault().language).distinct(),
         subtitleLanguages=app.ember.tv.data.Subtitles.wanted(prefs.subtitleConfig)))
     val geometry=GeometryMemory.selected(config,resumeKey)
     aspect=geometry?.aspect ?: 0;touchMagnification=geometry?.magnification ?: 1f
     touchControls?.restoreMagnification(touchMagnification)
     applyZoom();applyAspect()
-    serverPartIndex = 0
-    transcodeStopQueued = false
     usbWatch?.close();usbWatch=UsbMedia.watch(this,url){android.widget.Toast.makeText(this,"USB drive disconnected",android.widget.Toast.LENGTH_LONG).show();endPlayback()}
     privatePlayback=app.ember.player.PrivateMedia.hidden(url)
     if(privatePlayback){
@@ -106,9 +50,8 @@ internal fun PlayerActivity.start(url: String, title: String, addonSubs: List<Su
     }
     currentUrl = url
     triedAsHls = false
-    showLiveBanner()
     if (subsInitialized)subs.config=subConfigFor(prefs.subtitleConfig)
-    if (subsInitialized && !trailer) {
+    if (subsInitialized) {
         subs.startSearch(
             url,
             app.ember.tv.data.Subtitles.Query(
@@ -117,15 +60,15 @@ internal fun PlayerActivity.start(url: String, title: String, addonSubs: List<Su
                 season = item.season,
                 episode = item.episode,
                 release = release ?: title,
-                hash = sourceHash?.first,
-                size = sourceHash?.second,
+                hash = null,
+                size = null,
             ),
             addonSubs,
             headers=sourceHeaders,
         )
     }
     subsTouched=false
-    if(subsInitialized&&!trailer)restoreManualSubtitle()
+    if(subsInitialized)restoreManualSubtitle()
     decoderRecovery.reset();codecs.pcm=false
     codecs.sourceUrl=url;codecs.sourceFilename=release;codecs.manualVideo=userVideoMode!=null
     decoderManager.selectVideoDecoder(userVideoMode ?: if(config.ffmpegVideo=="always")DecoderMode.FFMPEG else DecoderMode.AUTO)
@@ -151,15 +94,6 @@ internal fun PlayerActivity.start(url: String, title: String, addonSubs: List<Su
         val factory = mediaSourceFactory(DefaultDataSource.Factory(this, httpFactory))
         val audioItem = MediaItem.fromUri(audio)
         p.setMediaSource(MergingMediaSource(factory.createMediaSource(media), factory.createMediaSource(audioItem)))
-    } else if (serverPlayback?.parts?.size?.let { it > 1 } == true) {
-        val factory = mediaSourceFactory(DefaultDataSource.Factory(this, httpFactory))
-        val concat = androidx.media3.exoplayer.source.ConcatenatingMediaSource2.Builder().setMediaSourceFactory(factory)
-            .setMediaItem(MediaItem.Builder().setMediaId(resumeKey).setMediaMetadata(MediaMetadata.Builder().setTitle(title).build()).build())
-        serverPlayback!!.parts.forEachIndexed { index, part ->
-            val partItem = MediaItem.Builder().setUri(part.url).setMediaMetadata(MediaMetadata.Builder().setTitle(title).build()).build()
-            concat.add(partItem, serverPlayback!!.placeholderDuration(index))
-        }
-        p.setMediaSource(concat.build())
     } else {
         p.setMediaItem(media)
     }
@@ -187,18 +121,15 @@ internal fun PlayerActivity.askToLeave() {
 }
 
 @OptIn(UnstableApi::class)
-/** Saves where you are, reports the stop, releases the player and (normally) closes the screen. */
+/** Save the position, release playback resources and normally close the screen. */
 internal fun PlayerActivity.endPlayback(finishActivity: Boolean = true) {
     closeCaptionAssistance();captionConfig=null;embeddedCaptionText=""
     usbWatch?.close();usbWatch=null
     manualSubtitleJob?.cancel();manualSubtitleJob=null
     nearbySubtitleJob?.cancel();nearbySubtitleJob=null
-    supplementarySubtitles?.cancel(); supplementarySubtitles = null
     cancelRecovery()
-    cancelNextEpisodeLookup()
     playbackVisit++
     handler.removeCallbacks(saver)
-    handler.removeCallbacks(tick)
     handler.removeCallbacks(infoUpdater)
     handler.removeCallbacks(hideInfo)
     handler.removeCallbacks(subtitleTicker)
@@ -213,16 +144,7 @@ internal fun PlayerActivity.endPlayback(finishActivity: Boolean = true) {
     rememberTracks()
     if (!ended) {
         savePosition()
-        // Trakt and Simkl store a stop under 80% as "in progress", which feeds Continue watching.
-        // Skip it when nothing really played, e.g. the source failed to open.
-        val done = progress()
-        if (done > 0.01f) {
-            scrobble(ScrobbleState.STOP, done)
-        }
-        // Close the server session even before the local history threshold.
-        serverReport(ReportState.STOP)
     }
-    nextServerJob?.cancel()
     platformSession?.release(); platformSession = null
     decoderManager.detach()
     p.release()
@@ -235,8 +157,7 @@ internal fun PlayerActivity.endPlayback(finishActivity: Boolean = true) {
 internal fun PlayerActivity.resume(p: ExoPlayer): Boolean {
     val forced=intent.getLongExtra(BackgroundAudioService.FORCE_POSITION,-1L)
     if(forced>=0) {intent.removeExtra(BackgroundAudioService.FORCE_POSITION);p.seekTo(forced.coerceAtMost(p.duration.takeIf {it>0} ?: Long.MAX_VALUE));return true}
-    if (trailer || startOver) return true
-    if (playbackEngine?.compatibility==null && serverPlayback?.takeIf { it.parts.size > 1 }?.parts?.any { (it.durationMs ?: 0L) <= 0L } == true) return false
+    if (startOver) return true
     val saved = positions.resume(resumeKey)
     val duration = playbackDuration(p).takeIf {it>0}
     if(duration==null) {
@@ -251,12 +172,7 @@ internal fun PlayerActivity.resume(p: ExoPlayer): Boolean {
 }
 
 @OptIn(UnstableApi::class)
-internal fun PlayerActivity.playbackDuration(p: ExoPlayer): Long {
-    val transport = serverPlayback
-    if(playbackEngine?.compatibility!=null)return p.duration.takeIf {it>0}?:transport?.durationMs?:0L
-    if (transport != null && transport.parts.size > 1 && transport.parts.any { (it.durationMs ?: 0L) <= 0L }) return transport.durationMs ?: 0L
-    return p.duration.takeIf { it > 0 } ?: transport?.durationMs ?: 0L
-}
+internal fun PlayerActivity.playbackDuration(p: ExoPlayer): Long = p.duration.takeIf {it>0} ?: 0L
 
 @OptIn(UnstableApi::class)
 internal fun PlayerActivity.progress(): Float {
@@ -267,33 +183,14 @@ internal fun PlayerActivity.progress(): Float {
 
 @OptIn(UnstableApi::class)
 internal fun PlayerActivity.savePosition() {
-    if (trailer || privatePlayback || !app.ember.player.PrivateMedia.historyAllowed(currentUrl.orEmpty())) return
+    if (privatePlayback || !app.ember.player.PrivateMedia.historyAllowed(currentUrl.orEmpty())) return
     val p = player ?: return
     if (ended) return
     val d = playbackDuration(p)
     if (d <= 0) return
     val pos = p.currentPosition
     positions.put(resumeKey, pos, d)
-    // In progress / Recently watched on For You, kept on the TV.
-    app.ember.tv.data.LocalLibrary.progress(resumeKey, pos.toFloat() / d, d,localActivityScope)
-    if(pos.toFloat()/d>=.92f)recordWatched()
 }
 
 @OptIn(UnstableApi::class)
-internal fun PlayerActivity.contentPlaybackAllowed():Boolean {
-    if(watchProfileId!=prefs.currentProfile)return false
-    val active=prefs.profiles.firstOrNull {it.id==watchProfileId} ?: return false
-    val content=app.ember.tv.data.Meta(type=intent.getStringExtra(PlayRequest.EXTRA_CONTENT_TYPE) ?: if(item.kind==Kind.MOVIE)"movie" else "series",
-        genres=intent.getStringArrayExtra(PlayRequest.EXTRA_GENRES)?.toList(),ageRating=intent.getStringExtra(PlayRequest.EXTRA_AGE_RATING),
-        adult=intent.getBooleanExtra(PlayRequest.EXTRA_ADULT,false))
-    return app.ember.tv.data.KidsContentPolicy.playbackAllowed(active,watchProfileId,content,live)
-}
-
-@OptIn(UnstableApi::class)
-internal fun PlayerActivity.recordWatched() {
-    if(live || trailer || privatePlayback || !app.ember.player.PrivateMedia.state.value.history || !recordedWatched.add(resumeKey))return
-    val meta=app.ember.tv.data.LocalLibrary.metaFor(resumeKey,localActivityScope) ?: app.ember.tv.data.Meta(id=item.imdbId ?: resumeKey,
-        type=if(item.kind==Kind.MOVIE)"movie" else "series",name=seriesName,imdbId=item.imdbId,tmdbId=item.tmdbId,
-        season=item.season,episode=item.episode,serverRef=serverRef,serverSeriesRef=serverPlayback?.seriesRef)
-    app.ember.tv.data.WatchedStore.record(applicationContext,watchProfileId,meta)
-}
+internal fun PlayerActivity.contentPlaybackAllowed():Boolean = watchProfileId==prefs.currentProfile

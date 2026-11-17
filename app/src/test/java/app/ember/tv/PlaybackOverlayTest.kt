@@ -42,7 +42,7 @@ class PlaybackOverlayTest {
     }
     private fun actions(s:ControlsState)=ControlsActions(
         playPause={plays++},seekBy={seeks+=it},skip={},
-        openMenu={which,_->s.menu=which;s.visible=false},options={emptyList()},next={},playEpisode={},touched={},
+        openMenu={which,_->s.menu=which;s.visible=false},options={emptyList()},next={},touched={},
         pickAudio={pickedAudio=it},pickSubtitle={pickedSubtitle=it},
     )
     private fun show(s:ControlsState,width:Int=960,height:Int=540,scale:Float=1f) {

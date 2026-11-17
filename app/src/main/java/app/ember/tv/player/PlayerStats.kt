@@ -1,9 +1,7 @@
 package app.ember.tv.player
 
-import app.ember.tv.iptv.*
 import app.ember.tv.R
 import androidx.media3.common.Format
-import androidx.media3.common.C
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer

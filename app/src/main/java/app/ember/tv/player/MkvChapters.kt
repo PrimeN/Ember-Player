@@ -1,7 +1,7 @@
 package app.ember.tv.player
 
 import app.ember.tv.data.Net
-import app.ember.tv.mediaserver.Chapter
+import app.ember.tv.player.Chapter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Request

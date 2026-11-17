@@ -1,4 +1,4 @@
-package app.ember.tv.tracker
+package app.ember.player.storage
 
 import android.content.SharedPreferences
 import android.security.keystore.KeyGenParameterSpec

@@ -4,7 +4,7 @@ import android.content.Context
 import android.net.Uri
 import app.ember.tv.data.CachePolicy
 import app.ember.tv.data.LocalActivity
-import app.ember.tv.tracker.TokenStore
+import app.ember.player.storage.TokenStore
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 

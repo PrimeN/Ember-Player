@@ -1,4 +1,4 @@
-# Ember TV release build: R8 shrinks and optimises the code, which makes Compose start and scroll
+# Ember Player release build: R8 shrinks and optimises the code, which makes Compose start and scroll
 # noticeably faster on TV boxes. Most libraries ship their own rules; these cover the rest.
 
 # Keep line numbers so crash logs (Settings > About > Crash log) point at the right place.
@@ -17,19 +17,6 @@
 -keepclasseswithmembers class app.ember.tv.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
-
-# NewPipe Extractor (experimental in-app trailers) runs YouTube's player JavaScript with Rhino,
-# which loads classes by name.
--keep class org.schabi.newpipe.extractor.** { *; }
--keep class org.mozilla.javascript.** { *; }
--keep class org.mozilla.classfile.ClassFileWriter
--dontwarn org.mozilla.javascript.**
--dontwarn org.mozilla.classfile.**
--dontwarn java.beans.**
--dontwarn javax.script.**
--dontwarn jdk.dynalink.**
--dontwarn org.jsoup.**
--dontwarn com.google.re2j.**
 
 # Nextlib FFmpeg decoders: native methods and the classes they call back are looked up by name from the .so.
 -keep class io.github.anilbeesetti.nextlib.** { *; }
@@ -51,9 +38,6 @@
 -dontwarn com.google.api.client.**
 -dontwarn org.joda.time.**
 
-# The screensaver is started by the system by class name (also kept by the manifest).
--keep class app.ember.tv.screensaver.EmberDream { *; }
-
 # libmpv JNI observers are called by their original class/member names.
 -keep class dev.jdtech.mpv.** { *; }
 
@@ -67,7 +51,7 @@
 }
 
 # Not offered by Ember: desktop Kerberos/SSH agents, Log4j or event-bus EL conditions.
-# SMB uses NTLM password authentication; SFTP explicitly selects password/keyboard authentication.
+# SMB uses NTLM authentication; SFTP uses the credentials selected for the saved folder.
 -dontwarn com.sun.jna.**
 -dontwarn org.ietf.jgss.**
 -dontwarn org.newsclub.net.unix.**

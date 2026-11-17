@@ -1,5 +1,8 @@
 package app.ember.tv.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -12,10 +15,8 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
@@ -91,17 +92,6 @@ fun TvTextField(
     var consumedBack by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
     var tfv by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length))) }
-    // #241: while this box is focused, the phone remote's keyboard types into it.
-    val latestValue = androidx.compose.runtime.rememberUpdatedState(value)
-    val latestChange = androidx.compose.runtime.rememberUpdatedState(onValueChange)
-    val latestSubmit = androidx.compose.runtime.rememberUpdatedState(onSubmit)
-    val remoteTarget = remember(password) {
-        app.ember.tv.remote.RemoteBridge.TextTarget({ latestValue.value }, { latestChange.value(it) },
-            { latestSubmit.value?.invoke() ?: focus.moveFocus(FocusDirection.Down) }, password)
-    }
-    androidx.compose.runtime.DisposableEffect(remoteTarget) {
-        onDispose { if (app.ember.tv.remote.RemoteBridge.focusedText === remoteTarget) app.ember.tv.remote.RemoteBridge.focusedText = null }
-    }
     val current = if (tfv.text == value) tfv else TextFieldValue(value, TextRange(value.length))
 
     fun leave(direction: FocusDirection): Boolean {
@@ -155,8 +145,6 @@ fun TvTextField(
                 .let { m -> focusRequester?.let { m.focusRequester(it) } ?: m }
                 .onFocusChanged {
                     focused = it.isFocused
-                    if (it.isFocused) app.ember.tv.remote.RemoteBridge.focusedText = remoteTarget
-                    else if (app.ember.tv.remote.RemoteBridge.focusedText === remoteTarget) app.ember.tv.remote.RemoteBridge.focusedText = null
                     if (!it.isFocused) editing = false
                     if (it.isFocused && startEditing && !editing) {
                         editing = true

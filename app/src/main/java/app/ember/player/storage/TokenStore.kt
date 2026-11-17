@@ -1,4 +1,4 @@
-package app.ember.tv.tracker
+package app.ember.player.storage
 
 import android.content.Context
 import android.content.SharedPreferences

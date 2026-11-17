@@ -1,6 +1,6 @@
 package app.ember.tv.data
 
-import app.ember.tv.tracker.SecretCipher
+import app.ember.player.storage.SecretCipher
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock

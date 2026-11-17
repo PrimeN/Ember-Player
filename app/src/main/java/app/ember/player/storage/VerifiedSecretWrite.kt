@@ -1,4 +1,4 @@
-package app.ember.tv.tracker
+package app.ember.player.storage
 
 /** SharedPreferences can mutate memory even when commit returns false. Restore that view too. */
 internal object VerifiedSecretWrite {

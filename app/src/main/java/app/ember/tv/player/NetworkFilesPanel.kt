@@ -4,25 +4,17 @@ import androidx.compose.ui.res.stringResource
 import app.ember.tv.R
 
 import app.ember.tv.data.toHex
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.tv.material3.Text
 import app.ember.tv.data.Prefs
-import app.ember.tv.tracker.TokenStore
+import app.ember.player.storage.TokenStore
 import app.ember.tv.ui.TvDialog
 import app.ember.tv.ui.DialogHeading
 import app.ember.tv.ui.TvTextField

@@ -4,7 +4,7 @@ import android.app.*
 import android.content.*
 import android.os.*
 import androidx.core.content.FileProvider
-import app.ember.tv.tracker.TokenStore
+import app.ember.player.storage.TokenStore
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.Serializable

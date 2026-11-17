@@ -1,4 +1,4 @@
-package app.ember.tv.tracker
+package app.ember.tv.data
 
 import app.ember.tv.data.Net
 import app.ember.tv.data.withResponse
@@ -18,10 +18,8 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.longOrNull
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.util.concurrent.TimeUnit
 
 class HttpException(val code: Int, body: String, val retryAfterSec: Long? = null) : Exception("HTTP $code: ${body.take(160)}")
 

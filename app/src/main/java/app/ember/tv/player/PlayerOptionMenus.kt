@@ -1,14 +1,11 @@
 package app.ember.tv.player
 
-import app.ember.tv.iptv.*
 import app.ember.tv.R
 import android.widget.Toast
-import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import kotlinx.coroutines.launch
 import java.util.Locale
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleDelayMilliseconds
@@ -27,11 +24,11 @@ internal fun PlayerActivity.openMenu(which: String, tab: String?) {
     controls.optionsTick++
 }
 
-/** Addon sources: chapters from the MKV file itself, when the media server gave none. */
+/** Read chapters from an MKV source when the playback engine has not supplied them. */
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.loadFileChapters(p: ExoPlayer) {
     playbackEngine?.compatibility?.chapters()?.takeIf {it.isNotEmpty()}?.let {chapters=it;return}
-    if (!advanced || trailer || chapters.isNotEmpty()) return
+    if (!advanced || chapters.isNotEmpty()) return
     val url = currentUrl ?: return
     if (!url.startsWith("http")) return
     val mkv = p.videoFormat?.containerMimeType == MimeTypes.VIDEO_MATROSKA ||
@@ -162,7 +159,7 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
             val z = zooms.indexOfFirst { it.first == currentZoom() }.coerceAtLeast(0)
             add(OptionRow(getString(R.string.pl_zoom), zooms[z].second, zooms.map { it.second }, z, onPick = { i -> changeZoom(zooms[i].first) }))
             add(OptionRow(getString(R.string.pl_aspect_ratio), aspects[aspect].first, aspects.map { it.first }, aspect, onPick = { i -> aspect = i;persistGeometry();applyAspect() }))
-            if(!privatePlayback&&!live&&!trailer)add(OptionRow("Remember geometry for this media",toggle=GeometryMemory.selected(config,resumeKey)!=null,note="Save aspect ratio, picture fit and magnification for this item.",action={toggleGeometryMemory()}))
+            if(!privatePlayback)add(OptionRow("Remember geometry for this media",toggle=GeometryMemory.selected(config,resumeKey)!=null,note="Save aspect ratio, picture fit and magnification for this item.",action={toggleGeometryMemory()}))
             val ff = playbackEngine?.compatibility?.softwareVideo ?: codecs.ffmpegVideo
             add(
                 OptionRow(
@@ -192,12 +189,12 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
             if(exports.permitted()) {
                 if(audioUrl==null)add(OptionRow("Cast to a receiver",action={openCasting()}))
                 add(OptionRow("Save screenshot",action={exports.screenshot()}))
-                if(!live) {
+
                     add(OptionRow("Mark clip start",clips.startMs?.let(::clock).orEmpty(),action={clips.markStart();changed()}))
                     add(OptionRow("Mark clip end",clips.endMs?.let(::clock).orEmpty(),action={if(!clips.markEnd())Toast.makeText(this@optionRows,"Mark the start, then seek at least one second ahead.",Toast.LENGTH_SHORT).show();changed()}))
                     if(clips.active)add(OptionRow("Cancel clip export",clips.progress?.let {"$it%"}.orEmpty(),action={clips.cancel();changed()}))
                     else add(OptionRow("Export clip",note="MP4 using device encoders · original kept",action={clips.chooseDestination()}))
-                }
+
             }
             add(OptionRow("Lock playback",note="Use the unlock button or Back to restore controls.",action={closeMenu();touchControls?.setLocked(true)}))
             if (chapters.isNotEmpty()) {
@@ -207,15 +204,15 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
             }
             add(speedRow)
             add(OptionRow("Custom playback speed",speedLabel(speed),action={closeMenu();customPlaybackSpeed()}))
-            if(!live && p.duration>0 && p.isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM))
+            if(p.duration>0 && p.isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM))
                 add(OptionRow("Go to time",clock(p.currentPosition),action={closeMenu();goToPlaybackTime()}))
-            if(!live && !trailer && p.isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM) &&
+            if(p.isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM) &&
                 p.currentTracks.groups.any {it.type==C.TRACK_TYPE_VIDEO})
                 add(OptionRow("Frame inspection","Paused · precise frames",note="Uses Compatibility playback and leaves the video paused.",action={closeMenu();inspectFrames()}))
             add(OptionRow("Seeking",if(SeekPreference.fast(config.seekMode))"Fast / nearby keyframe" else "Precise",listOf("Precise","Fast / nearby keyframe"),if(SeekPreference.fast(config.seekMode))1 else 0,
                 note="Resume positions and chapter/intro jumps stay precise.",onPick={config=config.copy(seekMode=if(it==1)"fast" else "precise");prefs.playbackConfig=config}))
-            if(!live) {
-                if(!trailer)add(OptionRow("Bookmarks",action={showBookmarks()}))
+
+                add(OptionRow("Bookmarks",action={showBookmarks()}))
                 val modes=listOf("off","one","all");val mode=fileQueue?.repeat ?: if(p.repeatMode==Player.REPEAT_MODE_ONE)"one" else "off"
                 val labels=if(fileQueue!=null)listOf("Off","Repeat item","Repeat queue") else listOf("Off","Repeat item")
                 add(OptionRow("Repeat",labels.getOrElse(modes.indexOf(mode)){"Off"},labels,modes.indexOf(mode).coerceAtLeast(0),onPick={i->if(fileQueue!=null)fileQueue!!.repeat=modes[i] else p.repeatMode=if(i==1)Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF}))
@@ -228,7 +225,7 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
                     add(OptionRow("Queue","${q.index+1} of ${q.items.size}",action={showFileQueue()}))
                     add(OptionRow("Add files to queue",action={pickFile("queue")}))
                 }
-            }
+
         }
         "audio" -> buildList {
             add(OptionRow("Night listening",NightListening.choices.firstOrNull {it.first==config.audioEffects.compression}?.second ?: "Off",NightListening.choices.map {it.second},NightListening.choices.indexOfFirst {it.first==config.audioEffects.compression}.coerceAtLeast(0),note="Decoded audio only. Reduces loud effects relative to dialogue; passthrough stays untouched.",onPick={index->changeAudioEffects(config.audioEffects.copy(compression=NightListening.choices[index].first))}))

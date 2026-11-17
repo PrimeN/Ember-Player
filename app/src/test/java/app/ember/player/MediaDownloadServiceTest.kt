@@ -8,9 +8,9 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Looper
 import android.os.Handler
-import app.ember.tv.tracker.SecretCipher
-import app.ember.tv.tracker.SecretVault
-import app.ember.tv.tracker.TokenStore
+import app.ember.player.storage.SecretCipher
+import app.ember.player.storage.SecretVault
+import app.ember.player.storage.TokenStore
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.*
 import kotlinx.coroutines.android.asCoroutineDispatcher

@@ -1,7 +1,7 @@
 package app.ember.tv.data
 
 import android.content.Context
-import app.ember.tv.tracker.TokenStore
+import app.ember.player.storage.TokenStore
 
 /** Optional personal keys. No provider registration or developer credential is bundled. */
 object ApiKeys {

@@ -18,7 +18,7 @@ internal fun PlayerActivity.installTouchControls() {
             get() = player?.playbackParameters?.speed ?: this@installTouchControls.speed
             set(value) { this@installTouchControls.speed = value; player?.setPlaybackSpeed(value) }
         override val controlsVisible get() = if (advanced) controls.visible else view.isControllerFullyVisible
-        override val menuVisible get() = panelVisible || controls.menu != null || controls.sheet != null || actionDialog?.isShowing == true || leaveDialog?.isShowing == true || upNextUi.visible
+        override val menuVisible get() = panelVisible || controls.menu != null || controls.sheet != null || actionDialog?.isShowing == true || leaveDialog?.isShowing == true
         override fun seek(position: Long) { navigateSeek(position) }
         override fun togglePlayback() { player?.let { it.playWhenReady = !it.playWhenReady } }
         override fun toggleControls() {

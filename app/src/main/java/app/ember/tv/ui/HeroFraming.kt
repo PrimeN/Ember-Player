@@ -1,19 +1,6 @@
 package app.ember.tv.ui
 
-import android.graphics.Bitmap
-import android.graphics.drawable.BitmapDrawable
 import androidx.core.graphics.scale
-import androidx.compose.ui.BiasAlignment
-import androidx.compose.ui.Modifier
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.layout.ContentScale
-import coil.compose.AsyncImage
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.withContext
 import kotlin.math.abs
 
 data class HeroFocus(val x:Float=.65f,val y:Float=.32f)
@@ -73,42 +60,4 @@ internal object HeroFraming {
     }
 }
 
-/** Bounded points only; analysis finishes before publication so a settled image never pans later. */
-private object HeroFocusCache {
-    val points=object:LinkedHashMap<String,HeroFocus>(32,.75f,true) {
-        override fun removeEldestEntry(eldest:MutableMap.MutableEntry<String,HeroFocus>?)=size>96
-    }
-}
-internal suspend fun framedArtwork(art:ReadyArtwork,options:RenderOptions):ReadyArtwork {
-    val meta=art.meta ?: return art
-    val supplied=HeroFraming.supplied(meta.backgroundFocusX,meta.backgroundFocusY)
-    if(supplied!=null)return art.copy(focus=supplied)
-    if(!options.heroAnalysis)return art
-    val bitmap=(art.drawable as? BitmapDrawable)?.bitmap ?: return art
-    if(fitHeroPortrait(bitmap.width,bitmap.height))return art
-    val shape=kotlin.math.round(bitmap.width.toFloat()/bitmap.height*10).toInt()
-    val cacheKey="${meta.type}:${meta.id}:${meta.background ?: meta.poster}:$shape"
-    synchronized(HeroFocusCache.points){HeroFocusCache.points[cacheKey]}?.let {return art.copy(focus=it)}
-    val focus=withContext(Dispatchers.Default) {
-        runCatching {
-            val small=bitmap.scale(64,36,true)
-            try {
-                val pixels=IntArray(64*36);small.getPixels(pixels,0,64,0,0,64,36)
-                HeroFraming.estimate(pixels,64,36)
-            } finally {if(small!==bitmap)small.recycle()}
-        }.getOrDefault(HeroFocus())
-    }
-    currentCoroutineContext().ensureActive()
-    synchronized(HeroFocusCache.points){HeroFocusCache.points[cacheKey]=focus}
-    return art.copy(focus=focus)
-}
-
-@Composable internal fun FramedHeroImage(art:ReadyArtwork,modifier:Modifier=Modifier) {
-    val drawable=art.drawable ?: return
-    val density=androidx.compose.ui.platform.LocalDensity.current.density
-    BoxWithConstraints(modifier) {
-        val frame=HeroFraming.plan(drawable.intrinsicWidth,drawable.intrinsicHeight,maxWidth.value*density,maxHeight.value*density,art.focus ?: HeroFocus())
-        AsyncImage(drawable,null,Modifier.fillMaxSize(),contentScale=if(frame.fit)ContentScale.Fit else ContentScale.Crop,
-            alignment=BiasAlignment(frame.xBias,frame.yBias))
-    }
-}
+internal fun fitHeroPortrait(width:Int,height:Int)=width>0&&height>0&&width.toDouble()/height<1.45

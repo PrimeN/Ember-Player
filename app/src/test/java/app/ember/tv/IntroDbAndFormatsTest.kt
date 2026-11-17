@@ -1,11 +1,9 @@
 package app.ember.tv
 
 import app.ember.tv.player.*
-import app.ember.tv.mediaserver.Marker
-import app.ember.tv.data.StreamInfoParser
-import app.ember.tv.data.StreamParser
-import app.ember.tv.tracker.Kind
-import app.ember.tv.tracker.TrackedItem
+import app.ember.tv.player.Marker
+import app.ember.tv.player.Kind
+import app.ember.tv.player.PlaybackItem
 import kotlinx.coroutines.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -17,7 +15,7 @@ class IntroDbAndFormatsTest {
     private fun query() = IntroDbQuery("tt0944947", 1, 2)
 
     @Test fun queriesRequireExactIdentityAndNeverSendPlaybackOrAccountDetails() {
-        val item = TrackedItem("private-url", "Release filename", kind = Kind.SHOW, imdbId = "tt0944947", season = 0, episode = 1)
+        val item = PlaybackItem("private-url", "Release filename", kind = Kind.SHOW, imdbId = "tt0944947", season = 0, episode = 1)
         assertEquals("https://api.introdb.app/segments?imdb_id=tt0944947&season=0&episode=1", requireNotNull(IntroDbQuery.from(item)).url())
         assertNull(IntroDbQuery.from(item.copy(episode = null)))
         assertNull(IntroDbQuery.from(item.copy(imdbId = "tt0944947&token=private")))
@@ -48,14 +46,6 @@ class IntroDbAndFormatsTest {
         assertTrue(IntroDbSegments.forRuntime(listOf(Marker("credits", 10_000, 40_000)), 600_000).isEmpty())
     }
 
-    @Test fun serverMarkersWinAndServerFailuresCanFallBack() = runBlocking {
-        var reads = 0
-        val result = resolveMarkers({ listOf(Marker("intro", 1, 2)) }, { reads++; IntroDbSegments.parse(response) })
-        assertFalse(result.introDb); assertEquals(0, reads)
-        val fallback = resolveMarkers({ throw java.io.IOException("offline") }, { reads++; IntroDbSegments.parse(response) })
-        assertTrue(fallback.introDb); assertEquals(1, reads); assertEquals(3, fallback.markers.size)
-    }
-
     @Test fun cacheIsEpisodeScopedBoundedAndRejectsFutureDatedEntries() = runBlocking {
         var reads = 0; var now = 1000L
         val client = IntroDbClient({ reads++; response }, { now })
@@ -75,7 +65,6 @@ class IntroDbAndFormatsTest {
         val client = IntroDbClient({ if (cancel) throw CancellationException("left player") else response }, { 0 })
         assertTrue(runCatching { client.markers(query()) }.exceptionOrNull() is CancellationException)
         cancel = false; assertEquals(3, client.markers(query()).size)
-        assertTrue(runCatching { resolveMarkers({ throw CancellationException() }, { error("must not query") }) }.exceptionOrNull() is CancellationException)
     }
 
     @Test fun introDbPreferenceSurvivesConfigSerializationWithoutChangingTheSkipMode() {
@@ -91,7 +80,6 @@ class IntroDbAndFormatsTest {
         assertTrue(PlaybackFormats.nativeFirst("video/vvc")); assertFalse(PlaybackFormats.nativeFirst("video/hevc"))
         assertFalse(PlaybackFormats.nativeFirst("video/vvc", standardSupported = true))
         assertEquals("VVC/H.266", PlaybackFormats.video("video/vvc", null))
-        assertEquals("VVC", StreamInfoParser.encode("Film.H.266")); assertEquals("VVC", StreamParser.codec("Film.VVC"))
         assertEquals("Dolby AC-4", PlaybackFormats.audio("audio/ac4"))
         assertEquals("MPEG-H 3D Audio", PlaybackFormats.audio("audio/mhm1")); assertEquals("IAMF", PlaybackFormats.audio("audio/iamf"))
     }

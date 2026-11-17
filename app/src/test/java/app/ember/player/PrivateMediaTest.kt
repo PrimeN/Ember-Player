@@ -3,7 +3,10 @@ package app.ember.player
 import android.app.Application
 import android.content.Context
 import app.ember.tv.player.*
-import app.ember.tv.tracker.*
+import app.ember.player.storage.*
+import app.ember.tv.data.*
+import app.ember.tv.player.Kind
+import app.ember.tv.player.PlaybackItem
 import org.junit.Assert.*
 import org.junit.After
 import org.junit.Before
