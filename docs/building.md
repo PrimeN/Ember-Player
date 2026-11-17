@@ -5,14 +5,15 @@
 | Component | Version |
 | --- | --- |
 | Java | JDK 17 |
-| Gradle | 9.8.2 |
+| Gradle | 9.8.2 (included wrapper) |
 | Android compile platform | API 37 |
 | Minimum Android version | Android 10 / API 29 |
 | Packaged processors | `arm64-v8a` and `armeabi-v7a` |
 
 The project uses Android Gradle Plugin 9.4.0, Kotlin 2.4.21 and Compose BOM
-2026.09.00. Install Gradle separately; the repository does not contain a Gradle
-wrapper. Configure the Android SDK with `ANDROID_HOME` or an untracked
+2026.09.00. The checked-in wrapper downloads Gradle 9.8.2 and verifies its
+distribution SHA-256 before use. On Windows, use `gradlew.bat` instead of
+`./gradlew`. Configure the Android SDK with `ANDROID_HOME` or an untracked
 `local.properties` file containing `sdk.dir`.
 
 ## Build and install
@@ -20,7 +21,7 @@ wrapper. Configure the Android SDK with `ANDROID_HOME` or an untracked
 ```sh
 git clone --branch beta https://github.com/PrimeN/Ember-Player.git
 cd Ember-Player
-gradle testDebugUnitTest assembleDebug
+./gradlew testDebugUnitTest assembleDebug
 ```
 
 The debug APK is written under `app/build/outputs/apk/debug/`. Its application ID
@@ -30,7 +31,7 @@ The release application ID is `app.ember.player`.
 For the optimized build and static checks:
 
 ```sh
-gradle testDebugUnitTest assembleRelease lintRelease
+./gradlew testDebugUnitTest assembleRelease lintRelease
 python3 scripts/verify-player-native.py app/build/isolated-mpv/libmpv-1.0.0.aar
 ```
 

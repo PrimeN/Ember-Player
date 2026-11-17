@@ -98,12 +98,12 @@ Development happens on [`beta`](https://github.com/PrimeN/Ember-Player/tree/beta
 Code pushes build and validate the app, with downloadable APK artifacts. Publishing
 a release requires an explicit version tag or manual publication request.
 
-To build the preview with JDK 17, Gradle 9.8.2 and Android SDK platform 37:
+To build the preview with JDK 17 and Android SDK platform 37:
 
 ```sh
 git clone --branch beta https://github.com/PrimeN/Ember-Player.git
 cd Ember-Player
-gradle testDebugUnitTest assembleDebug
+./gradlew testDebugUnitTest assembleDebug
 ```
 
 [Build instructions and native components →](docs/building.md)
