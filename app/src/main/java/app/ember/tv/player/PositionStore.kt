@@ -8,20 +8,22 @@ class PositionStore(context: Context,scope:String=app.ember.tv.data.LocalActivit
     private val sp = PlaybackStateRetention(context,"positions")
 
     /** Position and duration in milliseconds, or null when nothing is saved. */
-    fun get(key: String): Pair<Long, Long>? {
+    internal data class SavedPosition(val position:Long,val duration:Long,val lastPlayed:Long)
+    internal fun saved(key:String):SavedPosition? {
         if(!app.ember.player.PrivateMedia.state.value.history)return null
-        val v = sp.get(prefix+key) ?: return null
-        val parts = v.split(',')
+        val entry = sp.entry(prefix+key) ?: return null
+        val parts = entry.first.split(',')
         val pos = parts.getOrNull(0)?.toLongOrNull() ?: return null
         val dur = parts.getOrNull(1)?.toLongOrNull() ?: return null
-        return pos to dur
+        return SavedPosition(pos,dur,entry.second)
     }
+    fun get(key: String): Pair<Long, Long>? = saved(key)?.let {it.position to it.duration}
 
     fun put(key: String, positionMs: Long, durationMs: Long) =
         if(app.ember.player.PrivateMedia.state.value.history)sp.put(prefix+key, "$positionMs,$durationMs") else Unit
 
     /** Keep completion for the library, while playback always restarts a finished item. */
-    fun resume(key:String):Pair<Long,Long>?=get(key)?.takeIf {it.second>0 && it.first<it.second*.95}
+    fun resume(key:String):Pair<Long,Long>?=get(key)?.takeIf {canResume(it.first,it.second)}
     fun finished(key:String,durationMs:Long) {
         if(durationMs>0)put(key,durationMs,durationMs) else clear(key)
     }
@@ -31,5 +33,8 @@ class PositionStore(context: Context,scope:String=app.ember.tv.data.LocalActivit
     fun moveKey(from:String,to:String) {
         if(from==to)return
         sp.move(prefix+from,prefix+to)
+    }
+    companion object {
+        internal fun canResume(position:Long,duration:Long)=position>30_000&&duration>0&&position<duration*.95
     }
 }

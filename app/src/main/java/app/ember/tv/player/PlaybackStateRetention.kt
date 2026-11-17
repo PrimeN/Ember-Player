@@ -8,7 +8,8 @@ import kotlinx.serialization.json.Json
 internal class PlaybackStateRetention(context:Context,private val file:String) {
     private val app=context.applicationContext
     private val values=app.getSharedPreferences(file,Context.MODE_PRIVATE)
-    fun get(key:String):String?=values.getString(key,null)?.let {record(file,it).value}
+    fun entry(key:String):Pair<String,Long>?=values.getString(key,null)?.let {record(file,it).let {entry->entry.value to entry.touched}}
+    fun get(key:String):String?=entry(key)?.first
     fun put(key:String,value:String)=synchronized(lock) {
         values.edit().putString(key,encode(file,value,System.currentTimeMillis().coerceAtLeast(0))).apply()
     }

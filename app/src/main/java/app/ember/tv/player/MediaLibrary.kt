@@ -84,7 +84,8 @@ internal class MediaLibrary(context:Context,
                     if(found.size==100)break
                 }
             }
-            more=rows==100
+            // The visible page can fill partway through a batch after hidden rows were skipped.
+            more=rows==100||found.size==100
         }
         return Result(found,if(more)cursorOffset else null,dates)
     }

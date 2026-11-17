@@ -11,6 +11,17 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[35],application=Application::class)
 class PositionStoreTest {
+    @Test fun resumeThresholdAndSavedTimestampsSurviveReopening() {
+        val context=RuntimeEnvironment.getApplication()
+        val store=PositionStore(context)
+        store.put("short",30_000,100_000);assertNull(store.resume("short"))
+        store.put("resumable",30_001,100_000)
+        val saved=PositionStore(context).saved("resumable")!!
+        assertEquals(30_001L,saved.position);assertTrue(saved.lastPlayed>0)
+        assertEquals(30_001L,store.resume("resumable")!!.first)
+        context.getSharedPreferences("positions",0).edit().putString("legacy","60000,100000").commit()
+        assertEquals(0L,store.saved("legacy")!!.lastPlayed)
+    }
     @Test fun completedMediaKeepsItsLibraryStateButNeverResumesAtTheEnd() {
         val context=RuntimeEnvironment.getApplication()
         val store=PositionStore(context)
