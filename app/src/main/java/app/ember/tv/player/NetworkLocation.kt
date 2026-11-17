@@ -10,6 +10,7 @@ internal data class NetworkAccount(
     val username:String="",val password:String="",val domain:String="",val fingerprint:String="",
     /** SMB only: allow shares that cannot encrypt (older SMB2 NAS devices). Signing stays required. */
     val allowUnencryptedSmb:Boolean=false,
+    val authentication:String="password",val privateKey:String="",val keyPassphrase:String="",
 ) {
     override fun toString()="NetworkAccount(<redacted>)"
 }
@@ -42,6 +43,7 @@ internal data class NetworkLocation(val scheme:String,val host:String,val port:I
             if(bytes.size!=32)return null
             return "SHA256:"+java.util.Base64.getEncoder().withoutPadding().encodeToString(bytes)
         }
+        fun fingerprint(key:ByteArray)="SHA256:"+java.util.Base64.getEncoder().withoutPadding().encodeToString(java.security.MessageDigest.getInstance("SHA-256").digest(key))
     }
     fun full(path:String):String=listOf(root,path.trim('/')).filter {it.isNotEmpty()}.joinToString("/")
     fun smbShare(name:String):String {
