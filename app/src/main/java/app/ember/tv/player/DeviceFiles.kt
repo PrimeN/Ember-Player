@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -43,7 +45,7 @@ internal object DeviceFiles {
     }
     fun name(context: Context, uri: Uri): String = context.contentResolver.query(uri, arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME), android.os.Bundle.EMPTY, null)?.use {
         if (it.moveToFirst()) it.getString(0) else null
-    }?.take(180) ?: "Folder"
+    }?.take(180) ?: context.resources.getString(R.string.ui_folder_30baa2)
     data class Page(val entries: List<DeviceFile>, val limited: Boolean, val nextOffset:Int=0)
     fun list(context: Context, tree: Uri, directory: Uri, offset:Int=0, check: () -> Unit = {}): Page {
         val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, DocumentsContract.getDocumentId(directory))

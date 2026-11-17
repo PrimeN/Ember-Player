@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.app.Activity
 import android.content.Context
 import android.media.AudioFormat
@@ -379,14 +381,14 @@ object Playback {
 
     // ---- info panel ----
 
-    fun describeVideo(f: Format?, decoder: String?, hdr10Plus: Boolean = false, unknown: Boolean = false): String {
-        f ?: return "Video: none"
+    fun describeVideo(resources:android.content.res.Resources,f: Format?, decoder: String?, hdr10Plus: Boolean = false, unknown: Boolean = false): String {
+        f ?: return resources.getString(R.string.ui_video_none)
         val codec = PlaybackFormats.video(f.sampleMimeType, f.codecs)
-        val hdr = PlaybackFormats.hdr(f.sampleMimeType, f.codecs, f.colorInfo?.colorTransfer, hdr10Plus, unknown)
+        val hdr = resources.getString(PlaybackFormats.hdr(f.sampleMimeType, f.codecs, f.colorInfo?.colorTransfer, hdr10Plus, unknown))
         val fps = if (f.frameRate > 0) String.format(Locale.US, "%.3f fps", f.frameRate).replace(".000", "") else null
         val rate = f.bitrate.takeIf { it > 0 }?.let { String.format(Locale.US, "%.1f Mbps", it / 1_000_000.0) }
-        return "Video: " + listOfNotNull(codec, "${f.width}×${f.height}", fps, hdr, rate).joinToString(" · ") +
-            (decoder?.let { "\n  decoder $it" } ?: "")
+        return resources.getString(R.string.ui_video ,listOfNotNull(codec, "${f.width}×${f.height}", fps, hdr, rate).joinToString(" · ")) +
+            (decoder?.let {resources.getString(R.string.ui_decoder ,it)} ?: "")
     }
 
     /** A sound format's name, e.g. "Dolby TrueHD" or "DTS-HD". */
@@ -404,8 +406,8 @@ object Playback {
         else -> PlaybackFormats.audio(f.sampleMimeType) ?: f.sampleMimeType ?: "?"
     }
 
-    fun describeAudio(f: Format?, decoder: String?): String {
-        f ?: return "Audio: none"
+    fun describeAudio(resources:android.content.res.Resources,f: Format?, decoder: String?): String {
+        f ?: return resources.getString(R.string.ui_audio_none)
         val mime = f.sampleMimeType
         val codec = when (mime) {
             MimeTypes.AUDIO_TRUEHD -> "Dolby TrueHD"
@@ -426,19 +428,19 @@ object Playback {
         )
         // Passthrough skips the decoder, so an encoded format with no decoder means bitstream output.
         val output = when {
-            decoder == null && encoded -> "passthrough (bitstream to receiver)"
-            decoder != null && decoder.contains("ffmpeg", true) -> "decoded by FFmpeg to PCM"
-            decoder != null -> "decoded by $decoder to PCM"
+            decoder == null && encoded -> resources.getString(R.string.ui_passthrough_bitstream_to_receiver)
+            decoder != null && decoder.contains("ffmpeg", true) -> resources.getString(R.string.ui_decoded_by_ffmpeg_to_pcm)
+            decoder != null -> resources.getString(R.string.ui_decoded_by_to_pcm ,decoder)
             else -> null
         }
         val ch = when (f.channelCount) {
             8 -> "7.1"
             6 -> "5.1"
             2 -> "2.0"
-            1 -> "mono"
+            1 -> resources.getString(R.string.ui_mono_68caaf)
             else -> if (f.channelCount > 0) "${f.channelCount} ch" else null
         }
-        return "Audio: " + listOfNotNull(codec, ch, f.language?.uppercase(), f.label).joinToString(" · ") +
+        return resources.getString(R.string.ui_audio_0a429f ,listOfNotNull(codec, ch, f.language?.uppercase(), f.label).joinToString(" · ")) +
             (output?.let { "\n  $it" } ?: "")
     }
 }

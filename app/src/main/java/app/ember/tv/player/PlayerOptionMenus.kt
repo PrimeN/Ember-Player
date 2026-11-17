@@ -2,6 +2,7 @@ package app.ember.tv.player
 
 import app.ember.tv.R
 import android.widget.Toast
+import app.ember.player.localized
 import androidx.media3.common.C
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
@@ -71,7 +72,7 @@ internal fun PlayerActivity.passthrough(): Boolean {
 internal fun PlayerActivity.speedLabel(x: Float) = if (x == 1f) getString(R.string.pl_normal) else String.format(Locale.US, "%.3f", x).trimEnd('0').trimEnd('.') + "×"
 
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
-internal fun PlayerActivity.boostLabel(i: Int) = if (i == 0) getString(R.string.ui_off) else "+${boosts[i] / 100} dB"
+internal fun PlayerActivity.boostLabel(i: Int) = if (i == 0) getString(R.string.ui_off) else resources.getString(R.string.ui_db_024cae ,(boosts[i] / 100).toString())
 
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.delayLabel(ms: Int) = when {
@@ -127,39 +128,39 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
                     "zoom" -> optionRows("video").firstOrNull {it.title==getString(R.string.pl_zoom)}
                     "decoder" -> optionRows("video").firstOrNull {it.title==getString(R.string.pl_video_decoder)}
                     "delay" -> optionRows("audio").firstOrNull {it.title==getString(R.string.pl_delay)}
-                    "effects" -> OptionRow("Audio effects",icon=MenuIcons.audio,action={openMenu("options","audio")})
+                    "effects" -> OptionRow(resources.getString(R.string.ui_audio_effects),icon=MenuIcons.audio,action={openMenu("options","audio")})
                     "chapters" -> optionRows("playback").firstOrNull {it.title==getString(R.string.pl_chapters)}
-                    "queue" -> fileQueue?.let {OptionRow("Queue",icon=MenuIcons.more,action={showFileQueue()})}
+                    "queue" -> fileQueue?.let {OptionRow(resources.getString(R.string.ui_queue),icon=MenuIcons.more,action={showFileQueue()})}
                     else -> null
                 }
             }.forEach(::add)
-            add(OptionRow("All player options",icon=MenuIcons.more,action={openMenu("options","playback")}))
-            add(OptionRow("Customize shortcuts",icon=MenuIcons.more,action={editPlayerShortcuts()}))
-            add(OptionRow("Lock playback",action={closeMenu();touchControls?.setLocked(true)}))
+            add(OptionRow(resources.getString(R.string.ui_all_player_options),icon=MenuIcons.more,action={openMenu("options","playback")}))
+            add(OptionRow(resources.getString(R.string.ui_customize_shortcuts),icon=MenuIcons.more,action={editPlayerShortcuts()}))
+            add(OptionRow(resources.getString(R.string.ui_lock_playback),action={closeMenu();touchControls?.setLocked(true)}))
         }
         "video" -> buildList {
             val engines=listOf("auto","standard","compatibility")
-            add(OptionRow("Playback engine",if(playbackEngine?.compatibility!=null)"Compatibility" else "Standard",listOf("Automatic","Standard","Compatibility"),engines.indexOf(config.engine),onPick={i -> config=config.copy(engine=engines[i]);prefs.playbackConfig=config;playbackEngine?.mode(engines[i])}))
+            add(OptionRow(resources.getString(R.string.ui_playback_engine),if(playbackEngine?.compatibility!=null)resources.getString(R.string.ui_compatibility) else resources.getString(R.string.ui_standard),listOf(resources.getString(R.string.ui_automatic),resources.getString(R.string.ui_standard),resources.getString(R.string.ui_compatibility)),engines.indexOf(config.engine),onPick={i -> config=config.copy(engine=engines[i]);prefs.playbackConfig=config;playbackEngine?.mode(engines[i])}))
             addAll(pictureOptionRows())
             playbackEngine?.compatibility?.let { native ->
                 val pictureConfig=PictureProfiles.effective(config,resumeKey)
-                add(OptionRow("Compatibility decoder profile",native.decoderProfileLabel,NativeDecoderProfile.choices.map {it.second},NativeDecoderProfile.choices.indexOfFirst {it.first==NativeDecoderProfile.normalized(config.compatibilityDecoder)},
-                    note="Lighter software decoding skips some deblocking to reduce CPU work. Explicit track rules and manual decoder choices take priority.",onPick={index->config=config.copy(compatibilityDecoder=NativeDecoderProfile.choices[index].first);prefs.playbackConfig=config;native.decoderProfile(config.compatibilityDecoder,config.hi10pFallback);changed()}))
-                add(OptionRow("Automatic Hi10P fallback",toggle=config.hi10pFallback,note="Uses full-quality software decoding for detected 10-bit H.264 on NVIDIA Shield in Automatic mode.",action={config=config.copy(hi10pFallback=!config.hi10pFallback);prefs.playbackConfig=config;native.decoderProfile(config.compatibilityDecoder,config.hi10pFallback);changed()}))
+                add(OptionRow(resources.getString(R.string.ui_compatibility_decoder_profile),native.decoderProfileLabel,NativeDecoderProfile.choices.localized(resources).map {it.second},NativeDecoderProfile.choices.localized(resources).indexOfFirst {it.first==NativeDecoderProfile.normalized(config.compatibilityDecoder)},
+                    note=resources.getString(R.string.ui_lighter_software_decoding_skips_some_deblocking_to_reduce_cpu),onPick={index->config=config.copy(compatibilityDecoder=NativeDecoderProfile.choices.localized(resources)[index].first);prefs.playbackConfig=config;native.decoderProfile(config.compatibilityDecoder,config.hi10pFallback);changed()}))
+                add(OptionRow(resources.getString(R.string.ui_automatic_hi10p_fallback),toggle=config.hi10pFallback,note=resources.getString(R.string.ui_uses_full_quality_software_decoding_for_detected_10_bit),action={config=config.copy(hi10pFallback=!config.hi10pFallback);prefs.playbackConfig=config;native.decoderProfile(config.compatibilityDecoder,config.hi10pFallback);changed()}))
                 val deinterlaceModes=listOf("off","auto","always")
-                add(OptionRow("Deinterlacing",listOf("Off","Automatic","Always")[deinterlaceModes.indexOf(config.deinterlacing).coerceAtLeast(0)],listOf("Off","Automatic","Always"),deinterlaceModes.indexOf(config.deinterlacing).coerceAtLeast(0),
-                    note="Automatic handles interlaced video. Always is for streams detected incorrectly. Uses more processing; leave Off for progressive video.",
+                add(OptionRow(resources.getString(R.string.ui_deinterlacing),listOf(resources.getString(R.string.ui_off),resources.getString(R.string.ui_automatic),resources.getString(R.string.ui_always))[deinterlaceModes.indexOf(config.deinterlacing).coerceAtLeast(0)],listOf(resources.getString(R.string.ui_off),resources.getString(R.string.ui_automatic),resources.getString(R.string.ui_always)),deinterlaceModes.indexOf(config.deinterlacing).coerceAtLeast(0),
+                    note=resources.getString(R.string.ui_automatic_handles_interlaced_video_always_is_for_streams_detected),
                     onPick={config=config.copy(deinterlacing=deinterlaceModes[it]);prefs.playbackConfig=config;applyEffectivePicture()}))
                 // On/off settings are switches that flip on OK (#105).
-                add(OptionRow("Debanding",toggle=pictureConfig.deband,action={changePictureState {it.copy(deband=!it.deband)}}))
-                add(OptionRow("Frame smoothing",toggle=pictureConfig.interpolation,note="Uses more graphics processing. Turn off if playback slows.",action={changePictureState {it.copy(interpolation=!it.interpolation)}}))
+                add(OptionRow(resources.getString(R.string.ui_debanding),toggle=pictureConfig.deband,action={changePictureState {it.copy(deband=!it.deband)}}))
+                add(OptionRow(resources.getString(R.string.ui_frame_smoothing),toggle=pictureConfig.interpolation,note=resources.getString(R.string.ui_uses_more_graphics_processing_turn_off_if_playback_slows),action={changePictureState {it.copy(interpolation=!it.interpolation)}}))
                 val scales=listOf("bilinear","bicubic","lanczos")
-                if(!pictureConfig.picture.enabled || !pictureConfig.picture.upscaling)add(OptionRow("Upscaling",pictureConfig.scaler,scales,scales.indexOf(pictureConfig.scaler).coerceAtLeast(0),onPick={index->changePictureState {it.copy(scaler=scales[index])}}))
+                if(!pictureConfig.picture.enabled || !pictureConfig.picture.upscaling)add(OptionRow(resources.getString(R.string.ui_upscaling),pictureConfig.scaler,scales,scales.indexOf(pictureConfig.scaler).coerceAtLeast(0),onPick={index->changePictureState {it.copy(scaler=scales[index])}}))
             }
             val z = zooms.indexOfFirst { it.first == currentZoom() }.coerceAtLeast(0)
             add(OptionRow(getString(R.string.pl_zoom), zooms[z].second, zooms.map { it.second }, z, onPick = { i -> changeZoom(zooms[i].first) }))
             add(OptionRow(getString(R.string.pl_aspect_ratio), aspects[aspect].first, aspects.map { it.first }, aspect, onPick = { i -> aspect = i;persistGeometry();applyAspect() }))
-            if(!privatePlayback)add(OptionRow("Remember geometry for this media",toggle=GeometryMemory.selected(config,resumeKey)!=null,note="Save aspect ratio, picture fit and magnification for this item.",action={toggleGeometryMemory()}))
+            if(!privatePlayback)add(OptionRow(resources.getString(R.string.ui_remember_geometry_for_this_media),toggle=GeometryMemory.selected(config,resumeKey)!=null,note=resources.getString(R.string.ui_save_aspect_ratio_picture_fit_and_magnification_for_this),action={toggleGeometryMemory()}))
             val ff = playbackEngine?.compatibility?.softwareVideo ?: codecs.ffmpegVideo
             add(
                 OptionRow(
@@ -181,109 +182,109 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
         "playback" -> buildList {
             val timer=app.ember.tv.data.SleepTimer.state.value
             val remaining=timer.remaining(android.os.SystemClock.elapsedRealtime())
-            val timerOptions=listOf("Off","15 minutes","30 minutes","60 minutes","90 minutes","End of item")
-            add(OptionRow("Sleep timer",if(timer.endOfItem)"End of item" else if(remaining>0)"${(remaining+59999)/60000} min remaining" else "Off",timerOptions,if(timer.endOfItem)5 else 0,onPick={i->
+            val timerOptions=listOf(resources.getString(R.string.ui_off),resources.getString(R.string.ui_15_minutes),resources.getString(R.string.ui_30_minutes),resources.getString(R.string.ui_60_minutes),resources.getString(R.string.ui_90_minutes),resources.getString(R.string.ui_end_of_item))
+            add(OptionRow(resources.getString(R.string.ui_sleep_timer),if(timer.endOfItem)resources.getString(R.string.ui_end_of_item) else if(remaining>0)resources.getString(R.string.ui_min_remaining ,((remaining+59999)/60000).toString()) else resources.getString(R.string.ui_off),timerOptions,if(timer.endOfItem)5 else 0,onPick={i->
                 when(i){0->app.ember.tv.data.SleepTimer.cancel();5->app.ember.tv.data.SleepTimer.atEnd();else->app.ember.tv.data.SleepTimer.after(listOf(0,15,30,60,90)[i])};changed()
             }))
 
             if(exports.permitted()) {
-                if(audioUrl==null)add(OptionRow("Cast to a receiver",action={openCasting()}))
-                add(OptionRow("Save screenshot",action={exports.screenshot()}))
+                if(audioUrl==null)add(OptionRow(resources.getString(R.string.ui_cast_to_a_receiver),action={openCasting()}))
+                add(OptionRow(resources.getString(R.string.ui_save_screenshot),action={exports.screenshot()}))
 
-                    add(OptionRow("Mark clip start",clips.startMs?.let(::clock).orEmpty(),action={clips.markStart();changed()}))
-                    add(OptionRow("Mark clip end",clips.endMs?.let(::clock).orEmpty(),action={if(!clips.markEnd())Toast.makeText(this@optionRows,"Mark the start, then seek at least one second ahead.",Toast.LENGTH_SHORT).show();changed()}))
-                    if(clips.active)add(OptionRow("Cancel clip export",clips.progress?.let {"$it%"}.orEmpty(),action={clips.cancel();changed()}))
-                    else add(OptionRow("Export clip",note="MP4 using device encoders · original kept",action={clips.chooseDestination()}))
+                    add(OptionRow(resources.getString(R.string.ui_mark_clip_start),clips.startMs?.let(::clock).orEmpty(),action={clips.markStart();changed()}))
+                    add(OptionRow(resources.getString(R.string.ui_mark_clip_end),clips.endMs?.let(::clock).orEmpty(),action={if(!clips.markEnd())Toast.makeText(this@optionRows,resources.getString(R.string.ui_mark_the_start_then_seek_at_least_one_second),Toast.LENGTH_SHORT).show();changed()}))
+                    if(clips.active)add(OptionRow(resources.getString(R.string.ui_cancel_clip_export),clips.progress?.let {"$it%"}.orEmpty(),action={clips.cancel();changed()}))
+                    else add(OptionRow(resources.getString(R.string.ui_export_clip),note=resources.getString(R.string.ui_mp4_using_device_encoders_original_kept),action={clips.chooseDestination()}))
 
             }
-            add(OptionRow("Lock playback",note="Use the unlock button or Back to restore controls.",action={closeMenu();touchControls?.setLocked(true)}))
+            add(OptionRow(resources.getString(R.string.ui_lock_playback),note=resources.getString(R.string.ui_use_the_unlock_button_or_back_to_restore_controls),action={closeMenu();touchControls?.setLocked(true)}))
             if (chapters.isNotEmpty()) {
                 val pos = p.currentPosition
                 val cur = chapters.indexOfLast { it.startMs <= pos }.coerceAtLeast(0)
                 add(OptionRow(getString(R.string.pl_chapters), clock(chapters[cur].startMs), chapters.map { clock(it.startMs) + "   " + it.name }, cur, onPick = { i -> p.seekTo(chapters[i].startMs) }))
             }
             add(speedRow)
-            add(OptionRow("Custom playback speed",speedLabel(speed),action={closeMenu();customPlaybackSpeed()}))
+            add(OptionRow(resources.getString(R.string.ui_custom_playback_speed),speedLabel(speed),action={closeMenu();customPlaybackSpeed()}))
             if(p.duration>0 && p.isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM))
-                add(OptionRow("Go to time",clock(p.currentPosition),action={closeMenu();goToPlaybackTime()}))
+                add(OptionRow(resources.getString(R.string.ui_go_to_time),clock(p.currentPosition),action={closeMenu();goToPlaybackTime()}))
             if(p.isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM) &&
                 p.currentTracks.groups.any {it.type==C.TRACK_TYPE_VIDEO})
-                add(OptionRow("Frame inspection","Paused · precise frames",note="Uses Compatibility playback and leaves the video paused.",action={closeMenu();inspectFrames()}))
-            add(OptionRow("Seeking",if(SeekPreference.fast(config.seekMode))"Fast / nearby keyframe" else "Precise",listOf("Precise","Fast / nearby keyframe"),if(SeekPreference.fast(config.seekMode))1 else 0,
-                note="Resume positions and chapter/intro jumps stay precise.",onPick={config=config.copy(seekMode=if(it==1)"fast" else "precise");prefs.playbackConfig=config}))
+                add(OptionRow(resources.getString(R.string.ui_frame_inspection),resources.getString(R.string.ui_paused_precise_frames),note=resources.getString(R.string.ui_uses_compatibility_playback_and_leaves_the_video_paused),action={closeMenu();inspectFrames()}))
+            add(OptionRow(resources.getString(R.string.ui_seeking),if(SeekPreference.fast(config.seekMode))resources.getString(R.string.ui_fast_nearby_keyframe) else resources.getString(R.string.ui_precise),listOf(resources.getString(R.string.ui_precise),resources.getString(R.string.ui_fast_nearby_keyframe)),if(SeekPreference.fast(config.seekMode))1 else 0,
+                note=resources.getString(R.string.ui_resume_positions_and_chapter_intro_jumps_stay_precise),onPick={config=config.copy(seekMode=if(it==1)"fast" else "precise");prefs.playbackConfig=config}))
 
-                add(OptionRow("Bookmarks",action={showBookmarks()}))
+                add(OptionRow(resources.getString(R.string.ui_bookmarks),action={showBookmarks()}))
                 val modes=listOf("off","one","all");val mode=fileQueue?.repeat ?: if(p.repeatMode==Player.REPEAT_MODE_ONE)"one" else "off"
-                val labels=if(fileQueue!=null)listOf("Off","Repeat item","Repeat queue") else listOf("Off","Repeat item")
-                add(OptionRow("Repeat",labels.getOrElse(modes.indexOf(mode)){"Off"},labels,modes.indexOf(mode).coerceAtLeast(0),onPick={i->if(fileQueue!=null)fileQueue!!.repeat=modes[i] else p.repeatMode=if(i==1)Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF}))
-                add(OptionRow("Set repeat start",repeatRange.start?.let { clock(it) }.orEmpty(),action={repeatRange.markStart(p.currentPosition);changed()}))
-                if(repeatRange.start!=null)add(OptionRow("Set repeat end",repeatRange.end?.let { clock(it) }.orEmpty(),action={if(!repeatRange.markEnd(p.currentPosition))Toast.makeText(this@optionRows,"Choose an end at least one second after the start.",Toast.LENGTH_SHORT).show();subtitleTicker.refresh();changed()}))
-                if(repeatRange.start!=null)add(OptionRow("Clear repeat range",action={repeatRange.clear();subtitleTicker.refresh();changed()}))
+                val labels=if(fileQueue!=null)listOf(resources.getString(R.string.ui_off),resources.getString(R.string.ui_repeat_item),resources.getString(R.string.ui_repeat_queue)) else listOf(resources.getString(R.string.ui_off),resources.getString(R.string.ui_repeat_item))
+                add(OptionRow(resources.getString(R.string.ui_repeat),labels.getOrElse(modes.indexOf(mode)){resources.getString(R.string.ui_off)},labels,modes.indexOf(mode).coerceAtLeast(0),onPick={i->if(fileQueue!=null)fileQueue!!.repeat=modes[i] else p.repeatMode=if(i==1)Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF}))
+                add(OptionRow(resources.getString(R.string.ui_set_repeat_start),repeatRange.start?.let { clock(it) }.orEmpty(),action={repeatRange.markStart(p.currentPosition);changed()}))
+                if(repeatRange.start!=null)add(OptionRow(resources.getString(R.string.ui_set_repeat_end),repeatRange.end?.let { clock(it) }.orEmpty(),action={if(!repeatRange.markEnd(p.currentPosition))Toast.makeText(this@optionRows,resources.getString(R.string.ui_choose_an_end_at_least_one_second_after_the),Toast.LENGTH_SHORT).show();subtitleTicker.refresh();changed()}))
+                if(repeatRange.start!=null)add(OptionRow(resources.getString(R.string.ui_clear_repeat_range),action={repeatRange.clear();subtitleTicker.refresh();changed()}))
                 fileQueue?.let {q->
-                    add(OptionRow("Shuffle",toggle=q.shuffle,action={q.shuffle=!q.shuffle;refreshControlsTitle();changed()}))
-                    if(q.items.none {it.identity?.startsWith(DirectUsbIdentity.PREFIX)==true})add(OptionRow("Save queue as playlist",action={saveFilePlaylist()}))
-                    add(OptionRow("Queue","${q.index+1} of ${q.items.size}",action={showFileQueue()}))
-                    add(OptionRow("Add files to queue",action={pickFile("queue")}))
+                    add(OptionRow(resources.getString(R.string.ui_shuffle),toggle=q.shuffle,action={q.shuffle=!q.shuffle;refreshControlsTitle();changed()}))
+                    if(q.items.none {it.identity?.startsWith(DirectUsbIdentity.PREFIX)==true})add(OptionRow(resources.getString(R.string.ui_save_queue_as_playlist),action={saveFilePlaylist()}))
+                    add(OptionRow(resources.getString(R.string.ui_queue),resources.getString(R.string.ui_of ,(q.index+1).toString(),q.items.size.toString()),action={showFileQueue()}))
+                    add(OptionRow(resources.getString(R.string.ui_add_files_to_queue),action={pickFile("queue")}))
                 }
 
         }
         "audio" -> buildList {
-            add(OptionRow("Night listening",NightListening.choices.firstOrNull {it.first==config.audioEffects.compression}?.second ?: "Off",NightListening.choices.map {it.second},NightListening.choices.indexOfFirst {it.first==config.audioEffects.compression}.coerceAtLeast(0),note="Decoded audio only. Reduces loud effects relative to dialogue; passthrough stays untouched.",onPick={index->changeAudioEffects(config.audioEffects.copy(compression=NightListening.choices[index].first))}))
+            add(OptionRow(resources.getString(R.string.ui_night_listening),NightListening.choices.localized(resources).firstOrNull {it.first==config.audioEffects.compression}?.second ?: resources.getString(R.string.ui_off),NightListening.choices.localized(resources).map {it.second},NightListening.choices.localized(resources).indexOfFirst {it.first==config.audioEffects.compression}.coerceAtLeast(0),note=resources.getString(R.string.ui_decoded_audio_only_reduces_loud_effects_relative_to_dialogue),onPick={index->changeAudioEffects(config.audioEffects.copy(compression=NightListening.choices.localized(resources)[index].first))}))
             add(audioRow)
-            add(OptionRow("Load audio file", "Whole-title soundtrack · compatibility playback", action={pickFile("audio")}))
+            add(OptionRow(resources.getString(R.string.ui_load_audio_file), resources.getString(R.string.ui_whole_title_soundtrack_compatibility_playback), action={pickFile("audio")}))
             add(boostRow)
-            val effectNote=if(pass || playbackEngine?.compatibility?.audioEffectsAvailable==false) "Passthrough is unchanged. Use decoded output to apply effects to this track." else "Decoded audio only; boosts reserve headroom to reduce clipping."
-            add(OptionRow("Equalizer",AudioEffects.presets.firstOrNull {it.first==config.audioEffects.preset}?.second ?: "Off / flat",AudioEffects.presets.map {it.second},AudioEffects.presets.indexOfFirst {it.first==config.audioEffects.preset},note=effectNote,
-                onPick={changeAudioEffects(config.audioEffects.copy(preset=AudioEffects.presets[it].first))}))
-            add(OptionRow("Equalizer bands", "10 bands · −12 to +12 dB", note=effectNote, action={editEqualizer()}))
+            val effectNote=if(pass || playbackEngine?.compatibility?.audioEffectsAvailable==false) resources.getString(R.string.ui_passthrough_is_unchanged_use_decoded_output_to_apply_effects) else resources.getString(R.string.ui_decoded_audio_only_boosts_reserve_headroom_to_reduce_clipping)
+            add(OptionRow(resources.getString(R.string.ui_equalizer),AudioEffects.presets.localized(resources).firstOrNull {it.first==config.audioEffects.preset}?.second ?: resources.getString(R.string.ui_off_flat),AudioEffects.presets.localized(resources).map {it.second},AudioEffects.presets.localized(resources).indexOfFirst {it.first==config.audioEffects.preset},note=effectNote,
+                onPick={changeAudioEffects(config.audioEffects.copy(preset=AudioEffects.presets.localized(resources)[it].first))}))
+            add(OptionRow(resources.getString(R.string.ui_equalizer_bands), resources.getString(R.string.ui_10_bands_12_to_12_db), note=effectNote, action={editEqualizer()}))
             val bassLevels=listOf(0,2,4,6)
-            add(OptionRow("Bass",if(config.audioEffects.bass==0)"Off" else "+${config.audioEffects.bass} dB",bassLevels.map {if(it==0)"Off" else "+$it dB"},bassLevels.indexOf(config.audioEffects.bass),note=effectNote,
+            add(OptionRow(resources.getString(R.string.ui_bass),if(config.audioEffects.bass==0)resources.getString(R.string.ui_off) else resources.getString(R.string.ui_db_024cae ,config.audioEffects.bass.toString()),bassLevels.map {if(it==0)resources.getString(R.string.ui_off) else resources.getString(R.string.ui_db_024cae ,it.toString())},bassLevels.indexOf(config.audioEffects.bass),note=effectNote,
                 onPick={changeAudioEffects(config.audioEffects.copy(bass=bassLevels[it]))}))
-            add(OptionRow("Treble", "+${config.audioEffects.treble} dB", bassLevels.map {"+$it dB"}, bassLevels.indexOf(config.audioEffects.treble).coerceAtLeast(0), note=effectNote,
+            add(OptionRow(resources.getString(R.string.ui_treble), resources.getString(R.string.ui_db_024cae ,config.audioEffects.treble.toString()), bassLevels.map {resources.getString(R.string.ui_db_024cae ,it.toString())}, bassLevels.indexOf(config.audioEffects.treble).coerceAtLeast(0), note=effectNote,
                 onPick={changeAudioEffects(config.audioEffects.copy(treble=bassLevels[it]))}))
             val widths=listOf(0,50,100,125,150,175,200)
-            add(OptionRow("Stereo width", "${config.audioEffects.stereoWidth}%", widths.map {"$it%"}, widths.indexOf(config.audioEffects.stereoWidth).let {if(it>=0)it else 2}, note=effectNote,
+            add(OptionRow(resources.getString(R.string.ui_stereo_width), "${config.audioEffects.stereoWidth}%", widths.map {"$it%"}, widths.indexOf(config.audioEffects.stereoWidth).let {if(it>=0)it else 2}, note=effectNote,
                 onPick={changeAudioEffects(config.audioEffects.copy(stereoWidth=widths[it]))}))
-            add(OptionRow("Audio channels",AudioEffects.channelChoices.firstOrNull {it.first==config.audioEffects.channels}?.second.orEmpty(),AudioEffects.channelChoices.map {it.second},AudioEffects.channelChoices.indexOfFirst {it.first==config.audioEffects.channels},note=effectNote,
-                onPick={changeAudioEffects(config.audioEffects.copy(channels=AudioEffects.channelChoices[it].first))}))
+            add(OptionRow(resources.getString(R.string.ui_audio_channels),AudioEffects.channelChoices.localized(resources).firstOrNull {it.first==config.audioEffects.channels}?.second.orEmpty(),AudioEffects.channelChoices.localized(resources).map {it.second},AudioEffects.channelChoices.localized(resources).indexOfFirst {it.first==config.audioEffects.channels},note=effectNote,
+                onPick={changeAudioEffects(config.audioEffects.copy(channels=AudioEffects.channelChoices.localized(resources)[it].first))}))
             val ms = (audioDelay.us / 1000).toInt()
             val di = delays.indices.minByOrNull { kotlin.math.abs(delays[it] - ms) } ?: 10
             add(
-                OptionRow(getString(R.string.pl_delay), (if(bluetoothOutput)"Bluetooth · " else "") + delayLabel(ms), delays.map { delayLabel(it) }, di,
+                OptionRow(getString(R.string.pl_delay), (if(bluetoothOutput)resources.getString(R.string.ui_bluetooth) else "") + delayLabel(ms), delays.map { delayLabel(it) }, di,
                     note = getString(R.string.pl_lip_sync_later_sound_fixes_a),
                     onPick = { i -> audioDelay.us = delays[i] * 1000L; playbackEngine?.compatibility?.audioDelay(delays[i].toLong()); updateSoundLabel() }),
             )
             if (ms != config.outputDelay(bluetoothOutput)) add(OptionRow(getString(R.string.pl_keep_delay), action = { keepSound(); changed() }))
         }
         "subtitles" -> buildList {
-            add(OptionRow("Subtitle style presets",action={closeMenu();manageSubtitlePresets()}))
+            add(OptionRow(resources.getString(R.string.ui_subtitle_style_presets),action={closeMenu();manageSubtitlePresets()}))
             add(subRow)
-            add(OptionRow("Load subtitle file", "SRT, VTT, ASS, TTML, SUP or IDX + SUB",action={pickFile("sub")}))
-            add(OptionRow("Nearby subtitle files",action={findNearbySubtitles()}))
-            add(OptionRow("Choose subtitle folder",action={pickSubtitleFolder()}))
-            add(OptionRow("Reload saved subtitle",action={restoreManualSubtitle(notify=true)}))
+            add(OptionRow(resources.getString(R.string.ui_load_subtitle_file), resources.getString(R.string.ui_srt_vtt_ass_ttml_sup_or_idx_sub),action={pickFile("sub")}))
+            add(OptionRow(resources.getString(R.string.ui_nearby_subtitle_files),action={findNearbySubtitles()}))
+            add(OptionRow(resources.getString(R.string.ui_choose_subtitle_folder),action={pickSubtitleFolder()}))
+            add(OptionRow(resources.getString(R.string.ui_reload_saved_subtitle),action={restoreManualSubtitle(notify=true)}))
             playbackEngine?.compatibility?.let { native ->
                 val options=p.currentTracks.groups.filter {it.type==C.TRACK_TYPE_TEXT&&!it.isSelected}
                 val ids=listOf<Int?>(null)+options.map {it.mediaTrackGroup.id.substringAfterLast(':').toInt()}
-                val labels=listOf("Off")+options.map { val f=it.getTrackFormat(0);listOfNotNull(f.language?.let(app.ember.tv.data.Subtitles::languageName),f.label).joinToString(" · ") }
-                add(OptionRow("Secondary subtitles",labels.getOrElse(ids.indexOf(native.secondaryId)){"Off"},labels,ids.indexOf(native.secondaryId).coerceAtLeast(0),onPick={native.secondary(ids[it])}))
-                add(OptionRow("Secondary timing","Adjust separately",subShifts.map {String.format(Locale.US,"%+.2f s",it/1000.0)},20,onPick={native.secondaryDelay(subShifts[it])}))
-            } ?: add(OptionRow("Dual subtitles","Use compatibility playback",action={playbackEngine?.switch();changed()}))
+                val labels=listOf(resources.getString(R.string.ui_off))+options.map { val f=it.getTrackFormat(0);listOfNotNull(f.language?.let(app.ember.tv.data.Subtitles::languageName),f.label).joinToString(" · ") }
+                add(OptionRow(resources.getString(R.string.ui_secondary_subtitles),labels.getOrElse(ids.indexOf(native.secondaryId)){resources.getString(R.string.ui_off)},labels,ids.indexOf(native.secondaryId).coerceAtLeast(0),onPick={native.secondary(ids[it])}))
+                add(OptionRow(resources.getString(R.string.ui_secondary_timing),resources.getString(R.string.ui_adjust_separately),subShifts.map {String.format(Locale.US,resources.getString(R.string.ui_2f_s),it/1000.0)},20,onPick={native.secondaryDelay(subShifts[it])}))
+            } ?: add(OptionRow(resources.getString(R.string.ui_dual_subtitles),resources.getString(R.string.ui_use_compatibility_playback),action={playbackEngine?.switch();changed()}))
             val subtitleSpeeds=listOf(0.95904f,0.96f,1f,1.001f,1.041667f,1.042709f)
             val subSpeed=if(subsInitialized)subs.engine.speed else 1f
-            add(OptionRow("Subtitle speed",String.format(Locale.US,"%.3f×",subSpeed),subtitleSpeeds.map {String.format(Locale.US,"%.3f×",it)},subtitleSpeeds.indexOf(subSpeed).coerceAtLeast(0),onPick={val value=subtitleSpeeds[it];subs.engine.speed=value;p.subtitleSpeed=value;playbackEngine?.compatibility?.subtitleSpeed(value)}))
+            add(OptionRow(resources.getString(R.string.ui_subtitle_speed),String.format(Locale.US,"%.3f×",subSpeed),subtitleSpeeds.map {String.format(Locale.US,"%.3f×",it)},subtitleSpeeds.indexOf(subSpeed).coerceAtLeast(0),onPick={val value=subtitleSpeeds[it];subs.engine.speed=value;p.subtitleSpeed=value;playbackEngine?.compatibility?.subtitleSpeed(value)}))
             val off = if (subsInitialized) subs.engine.offsetMs else 0L
             val si = subShifts.indices.minByOrNull { kotlin.math.abs(subShifts[it] - off) } ?: 20
             add(
-                OptionRow(getString(R.string.pl_timing), String.format(Locale.US, "%+.2f s", off / 1000.0), subShifts.map { String.format(Locale.US, "%+.2f s", it / 1000.0) }, si,
+                OptionRow(getString(R.string.pl_timing), String.format(Locale.US, resources.getString(R.string.ui_2f_s), off / 1000.0), subShifts.map { String.format(Locale.US, resources.getString(R.string.ui_2f_s), it / 1000.0) }, si,
                     note = getString(R.string.pl_for_downloaded_subtitles_positive_the_text),
                     onPick = { i -> if (subsInitialized) { subs.engine.offsetMs = subShifts[i]; p.subtitleDelayMilliseconds = subShifts[i]; playbackEngine?.compatibility?.subtitleDelay(subShifts[i]); refreshSubtitlePanel() } }),
             )
             val c = prefs.subtitleConfig
-            add(OptionRow("Read subtitles aloud",toggle=c.assistance.readAloud,note="Uses an installed offline voice only.",action={applySubLook(c.copy(assistance=c.assistance.copy(readAloud=!c.assistance.readAloud)))}))
-            add(OptionRow("Translate subtitles",toggle=c.assistance.translate,note="Choose installed languages in Settings > Subtitles > Offline subtitle assistance. No cloud service or model downloads.",action={
+            add(OptionRow(resources.getString(R.string.ui_read_subtitles_aloud),toggle=c.assistance.readAloud,note=resources.getString(R.string.ui_uses_an_installed_offline_voice_only),action={applySubLook(c.copy(assistance=c.assistance.copy(readAloud=!c.assistance.readAloud)))}))
+            add(OptionRow(resources.getString(R.string.ui_translate_subtitles),toggle=c.assistance.translate,note=resources.getString(R.string.ui_choose_installed_languages_in_settings_subtitles_offline_subtitle_assistance),action={
                 if(c.assistance.translate || c.assistance.source.isNotBlank()&&c.assistance.target.isNotBlank())applySubLook(c.copy(assistance=c.assistance.copy(translate=!c.assistance.translate)))
-                else Toast.makeText(this@optionRows,"Choose installed translation languages in subtitle settings first.",Toast.LENGTH_LONG).show()
+                else Toast.makeText(this@optionRows,resources.getString(R.string.ui_choose_installed_translation_languages_in_subtitle_settings_first),Toast.LENGTH_LONG).show()
             }))
             fun look(title: String, opts: List<Pair<String, String>>, cur: String, set: (String) -> app.ember.tv.data.SubtitleConfig) {
                 val i = opts.indexOfFirst { it.first == cur }.coerceAtLeast(0)
@@ -293,21 +294,22 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
             look(getString(R.string.pl_position), subPositions, c.position) { c.copy(position = it) }
             look(getString(R.string.pl_style), subLooks, c.background) { c.copy(background = it) }
 
-            look("Font",app.ember.tv.data.SubtitleFonts.options.filter {it.first!="custom" || app.ember.tv.data.SubtitleFonts.hasCustom(this@optionRows)},c.font){c.copy(font=it)}
-            look("Text color",listOf("white" to "White","yellow" to "Yellow","green" to "Green","cyan" to "Cyan"),c.color){c.copy(color=it,layout=c.layout.copy(foreground=""))}
-            val encodings=app.ember.tv.data.SubtitleEncodings.options
+            look(resources.getString(R.string.ui_font),app.ember.tv.data.SubtitleFonts.options.localized(resources).filter {it.first!="custom" || app.ember.tv.data.SubtitleFonts.hasCustom(this@optionRows)},c.font){c.copy(font=it)}
+            look(resources.getString(R.string.ui_text_color),listOf("white" to resources.getString(R.string.ui_white),"yellow" to resources.getString(R.string.ui_yellow),"green" to resources.getString(R.string.ui_green),"cyan" to resources.getString(R.string.ui_cyan)),c.color){c.copy(color=it,layout=c.layout.copy(foreground=""))}
+            val encodings=app.ember.tv.data.SubtitleEncodings.options.localized(resources)
             val encodingIndex=encodings.indexOfFirst {it.first==c.encoding}.coerceAtLeast(0)
-            add(OptionRow("Text encoding",encodings[encodingIndex].second,encodings.map {it.second},encodingIndex,
-                note="Changes apply to files loaded next. Reload the saved subtitle to apply now.",onPick={applySubLook(c.copy(encoding=encodings[it].first))}))
+            add(OptionRow(resources.getString(R.string.ui_text_encoding),encodings[encodingIndex].second,encodings.map {it.second},encodingIndex,
+                note=resources.getString(R.string.ui_changes_apply_to_files_loaded_next_reload_the_saved),onPick={applySubLook(c.copy(encoding=encodings[it].first))}))
             val scales=listOf(50,75,100,125,150,175,200)
-            add(OptionRow("Text scale","${c.layout.scalePercent}%",scales.map {"$it%"},scales.indexOf(c.layout.scalePercent).coerceAtLeast(0),onPick={applySubLook(c.copy(layout=c.layout.copy(scalePercent=scales[it])))}))
+            add(OptionRow(resources.getString(R.string.ui_text_scale),"${c.layout.scalePercent}%",scales.map {"$it%"},scales.indexOf(c.layout.scalePercent).coerceAtLeast(0),onPick={applySubLook(c.copy(layout=c.layout.copy(scalePercent=scales[it])))}))
             val alignments=listOf("auto","left","center","right")
-            add(OptionRow("Alignment",c.layout.alignment,alignments,alignments.indexOf(c.layout.alignment).coerceAtLeast(0),note="Custom alignment and spacing use compatibility playback. Authored and system caption styles take priority.",onPick={applySubLook(c.copy(layout=c.layout.copy(alignment=alignments[it])))}))
+            val alignmentNames=listOf(resources.getString(R.string.ui_automatic),resources.getString(R.string.ui_left),resources.getString(R.string.ui_center),resources.getString(R.string.ui_right))
+            add(OptionRow(resources.getString(R.string.ui_alignment),alignmentNames[alignments.indexOf(c.layout.alignment).coerceAtLeast(0)],alignmentNames,alignments.indexOf(c.layout.alignment).coerceAtLeast(0),note=resources.getString(R.string.ui_custom_alignment_and_spacing_use_compatibility_playback_authored_and),onPick={applySubLook(c.copy(layout=c.layout.copy(alignment=alignments[it])))}))
             val spacing=listOf(-2f,0f,1f,2f,4f,6f,10f)
-            add(OptionRow("Letter spacing",c.layout.letterSpacing.toString(),spacing.map {it.toString()},spacing.indexOf(c.layout.letterSpacing).coerceAtLeast(0),onPick={applySubLook(c.copy(layout=c.layout.copy(letterSpacing=spacing[it])))}))
+            add(OptionRow(resources.getString(R.string.ui_letter_spacing),c.layout.letterSpacing.toString(),spacing.map {it.toString()},spacing.indexOf(c.layout.letterSpacing).coerceAtLeast(0),onPick={applySubLook(c.copy(layout=c.layout.copy(letterSpacing=spacing[it])))}))
             val lines=listOf(-5f,0f,2f,5f,10f,15f,20f)
-            add(OptionRow("Line spacing",c.layout.lineSpacing.toString(),lines.map {it.toString()},lines.indexOf(c.layout.lineSpacing).coerceAtLeast(0),onPick={applySubLook(c.copy(layout=c.layout.copy(lineSpacing=lines[it])))}))
-            add(OptionRow("More appearance options",note="Custom colors, font import, outline and default timing are in Settings > Subtitles."))
+            add(OptionRow(resources.getString(R.string.ui_line_spacing),c.layout.lineSpacing.toString(),lines.map {it.toString()},lines.indexOf(c.layout.lineSpacing).coerceAtLeast(0),onPick={applySubLook(c.copy(layout=c.layout.copy(lineSpacing=lines[it])))}))
+            add(OptionRow(resources.getString(R.string.ui_more_appearance_options),note=resources.getString(R.string.ui_custom_colors_font_import_outline_and_default_timing_are)))
             add(OptionRow(getString(R.string.pl_get_more), action = { closeMenu(); showInfo() }))
         }
         else -> emptyList()

@@ -1,5 +1,7 @@
 package app.ember.player
 
+import app.ember.tv.R
+
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -14,7 +16,7 @@ class OpenMediaActivity:ComponentActivity() {
         super.onCreate(savedInstanceState)
         val uri=intent.data
         if(uri==null || !ExternalMedia.allowed(uri.toString())) {
-            Toast.makeText(this,"Choose a media file or a supported stream URL.",Toast.LENGTH_LONG).show();finish();return
+            Toast.makeText(this,resources.getString(R.string.ui_choose_a_media_file_or_a_supported_stream_url),Toast.LENGTH_LONG).show();finish();return
         }
         if(PrivateMedia.hidden(uri.toString())&&!PrivateMedia.unlocked.value) {
             window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
@@ -25,12 +27,12 @@ class OpenMediaActivity:ComponentActivity() {
         try {
             val next=Intent(this,PlayerActivity::class.java).setData(uri)
                 .putExtra(PlayRequest.EXTRA_URL,uri.toString())
-                .putExtra(PlayRequest.EXTRA_RESUME_KEY,app.ember.tv.player.QueueMedia(uri.toString(),"Media").key)
+                .putExtra(PlayRequest.EXTRA_RESUME_KEY,app.ember.tv.player.QueueMedia(uri.toString(),resources.getString(R.string.ui_media)).key)
                 .putExtra(PlayRequest.EXTRA_TITLE,intent.getStringExtra("title")?.take(180) ?: uri.lastPathSegment?.take(180) ?: "Media")
             next.clipData=intent.clipData
             next.addFlags(intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION)
             startActivity(next)
-        } catch(_:Exception){Toast.makeText(this,"Could not open this media.",Toast.LENGTH_LONG).show()}
+        } catch(_:Exception){Toast.makeText(this,resources.getString(R.string.ui_could_not_open_this_media),Toast.LENGTH_LONG).show()}
         finish()
     }
 }

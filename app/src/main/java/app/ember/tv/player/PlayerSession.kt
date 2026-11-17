@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 
@@ -41,7 +43,7 @@ internal fun PlayerActivity.start(url: String, title: String, release: String?) 
     aspect=geometry?.aspect ?: 0;touchMagnification=geometry?.magnification ?: 1f
     touchControls?.restoreMagnification(touchMagnification)
     applyZoom();applyAspect()
-    usbWatch?.close();usbWatch=UsbMedia.watch(this,url){android.widget.Toast.makeText(this,"USB drive disconnected",android.widget.Toast.LENGTH_LONG).show();endPlayback()}
+    usbWatch?.close();usbWatch=UsbMedia.watch(this,url){android.widget.Toast.makeText(this,resources.getString(R.string.ui_usb_drive_disconnected),android.widget.Toast.LENGTH_LONG).show();endPlayback()}
     privatePlayback=app.ember.player.PrivateMedia.hidden(url)
     if(privatePlayback){
         if(!app.ember.player.PrivateMedia.unlocked.value){endPlayback();return}
@@ -110,10 +112,10 @@ internal fun PlayerActivity.askToLeave() {
     if (leaveDialog?.isShowing == true) return
     val p = player ?: return
     val name = controls.title.ifBlank { if (itemInitialized) item.title else "" }
-    val where = playbackDuration(p).takeIf { it > 0 }?.let { "${time(p.currentPosition)} of ${time(it)}" }
-    leaveDialog = showPlayerActions("Stop watching?", listOf(
-        PlayerDialogAction("Keep watching", Icons.Outlined.PlayArrow) {},
-        PlayerDialogAction("Stop", Icons.Outlined.StopCircle, destructive = true) { endPlayback() },
+    val where = playbackDuration(p).takeIf { it > 0 }?.let { resources.getString(R.string.ui_of ,time(p.currentPosition),time(it)) }
+    leaveDialog = showPlayerActions(resources.getString(R.string.ui_stop_watching), listOf(
+        PlayerDialogAction(resources.getString(R.string.ui_keep_watching), Icons.Outlined.PlayArrow) {},
+        PlayerDialogAction(resources.getString(R.string.ui_stop), Icons.Outlined.StopCircle, destructive = true) { endPlayback() },
     ), message = listOfNotNull(name.takeIf { it.isNotBlank() }, where).joinToString(" · ").ifBlank { null },
         cancel = { endPlayback() })
 }

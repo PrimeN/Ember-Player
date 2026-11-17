@@ -1,12 +1,14 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import kotlin.math.*
 
 internal data class CompressionPreset(val thresholdDb:Double,val ratio:Double,val makeupDb:Double) {
     fun filter()="acompressor=threshold=${10.0.pow(thresholdDb/20)}:ratio=$ratio:attack=5:release=250:makeup=${10.0.pow(makeupDb/20)}:knee=2.828427:link=maximum:detection=peak"
 }
 internal object NightListening {
-    val choices=listOf("off" to "Off","gentle" to "Gentle compression","night" to "Night listening")
+    val choices=listOf("off" to R.string.ui_off,"gentle" to R.string.ui_gentle_compression,"night" to R.string.ui_night_listening)
     fun preset(mode:String):CompressionPreset?=when(mode){"gentle"->CompressionPreset(-18.0,2.0,3.0);"night"->CompressionPreset(-24.0,4.0,6.0);else->null}
 }
 /** Linked channels preserve the sound image. No additional buffering or lookahead latency. */

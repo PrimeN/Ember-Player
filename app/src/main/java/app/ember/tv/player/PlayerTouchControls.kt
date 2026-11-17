@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.app.Activity
 import android.content.Context
 import android.content.pm.ActivityInfo
@@ -82,7 +84,7 @@ internal class PlayerTouchControls(
         accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
     }
     private val unlock = Button(activity).apply {
-        text = "Unlock playback"; isAllCaps = false; textSize = 14f
+        text = activity.resources.getString(R.string.ui_unlock_playback); isAllCaps = false; textSize = 14f
         setTextColor(Color.WHITE); background = pill(); visibility = View.GONE
         setPadding(dp(18), dp(8), dp(18), dp(8)); minHeight = dp(48)
         setOnClickListener { setLocked(false) }
@@ -102,11 +104,11 @@ internal class PlayerTouchControls(
             when(TouchActions.action(cfg,region)) {
                 "play_pause"->host.togglePlayback()
                 "controls"->host.toggleControls()
-                "previous","next"->if(!host.skipItem(TouchActions.action(cfg,region)=="next"))showHint("No file in that direction")
+                "previous","next"->if(!host.skipItem(TouchActions.action(cfg,region)=="next"))showHint(activity.resources.getString(R.string.ui_no_file_in_that_direction))
                 "seek"->if(host.seekable) {
                     val delta=TouchPlaybackMath.step(cfg.seekSeconds)*if(region==0)-1 else 1
                     host.seek(TouchPlaybackMath.seek(host.position,delta,host.duration))
-                    showHint("${if(delta<0)"−" else "+"}${abs(delta)/1000} seconds")
+                    showHint(activity.resources.getString(R.string.ui_seconds ,if(delta<0)"−" else "+",(abs(delta)/1000).toString()))
                 }
             }
             return true
@@ -116,7 +118,7 @@ internal class PlayerTouchControls(
             heldSpeed = host.speed
             val value=TouchPlaybackMath.holdSpeed(settings().holdSpeed)
             host.speed = value
-            showHint("${value}× · release to return", sticky = true)
+            showHint(activity.resources.getString(R.string.ui_release_to_return ,value.toString()), sticky = true)
         }
     })
     private val scaling = ScaleGestureDetector(activity, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
@@ -130,14 +132,14 @@ internal class PlayerTouchControls(
                 subtitleScaleFactor*=detector.scaleFactor.takeIf {it.isFinite()&&it>0} ?: 1f
                 subtitlePreview=(subtitlePreview?:initial).copy(scalePercent=SubtitleTouchMath.scale(initial.scalePercent,subtitleScaleFactor))
                 previewSubtitleStyle()
-                showHint("Subtitle size ${subtitlePreview!!.scalePercent}%")
+                showHint(activity.resources.getString(R.string.ui_subtitle_size ,(subtitlePreview!!.scalePercent).toString()))
                 return true
             }
             if (!settings().pinchZoom) return false
             videoScaled=true
             scale = TouchPlaybackMath.zoom(scale, detector.scaleFactor)
             host.magnify(scale)
-            showHint("Zoom ${(scale * 100).roundToInt()}%")
+            showHint(activity.resources.getString(R.string.ui_zoom ,((scale * 100).roundToInt()).toString()))
             return true
         }
     })
@@ -208,8 +210,8 @@ internal class PlayerTouchControls(
                 subtitlePreview=if(axis==1)subtitle.copy(offsetMs=SubtitleTouchMath.timing(subtitle.offsetMs,dx/root.width.coerceAtLeast(1)))
                     else subtitle.copy(bottomMarginPercent=SubtitleTouchMath.position(subtitle.bottomMarginPercent,dy/root.height.coerceAtLeast(1)))
                 previewSubtitleStyle()
-                showHint(if(axis==1)String.format(java.util.Locale.US,"Subtitle timing %+.2f s",subtitlePreview!!.offsetMs/1000.0)
-                    else "Subtitle position ${subtitlePreview!!.bottomMarginPercent}%",sticky=true)
+                showHint(if(axis==1)String.format(java.util.Locale.US,activity.resources.getString(R.string.ui_subtitle_timing_2f_s),subtitlePreview!!.offsetMs/1000.0)
+                    else activity.resources.getString(R.string.ui_subtitle_position ,(subtitlePreview!!.bottomMarginPercent).toString()),sticky=true)
             } else if (axis == 1 && settings().horizontalSeek && host.seekable) {
                 previewPosition = TouchPlaybackMath.swipeSeek(startPosition, dx / root.width.coerceAtLeast(1), host.duration)
                 showHint("${clock(previewPosition)} / ${clock(host.duration)}", sticky = true)
@@ -218,12 +220,12 @@ internal class PlayerTouchControls(
                 if (TouchActions.brightness(downX < root.width / 2f,settings()) && settings().brightnessSwipe) {
                     val level = TouchPlaybackMath.level(startBrightness, fraction, 100).coerceAtLeast(1)
                     activity.window.attributes = activity.window.attributes.apply { screenBrightness = level / 100f }
-                    showHint("Brightness $level%", sticky = true)
+                    showHint(activity.resources.getString(R.string.ui_brightness ,level.toString()), sticky = true)
                 } else if (!TouchActions.brightness(downX < root.width / 2f,settings()) && settings().volumeSwipe && !audio.isVolumeFixed) {
                     val maximum = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                     val level = TouchPlaybackMath.level(startVolume, fraction, maximum)
                     runCatching { audio.setStreamVolume(AudioManager.STREAM_MUSIC, level, 0) }
-                    showHint("Volume ${if (maximum > 0) level * 100 / maximum else 0}%", sticky = true)
+                    showHint(activity.resources.getString(R.string.ui_volume_15d608 ,(if (maximum > 0) level * 100 / maximum else 0).toString()), sticky = true)
                 }
             }
         }
@@ -254,7 +256,7 @@ internal class PlayerTouchControls(
         locked = value
         onLockChanged()
         unlock.visibility = if (value) View.VISIBLE else View.GONE
-        if (value) { host.hideControls(); unlock.requestFocus(); showHint("Playback locked · Back also unlocks") }
+        if (value) { host.hideControls(); unlock.requestFocus(); showHint(activity.resources.getString(R.string.ui_playback_locked_back_also_unlocks)) }
         else host.toggleControls()
     }
 

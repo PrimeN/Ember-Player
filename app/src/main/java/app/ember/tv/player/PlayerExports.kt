@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Handler
@@ -34,9 +36,9 @@ internal class PlayerExports(private val activity:PlayerActivity):java.io.Closea
                 withContext(Dispatchers.IO) {
                     activity.contentResolver.openOutputStream(uri,"wt")?.use {out->out.write(bytes);out.flush()} ?: error("Cannot write screenshot")
                 }
-                if(permitted()&&visit==activity.playbackVisit)message("Screenshot saved") else {remove(uri);message("Screenshot canceled because playback changed.")}
+                if(permitted()&&visit==activity.playbackVisit)message(activity.getString(R.string.ui_screenshot_saved)) else {remove(uri);message(activity.getString(R.string.ui_screenshot_canceled_because_playback_changed))}
             } catch(e:CancellationException){remove(uri);throw e}
-              catch(_:Exception){remove(uri);message("Could not save the screenshot.")}
+              catch(_:Exception){remove(uri);message(activity.getString(R.string.ui_could_not_save_the_screenshot))}
         } else if(uri!=null)remove(uri)
     }
     fun permitted():Boolean = !activity.privatePlayback && !PrivateMedia.hidden(activity.currentUrl.orEmpty()) &&
@@ -44,7 +46,7 @@ internal class PlayerExports(private val activity:PlayerActivity):java.io.Closea
         activity.player?.currentMediaItem?.localConfiguration?.drmConfiguration==null
     fun screenshot() {
         if(closed||job?.isActive==true||image!=null)return
-        if(!permitted()){message("Screenshots are unavailable for protected playback.");return}
+        if(!permitted()){message(activity.getString(R.string.ui_screenshots_are_unavailable_for_protected_playback));return}
         val currentVisit=activity.playbackVisit
         activity.closeMenu()
         job=activity.lifecycleScope.launch {
@@ -57,7 +59,7 @@ internal class PlayerExports(private val activity:PlayerActivity):java.io.Closea
                 activity.pickingSidecar=true
                 destination.launch("Ember-${System.currentTimeMillis()}.png")
             } catch(e:CancellationException){throw e}
-              catch(_:Exception){image=null;source=null;activity.pickingSidecar=false;message("This video surface cannot be captured.")}
+              catch(_:Exception){image=null;source=null;activity.pickingSidecar=false;message(activity.getString(R.string.ui_this_video_surface_cannot_be_captured))}
             finally {frame?.recycle()}
         }
     }

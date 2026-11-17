@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.content.Context
 import android.opengl.GLES20
 import androidx.media3.common.*
@@ -32,7 +34,7 @@ internal object StandardPictureEffects {
 @androidx.annotation.OptIn(UnstableApi::class)
 internal class PictureDetailEffect(private val gamma:Int,private val sharpness:Int):GlEffect {
     override fun toGlShaderProgram(context:Context,useHdr:Boolean):GlShaderProgram {
-        if(useHdr)throw VideoFrameProcessingException("Picture detail processing requires SDR")
+        if(useHdr)throw VideoFrameProcessingException(context.resources.getString(R.string.ui_picture_detail_processing_requires_sdr))
         return object:BaseGlShaderProgram(false,1) {
             private val program=try {GlProgram(VERTEX,FRAGMENT).apply {
                 setBufferAttribute("aPosition",GlUtil.getNormalizedCoordinateBounds(),4)

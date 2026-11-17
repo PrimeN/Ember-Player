@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.app.PendingIntent
 import android.content.*
 import android.hardware.usb.UsbManager
@@ -20,6 +22,8 @@ import me.jahnen.libaums.core.fs.UsbFile
 
 @Composable
 internal fun DirectUsbPanel(activity:ComponentActivity,refresh:Int) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     val scope=rememberCoroutineScope()
     val manager=remember {activity.getSystemService(UsbManager::class.java)}
     var devices by remember {mutableStateOf<List<UsbMassStorageDevice>>(emptyList())}
@@ -34,7 +38,7 @@ internal fun DirectUsbPanel(activity:ComponentActivity,refresh:Int) {
     fun operation(action:suspend ()->Unit) {
         if(busy)return
         busy=true;notice=null
-        scope.launch {try {action()}catch(e:CancellationException){throw e}catch(_:Exception){notice=app.ember.player.PlayerFeedback("USB access failed. Check the drive and permission. FAT32 is supported; use Android's mounted-drive browser for other formats.")}finally{busy=false}}
+        scope.launch {try {action()}catch(e:CancellationException){throw e}catch(_:Exception){notice=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_usb_access_failed_check_the_drive_and_permission_fat32))}finally{busy=false}}
     }
     fun connect(device:UsbMassStorageDevice)=operation {
         var opened:DirectUsbSession?=null
@@ -49,7 +53,7 @@ internal fun DirectUsbPanel(activity:ComponentActivity,refresh:Int) {
     DisposableEffect(Unit) {
         val receiver=object:BroadcastReceiver(){override fun onReceive(context:Context,intent:Intent) {
             val device=pending ?: return;pending=null
-            if(manager.hasPermission(device.usbDevice))connect(device) else notice=app.ember.player.PlayerFeedback("USB permission was not granted.")
+            if(manager.hasPermission(device.usbDevice))connect(device) else notice=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_usb_permission_was_not_granted))
         }}
         ContextCompat.registerReceiver(activity,receiver,IntentFilter(action),ContextCompat.RECEIVER_NOT_EXPORTED)
         onDispose {activity.unregisterReceiver(receiver)}
@@ -59,19 +63,19 @@ internal fun DirectUsbPanel(activity:ComponentActivity,refresh:Int) {
         if(private){session=null;directory=null;files=emptyList();devices=emptyList()}
         else try {devices=withContext(Dispatchers.IO){UsbMassStorageDevice.getMassStorageDevices(activity).toList()}}
         catch(e:CancellationException){throw e}
-        catch(_:Exception){notice=app.ember.player.PlayerFeedback("Could not list connected USB drives.")}
+        catch(_:Exception){notice=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_could_not_list_connected_usb_drives))}
     }
     val opened=session
     if(opened!=null) {
         val connected by opened.connected.collectAsState()
-        LaunchedEffect(connected){if(!connected){notice=app.ember.player.PlayerFeedback("USB drive disconnected",false);session=null;directory=null;files=emptyList()}}
+        LaunchedEffect(connected){if(!connected){notice=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_usb_drive_disconnected),false);session=null;directory=null;files=emptyList()}}
     }
     LaunchedEffect(session,directory) {
         val current=session ?: return@LaunchedEffect
         val folder=directory ?: return@LaunchedEffect
         try {files=withContext(Dispatchers.IO){current.files(folder)};offset=0}
         catch(e:CancellationException){throw e}
-        catch(_:Exception){files=emptyList();notice=app.ember.player.PlayerFeedback("This folder is unavailable.")}
+        catch(_:Exception){files=emptyList();notice=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_this_folder_is_unavailable))}
     }
     fun play(chosen:List<UsbFile>)=operation {
         val current=session ?: return@operation
@@ -88,27 +92,27 @@ internal fun DirectUsbPanel(activity:ComponentActivity,refresh:Int) {
             MediaFiles.launch(activity,queue,listOf(relay,lease))
         } catch(e:Exception){relay.close();lease.close();throw e}
     }
-    app.ember.player.PlayerSection("Direct USB") {
-        if(private){Text("Use the mounted-drive or saved-folder browser while private media is enabled, so protected files keep their Android document identities.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall);return@PlayerSection}
-        Text("Read-only FAT32 browsing, including files Android has not indexed. Drive access is requested only when you select one.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+    app.ember.player.PlayerSection(uiResources.getString(R.string.ui_direct_usb)) {
+        if(private){Text(uiResources.getString(R.string.ui_use_the_mounted_drive_or_saved_folder_browser_while),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall);return@PlayerSection}
+        Text(uiResources.getString(R.string.ui_read_only_fat32_browsing_including_files_android_has_not),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
         if(session==null) {
-            Chip(if(busy)"Checking drives…" else "Refresh USB drives"){operation {devices=withContext(Dispatchers.IO){UsbMassStorageDevice.getMassStorageDevices(activity).toList()};if(devices.isEmpty())notice=app.ember.player.PlayerFeedback("No supported USB mass-storage drive found.",false)}}
-            devices.forEach {device->Chip(device.usbDevice.productName ?: "USB drive") {
+            Chip(if(busy)uiResources.getString(R.string.ui_checking_drives) else uiResources.getString(R.string.ui_refresh_usb_drives)){operation {devices=withContext(Dispatchers.IO){UsbMassStorageDevice.getMassStorageDevices(activity).toList()};if(devices.isEmpty())notice=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_no_supported_usb_mass_storage_drive_found),false)}}
+            devices.forEach {device->Chip(device.usbDevice.productName ?: uiResources.getString(R.string.ui_usb_drive)) {
                 if(!busy) {
                     if(manager.hasPermission(device.usbDevice))connect(device)
                     else {pending=device;manager.requestPermission(device.usbDevice,PendingIntent.getBroadcast(activity,device.usbDevice.deviceId,Intent(action).setPackage(activity.packageName),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))}
                 }
             }}
         } else if(directory==null) {
-            session!!.roots.forEachIndexed {index,root->Chip("Partition ${index+1}"){directory=root}}
-            Chip("Close browser"){session=null;files=emptyList()}
+            session!!.roots.forEachIndexed {index,root->Chip(uiResources.getString(R.string.ui_partition ,(index+1).toString())){directory=root}}
+            Chip(uiResources.getString(R.string.ui_close_browser)){session=null;files=emptyList()}
         } else {
             Text(directory!!.name,maxLines=1,style=androidx.tv.material3.MaterialTheme.typography.bodyMedium)
             ButtonRow {
-                Chip("Back"){directory=directory?.parent;files=emptyList();offset=0}
-                if(offset>0)Chip("Previous page"){offset=(offset-100).coerceAtLeast(0)}
-                if(offset+100<files.size)Chip("Next page"){offset+=100}
-                Chip("Play folder"){play(files.filter {!it.isDirectory&&it.length>0})}
+                Chip(uiResources.getString(R.string.ui_back)){directory=directory?.parent;files=emptyList();offset=0}
+                if(offset>0)Chip(uiResources.getString(R.string.ui_previous_page)){offset=(offset-100).coerceAtLeast(0)}
+                if(offset+100<files.size)Chip(uiResources.getString(R.string.ui_next_page)){offset+=100}
+                Chip(uiResources.getString(R.string.ui_play_folder)){play(files.filter {!it.isDirectory&&it.length>0})}
             }
             LazyColumn(Modifier.fillMaxWidth().heightIn(max=440.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
                 items(files.drop(offset).take(100),key={it.absolutePath}) {file->app.ember.player.PlayerFileRow(file.name,file.isDirectory) {

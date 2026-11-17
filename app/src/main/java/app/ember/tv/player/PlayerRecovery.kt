@@ -17,7 +17,7 @@ import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 internal fun PlayerActivity.mediaSourceFactory(factory: androidx.media3.datasource.DataSource.Factory)=DefaultMediaSourceFactory(factory)
 
 @OptIn(UnstableApi::class)
-internal fun PlayerActivity.describe(f: androidx.media3.common.Format?) = PlaybackErrors.describe(f)
+internal fun PlayerActivity.describe(f: androidx.media3.common.Format?) = PlaybackErrors.describe(resources,f)
 
 @OptIn(UnstableApi::class)
 /**
@@ -59,14 +59,14 @@ internal fun PlayerActivity.recover(e: PlaybackException): Boolean {
         codecs.pcm=true
         val was=p.playWhenReady;val at=p.currentPosition
         p.stop();p.seekTo(at);p.playWhenReady=was
-        message="Trying PCM audio output"
+        message=resources.getString(R.string.ui_trying_pcm_audio_output)
     } else {
         val height=format?.height?.takeIf { it>0 } ?: p.videoFormat?.height ?: 2160
         val hdr=(format ?: p.videoFormat)?.colorInfo?.colorTransfer.let { it==C.COLOR_TRANSFER_ST2084 || it==C.COLOR_TRANSFER_HLG }
         val next=decoderRecovery.next(audio,if(audio)config.ffmpeg!="off" else config.ffmpegVideo!="off",audio || height<=1080 && !hdr) ?: return false
         val mode=if(next=="ffmpeg")DecoderMode.FFMPEG else DecoderMode.SOFTWARE
         if(audio)decoderManager.selectAudioDecoder(mode) else { decoderManager.selectVideoDecoder(mode);codecs.ffmpegVideo=mode==DecoderMode.FFMPEG }
-        message=if(audio)"Trying another audio decoder" else "Trying another video decoder"
+        message=if(audio)resources.getString(R.string.ui_trying_another_audio_decoder) else resources.getString(R.string.ui_trying_another_video_decoder)
     }
     recoveries++
     Toast.makeText(this, message, Toast.LENGTH_SHORT).show()

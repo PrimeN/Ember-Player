@@ -1,5 +1,7 @@
 package app.ember.player
 
+import app.ember.tv.R
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -77,8 +79,10 @@ internal fun PlayerIconAction(label:String,icon:ImageVector,modifier:Modifier=Mo
 
 @Composable
 internal fun PlayerHeading(title:String,modifier:Modifier=Modifier,back:(()->Unit)?=null,actions:@Composable RowScope.()->Unit={}) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     Row(modifier.fillMaxWidth().heightIn(min=64.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-        if(back!=null)PlayerIconAction("Back",Icons.AutoMirrored.Outlined.ArrowBack,onClick=back) else PlayerBrandMark(36.dp)
+        if(back!=null)PlayerIconAction(uiResources.getString(R.string.ui_back),Icons.AutoMirrored.Outlined.ArrowBack,onClick=back) else PlayerBrandMark(36.dp)
         Text(title,Modifier.weight(1f).semantics {heading()},style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.SemiBold,maxLines=1,overflow=TextOverflow.Ellipsis)
         actions()
     }

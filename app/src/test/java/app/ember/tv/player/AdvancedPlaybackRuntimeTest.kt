@@ -71,10 +71,10 @@ class AdvancedPlaybackRuntimeTest {
     }
     @Test fun hdrDiagnosticsUseActualCodecProfileAndKeepUnreportedValuesHonest() {
         val dv=Format.Builder().setSampleMimeType(MimeTypes.VIDEO_DOLBY_VISION).setCodecs("dvhe.07.06").build()
-        assertTrue(HdrDiagnostics.source(dv).contains("profile 7"))
-        assertTrue(HdrDiagnostics.source(dv.buildUpon().setCodecs(null).build()).contains("not reported"))
-        assertEquals("Not reported",HdrDiagnostics.source(null))
+        assertTrue(HdrDiagnostics.source(org.robolectric.RuntimeEnvironment.getApplication().resources,dv).contains("profile 7"))
+        assertTrue(HdrDiagnostics.source(org.robolectric.RuntimeEnvironment.getApplication().resources,dv.buildUpon().setCodecs(null).build()).contains("not reported"))
+        assertEquals("Not reported",HdrDiagnostics.source(org.robolectric.RuntimeEnvironment.getApplication().resources,null))
         assertFalse(HdrDiagnostics.isSdrTransfer(null));assertFalse(HdrDiagnostics.isSdrTransfer("pq"));assertFalse(HdrDiagnostics.isSdrTransfer("hlg"));assertTrue(HdrDiagnostics.isSdrTransfer("bt.1886"))
-        assertEquals("SDR to HDR · experimental",HdrDiagnostics.requested(HdrOutput(expand=true)))
+        assertEquals("SDR to HDR · experimental",HdrDiagnostics.requested(org.robolectric.RuntimeEnvironment.getApplication().resources,HdrOutput(expand=true)))
     }
 }

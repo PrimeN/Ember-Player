@@ -102,26 +102,53 @@ data class SubtitleCandidate(
 object Subtitles {
     // ---- languages ----
 
-    /** ISO 639-1 → (ISO 639-2 for OpenSubtitles v3, English name). */
-    private val LANGS = linkedMapOf(
-        "en" to ("eng" to "English"), "fr" to ("fre" to "French"), "es" to ("spa" to "Spanish"),
-        "de" to ("ger" to "German"), "it" to ("ita" to "Italian"), "pt" to ("por" to "Portuguese"),
-        "pt-BR" to ("pob" to "Portuguese (Brazil)"), "nl" to ("dut" to "Dutch"), "pl" to ("pol" to "Polish"),
-        "ru" to ("rus" to "Russian"), "uk" to ("ukr" to "Ukrainian"), "tr" to ("tur" to "Turkish"),
-        "ar" to ("ara" to "Arabic"), "fa" to ("per" to "Persian"), "he" to ("heb" to "Hebrew"),
-        "hi" to ("hin" to "Hindi"), "ja" to ("jpn" to "Japanese"), "ko" to ("kor" to "Korean"),
-        "zh" to ("chi" to "Chinese"), "zh-TW" to ("zht" to "Chinese (traditional)"), "vi" to ("vie" to "Vietnamese"),
-        "th" to ("tha" to "Thai"), "id" to ("ind" to "Indonesian"), "ms" to ("may" to "Malay"),
-        "sv" to ("swe" to "Swedish"), "no" to ("nor" to "Norwegian"), "da" to ("dan" to "Danish"),
-        "fi" to ("fin" to "Finnish"), "el" to ("ell" to "Greek"), "hu" to ("hun" to "Hungarian"),
-        "cs" to ("cze" to "Czech"), "sk" to ("slo" to "Slovak"), "ro" to ("rum" to "Romanian"),
-        "bg" to ("bul" to "Bulgarian"), "hr" to ("hrv" to "Croatian"), "sr" to ("scc" to "Serbian"),
-        "sl" to ("slv" to "Slovenian"), "et" to ("est" to "Estonian"), "lv" to ("lav" to "Latvian"),
-        "lt" to ("lit" to "Lithuanian"),
+    /** Provider language aliases; display names come from the current locale. */
+    private val LANGS=linkedMapOf(
+        "en" to "eng",
+        "fr" to "fre",
+        "es" to "spa",
+        "de" to "ger",
+        "it" to "ita",
+        "pt" to "por",
+        "pt-BR" to "pob",
+        "nl" to "dut",
+        "pl" to "pol",
+        "ru" to "rus",
+        "uk" to "ukr",
+        "tr" to "tur",
+        "ar" to "ara",
+        "fa" to "per",
+        "he" to "heb",
+        "hi" to "hin",
+        "ja" to "jpn",
+        "ko" to "kor",
+        "zh" to "chi",
+        "zh-TW" to "zht",
+        "vi" to "vie",
+        "th" to "tha",
+        "id" to "ind",
+        "ms" to "may",
+        "sv" to "swe",
+        "no" to "nor",
+        "da" to "dan",
+        "fi" to "fin",
+        "el" to "ell",
+        "hu" to "hun",
+        "cs" to "cze",
+        "sk" to "slo",
+        "ro" to "rum",
+        "bg" to "bul",
+        "hr" to "hrv",
+        "sr" to "scc",
+        "sl" to "slv",
+        "et" to "est",
+        "lv" to "lav",
+        "lt" to "lit"
     )
-    val LANGUAGE_CHOICES: List<Pair<String, String>> = LANGS.map { (k, v) -> k to v.second }
+    val LANGUAGE_CHOICES:List<Pair<String,String>> get()=LANGS.keys.map {it to languageName(it)}
 
     private val alias = mapOf(
+        "chinese (traditional)" to "zh-TW",
         "fra" to "fr", "deu" to "de", "nld" to "nl", "ces" to "cs", "slk" to "sk", "ron" to "ro", "fas" to "fa",
         "zho" to "zh", "msa" to "ms", "gre" to "el", "srp" to "sr", "pb" to "pt-BR", "ze" to "zh", "pt-pt" to "pt",
     )
@@ -131,13 +158,13 @@ object Subtitles {
         val c = code.orEmpty().trim()
         if (c.isEmpty()) return "und"
         LANGS.keys.firstOrNull { it.equals(c, true) }?.let { return it }
-        LANGS.entries.firstOrNull { it.value.first.equals(c, true) || it.value.second.equals(c, true) }?.let { return it.key }
+        LANGS.entries.firstOrNull { it.value.equals(c, true) || java.util.Locale.forLanguageTag(it.key).getDisplayName(java.util.Locale.ENGLISH).equals(c,true) }?.let { return it.key }
         alias[c.lowercase()]?.let { return it }
         val two = c.lowercase().take(2)
         return LANGS.keys.firstOrNull { it == two } ?: c.lowercase()
     }
 
-    fun languageName(code: String): String = LANGS[code]?.second ?: code.uppercase()
+    fun languageName(code:String,locale:java.util.Locale=java.util.Locale.getDefault()):String = if(code in LANGS)java.util.Locale.forLanguageTag(code).getDisplayName(locale) else code.uppercase(locale)
 
     /** The languages to look for: the user's list, or the TV's language (plus English when that is not English). */
     fun wanted(c: SubtitleConfig): List<String> {

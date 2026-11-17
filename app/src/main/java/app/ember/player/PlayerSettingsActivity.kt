@@ -1,5 +1,7 @@
 package app.ember.player
 
+import app.ember.tv.R
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -40,159 +42,171 @@ class PlayerSettingsActivity:ComponentActivity() {
 @Composable
 private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:PlaybackConfig,subtitles:SubtitleConfig,
     update:((PlaybackConfig)->PlaybackConfig)->Unit,captions:((SubtitleConfig)->SubtitleConfig)->Unit,refresh:()->Unit,scope:CoroutineScope) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     when(id) {
-        "playback"->PlayerSection(PlayerUiLabels.PLAYBACK) {
-            PlayerChoice("Controls",PlayerInterfaces.options,PlayerInterfaces.resolve(config,"modern")){v->update {it.copy(playerInterface=v)}}
-            PlayerChoice("Playback engine",listOf("auto" to "Automatic","standard" to "Standard","compatibility" to "Compatibility"),config.engine){v->update {it.copy(engine=v)}}
-            PlayerChoice("Resume",listOf("ask" to "Ask","resume" to "Resume automatically","start" to "Start over"),config.resume){v->update {it.copy(resume=v)}}
-            PlayerChoice("Seeking",listOf("precise" to "Precise","fast" to "Fast keyframes"),config.seekMode){v->update {it.copy(seekMode=v)}}
-            PlayerChoice("Buffer",listOf("normal" to "Normal","large" to "Large","huge" to "Huge"),config.buffer){v->update {it.copy(buffer=v,stream=it.stream.copy(custom=false))}}
-            SwitchChip("Remember working decoders",config.rememberDecoderChoices){update {it.copy(rememberDecoderChoices=!it.rememberDecoderChoices)}}
-            Chip("Reset decoder memory"){DecoderHealth.clear(this@SettingsContent)}
-            SwitchChip("Picture in picture",config.pip){update {it.copy(pip=!it.pip)}}
-            SwitchChip("Background audio",config.backgroundAudio){update {it.copy(backgroundAudio=!it.backgroundAudio)}}
-            Text("Keep sound playing when the screen is off or you switch apps. Picture in picture takes priority when enabled.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
-            SwitchChip("Ask before leaving playback",config.confirmExit){update {it.copy(confirmExit=!it.confirmExit)}}
-            SwitchChip("IntroDB markers",config.introDb){update {it.copy(introDb=!it.introDb)}}
-            PlayerChoice("Skip markers",listOf("button" to "Show skip button","auto" to "Skip automatically","off" to "Off"),config.skipIntro){v->update {it.copy(skipIntro=v)}}
+        "playback"->PlayerSection(uiResources.getString(PlayerUiLabels.PLAYBACK)) {
+            PlayerChoice(uiResources.getString(R.string.ui_controls),PlayerInterfaces.options,PlayerInterfaces.resolve(config,"modern")){v->update {it.copy(playerInterface=v)}}
+            PlayerChoice(uiResources.getString(R.string.ui_playback_engine),listOf("auto" to uiResources.getString(R.string.ui_automatic),"standard" to uiResources.getString(R.string.ui_standard),"compatibility" to uiResources.getString(R.string.ui_compatibility)),config.engine){v->update {it.copy(engine=v)}}
+            PlayerChoice(uiResources.getString(R.string.ui_resume),listOf("ask" to uiResources.getString(R.string.ui_ask),"resume" to uiResources.getString(R.string.ui_resume_automatically),"start" to uiResources.getString(R.string.ui_start_over)),config.resume){v->update {it.copy(resume=v)}}
+            PlayerChoice(uiResources.getString(R.string.ui_seeking),listOf("precise" to uiResources.getString(R.string.ui_precise),"fast" to uiResources.getString(R.string.ui_fast_keyframes)),config.seekMode){v->update {it.copy(seekMode=v)}}
+            PlayerChoice(uiResources.getString(R.string.ui_buffer),listOf("normal" to uiResources.getString(R.string.ui_normal),"large" to uiResources.getString(R.string.ui_large),"huge" to uiResources.getString(R.string.ui_huge)),config.buffer){v->update {it.copy(buffer=v,stream=it.stream.copy(custom=false))}}
+            SwitchChip(uiResources.getString(R.string.ui_remember_working_decoders),config.rememberDecoderChoices){update {it.copy(rememberDecoderChoices=!it.rememberDecoderChoices)}}
+            Chip(uiResources.getString(R.string.ui_reset_decoder_memory)){DecoderHealth.clear(this@SettingsContent)}
+            SwitchChip(uiResources.getString(R.string.ui_picture_in_picture),config.pip){update {it.copy(pip=!it.pip)}}
+            SwitchChip(uiResources.getString(R.string.ui_background_audio),config.backgroundAudio){update {it.copy(backgroundAudio=!it.backgroundAudio)}}
+            Text(uiResources.getString(R.string.ui_keep_sound_playing_when_the_screen_is_off_or),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+            SwitchChip(uiResources.getString(R.string.ui_ask_before_leaving_playback),config.confirmExit){update {it.copy(confirmExit=!it.confirmExit)}}
+            SwitchChip(uiResources.getString(R.string.ui_introdb_markers),config.introDb){update {it.copy(introDb=!it.introDb)}}
+            PlayerChoice(uiResources.getString(R.string.ui_skip_markers),listOf("button" to uiResources.getString(R.string.ui_show_skip_button),"auto" to uiResources.getString(R.string.ui_skip_automatically),"off" to uiResources.getString(R.string.ui_off)),config.skipIntro){v->update {it.copy(skipIntro=v)}}
         }
-        "network"->PlayerSection("Network and buffering") {
+        "network"->PlayerSection(uiResources.getString(R.string.ui_network_and_buffering)) {
             StreamSettings(config){value->update {value}}
         }
-        "sleep"->PlayerSection("Sleep timer") {
+        "sleep"->PlayerSection(uiResources.getString(R.string.ui_sleep_timer)) {
             SleepTimerSettings()
         }
-        "enhancement"->PlayerSection("Picture enhancement") {
+        "enhancement"->PlayerSection(uiResources.getString(R.string.ui_picture_enhancement)) {
             val picture=config.picture
-            SwitchChip("Picture enhancement",picture.enabled){update {it.copy(picture=it.picture.copy(enabled=!it.picture.enabled))}}
-            Text("Enabled by default. GPU processing uses more power; turn it off for longer battery life or if playback stutters. HDR, Dolby Vision, protected and tunneled video keep their supported output path.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
-            SwitchChip("GPU upscaling",picture.upscaling){update {it.copy(picture=it.picture.copy(upscaling=!it.picture.upscaling))}}
-            SwitchChip("Fast upscaling shader",picture.shader){update {it.copy(picture=it.picture.copy(shader=!it.picture.shader))}}
-            Text("Standard uses Lanczos when enlarging video. Compatibility can also use a bundled lightweight shader above 1.2× in both dimensions. No downloads are needed.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
-            PlayerChoice("Picture preset",PictureEnhancement.presets.mapIndexed {i,v->i.toString() to v},PictureEnhancement.presetIndex(picture).takeIf {it>=0}?.toString() ?: "Custom"){v->update {it.copy(picture=PictureEnhancement.preset(v.toInt(),it.picture))}}
+            SwitchChip(uiResources.getString(R.string.ui_picture_enhancement),picture.enabled){update {it.copy(picture=it.picture.copy(enabled=!it.picture.enabled))}}
+            Text(uiResources.getString(R.string.ui_enabled_by_default_gpu_processing_uses_more_power_turn),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+            SwitchChip(uiResources.getString(R.string.ui_gpu_upscaling),picture.upscaling){update {it.copy(picture=it.picture.copy(upscaling=!it.picture.upscaling))}}
+            SwitchChip(uiResources.getString(R.string.ui_fast_upscaling_shader),picture.shader){update {it.copy(picture=it.picture.copy(shader=!it.picture.shader))}}
+            Text(uiResources.getString(R.string.ui_standard_uses_lanczos_when_enlarging_video_compatibility_can_also),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+            PlayerChoice(uiResources.getString(R.string.ui_picture_preset),PictureEnhancement.presets.mapIndexed {i,v->i.toString() to uiResources.getString(v)},PictureEnhancement.presetIndex(picture).takeIf {it>=0}?.toString() ?: uiResources.getString(R.string.ui_custom)){v->update {it.copy(picture=PictureEnhancement.preset(v.toInt(),it.picture))}}
             pictureAdjustments.forEach {adjustment->
-                PlayerChoice(adjustment.label,adjustment.values(picture).map {it.toString() to it.toString()},adjustment.read(picture.normalized()).toString()){v->
+                PlayerChoice(uiResources.getString(adjustment.label),adjustment.values(picture).map {it.toString() to it.toString()},adjustment.read(picture.normalized()).toString()){v->
                     update {it.copy(picture=adjustment.write(it.picture,v.toInt()).normalized())}
                 }
             }
-            Chip("Reset picture adjustments"){update {it.copy(picture=it.picture.copy(brightness=0,contrast=0,saturation=0,gamma=0,hue=0,sharpness=0))}}
+            Chip(uiResources.getString(R.string.ui_reset_picture_adjustments)){update {it.copy(picture=it.picture.copy(brightness=0,contrast=0,saturation=0,gamma=0,hue=0,sharpness=0))}}
         }
-        "profiles"->PlayerSection("Saved picture / shader profiles") {
+        "profiles"->PlayerSection(uiResources.getString(R.string.ui_saved_picture_shader_profiles)) {
             PictureProfileSettings(config){value->update {value}}
         }
-        "hdr"->PlayerSection("HDR output") {
-            PlayerChoice("Compatibility renderer",RendererPolicy.choices,RendererPolicy.normalized(config.renderer)){v->update {it.copy(renderer=v)}}
+        "hdr"->PlayerSection(uiResources.getString(R.string.ui_hdr_output)) {
+            PlayerChoice(uiResources.getString(R.string.ui_compatibility_renderer),RendererPolicy.choices,RendererPolicy.normalized(config.renderer)){v->update {it.copy(renderer=v)}}
             HdrOutputSettings(config.hdrOutput){value->update {it.copy(hdrOutput=value)}}
         }
-        "decoding"->PlayerSection("Video decoding") {
-            PlayerChoice("Software video",listOf("fallback" to "When needed","off" to "Device decoders only","always" to "Always software"),config.ffmpegVideo){v->update {it.copy(ffmpegVideo=v)}}
-            PlayerChoice("Compatibility decoder profile",NativeDecoderProfile.choices,NativeDecoderProfile.normalized(config.compatibilityDecoder)){v->update {it.copy(compatibilityDecoder=v)}}
-            SwitchChip("Automatic Hi10P fallback",config.hi10pFallback){update {it.copy(hi10pFallback=!it.hi10pFallback)}}
-            Text("Compatibility only. Automatic detects NVIDIA Shield 10-bit H.264 and uses full-quality software decoding. Lighter software skips some deblocking for lower CPU load; explicit track rules and manual choices take priority.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
-            PlayerChoice("Frame rate matching",listOf("off" to "Off","seamless" to "Seamless only","always" to "Match video"),config.frameRate){v->update {it.copy(frameRate=v)}}
-            SwitchChip("Match video resolution",config.matchResolution){update {it.copy(matchResolution=!it.matchResolution)}}
-            PlayerChoice("Dolby Vision",listOf("auto" to "Automatic","always" to "Use Dolby Vision","hdr10" to "HDR10 base layer when available"),config.dolbyVision){v->update {it.copy(dolbyVision=v)}}
-            PlayerChoice("Deinterlacing",listOf("off" to "Off","auto" to "Automatic","always" to "Always"),config.deinterlacing){v->update {it.copy(deinterlacing=v)}}
+        "decoding"->PlayerSection(uiResources.getString(R.string.ui_video_decoding)) {
+            PlayerChoice(uiResources.getString(R.string.ui_software_video),listOf("fallback" to uiResources.getString(R.string.ui_when_needed),"off" to uiResources.getString(R.string.ui_device_decoders_only),"always" to uiResources.getString(R.string.ui_always_software)),config.ffmpegVideo){v->update {it.copy(ffmpegVideo=v)}}
+            PlayerChoice(uiResources.getString(R.string.ui_compatibility_decoder_profile),NativeDecoderProfile.choices,NativeDecoderProfile.normalized(config.compatibilityDecoder)){v->update {it.copy(compatibilityDecoder=v)}}
+            SwitchChip(uiResources.getString(R.string.ui_automatic_hi10p_fallback),config.hi10pFallback){update {it.copy(hi10pFallback=!it.hi10pFallback)}}
+            Text(uiResources.getString(R.string.ui_compatibility_only_automatic_detects_nvidia_shield_10_bit_h),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+            PlayerChoice(uiResources.getString(R.string.ui_frame_rate_matching),listOf("off" to uiResources.getString(R.string.ui_off),"seamless" to uiResources.getString(R.string.ui_seamless_only),"always" to uiResources.getString(R.string.ui_match_video)),config.frameRate){v->update {it.copy(frameRate=v)}}
+            SwitchChip(uiResources.getString(R.string.ui_match_video_resolution),config.matchResolution){update {it.copy(matchResolution=!it.matchResolution)}}
+            PlayerChoice(uiResources.getString(R.string.ui_dolby_vision),listOf("auto" to uiResources.getString(R.string.ui_automatic),"always" to uiResources.getString(R.string.ui_use_dolby_vision),"hdr10" to uiResources.getString(R.string.ui_hdr10_base_layer_when_available)),config.dolbyVision){v->update {it.copy(dolbyVision=v)}}
+            PlayerChoice(uiResources.getString(R.string.ui_deinterlacing),listOf("off" to uiResources.getString(R.string.ui_off),"auto" to uiResources.getString(R.string.ui_automatic),"always" to uiResources.getString(R.string.ui_always)),config.deinterlacing){v->update {it.copy(deinterlacing=v)}}
         }
-        "touch"->PlayerSection("Touch and rotation") {
-            Text("Touch gestures apply on phones and tablets. Remote navigation stays available on TVs.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
-            SwitchChip("Touch gestures",config.touch.enabled){update {it.copy(touch=it.touch.copy(enabled=!it.touch.enabled))}}
-            PlayerChoice("Double-tap seek",listOf("5" to "5 seconds","10" to "10 seconds","15" to "15 seconds","30" to "30 seconds","60" to "60 seconds"),config.touch.seekSeconds.toString()){v->update {it.copy(touch=it.touch.copy(seekSeconds=v.toInt()))}}
-            PlayerChoice("Left double-tap",TouchActions.options,config.touch.leftDoubleTap){v->update {it.copy(touch=it.touch.copy(leftDoubleTap=v))}}
-            PlayerChoice("Center double-tap",TouchActions.options,config.touch.centerDoubleTap){v->update {it.copy(touch=it.touch.copy(centerDoubleTap=v))}}
-            PlayerChoice("Right double-tap",TouchActions.options,config.touch.rightDoubleTap){v->update {it.copy(touch=it.touch.copy(rightDoubleTap=v))}}
-            PlayerChoice("Edge tap region",listOf(20,25,30,35,40,45).map {it.toString() to "$it% each side"},config.touch.seekAreaPercent.toString()){v->update {it.copy(touch=it.touch.copy(seekAreaPercent=v.toInt()))}}
-            SwitchChip("Horizontal swipe to seek",config.touch.horizontalSeek){update {it.copy(touch=it.touch.copy(horizontalSeek=!it.touch.horizontalSeek))}}
-            SwitchChip("Swap brightness and volume sides",config.touch.swapBrightnessVolume){update {it.copy(touch=it.touch.copy(swapBrightnessVolume=!it.touch.swapBrightnessVolume))}}
-            SwitchChip("Volume swipe",config.touch.volumeSwipe){update {it.copy(touch=it.touch.copy(volumeSwipe=!it.touch.volumeSwipe))}}
-            SwitchChip("Brightness swipe",config.touch.brightnessSwipe){update {it.copy(touch=it.touch.copy(brightnessSwipe=!it.touch.brightnessSwipe))}}
-            SwitchChip("Pinch to zoom",config.touch.pinchZoom){update {it.copy(touch=it.touch.copy(pinchZoom=!it.touch.pinchZoom))}}
-            SwitchChip("Hold video for temporary speed",config.touch.holdToSpeed){update {it.copy(touch=it.touch.copy(holdToSpeed=!it.touch.holdToSpeed))}}
-            PlayerChoice("Temporary hold speed",listOf("1.25" to "1.25×","1.5" to "1.5×","2.0" to "2×","3.0" to "3×","4.0" to "4×"),config.touch.holdSpeed.toString()){v->update {it.copy(touch=it.touch.copy(holdSpeed=v.toFloat()))}}
-            SwitchChip("Subtitle touch gestures",config.touch.subtitleGestures){update {it.copy(touch=it.touch.copy(subtitleGestures=!it.touch.subtitleGestures))}}
-            Text("With subtitles selected and controls hidden, start in the lower third: swipe sideways for timing, up/down for position, or pinch for text size. System captions keep their own style.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
-            PlayerChoice("Orientation",listOf("auto" to "Follow device setting","sensor" to "Automatic rotation","landscape" to "Landscape","portrait" to "Portrait"),config.touch.orientation){v->update {it.copy(touch=it.touch.copy(orientation=v))}}
-            Text("Tap to show controls. Double-tap the center to pause; double-tap an edge to seek. Swipe horizontally to preview a seek, then release. Playback lock is in the player options; Back unlocks it.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+        "touch"->PlayerSection(uiResources.getString(R.string.ui_touch_and_rotation)) {
+            Text(uiResources.getString(R.string.ui_touch_gestures_apply_on_phones_and_tablets_remote_navigation),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+            SwitchChip(uiResources.getString(R.string.ui_touch_gestures),config.touch.enabled){update {it.copy(touch=it.touch.copy(enabled=!it.touch.enabled))}}
+            PlayerChoice(uiResources.getString(R.string.ui_double_tap_seek),listOf("5" to uiResources.getString(R.string.ui_5_seconds),"10" to uiResources.getString(R.string.ui_10_seconds),"15" to uiResources.getString(R.string.ui_15_seconds),"30" to uiResources.getString(R.string.ui_30_seconds),"60" to uiResources.getString(R.string.ui_60_seconds)),config.touch.seekSeconds.toString()){v->update {it.copy(touch=it.touch.copy(seekSeconds=v.toInt()))}}
+            PlayerChoice(uiResources.getString(R.string.ui_left_double_tap),TouchActions.options,config.touch.leftDoubleTap){v->update {it.copy(touch=it.touch.copy(leftDoubleTap=v))}}
+            PlayerChoice(uiResources.getString(R.string.ui_center_double_tap),TouchActions.options,config.touch.centerDoubleTap){v->update {it.copy(touch=it.touch.copy(centerDoubleTap=v))}}
+            PlayerChoice(uiResources.getString(R.string.ui_right_double_tap),TouchActions.options,config.touch.rightDoubleTap){v->update {it.copy(touch=it.touch.copy(rightDoubleTap=v))}}
+            PlayerChoice(uiResources.getString(R.string.ui_edge_tap_region),listOf(20,25,30,35,40,45).map {it.toString() to uiResources.getString(R.string.ui_each_side ,it.toString())},config.touch.seekAreaPercent.toString()){v->update {it.copy(touch=it.touch.copy(seekAreaPercent=v.toInt()))}}
+            SwitchChip(uiResources.getString(R.string.ui_horizontal_swipe_to_seek),config.touch.horizontalSeek){update {it.copy(touch=it.touch.copy(horizontalSeek=!it.touch.horizontalSeek))}}
+            SwitchChip(uiResources.getString(R.string.ui_swap_brightness_and_volume_sides),config.touch.swapBrightnessVolume){update {it.copy(touch=it.touch.copy(swapBrightnessVolume=!it.touch.swapBrightnessVolume))}}
+            SwitchChip(uiResources.getString(R.string.ui_volume_swipe),config.touch.volumeSwipe){update {it.copy(touch=it.touch.copy(volumeSwipe=!it.touch.volumeSwipe))}}
+            SwitchChip(uiResources.getString(R.string.ui_brightness_swipe),config.touch.brightnessSwipe){update {it.copy(touch=it.touch.copy(brightnessSwipe=!it.touch.brightnessSwipe))}}
+            SwitchChip(uiResources.getString(R.string.ui_pinch_to_zoom),config.touch.pinchZoom){update {it.copy(touch=it.touch.copy(pinchZoom=!it.touch.pinchZoom))}}
+            SwitchChip(uiResources.getString(R.string.ui_hold_video_for_temporary_speed),config.touch.holdToSpeed){update {it.copy(touch=it.touch.copy(holdToSpeed=!it.touch.holdToSpeed))}}
+            PlayerChoice(uiResources.getString(R.string.ui_temporary_hold_speed),listOf("1.25" to "1.25×","1.5" to "1.5×","2.0" to "2×","3.0" to "3×","4.0" to "4×"),config.touch.holdSpeed.toString()){v->update {it.copy(touch=it.touch.copy(holdSpeed=v.toFloat()))}}
+            SwitchChip(uiResources.getString(R.string.ui_subtitle_touch_gestures),config.touch.subtitleGestures){update {it.copy(touch=it.touch.copy(subtitleGestures=!it.touch.subtitleGestures))}}
+            Text(uiResources.getString(R.string.ui_with_subtitles_selected_and_controls_hidden_start_in_the),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+            PlayerChoice(uiResources.getString(R.string.ui_orientation),listOf("auto" to uiResources.getString(R.string.ui_follow_device_setting),"sensor" to uiResources.getString(R.string.ui_automatic_rotation),"landscape" to uiResources.getString(R.string.ui_landscape),"portrait" to uiResources.getString(R.string.ui_portrait)),config.touch.orientation){v->update {it.copy(touch=it.touch.copy(orientation=v))}}
+            Text(uiResources.getString(R.string.ui_tap_to_show_controls_double_tap_the_center_to),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
         }
-        "audio"->PlayerSection(PlayerUiLabels.AUDIO) {
-            PlayerChoice("Night listening",NightListening.choices,config.audioEffects.compression){v->update {it.copy(audioEffects=it.audioEffects.copy(compression=v))}}
-            Text("Dynamic compression reduces loud effects relative to dialogue. Decoded audio only; passthrough stays untouched.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
-            SwitchChip("HDMI passthrough",config.passthrough){update {it.copy(passthrough=!it.passthrough)}}
-            PlayerChoice("Audio decoding",listOf("on" to "Software when needed","prefer" to "Prefer software","off" to "Device decoders only"),config.ffmpeg){v->update {it.copy(ffmpeg=v)}}
-            PlayerChoice("Audio track",listOf("quality" to "Best quality","language" to "Preferred language","default" to "File default"),config.audioPick){v->update {it.copy(audioPick=v)}}
-            Text("Sound delay: ${config.audioDelayMs} ms",style=androidx.tv.material3.MaterialTheme.typography.bodyMedium)
-            ButtonRow {Chip("−25 ms"){update {it.copy(audioDelayMs=(it.audioDelayMs-25).coerceAtLeast(-2000))}};Chip("+25 ms"){update {it.copy(audioDelayMs=(it.audioDelayMs+25).coerceAtMost(2000))}}}
-            Text("Bluetooth delay: ${config.bluetoothDelayMs?.let {"$it ms"} ?: "Use sound delay"}",style=androidx.tv.material3.MaterialTheme.typography.bodyMedium)
-            ButtonRow {Chip("−25 ms"){update {it.copy(bluetoothDelayMs=((it.bluetoothDelayMs ?: it.audioDelayMs)-25).coerceAtLeast(-2000))}};Chip("+25 ms"){update {it.copy(bluetoothDelayMs=((it.bluetoothDelayMs ?: it.audioDelayMs)+25).coerceAtMost(2000))}};Chip("Use sound delay"){update {it.copy(bluetoothDelayMs=null)}}}
-            PlayerChoice("Audio preset",AudioEffects.presets,config.audioEffects.preset){v->update {it.copy(audioEffects=it.audioEffects.copy(preset=v))}}
+        "audio"->PlayerSection(uiResources.getString(PlayerUiLabels.AUDIO)) {
+            PlayerChoice(uiResources.getString(R.string.ui_night_listening),NightListening.choices,config.audioEffects.compression){v->update {it.copy(audioEffects=it.audioEffects.copy(compression=v))}}
+            Text(uiResources.getString(R.string.ui_dynamic_compression_reduces_loud_effects_relative_to_dialogue_decoded),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+            SwitchChip(uiResources.getString(R.string.ui_hdmi_passthrough),config.passthrough){update {it.copy(passthrough=!it.passthrough)}}
+            PlayerChoice(uiResources.getString(R.string.ui_audio_decoding),listOf("on" to uiResources.getString(R.string.ui_software_when_needed),"prefer" to uiResources.getString(R.string.ui_prefer_software),"off" to uiResources.getString(R.string.ui_device_decoders_only)),config.ffmpeg){v->update {it.copy(ffmpeg=v)}}
+            PlayerChoice(uiResources.getString(R.string.ui_audio_track),listOf("quality" to uiResources.getString(R.string.ui_best_quality),"language" to uiResources.getString(R.string.ui_preferred_language),"default" to uiResources.getString(R.string.ui_file_default)),config.audioPick){v->update {it.copy(audioPick=v)}}
+            Text(uiResources.getString(R.string.ui_sound_delay_ms ,config.audioDelayMs.toString()),style=androidx.tv.material3.MaterialTheme.typography.bodyMedium)
+            ButtonRow {Chip(uiResources.getString(R.string.ui_25_ms)){update {it.copy(audioDelayMs=(it.audioDelayMs-25).coerceAtLeast(-2000))}};Chip(uiResources.getString(R.string.ui_25_ms_ca896a)){update {it.copy(audioDelayMs=(it.audioDelayMs+25).coerceAtMost(2000))}}}
+            Text(uiResources.getString(R.string.ui_bluetooth_delay ,config.bluetoothDelayMs?.let {uiResources.getString(R.string.ui_ms ,it.toString())} ?: uiResources.getString(R.string.ui_use_sound_delay)),style=androidx.tv.material3.MaterialTheme.typography.bodyMedium)
+            ButtonRow {Chip(uiResources.getString(R.string.ui_25_ms)){update {it.copy(bluetoothDelayMs=((it.bluetoothDelayMs ?: it.audioDelayMs)-25).coerceAtLeast(-2000))}};Chip(uiResources.getString(R.string.ui_25_ms_ca896a)){update {it.copy(bluetoothDelayMs=((it.bluetoothDelayMs ?: it.audioDelayMs)+25).coerceAtMost(2000))}};Chip(uiResources.getString(R.string.ui_use_sound_delay)){update {it.copy(bluetoothDelayMs=null)}}}
+            PlayerChoice(uiResources.getString(R.string.ui_audio_preset),AudioEffects.presets,config.audioEffects.preset){v->update {it.copy(audioEffects=it.audioEffects.copy(preset=v))}}
             EqualizerSettings(prefs,config.audioEffects){v->update {it.copy(audioEffects=v)}}
-            PlayerChoice("Bass",(0..6).map {it.toString() to "+$it dB"},config.audioEffects.bass.toString()){v->update {it.copy(audioEffects=it.audioEffects.copy(bass=v.toInt()))}}
-            PlayerChoice("Treble",(0..6).map {it.toString() to "+$it dB"},config.audioEffects.treble.toString()){v->update {it.copy(audioEffects=it.audioEffects.copy(treble=v.toInt()))}}
-            PlayerChoice("Stereo width",listOf(0,50,100,125,150,175,200).map {it.toString() to "$it%"},config.audioEffects.stereoWidth.toString()){v->update {it.copy(audioEffects=it.audioEffects.copy(stereoWidth=v.toInt()))}}
-            PlayerChoice("Channels",AudioEffects.channelChoices,config.audioEffects.channels){v->update {it.copy(audioEffects=it.audioEffects.copy(channels=v))}}
-            Text("Audio effects apply to decoded sound; passthrough stays untouched.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+            PlayerChoice(uiResources.getString(R.string.ui_bass),(0..6).map {it.toString() to uiResources.getString(R.string.ui_db_024cae ,it.toString())},config.audioEffects.bass.toString()){v->update {it.copy(audioEffects=it.audioEffects.copy(bass=v.toInt()))}}
+            PlayerChoice(uiResources.getString(R.string.ui_treble),(0..6).map {it.toString() to uiResources.getString(R.string.ui_db_024cae ,it.toString())},config.audioEffects.treble.toString()){v->update {it.copy(audioEffects=it.audioEffects.copy(treble=v.toInt()))}}
+            PlayerChoice(uiResources.getString(R.string.ui_stereo_width),listOf(0,50,100,125,150,175,200).map {it.toString() to "$it%"},config.audioEffects.stereoWidth.toString()){v->update {it.copy(audioEffects=it.audioEffects.copy(stereoWidth=v.toInt()))}}
+            PlayerChoice(uiResources.getString(R.string.ui_channels),AudioEffects.channelChoices,config.audioEffects.channels){v->update {it.copy(audioEffects=it.audioEffects.copy(channels=v))}}
+            Text(uiResources.getString(R.string.ui_audio_effects_apply_to_decoded_sound_passthrough_stays_untouched),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
         }
-        "subtitles"->PlayerSection(PlayerUiLabels.SUBTITLES) {
-            PlayerChoice("At start",listOf("foreign" to "For foreign audio","always" to "Always","off" to "Off"),subtitles.autoSelect){v->captions {it.copy(autoSelect=v)}}
+        "subtitles"->PlayerSection(uiResources.getString(PlayerUiLabels.SUBTITLES)) {
+            PlayerChoice(uiResources.getString(R.string.ui_at_start),listOf("foreign" to uiResources.getString(R.string.ui_for_foreign_audio),"always" to uiResources.getString(R.string.ui_always),"off" to uiResources.getString(R.string.ui_off)),subtitles.autoSelect){v->captions {it.copy(autoSelect=v)}}
             var languages by remember {mutableStateOf(subtitles.languages.joinToString(", "))}
             TvTextField(languages,{value->
                 languages=value.take(120)
                 SubtitleLanguages.parse(languages)?.let {codes->captions {it.copy(languages=codes)}}
-            },Modifier.fillMaxWidth(),placeholder="Languages: en, fr, ja")
-            if(SubtitleLanguages.parse(languages)==null)PlayerErrorText("Enter up to 8 language codes separated by commas, such as en, fr or pt-BR. Invalid edits are not saved.")
-            PlayerChoice("Text size",listOf("small" to "Small","normal" to "Normal","large" to "Large","xlarge" to "Extra large"),subtitles.size){v->captions {it.copy(size=v)}}
-            PlayerChoice("Text background",listOf("outline" to "Outline","shadow" to "Shadow","box" to "Box"),subtitles.background){v->captions {it.copy(background=v)}}
-            SwitchChip("Preserve authored styling",subtitles.authoredStyles){captions {it.copy(authoredStyles=!it.authoredStyles)}}
-            SwitchChip("Use system caption style",subtitles.systemStyle){captions {it.copy(systemStyle=!it.systemStyle)}}
+            },Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_languages_en_fr_ja))
+            if(SubtitleLanguages.parse(languages)==null)PlayerErrorText(uiResources.getString(R.string.ui_enter_up_to_8_language_codes_separated_by_commas))
+            PlayerChoice(uiResources.getString(R.string.ui_text_size),listOf("small" to uiResources.getString(R.string.ui_small),"normal" to uiResources.getString(R.string.ui_normal),"large" to uiResources.getString(R.string.ui_large),"xlarge" to uiResources.getString(R.string.ui_extra_large)),subtitles.size){v->captions {it.copy(size=v)}}
+            PlayerChoice(uiResources.getString(R.string.ui_text_background),listOf("outline" to uiResources.getString(R.string.ui_outline),"shadow" to uiResources.getString(R.string.ui_shadow),"box" to uiResources.getString(R.string.ui_box)),subtitles.background){v->captions {it.copy(background=v)}}
+            SwitchChip(uiResources.getString(R.string.ui_preserve_authored_styling),subtitles.authoredStyles){captions {it.copy(authoredStyles=!it.authoredStyles)}}
+            SwitchChip(uiResources.getString(R.string.ui_use_system_caption_style),subtitles.systemStyle){captions {it.copy(systemStyle=!it.systemStyle)}}
             SubtitleAssistanceSettings(subtitles.assistance){value->captions {it.copy(assistance=value)}}
             SubtitlePresetSettings(prefs,subtitles){value->captions {value}}
             AdvancedSubtitleSettings(subtitles){value->captions {value}}
-            SwitchChip("Community subtitle search",subtitles.stremioOpenSubs){captions {it.copy(stremioOpenSubs=!it.stremioOpenSubs)}}
+            SwitchChip(uiResources.getString(R.string.ui_community_subtitle_search),subtitles.stremioOpenSubs){captions {it.copy(stremioOpenSubs=!it.stremioOpenSubs)}}
         }
-        "appearance"->PlayerSection("Appearance and performance") {
-            PlayerChoice("Performance",listOf("auto" to "Automatic","low" to "Low","balanced" to "Balanced","high" to "High"),prefs.devicePerformance){v->prefs.devicePerformance=v;refresh()}
+        "appearance"->PlayerSection(uiResources.getString(R.string.ui_appearance_and_performance)) {
+            PlayerChoice(uiResources.getString(R.string.ui_performance),listOf("auto" to uiResources.getString(R.string.ui_automatic),"low" to uiResources.getString(R.string.ui_low),"balanced" to uiResources.getString(R.string.ui_balanced),"high" to uiResources.getString(R.string.ui_high)),prefs.devicePerformance){v->prefs.devicePerformance=v;refresh()}
             PlayerPalettePicker(prefs.accent){value->prefs.accent=value;refresh()}
-            PlayerChoice("Theme",listOf("system" to "Follow system","night" to "Dark","day" to "Light"),prefs.theme){v->prefs.theme=v;refresh()}
-            SwitchChip("Glass surfaces",prefs.navigationGlass){prefs.navigationGlass=!prefs.navigationGlass;refresh()}
+            PlayerChoice(uiResources.getString(R.string.ui_theme),listOf("system" to uiResources.getString(R.string.ui_follow_system),"night" to uiResources.getString(R.string.ui_dark),"day" to uiResources.getString(R.string.ui_light)),prefs.theme){v->prefs.theme=v;refresh()}
+            SwitchChip(uiResources.getString(R.string.ui_glass_surfaces),prefs.navigationGlass){prefs.navigationGlass=!prefs.navigationGlass;refresh()}
         }
-        "privacy"->PlayerSection(PlayerUiLabels.PRIVATE_MEDIA) {
+        "privacy"->PlayerSection(uiResources.getString(PlayerUiLabels.PRIVATE_MEDIA)) {
             PrivacySettings()
         }
-        "backups"->PlayerSection("Backups") {
+        "backups"->PlayerSection(uiResources.getString(R.string.ui_backups)) {
             PlayerBackupSettings {refresh()}
         }
-        "about"->PlayerSection("About") {
+        "about"->PlayerSection(uiResources.getString(R.string.ui_about)) {
             PlayerBrandLockup()
-            Text("An independent player for Android and Android TV. No service credentials are bundled. Codec and HDR playback depend on the device, display and selected engine.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+            Text(uiResources.getString(R.string.ui_an_independent_player_for_android_and_android_tv_no),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
             PlayerLegal()
         }
-        "cache"->PlayerSection("Cache") {
-            Text("Disposable artwork, thumbnails and temporary data can be recreated. Saved positions, settings and connection details are kept.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
-            Chip("Clear disposable caches"){scope.launch {val result=withContext(Dispatchers.IO){runCatching {CacheManagement.clear()}};android.widget.Toast.makeText(this@SettingsContent,if(result.isSuccess)"Cache cleared" else "Some cached data could not be cleared",android.widget.Toast.LENGTH_LONG).show()}}
+        "cache"->PlayerSection(uiResources.getString(R.string.ui_cache)) {
+            Text(uiResources.getString(R.string.ui_disposable_artwork_thumbnails_and_temporary_data_can_be_recreated),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+            Chip(uiResources.getString(R.string.ui_clear_disposable_caches)){scope.launch {val result=withContext(Dispatchers.IO){runCatching {CacheManagement.clear()}};android.widget.Toast.makeText(this@SettingsContent,if(result.isSuccess)uiResources.getString(R.string.ui_cache_cleared) else uiResources.getString(R.string.ui_some_cached_data_could_not_be_cleared),android.widget.Toast.LENGTH_LONG).show()}}
         }
     }
 }
 @Composable
 internal fun PlayerChoice(label:String,options:List<Pair<String,String>>,value:String,pick:(String)->Unit) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
     var open by remember {mutableStateOf(false)}
-    Chip("$label · ${options.firstOrNull {it.first==value}?.second ?: value}",maxLines=1){open=true}
+    Chip(uiResources.getString(R.string.ui_label_value ,label,options.firstOrNull {it.first==value}?.second ?: value),maxLines=1){open=true}
     if(open)OptionMenu(label,options.map {(id,name)->MenuOption(name,id==value){pick(id)}},{open=false})
 }
 @Composable
 private fun PlayerLegal() {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     var chosen by remember {mutableStateOf<Pair<String,String>?>(null)}
     val context=androidx.compose.ui.platform.LocalContext.current
-    val licenses=listOf("GPL v3 — mpv, FFmpeg and Nextlib" to "player-GPL-3.0.txt","Apache 2.0 — AndroidX Media3 and libraries" to "Apache-2.0.txt",
-        "Fraunhofer MPEG-H" to "Fraunhofer-FDK-MPEG-H.txt","libmpv Android wrapper" to "libmpv-wrapper-MIT.txt",
-        "IAMF decoder notices" to "IAMF-NOTICES.txt",
-        "libaums USB notices" to "libaums-NOTICE.txt","SQLCipher" to "SQLCipher-LICENSE.txt","SMBJ-RPC" to "SMBJ-RPC-BSD.txt","JSch" to "JSch-BSD.txt","Apache Commons notices" to "Commons-IO-Lang-NOTICE.txt","Apache Commons Net notices" to "Commons-Net-NOTICE.txt",
-        "Fast upscaling shader — MIT" to "Anime4K-MIT.txt","JSch compression notices" to "JSch-JZlib-BSD.txt","JSch password hashing notices" to "JSch-jBCrypt-ISC.txt","Android NDK notices" to "Android-NDK-29-LLVM-NOTICE.txt")
+    val licenses=listOf(uiResources.getString(R.string.ui_gpl_v3_mpv_ffmpeg_and_nextlib) to "player-GPL-3.0.txt",uiResources.getString(R.string.ui_apache_2_0_androidx_media3_and_libraries) to "Apache-2.0.txt",
+        uiResources.getString(R.string.ui_fraunhofer_mpeg_h) to "Fraunhofer-FDK-MPEG-H.txt",uiResources.getString(R.string.ui_libmpv_android_wrapper) to "libmpv-wrapper-MIT.txt",
+        uiResources.getString(R.string.ui_iamf_decoder_notices) to "IAMF-NOTICES.txt",
+        uiResources.getString(R.string.ui_libaums_usb_notices) to "libaums-NOTICE.txt","SQLCipher" to "SQLCipher-LICENSE.txt","SMBJ-RPC" to "SMBJ-RPC-BSD.txt","JSch" to "JSch-BSD.txt",uiResources.getString(R.string.ui_apache_commons_notices) to "Commons-IO-Lang-NOTICE.txt",uiResources.getString(R.string.ui_apache_commons_net_notices) to "Commons-Net-NOTICE.txt",
+        uiResources.getString(R.string.ui_fast_upscaling_shader_mit) to "Anime4K-MIT.txt",uiResources.getString(R.string.ui_jsch_compression_notices) to "JSch-JZlib-BSD.txt",uiResources.getString(R.string.ui_jsch_password_hashing_notices) to "JSch-jBCrypt-ISC.txt",uiResources.getString(R.string.ui_android_ndk_notices) to "Android-NDK-29-LLVM-NOTICE.txt")
     licenses.forEach {entry->Chip(entry.first){chosen=entry}}
-    Chip("Google Cast SDK terms") {runCatching {context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse("https://developers.google.com/cast/docs/terms")))}}
-    Chip("Android SDK terms") {runCatching {context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse("https://developer.android.com/studio/terms.html")))}}
+    Chip(uiResources.getString(R.string.ui_google_cast_sdk_terms)) {runCatching {context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse("https://developers.google.com/cast/docs/terms")))}}
+    Chip(uiResources.getString(R.string.ui_android_sdk_terms)) {runCatching {context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse("https://developer.android.com/studio/terms.html")))}}
     chosen?.let {(title,file)->
-        var text by remember(file){mutableStateOf("Loading license…")}
-        LaunchedEffect(file){text=withContext(Dispatchers.IO){runCatching {context.assets.open("licenses/$file").bufferedReader().use {it.readText()}}.getOrDefault("License unavailable. See the source repository.")}}
-        TvDialog({chosen=null},width=680.dp,scrollContent=true){DialogHeading(title);Text(text,style=androidx.tv.material3.MaterialTheme.typography.bodySmall);PlayerAction("Close"){chosen=null}}
+        var text by remember(file){mutableStateOf(uiResources.getString(R.string.ui_loading_license))}
+        LaunchedEffect(file){text=withContext(Dispatchers.IO){runCatching {context.assets.open("licenses/$file").bufferedReader().use {it.readText()}}.getOrDefault(uiResources.getString(R.string.ui_license_unavailable_see_the_source_repository))}}
+        TvDialog({chosen=null},width=680.dp,scrollContent=true){DialogHeading(title);Text(text,style=androidx.tv.material3.MaterialTheme.typography.bodySmall);PlayerAction(uiResources.getString(R.string.ui_close)){chosen=null}}
     }
+}
+
+@JvmName("PlayerChoiceResourceOptions")
+@Composable
+internal fun PlayerChoice(label:String,options:List<Pair<String,Int>>,value:String,pick:(String)->Unit) {
+    val resources=androidx.compose.ui.platform.LocalResources.current
+    PlayerChoice(label,options.map {it.first to resources.getString(it.second)},value,pick)
 }

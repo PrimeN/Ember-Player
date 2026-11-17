@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 /** Names describe the input signal; a source label or display capability is not proof of HDR output. */
 internal object PlaybackFormats {
     fun video(mime: String?, codecs: String?): String = when (mime) {
@@ -21,13 +23,13 @@ internal object PlaybackFormats {
     fun dolbyVision(mime: String?, codecs: String?): Boolean = mime == "video/dolby-vision" ||
         listOf("dvhe", "dvh1", "dav1", "dvav", "dva1").any { codecs.orEmpty().startsWith(it, true) }
 
-    fun hdr(mime: String?, codecs: String?, transfer: Int?, hdr10Plus: Boolean = false, unknown: Boolean = false): String = when {
-        dolbyVision(mime, codecs) -> "Dolby Vision"
-        hdr10Plus -> "HDR10+ metadata observed"
-        transfer == 6 -> "HDR10/PQ"
-        transfer == 7 -> "HLG"
-        unknown && transfer == null -> "HDR not reported"
-        else -> "SDR"
+    fun hdr(mime: String?, codecs: String?, transfer: Int?, hdr10Plus: Boolean = false, unknown: Boolean = false): Int = when {
+        dolbyVision(mime, codecs) -> R.string.ui_dolby_vision
+        hdr10Plus -> R.string.ui_hdr10_metadata_observed
+        transfer == 6 -> R.string.ui_hdr10_pq
+        transfer == 7 -> R.string.ui_hlg
+        unknown && transfer == null -> R.string.ui_hdr_not_reported
+        else -> R.string.ui_sdr
     }
 
     fun audio(mime: String?): String? = when (mime) {

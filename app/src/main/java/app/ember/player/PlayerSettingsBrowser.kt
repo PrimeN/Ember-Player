@@ -1,5 +1,7 @@
 package app.ember.player
 
+import app.ember.tv.R
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -27,16 +29,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ember.tv.ui.Focusable
 
-internal data class PlayerSettingsCategory(val id:String,val label:String,val description:String,val icon:ImageVector)
+internal data class PlayerSettingsCategory(val id:String,@androidx.annotation.StringRes val label:Int,@androidx.annotation.StringRes val description:Int,val icon:ImageVector)
 internal val playerSettingsCategories=listOf(
-    PlayerSettingsCategory("playback",PlayerUiLabels.PLAYBACK,"Resume, controls, seeking",Icons.Outlined.PlayArrow),
-    PlayerSettingsCategory("picture",PlayerUiLabels.PICTURE,"Processing, display, decoding",Icons.Outlined.Image),
-    PlayerSettingsCategory("audio",PlayerUiLabels.AUDIO,"Output, tracks, sound effects",Icons.AutoMirrored.Outlined.VolumeUp),
-    PlayerSettingsCategory("subtitles",PlayerUiLabels.SUBTITLES,"Language, style, timing",Icons.Outlined.Subtitles),
-    PlayerSettingsCategory("network","Network & cache","Streaming, buffering, cached data",Icons.Outlined.Wifi),
-    PlayerSettingsCategory("appearance","Appearance","Colors, display mode, performance",Icons.Outlined.Palette),
-    PlayerSettingsCategory("privacy",PlayerUiLabels.PRIVATE_MEDIA,"PIN, history and backups",Icons.Outlined.Lock),
-    PlayerSettingsCategory("about","About","App version, credits, licenses",Icons.Outlined.Info),
+    PlayerSettingsCategory("playback",PlayerUiLabels.PLAYBACK,R.string.ui_resume_controls_seeking,Icons.Outlined.PlayArrow),
+    PlayerSettingsCategory("picture",PlayerUiLabels.PICTURE,R.string.ui_processing_display_decoding,Icons.Outlined.Image),
+    PlayerSettingsCategory("audio",PlayerUiLabels.AUDIO,R.string.ui_output_tracks_sound_effects,Icons.AutoMirrored.Outlined.VolumeUp),
+    PlayerSettingsCategory("subtitles",PlayerUiLabels.SUBTITLES,R.string.ui_language_style_timing,Icons.Outlined.Subtitles),
+    PlayerSettingsCategory("network",R.string.ui_network_cache,R.string.ui_streaming_buffering_cached_data,Icons.Outlined.Wifi),
+    PlayerSettingsCategory("appearance",R.string.ui_appearance,R.string.ui_colors_display_mode_performance,Icons.Outlined.Palette),
+    PlayerSettingsCategory("privacy",PlayerUiLabels.PRIVATE_MEDIA,R.string.ui_pin_history_and_backups,Icons.Outlined.Lock),
+    PlayerSettingsCategory("about",R.string.ui_about,R.string.ui_app_version_credits_licenses,Icons.Outlined.Info),
 )
 
 @Composable
@@ -61,6 +63,8 @@ internal fun PlayerNavigationRow(title:String,description:String,icon:ImageVecto
 
 @Composable
 internal fun PlayerSettingsBrowser(close:()->Unit,content:@Composable (String)->Unit) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     var query by rememberSaveable {mutableStateOf("")}
     var category by rememberSaveable {mutableStateOf<String?>(null)}
     var anchor by rememberSaveable {mutableStateOf<String?>(null)}
@@ -71,23 +75,23 @@ internal fun PlayerSettingsBrowser(close:()->Unit,content:@Composable (String)->
     val searchFocus=remember {FocusRequester()}
     val television=LocalPlayerTelevision.current
     val current=playerSettingsCategories.firstOrNull {it.id==category}
-    val results=remember(query){PlayerSettingsIndex.search(query)}
+    val results=remember(query,uiResources.configuration.locales.toLanguageTags()){PlayerSettingsIndex.search(query,uiResources)}
     fun back(){if(category!=null){category=null;anchor=null}else if(query.isNotEmpty())query="" else close()}
     BackHandler(enabled=category!=null||query.isNotEmpty()){back()}
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding().padding(horizontal=if(LocalPlayerTelevision.current)32.dp else 16.dp)) {
-        PlayerHeading(current?.label ?: "Settings",back=::back)
+        PlayerHeading(current?.label?.let(uiResources::getString) ?: uiResources.getString(R.string.ui_settings),back=::back)
         if(current==null) {
-            PlayerSearchField(query,{query=it.take(120)},"Search settings",searchFocus)
+            PlayerSearchField(query,{query=it.take(120)},uiResources.getString(R.string.ui_search_settings),searchFocus)
             Spacer(Modifier.height(16.dp))
             LazyColumn(Modifier.fillMaxWidth().weight(1f,false).clip(androidx.compose.foundation.shape.RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceContainer).testTag("settingsCategories"),state=overview,contentPadding=PaddingValues(bottom=24.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
                 if(query.isBlank())items(playerSettingsCategories,key={it.id}) {item->
                     val request=item.id==(returnId ?: playerSettingsCategories.first().id)
-                    PlayerNavigationRow(item.label,item.description,item.icon,if(request)Modifier.focusRequester(rootFocus) else Modifier) {returnId=item.id;category=item.id;anchor=null}
+                    PlayerNavigationRow(uiResources.getString(item.label),uiResources.getString(item.description),item.icon,if(request)Modifier.focusRequester(rootFocus) else Modifier) {returnId=item.id;category=item.id;anchor=null}
                 } else {
-                    if(results.isEmpty())item {Text("No settings match “$query”.",Modifier.padding(16.dp),color=MaterialTheme.colorScheme.onSurfaceVariant)}
+                    if(results.isEmpty())item {Text(uiResources.getString(R.string.ui_no_settings_match ,query),Modifier.padding(16.dp),color=MaterialTheme.colorScheme.onSurfaceVariant)}
                     items(results,key={it.id}) {entry->
                         val group=playerSettingsCategories.first {it.id==entry.category}
-                        PlayerNavigationRow(entry.title,group.label,group.icon,if(entry.id==(returnResult?.takeIf {id->results.any {it.id==id}} ?: results.firstOrNull()?.id))Modifier.focusRequester(rootFocus) else Modifier) {returnId=entry.category;returnResult=entry.id;category=entry.category;anchor=entry.id}
+                        PlayerNavigationRow(uiResources.getString(entry.title),uiResources.getString(group.label),group.icon,if(entry.id==(returnResult?.takeIf {id->results.any {it.id==id}} ?: results.firstOrNull()?.id))Modifier.focusRequester(rootFocus) else Modifier) {returnId=entry.category;returnResult=entry.id;category=entry.category;anchor=entry.id}
                     }
                 }
             }
@@ -96,7 +100,7 @@ internal fun PlayerSettingsBrowser(close:()->Unit,content:@Composable (String)->
             val wide=maxWidth>=840.dp
             Row(Modifier.fillMaxSize(),horizontalArrangement=Arrangement.spacedBy(24.dp)) {
                 if(wide)LazyColumn(Modifier.width(224.dp).testTag("settingsCategories"),verticalArrangement=Arrangement.spacedBy(4.dp),contentPadding=PaddingValues(bottom=24.dp)) {
-                    items(playerSettingsCategories,key={it.id}) {item->PlayerNavigationRow(item.label,"",item.icon,selected=item.id==category){returnId=item.id;category=item.id;anchor=null}}
+                    items(playerSettingsCategories,key={it.id}) {item->PlayerNavigationRow(uiResources.getString(item.label),"",item.icon,selected=item.id==category){returnId=item.id;category=item.id;anchor=null}}
                 }
                 key(category) {
                     val sections=remember(category){PlayerSettingsIndex.sections.filter {it.category==category}}

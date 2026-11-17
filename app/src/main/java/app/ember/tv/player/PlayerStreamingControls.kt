@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import app.ember.tv.ui.TvTokens
 
 import androidx.compose.animation.AnimatedVisibility
@@ -55,6 +57,8 @@ import coil.compose.AsyncImage
  */
 @Composable
 internal fun StreamingControls(s: ControlsState, a: ControlsActions) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     AnimatedVisibility(s.visible, enter = fadeIn(), exit = fadeOut()) {
         val play = remember { FocusRequester() }
         LaunchedEffect(s.shownAt) { runCatching { play.requestFocus() } }
@@ -72,10 +76,10 @@ internal fun StreamingControls(s: ControlsState, a: ControlsActions) {
             var label by remember { mutableStateOf<String?>(null) }
             Column(Modifier.padding(start = 56.dp, top = 40.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(28.dp), verticalAlignment = Alignment.CenterVertically) {
-                    StreamingIcon(Icons.AutoMirrored.Outlined.ArrowBack, "Back", { label = it }, onClick = a.close)
-                    StreamingIcon(Icons.Outlined.Replay, "Start over", { label = it }) { a.seekBy(-s.position) }
+                    StreamingIcon(Icons.AutoMirrored.Outlined.ArrowBack, uiResources.getString(R.string.ui_back), { label = it }, onClick = a.close)
+                    StreamingIcon(Icons.Outlined.Replay, uiResources.getString(R.string.ui_start_over), { label = it }) { a.seekBy(-s.position) }
                     if (s.fileQueueNext)
-                        StreamingIcon(Icons.Outlined.SkipNext, if (s.fileQueueLabel != null) "Next file" else "Next episode", { label = it }, onClick = a.next)
+                        StreamingIcon(Icons.Outlined.SkipNext, if (s.fileQueueLabel != null) uiResources.getString(R.string.ui_next_file) else uiResources.getString(R.string.ui_next_episode), { label = it }, onClick = a.next)
                 }
                 Text(label?.uppercase() ?: "", style=androidx.tv.material3.MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, letterSpacing = 1.sp, color = Color.White,
                     modifier = Modifier.padding(top = 10.dp).height(18.dp))
@@ -104,7 +108,7 @@ internal fun StreamingControls(s: ControlsState, a: ControlsActions) {
                     s.localUri?.let { LocalSeekPreview(it, (s.seekPreview * s.duration).toLong()) }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                    StreamingIcon(if (s.playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow, if (s.playing) "Pause" else "Play", null,
+                    StreamingIcon(if (s.playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow, if (s.playing) uiResources.getString(R.string.ui_pause) else uiResources.getString(R.string.ui_play), null,
                         Modifier.focusRequester(play), size = 52.dp, onClick = a.playPause)
                     Text(time(if (s.seekPreview >= 0f) (s.seekPreview * s.duration).toLong() else s.position), style=androidx.tv.material3.MaterialTheme.typography.bodyLarge, color = Color.White)
                     Box(Modifier.weight(1f)) { SeekBar(s, a) }
@@ -123,22 +127,22 @@ internal fun StreamingControls(s: ControlsState, a: ControlsActions) {
                 Row(Modifier.fillMaxWidth().padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
                     verticalAlignment = Alignment.CenterVertically) {
                     if (s.audioTracks.isNotEmpty()) {
-                        val current = s.audioTracks.firstOrNull { it.second }?.first ?: "Default"
-                        DropUp("Sound", current, s.sheet == SOUND, soundButton, onToggle = { s.sheet = if (s.sheet == SOUND) null else SOUND },
+                        val current = s.audioTracks.firstOrNull { it.second }?.first ?: uiResources.getString(R.string.ui_default)
+                        DropUp(uiResources.getString(R.string.ui_sound), current, s.sheet == SOUND, soundButton, onToggle = { s.sheet = if (s.sheet == SOUND) null else SOUND },
                             options = s.audioTracks, onPick = { i -> s.sheet = null; if (!s.audioTracks[i].second) a.pickAudio(i) },
                             onClose = { s.sheet = null })
                     }
                     if (s.subtitleOptions.isNotEmpty()) {
                         val on = s.subtitleOptions.indexOfFirst { it.second }
-                        val current = if (on <= 0) "Off" else s.subtitleOptions[on].first
-                        val options = s.subtitleOptions.mapIndexed { i, t -> (if (i == 0) "Off" else t.first) to t.second }
-                        DropUp("Subtitles", current, s.sheet == SUBTITLES, subtitleButton, onToggle = { s.sheet = if (s.sheet == SUBTITLES) null else SUBTITLES },
+                        val current = if (on <= 0) uiResources.getString(R.string.ui_off) else s.subtitleOptions[on].first
+                        val options = s.subtitleOptions.mapIndexed { i, t -> (if (i == 0) uiResources.getString(R.string.ui_off) else t.first) to t.second }
+                        DropUp(uiResources.getString(R.string.ui_subtitles), current, s.sheet == SUBTITLES, subtitleButton, onToggle = { s.sheet = if (s.sheet == SUBTITLES) null else SUBTITLES },
                             options = options, onPick = { i -> s.sheet = null; if (!s.subtitleOptions[i].second) a.pickSubtitle(i) },
-                            onClose = { s.sheet = null }, more = "Subtitle settings" to { s.sheet = null; a.openMenu("options", "subtitles") })
+                            onClose = { s.sheet = null }, more = uiResources.getString(R.string.ui_subtitle_settings) to { s.sheet = null; a.openMenu("options", "subtitles") })
                     }
-                    if (s.fileQueueLabel != null) StreamingSquare(Icons.AutoMirrored.Outlined.FormatListBulleted, "Queue", a.queue)
-                    if (d != null) StreamingSquare(Icons.Outlined.Info, "Details") { s.sheet = if (s.sheet == "info") null else "info" }
-                    StreamingSquare(Icons.Outlined.Settings, "Player settings") { a.openMenu("quick", null) }
+                    if (s.fileQueueLabel != null) StreamingSquare(Icons.AutoMirrored.Outlined.FormatListBulleted, uiResources.getString(R.string.ui_queue), a.queue)
+                    if (d != null) StreamingSquare(Icons.Outlined.Info, uiResources.getString(R.string.ui_details)) { s.sheet = if (s.sheet == "info") null else "info" }
+                    StreamingSquare(Icons.Outlined.Settings, uiResources.getString(R.string.ui_player_settings)) { a.openMenu("quick", null) }
                 }
             }
         }
@@ -158,8 +162,9 @@ private const val SUBTITLES = SUBTITLE_SHEET
 @Composable
 private fun DropUp(name: String, current: String, open: Boolean, button: FocusRequester, onToggle: () -> Unit,
     options: List<Pair<String, Boolean>>, onPick: (Int) -> Unit, onClose: () -> Unit, more: Pair<String, () -> Unit>? = null) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
     Box {
-        StreamingChip("$name: $current", arrow = if (open) "▾" else "▴", modifier = Modifier.focusRequester(button), onClick = onToggle)
+        StreamingChip(uiResources.getString(R.string.ui_label_colon_value ,name,current), arrow = if (open) "▾" else "▴", modifier = Modifier.focusRequester(button), onClick = onToggle)
         if (open) {
             val count = options.size + if (more != null) 1 else 0
             val selected = options.indexOfFirst { it.second }.coerceAtLeast(0)

@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import kotlinx.serialization.Serializable
 import java.util.Locale
 
@@ -20,7 +22,7 @@ data class DecoderRules(val local: String = "inherit", val network: String = "in
     }
     companion object {
         val modes = setOf("inherit", "auto", "hardware", "software")
-        val choices = listOf("inherit" to "Use default", "auto" to "Automatic", "hardware" to "Prefer hardware", "software" to "Prefer software")
+        val choices = listOf("inherit" to R.string.ui_use_default, "auto" to R.string.ui_automatic, "hardware" to R.string.ui_prefer_hardware, "software" to R.string.ui_prefer_software)
         val codecChoices = listOf("video/avc" to "H.264", "video/hevc" to "HEVC", "video/av01" to "AV1", "video/x-vnd.on2.vp9" to "VP9", "video/mpeg2" to "MPEG-2")
         val extensionChoices = listOf("mkv", "mp4", "avi", "ts", "webm", "wmv", "vob")
     }
@@ -79,8 +81,8 @@ data class AudioEffects(
     companion object {
         val frequencies = listOf(31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000)
         fun frequencyLabel(index: Int): String = frequencies[index].let { if (it < 1000) "$it Hz" else "${it / 1000} kHz" }
-        val presets = listOf("off" to "Off / flat", "dialogue" to "Clear dialogue", "warm" to "Warm", "bright" to "Bright", "custom" to "Custom")
-        val channelChoices = listOf("normal" to "Original channels", "mono" to "Mono", "swap" to "Swap left and right")
+        val presets = listOf("off" to R.string.ui_off_flat, "dialogue" to R.string.ui_clear_dialogue, "warm" to R.string.ui_warm, "bright" to R.string.ui_bright, "custom" to R.string.ui_custom)
+        val channelChoices = listOf("normal" to R.string.ui_original_channels, "mono" to R.string.ui_mono, "swap" to R.string.ui_swap_left_and_right)
     }
 }
 
@@ -100,7 +102,7 @@ object AudioPresets {
 
 object PlayerShortcuts {
     val defaults = listOf("audio", "subtitles", "speed", "zoom")
-    val choices = listOf("audio" to "Audio track", "subtitles" to "Subtitles", "speed" to "Playback speed", "zoom" to "Picture fit", "delay" to "Lip sync", "decoder" to "Video decoder", "effects" to "Audio effects", "chapters" to "Chapters", "queue" to "Queue")
+    val choices = listOf("audio" to R.string.ui_audio_track, "subtitles" to R.string.ui_subtitles, "speed" to R.string.ui_playback_speed, "zoom" to R.string.ui_picture_fit, "delay" to R.string.ui_lip_sync, "decoder" to R.string.ui_video_decoder, "effects" to R.string.ui_audio_effects, "chapters" to R.string.ui_chapters, "queue" to R.string.ui_queue)
     fun normalized(values: List<String>) = values.filter { value -> choices.any { it.first == value } }.distinct().take(8)
 }
 

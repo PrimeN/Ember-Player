@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.Manifest
 import android.content.*
 import android.net.Uri
@@ -31,9 +33,9 @@ internal object UsbMedia {
         val collection=MediaStore.Files.getContentUri(drive.volume)
         val columns=arrayOf(MediaStore.Files.FileColumns._ID,MediaStore.MediaColumns.DISPLAY_NAME,MediaStore.MediaColumns.RELATIVE_PATH)
         val args=Bundle().apply {
-            putString(ContentResolver.QUERY_ARG_SQL_SELECTION,"_id > ? AND media_type IN (?, ?) AND is_pending = 0"+(if(Build.VERSION.SDK_INT>=30)" AND is_trashed = 0" else ""))
+            putString(ContentResolver.QUERY_ARG_SQL_SELECTION,context.resources.getString(R.string.ui_id_and_media_type_in_and_is_pending_0)+(if(Build.VERSION.SDK_INT>=30)context.resources.getString(R.string.ui_and_is_trashed_0) else ""))
             putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS,arrayOf(after.toString(),MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO.toString(),MediaStore.Files.FileColumns.MEDIA_TYPE_AUDIO.toString()))
-            putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,"_id ASC")
+            putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,context.resources.getString(R.string.ui_id_asc))
             putInt(ContentResolver.QUERY_ARG_LIMIT,PAGE_SIZE+1)
         }
         val items=mutableListOf<QueueMedia>();var last:Long?=null;var scanned=0;var lastId=after
@@ -43,7 +45,7 @@ internal object UsbMedia {
                 if(scanned==PAGE_SIZE){last=lastId;break}
                 val id=cursor.getLong(0);if(id<=after)continue
                 scanned++;lastId=id
-                val fileName=cursor.getString(1)?.take(4096) ?: "Media"
+                val fileName=cursor.getString(1)?.take(4096) ?: context.resources.getString(R.string.ui_media)
                 val name=fileName.take(180)
                 val relative=cursor.getString(2).orEmpty()
                 val document=android.provider.DocumentsContract.buildDocumentUri("com.android.externalstorage.documents",drive.volume+":"+(if(relative.isBlank())"" else relative.trimEnd('/')+"/")+fileName).toString()

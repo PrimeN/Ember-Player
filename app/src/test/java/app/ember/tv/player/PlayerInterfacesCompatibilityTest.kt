@@ -7,7 +7,7 @@ import org.junit.Test
 
 class PlayerInterfacesCompatibilityTest {
     @Test fun savedInterfaceIdsStillChooseTheirOriginalLayouts() {
-        for((id,label) in listOf("basic" to "Ember","modern" to "Glass","ember_x" to "Basic","streaming" to "Streaming")) {
+        for((id,label) in listOf("basic" to app.ember.tv.R.string.ui_ember,"modern" to app.ember.tv.R.string.ui_glass,"ember_x" to app.ember.tv.R.string.ui_basic,"streaming" to app.ember.tv.R.string.ui_streaming)) {
             val config=Json.decodeFromString<PlaybackConfig>("{\"playerInterface\":\"$id\"}")
             val resolved=PlayerInterfaces.resolve(config,InterfaceStyles.MODERN)
             assertEquals(id,resolved)

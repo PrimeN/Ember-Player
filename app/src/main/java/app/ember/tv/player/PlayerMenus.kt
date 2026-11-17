@@ -318,6 +318,7 @@ private fun MenuSwitch(on: Boolean, focused: Boolean) {
  */
 @Composable
 private fun TabBar(s: ControlsState, modifier: Modifier) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
     var moving by remember { mutableStateOf(false) }
     fun show(id: String) {
         if (s.menuTab == id) return
@@ -360,7 +361,7 @@ private fun TabBar(s: ControlsState, modifier: Modifier) {
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Image(icon, null, colorFilter = ColorFilter.tint(tint), modifier = Modifier.size(16.dp))
-                Text(label, style = androidx.tv.material3.MaterialTheme.typography.labelMedium, color = tint, maxLines = 1)
+                Text(uiResources.getString(label), style = androidx.tv.material3.MaterialTheme.typography.labelMedium, color = tint, maxLines = 1)
             }
         }
     }

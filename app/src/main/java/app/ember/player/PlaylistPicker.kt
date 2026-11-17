@@ -1,8 +1,10 @@
 package app.ember.player
 
+import app.ember.tv.R
+
 import android.content.Context
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.outlined.PlaylistAdd
+import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.*
@@ -14,14 +16,18 @@ import kotlinx.coroutines.*
 
 @Composable
 internal fun PlaylistPicker(context:Context,items:List<QueueMedia>,close:()->Unit) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     TvDialog(close,width=520.dp,resizeForKeyboard=true,scrollContent=true) {
-        DialogHeading("Add to playlist")
+        DialogHeading(uiResources.getString(R.string.ui_add_to_playlist))
         PlaylistPickerContent(context,items,close=close)
     }
 }
 
 @Composable
 internal fun PlaylistPickerContent(context:Context,items:List<QueueMedia>,index:Int=0,repeat:String="off",shuffle:Boolean=false,close:()->Unit) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     val store=remember(context){SavedPlaylists(context)}
     val scope=rememberCoroutineScope()
     var playlists by remember {mutableStateOf<List<SavedPlaylist>>(emptyList())}
@@ -38,28 +44,30 @@ internal fun PlaylistPickerContent(context:Context,items:List<QueueMedia>,index:
                 val saved=withContext(Dispatchers.IO) {
                     if(id==null)store.save(name,items,index,repeat,shuffle) else store.append(id,items)
                 }
-                if(saved)close() else error="Could not save this playlist. Check the name, storage and playlist limits. Private media and temporary USB addresses cannot be saved."
+                if(saved)close() else error=uiResources.getString(R.string.ui_could_not_save_this_playlist_check_the_name_storage)
             }catch(e:CancellationException){throw e}
-            catch(_:Exception){error="Could not update encrypted playlist storage."}
+            catch(_:Exception){error=uiResources.getString(R.string.ui_could_not_update_encrypted_playlist_storage)}
             finally {busy=false}
         }
     }
-    if(loading)PlayerStatusText("Loading playlists…")
+    if(loading)PlayerStatusText(uiResources.getString(R.string.ui_loading_playlists))
     LazyColumn(Modifier.fillMaxWidth().heightIn(max=240.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
         items(playlists,key={it.id}) {playlist->PlayerAction(playlist.name,enabled=!busy){save(playlist.id)}}
     }
-    TvTextField(name,{name=it.take(80)},Modifier.fillMaxWidth(),placeholder="New playlist name")
+    TvTextField(name,{name=it.take(80)},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_new_playlist_name))
     error?.let {PlayerErrorText(it)}
     ButtonRow {
-        PlayerAction(if(busy)"Saving…" else "Create playlist",primary=true,enabled=!busy&&name.isNotBlank()){save(null)}
-        PlayerAction("Cancel",enabled=!busy,onClick=close)
+        PlayerAction(if(busy)uiResources.getString(R.string.ui_saving) else uiResources.getString(R.string.ui_create_playlist),primary=true,enabled=!busy&&name.isNotBlank()){save(null)}
+        PlayerAction(uiResources.getString(R.string.ui_cancel),enabled=!busy,onClick=close)
     }
 }
 
 @Composable
 internal fun LibraryPlaylistAction(media:QueueMedia,modifier:Modifier=Modifier) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     val context=androidx.compose.ui.platform.LocalContext.current
     var shown by remember {mutableStateOf(false)}
-    PlayerIconAction("Add ${media.title} to playlist",androidx.compose.material.icons.Icons.Outlined.PlaylistAdd,modifier){shown=true}
+    PlayerIconAction(uiResources.getString(R.string.ui_add_to_playlist_d2410e ,media.title),androidx.compose.material.icons.Icons.AutoMirrored.Outlined.PlaylistAdd,modifier){shown=true}
     if(shown)PlaylistPicker(context,listOf(media)){shown=false}
 }

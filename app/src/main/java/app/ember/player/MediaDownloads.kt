@@ -1,5 +1,7 @@
 package app.ember.player
 
+import app.ember.tv.R
+
 import android.app.*
 import android.content.*
 import android.os.*
@@ -77,11 +79,12 @@ class MediaDownloadService:Service() {
     private val commands=Channel<Command>(Channel.UNLIMITED)
     private var processedStartId=0
     private var activeRun=0L
-    @Volatile private var progressText="Preparing download…"
+    @Volatile private var progressText=""
     override fun onBind(intent:Intent?)=null
     override fun onCreate() {
         super.onCreate()
-        getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel("downloads","Media downloads",NotificationManager.IMPORTANCE_LOW))
+        progressText=getString(R.string.ui_preparing_download)
+        getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel("downloads",resources.getString(R.string.ui_media_downloads),NotificationManager.IMPORTANCE_LOW))
         scope.launch {
             try {
                 for(command in commands) {
@@ -141,7 +144,7 @@ class MediaDownloadService:Service() {
         if(active!=null)return
         val id=waiting.firstOrNull()
         if(id==null){stopForeground(STOP_FOREGROUND_REMOVE);stopSelf(processedStartId);return}
-        waiting-=id;active=id;progressText="Preparing download…"
+        waiting-=id;active=id;progressText=resources.getString(R.string.ui_preparing_download)
         startForeground(730,notification(progressText))
         val run=++activeRun
         task=scope.launch(start=CoroutineStart.LAZY) {
@@ -207,7 +210,7 @@ class MediaDownloadService:Service() {
                         if(SystemClock.elapsedRealtime()-savedAt>=1000) {
                             savedAt=SystemClock.elapsedRealtime()
                             store.change(id){value->value.copy(bytes=count)}
-                            progressText=if(total>0)"Downloading · ${count*100/total}%" else "Downloading · ${count/1024/1024} MB"
+                            progressText=if(total>0)resources.getString(R.string.ui_downloading ,(count*100/total).toString()) else resources.getString(R.string.ui_downloading_mb ,(count/1024/1024).toString())
                             if(notificationsAllowed())getSystemService(NotificationManager::class.java).notify(730,notification(progressText))
                         }
                     }
@@ -232,9 +235,9 @@ class MediaDownloadService:Service() {
     }
     private fun notification(text:String):Notification {
         val pause=PendingIntent.getService(this,730,Intent(this,MediaDownloadService::class.java).setAction("pause"),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        return Notification.Builder(this,"downloads").setSmallIcon(app.ember.tv.R.drawable.ic_player_notification).setContentTitle("Ember Player").setContentText(text).setOngoing(true)
+        return Notification.Builder(this,"downloads").setSmallIcon(R.drawable.ic_player_notification).setContentTitle(resources.getString(R.string.ui_ember_player)).setContentText(text).setOngoing(true)
             .setVisibility(Notification.VISIBILITY_PRIVATE)
-            .addAction(Notification.Action.Builder(null,"Pause downloads",pause).build()).build()
+            .addAction(Notification.Action.Builder(null,resources.getString(R.string.ui_pause_downloads),pause).build()).build()
     }
     private fun notificationsAllowed()=Build.VERSION.SDK_INT<33||checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)==android.content.pm.PackageManager.PERMISSION_GRANTED
     private fun notifyComplete(item:MediaDownload) {
@@ -244,8 +247,8 @@ class MediaDownloadService:Service() {
         val intent=Intent(this,OpenMediaActivity::class.java).setAction(Intent.ACTION_VIEW).setDataAndType(uri,"application/octet-stream")
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         val open=PendingIntent.getActivity(this,item.id.hashCode(),intent,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val notification=Notification.Builder(this,"downloads").setSmallIcon(app.ember.tv.R.drawable.ic_player_notification)
-            .setContentTitle("Ember Player").setContentText("Download complete").setContentIntent(open).setAutoCancel(true)
+        val notification=Notification.Builder(this,"downloads").setSmallIcon(R.drawable.ic_player_notification)
+            .setContentTitle(resources.getString(R.string.ui_ember_player)).setContentText(resources.getString(R.string.ui_download_complete)).setContentIntent(open).setAutoCancel(true)
             .setVisibility(Notification.VISIBILITY_PRIVATE).build()
         runCatching {getSystemService(NotificationManager::class.java).notify("download:${item.id}",731,notification)}
     }

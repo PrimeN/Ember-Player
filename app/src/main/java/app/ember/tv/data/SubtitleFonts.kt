@@ -1,5 +1,7 @@
 package app.ember.tv.data
 
+import app.ember.tv.R
+
 import android.content.Context
 import android.graphics.Typeface
 import java.io.File
@@ -10,7 +12,7 @@ import java.io.File
  */
 object SubtitleFonts {
     const val DEFAULT = "default"; const val CUSTOM = "custom"
-    val options = listOf(DEFAULT to "Default", "sans" to "Sans", "serif" to "Serif", "mono" to "Monospace", "condensed" to "Condensed", CUSTOM to "Custom")
+    val options = listOf(DEFAULT to R.string.ui_default, "sans" to R.string.ui_sans, "serif" to R.string.ui_serif, "mono" to R.string.ui_monospace, "condensed" to R.string.ui_condensed, CUSTOM to R.string.ui_custom)
     /** Larger than any reasonable subtitle font; also stops a wrong link downloading a film. */
     const val MAX_BYTES = 12L * 1024 * 1024
 
@@ -70,7 +72,7 @@ object SubtitleFonts {
             val out=atomic.startWrite()
             try {out.write(bytes);atomic.finishWrite(out)} catch(e:Throwable){atomic.failWrite(out);throw e}
         } finally {validation.delete()}
-        return familyName(bytes)?.filterNot {it.isISOControl()}?.take(100)?.takeIf {it.isNotBlank()} ?: "Custom font"
+        return familyName(bytes)?.filterNot {it.isISOControl()}?.take(100)?.takeIf {it.isNotBlank()} ?: context.resources.getString(R.string.ui_custom_font)
     }
 
     /** Downloads the font at [url] and keeps it; the family name on success, or a message saying what went wrong. */
@@ -101,6 +103,6 @@ object SubtitleFonts {
         // Android must be able to read it, or the player would fall back silently.
         runCatching { Typeface.createFromFile(temp) }.getOrNull() ?: run { temp.delete(); error("Android can't read that font.") }
         check(temp.renameTo(target) || run { target.delete(); temp.renameTo(target) }) { "Couldn't keep the font." }
-        familyName(bytes) ?: "Custom font"
+        familyName(bytes) ?: context.resources.getString(R.string.ui_custom_font)
     }
 }

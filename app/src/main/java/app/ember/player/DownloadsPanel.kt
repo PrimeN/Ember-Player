@@ -1,5 +1,7 @@
 package app.ember.player
 
+import app.ember.tv.R
+
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
@@ -15,6 +17,8 @@ import androidx.lifecycle.repeatOnLifecycle
 
 @Composable
 internal fun DownloadsPanel(activity:ComponentActivity) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     val scope=rememberCoroutineScope()
     var pending by remember {mutableStateOf<String?>(null)}
     val notifications=androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) {
@@ -29,20 +33,20 @@ internal fun DownloadsPanel(activity:ComponentActivity) {
     var notice by remember {mutableStateOf<String?>(null)}
     var entries by remember {mutableStateOf<List<MediaDownload>>(emptyList())}
     var version by remember {mutableIntStateOf(0)}
-    app.ember.player.PlayerSection("Downloads") {
+    app.ember.player.PlayerSection(uiResources.getString(R.string.ui_downloads)) {
         LaunchedEffect(version) {activity.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED){while(true){entries=withContext(Dispatchers.IO){DownloadStore(activity).read()};delay(1500)}}}
-        ButtonRow {Chip("Download media URL"){adding=true};Chip("Pause downloads"){MediaDownloadService.pause(activity)}}
-        Text("Direct media files download one at a time; additional requests wait in the queue. Adaptive playlists and protected streams are not downloaded. Pause stops the active download and clears the waiting queue. If Android stops the task, choose Resume to continue.",style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
+        ButtonRow {Chip(uiResources.getString(R.string.ui_download_media_url)){adding=true};Chip(uiResources.getString(R.string.ui_pause_downloads)){MediaDownloadService.pause(activity)}}
+        Text(uiResources.getString(R.string.ui_direct_media_files_download_one_at_a_time_additional),style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
         entries.filterNot {PrivateMedia.hidden(it.url)||PrivateMedia.hidden(DownloadStore.uri(activity,it).toString())}.forEach {entry->
             DownloadRow(entry,
-                {runCatching {MediaFiles.launch(activity,listOf(QueueMedia(DownloadStore.uri(activity,entry).toString(),entry.name)))}.onFailure {notice="The downloaded file is unavailable."}},
-                {runCatching {start(entry.id)}.onFailure {notice="Android could not start this download."}},
+                {runCatching {MediaFiles.launch(activity,listOf(QueueMedia(DownloadStore.uri(activity,entry).toString(),entry.name)))}.onFailure {notice=uiResources.getString(R.string.ui_the_downloaded_file_is_unavailable)}},
+                {runCatching {start(entry.id)}.onFailure {notice=uiResources.getString(R.string.ui_android_could_not_start_this_download)}},
                 {removing=entry})
         }
         notice?.let {PlayerErrorText(it)}
-        removing?.let {entry->PlayerConfirmationDialog("Delete download?","${entry.name} and its downloaded file will be removed from this device.","Delete download",{removing=null}) {
+        removing?.let {entry->PlayerConfirmationDialog(uiResources.getString(R.string.ui_delete_download),uiResources.getString(R.string.ui_and_its_downloaded_file_will_be_removed_from_this ,entry.name),uiResources.getString(R.string.ui_delete_download_d41b50),{removing=null}) {
             removing=null
-            runCatching {MediaDownloadService.remove(activity,entry.id);version++}.onFailure {notice="Could not remove this download."}
+            runCatching {MediaDownloadService.remove(activity,entry.id);version++}.onFailure {notice=uiResources.getString(R.string.ui_could_not_remove_this_download)}
         }}
         if(adding) {
             var url by remember {mutableStateOf("")}
@@ -50,20 +54,20 @@ internal fun DownloadsPanel(activity:ComponentActivity) {
             val name=editedName ?: DownloadStore.suggestedName(url)
             var error by remember {mutableStateOf<String?>(null)}
             TvDialog({adding=false},width=560.dp,resizeForKeyboard=true,scrollContent=true) {
-                DialogHeading("Download media")
-                TvTextField(url,{url=it.take(16384)},Modifier.fillMaxWidth(),placeholder="https://…/video.mp4")
-                TvTextField(name,{editedName=it.take(120)},Modifier.fillMaxWidth(),placeholder="Filename")
+                DialogHeading(uiResources.getString(R.string.ui_download_media))
+                TvTextField(url,{url=it.take(16384)},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_https_video_mp4))
+                TvTextField(name,{editedName=it.take(120)},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_filename))
                 error?.let {PlayerErrorText(it)}
                 ButtonRow {
-                    PlayerAction("Download",primary=true){if(!DownloadStore.supported(url.trim())||PrivateMedia.hidden(url.trim()))error="Enter a direct, non-private media URL."
+                    PlayerAction(uiResources.getString(R.string.ui_download),primary=true){if(!DownloadStore.supported(url.trim())||PrivateMedia.hidden(url.trim()))error=uiResources.getString(R.string.ui_enter_a_direct_non_private_media_url)
                         else scope.launch {
                             try {
                                 val item=withContext(Dispatchers.IO){DownloadStore(activity).add(url.trim(),name)}
                                 start(item.id);adding=false;version++
-                            }catch(e:CancellationException){throw e}catch(_:Exception){error="Could not start this download. Check available space and saved downloads."}
+                            }catch(e:CancellationException){throw e}catch(_:Exception){error=uiResources.getString(R.string.ui_could_not_start_this_download_check_available_space_and)}
                         }
                     }
-                    app.ember.player.PlayerAction("Cancel"){adding=false}
+                    app.ember.player.PlayerAction(uiResources.getString(R.string.ui_cancel)){adding=false}
                 }
             }
         }

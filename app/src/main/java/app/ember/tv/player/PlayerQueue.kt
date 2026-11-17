@@ -1,12 +1,15 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
+import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import android.widget.Toast
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal fun PlayerActivity.playFile(media:QueueMedia) {
-    if(!queueItemAllowed(media)){Toast.makeText(this,"Open protected files from Private media.",Toast.LENGTH_LONG).show();return}
+    if(!queueItemAllowed(media)){Toast.makeText(this,resources.getString(R.string.ui_open_protected_files_from_private_media),Toast.LENGTH_LONG).show();return}
     savePosition();resumeKey=media.key;item=item.copy(key=resumeKey,title=media.title)
     resumed=false;ended=false;startOver=false;resumeFraction=-1f;audioUrl=null
     closeMenu();controls.sheet=null;controls.details=null
@@ -27,22 +30,22 @@ internal fun PlayerActivity.showFileQueue(page:Int=0) {
         PlayerDialogAction(media.title, Icons.Outlined.PlayArrow, selected = index == queue.index) {
             val currentIndex = queue.items.indexOf(media)
             if (currentIndex >= 0) showPlayerActions(media.title, listOf(
-                PlayerDialogAction("Play", Icons.Outlined.PlayArrow) { queue.select(queue.items.indexOf(media))?.let { playFile(it) } },
-                PlayerDialogAction("Move earlier", Icons.Outlined.ArrowUpward) { val at = queue.items.indexOf(media); queue.move(at, at - 1); changed() },
-                PlayerDialogAction("Move later", Icons.Outlined.ArrowDownward) { val at = queue.items.indexOf(media); queue.move(at, at + 1); changed() },
-                PlayerDialogAction("Remove", Icons.Outlined.DeleteOutline, destructive = true) { queue.remove(queue.items.indexOf(media)); changed() },
+                PlayerDialogAction(resources.getString(R.string.ui_play), Icons.Outlined.PlayArrow) { queue.select(queue.items.indexOf(media))?.let { playFile(it) } },
+                PlayerDialogAction(resources.getString(R.string.ui_move_earlier_07dd6f), Icons.Outlined.ArrowUpward) { val at = queue.items.indexOf(media); queue.move(at, at - 1); changed() },
+                PlayerDialogAction(resources.getString(R.string.ui_move_later_bb4c84), Icons.Outlined.ArrowDownward) { val at = queue.items.indexOf(media); queue.move(at, at + 1); changed() },
+                PlayerDialogAction(resources.getString(R.string.ui_remove), Icons.Outlined.DeleteOutline, destructive = true) { queue.remove(queue.items.indexOf(media)); changed() },
             ))
         }
     }.toMutableList()
-    if(queue.items.isNotEmpty()&&queue.items.all {queueItemAllowed(it)&&it.identity?.startsWith(DirectUsbIdentity.PREFIX)!=true})actions.add(0,PlayerDialogAction("Save queue to playlist",Icons.Outlined.PlaylistAdd) {
+    if(queue.items.isNotEmpty()&&queue.items.all {queueItemAllowed(it)&&it.identity?.startsWith(DirectUsbIdentity.PREFIX)!=true})actions.add(0,PlayerDialogAction(resources.getString(R.string.ui_save_queue_to_playlist),Icons.AutoMirrored.Outlined.PlaylistAdd) {
         val snapshot=queue.items.toList();val index=queue.index;val repeat=queue.repeat;val shuffle=queue.shuffle
-        playerControlDialog("Add queue to playlist") {dialog->
+        playerControlDialog(resources.getString(R.string.ui_add_queue_to_playlist)) {dialog->
             app.ember.player.PlaylistPickerContent(this,snapshot,index,repeat,shuffle){dialog.dismiss()}
         }
     })
-    if(start>0)actions.add(0,PlayerDialogAction("Previous page"){showFileQueue(page-1)})
-    if(start+100<queue.items.size)actions.add(PlayerDialogAction("Next page"){showFileQueue(page+1)})
-    showPlayerActions("Queue · ${start+1}–${minOf(start+100,queue.items.size)} of ${queue.items.size}",actions)
+    if(start>0)actions.add(0,PlayerDialogAction(resources.getString(R.string.ui_previous_page)){showFileQueue(page-1)})
+    if(start+100<queue.items.size)actions.add(PlayerDialogAction(resources.getString(R.string.ui_next_page)){showFileQueue(page+1)})
+    showPlayerActions(resources.getString(R.string.ui_queue_of ,(start+1).toString(),(minOf(start+100,queue.items.size)).toString(),queue.items.size.toString()),actions)
 }
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)

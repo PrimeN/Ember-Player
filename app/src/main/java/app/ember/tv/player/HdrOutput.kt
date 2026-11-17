@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import kotlinx.serialization.Serializable
 
 /** A fixed, supported vocabulary for the bundled gpu renderer; no arbitrary native options. */
@@ -29,8 +31,8 @@ data class HdrOutput(
             "target-colorspace-hint-strict" to if(expansion)"no" else "yes")
     }
     companion object {
-        val tones=listOf("bt.2390" to "BT.2390","reinhard" to "Reinhard","hable" to "Hable","mobius" to "Mobius","gamma" to "Gamma","clip" to "Clip highlights")
+        val tones=listOf("bt.2390" to R.string.ui_bt_2390,"reinhard" to R.string.ui_reinhard,"hable" to R.string.ui_hable,"mobius" to R.string.ui_mobius,"gamma" to R.string.ui_gamma,"clip" to R.string.ui_clip_highlights)
         // The gpu renderer implements desaturation and hard clipping. Other modes require gpu-next.
-        val gamuts=listOf("desaturate" to "Preserve hue / reduce saturation","clip" to "Clip out-of-range colors")
+        val gamuts=listOf("desaturate" to R.string.ui_preserve_hue_reduce_saturation,"clip" to R.string.ui_clip_out_of_range_colors)
     }
 }

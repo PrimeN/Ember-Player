@@ -1,5 +1,7 @@
 package app.ember.tv.ui
 
+import app.ember.tv.R
+
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -26,7 +28,7 @@ import androidx.tv.material3.Text
 /** Wraps its contents in both directions, with a scroll cap for large fonts and long custom lists. */
 @Composable
 internal fun CompactActionMenu(title: String, labels: List<String>, close: () -> Unit, content: @Composable ColumnScope.(FocusRequester) -> Unit) {
-    val closeLabel=androidx.compose.ui.res.stringResource(app.ember.tv.R.string.ui_close)
+    val closeLabel=androidx.compose.ui.res.stringResource(R.string.ui_close)
     val density=LocalDensity.current
     val window=LocalWindowInfo.current.containerSize
     val measure=rememberTextMeasurer()

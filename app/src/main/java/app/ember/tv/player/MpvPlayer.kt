@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import androidx.core.net.toUri
 
 import android.content.*
@@ -233,7 +235,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         val length=durations[partIndex]
         if(length!=null && remaining>=length && partIndex<source.urls.lastIndex){load(partIndex+1,pendingSeek);return}
         if(remaining>0 && native.getPropertyBoolean("seekable")==false) {pendingSeek=prefix(partIndex);position=pendingSeek;waitingSeek=false
-            android.widget.Toast.makeText(context,"This source cannot resume. Starting from the beginning.",android.widget.Toast.LENGTH_LONG).show()
+            android.widget.Toast.makeText(context,context.resources.getString(R.string.ui_this_source_cannot_resume_starting_from_the_beginning),android.widget.Toast.LENGTH_LONG).show()
         } else if(remaining>0)native.command(arrayOf("seek",(remaining/1000.0).toString(),"absolute+exact")) else waitingSeek=false
         additionalAudio?.let {native.command(arrayOf("audio-add",uri(it),"select"))}
         audioDelay(audioOffset)
@@ -254,23 +256,23 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         if(transport?.failureCode==null && rendererSession.fallback()) {
             hdrSurface.restore();signaledHdr=false;appliedHdr=null
             native.setPropertyString("vo","gpu");applyHdrOutput()
-            android.widget.Toast.makeText(context,"Advanced renderer unavailable. Trying stable GPU output.",android.widget.Toast.LENGTH_LONG).show()
+            android.widget.Toast.makeText(context,context.resources.getString(R.string.ui_advanced_renderer_unavailable_trying_stable_gpu_output),android.widget.Toast.LENGTH_LONG).show()
             load(partIndex,position);return
         }
         if(!hdrBypassed && appliedHdr?.get("target-trc")=="bt.1886" && transport?.failureCode==null) {
             hdrBypassed=true;applyHdrOutput()
-            android.widget.Toast.makeText(context,"Retrying with automatic HDR output",android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(context,context.resources.getString(R.string.ui_retrying_with_automatic_hdr_output),android.widget.Toast.LENGTH_SHORT).show()
             load(partIndex,position);return
         }
         if(!pictureBypassed && requestedPicture.enabled && currentVideoMime!=null && transport?.failureCode==null &&
             native.getPropertyString("video-params/gamma") !in setOf("pq","hlg","st2084")) {
             pictureBypassed=true;appliedPicture=null;applyEnhancement()
-            android.widget.Toast.makeText(context,"Retrying without picture enhancement",android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(context,context.resources.getString(R.string.ui_retrying_without_picture_enhancement),android.widget.Toast.LENGTH_SHORT).show()
             load(partIndex,position);return
         }
         if(!pcmAttempted && config.passthrough && transport?.failureCode==null && native.getPropertyString("audio-codec-name")!=null) {
             pcmAttempted=true;native.setPropertyString("audio-spdif","")
-            android.widget.Toast.makeText(context,"Trying decoded audio output",android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(context,context.resources.getString(R.string.ui_trying_decoded_audio_output),android.widget.Toast.LENGTH_SHORT).show()
             load(partIndex,position);return
         }
         fail()
@@ -494,7 +496,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         requestedDecoderProfile=NativeDecoderProfile.normalized(value);allowHi10p=hi10p
         manualSoftwareVideo=null;appliedDecoder=null;applyVideoDecoder()
     }
-    val decoderProfileLabel get()=if(appliedDecoder?.hi10p==true)"Automatic · Hi10P software fallback" else NativeDecoderProfile.choices.first {it.first==NativeDecoderProfile.normalized(requestedDecoderProfile)}.second
+    val decoderProfileLabel get()=if(appliedDecoder?.hi10p==true)context.getString(R.string.ui_automatic_hi10p_software_fallback) else context.getString(NativeDecoderProfile.choices.first {it.first==NativeDecoderProfile.normalized(requestedDecoderProfile)}.second)
     fun softwareVideo(enabled:Boolean){manualSoftwareVideo=enabled;applyVideoDecoder()}
     val softwareVideo get()=native.getPropertyString("hwdec-current")=="no" || native.getPropertyString("hwdec")=="no"
     fun hdrOutput(value:HdrOutput) {
@@ -531,20 +533,20 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         native.setPropertyString("vo",renderer);appliedHdr=null;applyHdrOutput()
     }
     fun buffering(value:PlaybackConfig){requestedStream=value.stream;StreamConfig.plan(context,value).nativeOptions().filterKeys {it!="network-timeout"}.forEach {(key,option)->native.setPropertyString(key,option)}}
-    fun diagnostics()=mapOf("Engine" to "Compatibility (libmpv)","Video decoder" to native.getPropertyString("hwdec-current").orEmpty(),
-        "Renderer" to (native.getPropertyString("current-vo") ?: renderer),
-        "Renderer recovery" to if(rendererFallback)"Stable fallback active" else "Not needed",
-        "Display HDR capabilities" to displayInfo.summary,
-        "Android HDR surface" to if(signaledHdr)"BT.2020 / PQ confirmed" else "Original data space / no forced HDR",
-        "Dolby Vision source profile" to "Not exposed by this native build",
-        "Dolby Vision RPU processing" to "Not independently verified",
-        "Dolby Vision FEL reconstruction" to "Not independently verified",
-        "Decoder profile" to decoderProfileLabel,
-        "Software deblocking" to native.getPropertyString("vd-lavc-skiploopfilter").orEmpty(),
-        "Expansion status" to when { !requestedHdr.expand->"Off";rendererFallback->"Bypassed after renderer recovery";!displayInfo.pq->"HDR10 display not reported";renderer!="gpu-next"->"Advanced renderer required";!signaledHdr->"HDR surface unavailable or input already HDR";else->"BT.2020 / PQ surface confirmed" },
-        "HDR output" to if(appliedHdr?.get("inverse-tone-mapping")=="yes")"SDR to HDR · experimental" else if(appliedHdr?.get("target-trc")=="bt.1886")"HDR to SDR · ${requestedHdr.tone}" else "Automatic",
-        "Decoded video transfer" to native.getPropertyString("video-params/gamma").orEmpty(),
-        "Deinterlacing mode" to deinterlacing,
-        "Renderer input transfer" to native.getPropertyString("video-out-params/gamma").orEmpty(),
-        "Audio output" to native.getPropertyString("audio-out-params/format").orEmpty())
+    fun diagnostics()=mapOf(R.string.ui_engine to context.getString(R.string.ui_compatibility_libmpv),R.string.ui_video_decoder to native.getPropertyString("hwdec-current").orEmpty(),
+        R.string.ui_renderer to (native.getPropertyString("current-vo") ?: renderer),
+        R.string.ui_renderer_recovery to if(rendererFallback)context.getString(R.string.ui_stable_fallback_active) else context.getString(R.string.ui_not_needed),
+        R.string.ui_display_hdr_capabilities to HdrDisplayInfo.read(context).summary,
+        R.string.ui_android_hdr_surface to if(signaledHdr)context.getString(R.string.ui_bt_2020_pq_confirmed) else context.getString(R.string.ui_original_data_space_no_forced_hdr),
+        R.string.ui_dolby_vision_source_profile to context.getString(R.string.ui_not_exposed_by_this_native_build),
+        R.string.ui_dolby_vision_rpu_processing to context.getString(R.string.ui_not_independently_verified),
+        R.string.ui_dolby_vision_fel_reconstruction to context.getString(R.string.ui_not_independently_verified),
+        R.string.ui_decoder_profile to decoderProfileLabel,
+        R.string.ui_software_deblocking to native.getPropertyString("vd-lavc-skiploopfilter").orEmpty(),
+        R.string.ui_expansion_status to when { !requestedHdr.expand->context.getString(R.string.ui_off);rendererFallback->context.getString(R.string.ui_bypassed_after_renderer_recovery);!displayInfo.pq->context.getString(R.string.ui_hdr10_display_not_reported);renderer!="gpu-next"->context.getString(R.string.ui_advanced_renderer_required);!signaledHdr->context.getString(R.string.ui_hdr_surface_unavailable_or_input_already_hdr);else->context.getString(R.string.ui_bt_2020_pq_surface_confirmed) },
+        R.string.ui_hdr_output to if(appliedHdr?.get("inverse-tone-mapping")=="yes")context.getString(R.string.ui_sdr_to_hdr_experimental) else if(appliedHdr?.get("target-trc")=="bt.1886")context.getString(R.string.ui_hdr_to_sdr_61a246 ,requestedHdr.tone) else context.getString(R.string.ui_automatic),
+        R.string.ui_decoded_video_transfer to native.getPropertyString("video-params/gamma").orEmpty(),
+        R.string.ui_deinterlacing_mode to deinterlacing,
+        R.string.ui_renderer_input_transfer to native.getPropertyString("video-out-params/gamma").orEmpty(),
+        R.string.ui_audio_output to native.getPropertyString("audio-out-params/format").orEmpty())
 }

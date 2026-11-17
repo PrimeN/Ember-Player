@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.content.Context
 import android.net.wifi.WifiManager
 import app.ember.tv.data.Net
@@ -41,7 +43,7 @@ internal object DlnaReceivers {
                     client.newCall(Request.Builder().url(location).build()).execute().use {response->
                         check(response.isSuccessful)
                         val body=String(SubtitleFiles.read(response.body.byteStream(),256*1024),Charsets.UTF_8)
-                        parse(body,location,ip)?.let {found[it.transport]=it}
+                        parse(body,location,ip,context.getString(R.string.ui_tv_receiver))?.let {found[it.transport]=it}
                     }
                 }
             }
@@ -52,7 +54,7 @@ internal object DlnaReceivers {
         val uri=URI(value);uri.scheme in setOf("http","https")&&uri.host==peer&&uri.userInfo==null&&uri.fragment==null&&value.length<=4096&&
             peer.matches(Regex("\\d{1,3}(\\.\\d{1,3}){3}"))&&peer.split('.').all {it.toInt() in 0..255}&&InetAddress.getByName(peer).let {it.isSiteLocalAddress||it.isLinkLocalAddress||it.isLoopbackAddress}
     }.getOrDefault(false)
-    fun parse(xml:String,location:String,peer:String):DlnaReceiver? {
+    fun parse(xml:String,location:String,peer:String,fallbackName:String=""):DlnaReceiver? {
         require(localUrl(location,peer))
         val document=SafePlayerXml.parse(xml)
         fun first(name:String)=document.getElementsByTagNameNS("*",name).item(0)?.textContent?.trim()
@@ -69,7 +71,17 @@ internal object DlnaReceivers {
             if(type.matches(Regex("urn:schemas-upnp-org:service:RenderingControl:[1-3]")))render=control to type
         }
         val transport=av ?: return null
-        return DlnaReceiver(first("friendlyName")?.filterNot {it.isISOControl()}?.take(100)?.ifBlank {"TV receiver"} ?: "TV receiver",peer,transport.first,transport.second,render?.first,render?.second)
+        return DlnaReceiver(first("friendlyName")?.filterNot {it.isISOControl()}?.take(100)?.ifBlank {fallbackName} ?: fallbackName,peer,transport.first,transport.second,render?.first,render?.second)
+    }
+    /** UI command IDs map to fixed wire names independently of the display locale. */
+    fun control(receiver:DlnaReceiver,action:String,argument:Double=0.0) {
+        require(argument.isFinite())
+        when(action) {
+            "play"->soap(receiver,"Play",mapOf("Speed" to "1"))
+            "pause"->soap(receiver,"Pause")
+            "seek"->soap(receiver,"Seek",mapOf("Unit" to "REL_TIME","Target" to clock(argument.coerceAtLeast(0.0).toLong())))
+            "volume"->soap(receiver,"SetVolume",mapOf("Channel" to "Master","DesiredVolume" to (argument.coerceIn(0.0,1.0)*100).toInt().toString()),true)
+        }
     }
     fun soap(receiver:DlnaReceiver,action:String,arguments:Map<String,String> = emptyMap(),rendering:Boolean=false):org.w3c.dom.Document {
         val url=if(rendering)receiver.rendering ?: error("Volume unavailable") else receiver.transport

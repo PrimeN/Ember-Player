@@ -101,7 +101,7 @@ class PlayerActivity : ComponentActivity() {
         app.ember.player.PrivateMedia.endPicker()
         if(uri!=null){
             val native=playbackEngine?.compatibility ?: if(playbackEngine?.switch()==true)playbackEngine?.compatibility else null
-            if(native!=null)native.additionalAudio(uri.toString()) else Toast.makeText(this,"Could not start compatibility playback.",Toast.LENGTH_LONG).show()
+            if(native!=null)native.additionalAudio(uri.toString()) else Toast.makeText(this,resources.getString(R.string.ui_could_not_start_compatibility_playback),Toast.LENGTH_LONG).show()
         }
         player?.playWhenReady=pickerWasPlaying;changed()
     }
@@ -109,7 +109,7 @@ class PlayerActivity : ComponentActivity() {
         pickingSidecar=false
         app.ember.player.PrivateMedia.endPicker()
         runCatching {fileQueue?.add(uris.map {MediaFiles.retain(this,it);QueueMedia(it.toString(),MediaFiles.name(this,it))})}
-            .onFailure {Toast.makeText(this,"The queue is full. Create a separate playlist.",Toast.LENGTH_LONG).show()}
+            .onFailure {Toast.makeText(this,resources.getString(R.string.ui_the_queue_is_full_create_a_separate_playlist),Toast.LENGTH_LONG).show()}
         player?.playWhenReady=pickerWasPlaying;changed()
     }
     /** Optional separate audio source restored during playback handoff. */

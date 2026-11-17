@@ -1,6 +1,9 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.widget.Toast
+import app.ember.player.localized
 import androidx.media3.common.Format
 import androidx.media3.common.PlaybackException
 
@@ -37,7 +40,7 @@ internal fun PlayerActivity.recoverPicture(error:PlaybackException):Boolean {
     pictureBypassed=true
     applyPictureEnhancement()
     p.seekTo(at);p.prepare();p.playWhenReady=wanted
-    Toast.makeText(this,"Picture enhancement unavailable for this video. Continuing without effects.",Toast.LENGTH_LONG).show()
+    Toast.makeText(this,resources.getString(R.string.ui_picture_enhancement_unavailable_for_this_video_continuing_without_effects),Toast.LENGTH_LONG).show()
     return true
 }
 
@@ -45,40 +48,40 @@ internal fun PlayerActivity.recoverPicture(error:PlaybackException):Boolean {
 internal fun PlayerActivity.pictureOptionRows():List<OptionRow> = buildList {
     val effective=PictureProfiles.effective(config,resumeKey)
     val p=effective.picture
-    add(OptionRow("Compare picture processing",note="Compare original and saved processing; closing the comparison restores saved settings.",action={closeMenu();comparePicture()}))
-    add(OptionRow("Compatibility renderer",RendererPolicy.choices.first {it.first==RendererPolicy.normalized(config.renderer)}.second,RendererPolicy.choices.map {it.second},RendererPolicy.choices.indexOfFirst {it.first==RendererPolicy.normalized(config.renderer)},note="Advanced enables inverse tone mapping. Renderer failures retry stable GPU output.",onPick={index->config=config.copy(renderer=RendererPolicy.choices[index].first);prefs.playbackConfig=config;playbackEngine?.compatibility?.renderer(config.renderer);changed()}))
-    add(OptionRow("Network and buffering",action={closeMenu();editStreamSettings()}))
+    add(OptionRow(resources.getString(R.string.ui_compare_picture_processing),note=resources.getString(R.string.ui_compare_original_and_saved_processing_closing_the_comparison_restores),action={closeMenu();comparePicture()}))
+    add(OptionRow(resources.getString(R.string.ui_compatibility_renderer),RendererPolicy.choices.localized(resources).first {it.first==RendererPolicy.normalized(config.renderer)}.second,RendererPolicy.choices.localized(resources).map {it.second},RendererPolicy.choices.localized(resources).indexOfFirst {it.first==RendererPolicy.normalized(config.renderer)},note=resources.getString(R.string.ui_advanced_enables_inverse_tone_mapping_renderer_failures_retry_stable),onPick={index->config=config.copy(renderer=RendererPolicy.choices.localized(resources)[index].first);prefs.playbackConfig=config;playbackEngine?.compatibility?.renderer(config.renderer);changed()}))
+    add(OptionRow(resources.getString(R.string.ui_network_and_buffering),action={closeMenu();editStreamSettings()}))
     val bound=PictureProfiles.selected(config,resumeKey)
-    add(OptionRow("Saved picture / shader profiles",bound?.name ?: "Defaults",note=if(bound!=null)"Edits update this saved profile." else "Save and reuse picture, shader and HDR settings.",action={closeMenu();managePictureProfiles()}))
-    val note="GPU effects use more power. HDR, Dolby Vision, protected and tunneled video keep their supported output path. Standard uses Lanczos; Compatibility can also use the bundled shader when enlarging video."
-    add(OptionRow("Picture enhancement",toggle=p.enabled,note=if(pictureBypassed || playbackEngine?.compatibility?.enhancementBypassed==true)"Temporarily bypassed for this video. Toggle to retry." else note,
+    add(OptionRow(resources.getString(R.string.ui_saved_picture_shader_profiles),bound?.name ?: resources.getString(R.string.ui_defaults),note=if(bound!=null)resources.getString(R.string.ui_edits_update_this_saved_profile) else resources.getString(R.string.ui_save_and_reuse_picture_shader_and_hdr_settings),action={closeMenu();managePictureProfiles()}))
+    val note=resources.getString(R.string.ui_gpu_effects_use_more_power_hdr_dolby_vision_protected)
+    add(OptionRow(resources.getString(R.string.ui_picture_enhancement),toggle=p.enabled,note=if(pictureBypassed || playbackEngine?.compatibility?.enhancementBypassed==true)resources.getString(R.string.ui_temporarily_bypassed_for_this_video_toggle_to_retry) else note,
         action={changePicture(p.copy(enabled=!p.enabled))}))
     addAll(hdrOutputRows(effective.hdrOutput))
     if(p.enabled) {
-        add(OptionRow("GPU upscaling",toggle=p.upscaling,action={changePicture(p.copy(upscaling=!p.upscaling))}))
-        add(OptionRow("Fast upscaling shader",toggle=p.shader,note="Compatibility playback only; active above 1.2× in both dimensions.",action={changePicture(p.copy(shader=!p.shader))}))
-        add(OptionRow("Picture preset",PictureEnhancement.presets.getOrNull(PictureEnhancement.presetIndex(p)) ?: "Custom",PictureEnhancement.presets,PictureEnhancement.presetIndex(p),onPick={changePicture(PictureEnhancement.preset(it,p))}))
+        add(OptionRow(resources.getString(R.string.ui_gpu_upscaling),toggle=p.upscaling,action={changePicture(p.copy(upscaling=!p.upscaling))}))
+        add(OptionRow(resources.getString(R.string.ui_fast_upscaling_shader),toggle=p.shader,note=resources.getString(R.string.ui_compatibility_playback_only_active_above_1_2_in_both),action={changePicture(p.copy(shader=!p.shader))}))
+        add(OptionRow(resources.getString(R.string.ui_picture_preset),PictureEnhancement.presets.getOrNull(PictureEnhancement.presetIndex(p))?.let(resources::getString) ?: resources.getString(R.string.ui_custom),PictureEnhancement.presets.map(resources::getString),PictureEnhancement.presetIndex(p),onPick={changePicture(PictureEnhancement.preset(it,p))}))
         pictureAdjustments.forEach {adjustment->
             val values=adjustment.values(p)
-            add(OptionRow(adjustment.label,adjustment.read(p.normalized()).toString(),values.map(Int::toString),values.indexOf(adjustment.read(p.normalized())),
+            add(OptionRow(resources.getString(adjustment.label),adjustment.read(p.normalized()).toString(),values.map(Int::toString),values.indexOf(adjustment.read(p.normalized())),
                 onPick={changePicture(adjustment.write(p,values[it]))}))
         }
-        add(OptionRow("Reset picture adjustments",action={changePicture(p.copy(brightness=0,contrast=0,saturation=0,gamma=0,hue=0,sharpness=0))}))
+        add(OptionRow(resources.getString(R.string.ui_reset_picture_adjustments),action={changePicture(p.copy(brightness=0,contrast=0,saturation=0,gamma=0,hue=0,sharpness=0))}))
     }
 }
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 private fun PlayerActivity.hdrOutputRows(value:HdrOutput):List<OptionRow> = buildList {
     val p=value.normalized()
-    add(OptionRow("HDR to SDR output",toggle=p.sdr,note=if(playbackEngine?.compatibility?.toneMappingBypassed==true)"Temporarily bypassed. Toggle to retry." else "Compatibility only. Normal HDR output stays automatic when off. Separate from SDR picture enhancement.",action={changePictureState {it.copy(hdr=p.copy(sdr=!p.sdr,expand=false))}}))
-    add(OptionRow("SDR to HDR · experimental",toggle=p.expand,note="Local inverse tone mapping. Requires an HDR10 display, Advanced renderer and a signaled SurfaceView. It cannot recover missing source detail.",action={changePictureState {it.copy(hdr=p.copy(expand=!p.expand,sdr=false))}}))
-    if(p.expand){val peaks=(listOf(300,400,600,800,1000,1500)+p.hdrPeak).distinct().sorted();add(OptionRow("Expanded HDR peak","${p.hdrPeak} nits",peaks.map {"$it nits"},peaks.indexOf(p.hdrPeak).coerceAtLeast(0),onPick={index->changePictureState {it.copy(hdr=p.copy(hdrPeak=peaks[index]))}}))}
+    add(OptionRow(resources.getString(R.string.ui_hdr_to_sdr_output),toggle=p.sdr,note=if(playbackEngine?.compatibility?.toneMappingBypassed==true)resources.getString(R.string.ui_temporarily_bypassed_toggle_to_retry) else resources.getString(R.string.ui_compatibility_only_normal_hdr_output_stays_automatic_when_off),action={changePictureState {it.copy(hdr=p.copy(sdr=!p.sdr,expand=false))}}))
+    add(OptionRow(resources.getString(R.string.ui_sdr_to_hdr_experimental),toggle=p.expand,note=resources.getString(R.string.ui_local_inverse_tone_mapping_requires_an_hdr10_display_advanced),action={changePictureState {it.copy(hdr=p.copy(expand=!p.expand,sdr=false))}}))
+    if(p.expand){val peaks=(listOf(300,400,600,800,1000,1500)+p.hdrPeak).distinct().sorted();add(OptionRow(resources.getString(R.string.ui_expanded_hdr_peak),resources.getString(R.string.ui_nits ,p.hdrPeak.toString()),peaks.map {resources.getString(R.string.ui_nits ,it.toString())},peaks.indexOf(p.hdrPeak).coerceAtLeast(0),onPick={index->changePictureState {it.copy(hdr=p.copy(hdrPeak=peaks[index]))}}))}
     if(p.sdr) {
-        add(OptionRow("Tone mapping",HdrOutput.tones.first {it.first==p.tone}.second,HdrOutput.tones.map {it.second},HdrOutput.tones.indexOfFirst {it.first==p.tone},onPick={index->changePictureState {it.copy(hdr=p.copy(tone=HdrOutput.tones[index].first))}}))
-        add(OptionRow("Gamut mapping",HdrOutput.gamuts.first {it.first==p.gamut}.second,HdrOutput.gamuts.map {it.second},HdrOutput.gamuts.indexOfFirst {it.first==p.gamut},onPick={index->changePictureState {it.copy(hdr=p.copy(gamut=HdrOutput.gamuts[index].first))}}))
+        add(OptionRow(resources.getString(R.string.ui_tone_mapping),HdrOutput.tones.localized(resources).first {it.first==p.tone}.second,HdrOutput.tones.localized(resources).map {it.second},HdrOutput.tones.localized(resources).indexOfFirst {it.first==p.tone},onPick={index->changePictureState {it.copy(hdr=p.copy(tone=HdrOutput.tones.localized(resources)[index].first))}}))
+        add(OptionRow(resources.getString(R.string.ui_gamut_mapping),HdrOutput.gamuts.localized(resources).first {it.first==p.gamut}.second,HdrOutput.gamuts.localized(resources).map {it.second},HdrOutput.gamuts.localized(resources).indexOfFirst {it.first==p.gamut},onPick={index->changePictureState {it.copy(hdr=p.copy(gamut=HdrOutput.gamuts.localized(resources)[index].first))}}))
         val peaks=(listOf(50,80,100,120,160,203,250,300,400,500)+p.peak).distinct().sorted()
-        add(OptionRow("SDR screen peak","${p.peak} nits",peaks.map {"$it nits"},peaks.indexOf(p.peak),onPick={index->changePictureState {it.copy(hdr=p.copy(peak=peaks[index]))}}))
-        add(OptionRow("Analyze scene peaks",toggle=p.analyzePeak,note="Extra GPU work; off uses available video metadata.",action={changePictureState {it.copy(hdr=p.copy(analyzePeak=!p.analyzePeak))}}))
+        add(OptionRow(resources.getString(R.string.ui_sdr_screen_peak),resources.getString(R.string.ui_nits ,p.peak.toString()),peaks.map {resources.getString(R.string.ui_nits ,it.toString())},peaks.indexOf(p.peak),onPick={index->changePictureState {it.copy(hdr=p.copy(peak=peaks[index]))}}))
+        add(OptionRow(resources.getString(R.string.ui_analyze_scene_peaks),toggle=p.analyzePeak,note=resources.getString(R.string.ui_extra_gpu_work_off_uses_available_video_metadata),action={changePictureState {it.copy(hdr=p.copy(analyzePeak=!p.analyzePeak))}}))
     }
 }
 

@@ -392,25 +392,27 @@ internal fun SheetRow(label: String, first: Boolean = false, onClick: () -> Unit
 /** Cinema transport matches the TV reference while keeping all existing player actions/engines. */
 @Composable
 private fun EmberXControls(s:ControlsState,a:ControlsActions) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     AnimatedVisibility(s.visible,enter=fadeIn(),exit=fadeOut()) {
         val play=remember {FocusRequester()}
         LaunchedEffect(s.shownAt){runCatching {play.requestFocus()}}
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha=.88f),.22f to Color.Transparent,.70f to Color.Transparent,1f to Color.Black.copy(alpha=.96f)))
             .onKeyEvent {a.touched();false}) {
             Row(Modifier.fillMaxWidth().padding(horizontal=32.dp,vertical=24.dp),horizontalArrangement=Arrangement.spacedBy(16.dp),verticalAlignment=Alignment.CenterVertically) {
-                IconButton(Icons.AutoMirrored.Outlined.ArrowBack,"Back",onClick=a.close)
+                IconButton(Icons.AutoMirrored.Outlined.ArrowBack,uiResources.getString(R.string.ui_back),onClick=a.close)
                 Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(5.dp)) {
                     Text(s.details?.name ?: s.title,style=androidx.tv.material3.MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold,color=Color.White,maxLines=1,overflow=TextOverflow.Ellipsis)
                     val episode=listOfNotNull(s.seasonEpisode,s.details?.episodeTitle).joinToString(" · ")
                     if(episode.isNotBlank())Text(episode,color=EmberXColors.Secondary,style=androidx.tv.material3.MaterialTheme.typography.bodyMedium,maxLines=1,overflow=TextOverflow.Ellipsis)
                 }
-                IconButton(Icons.Outlined.Info,"Details"){s.sheet=if(s.sheet=="info")null else "info"}
+                IconButton(Icons.Outlined.Info,uiResources.getString(R.string.ui_details)){s.sheet=if(s.sheet=="info")null else "info"}
             }
             Row(Modifier.align(Alignment.Center),horizontalArrangement=Arrangement.spacedBy(28.dp),verticalAlignment=Alignment.CenterVertically) {
-                IconButton(Icons.Outlined.Replay10,"Back 10 seconds"){a.seekBy(-10_000)}
-                IconButton(if(s.playing)Icons.Outlined.Pause else Icons.Outlined.PlayArrow,if(s.playing)"Pause" else "Play",big=true,
+                IconButton(Icons.Outlined.Replay10,uiResources.getString(R.string.ui_back_10_seconds)){a.seekBy(-10_000)}
+                IconButton(if(s.playing)Icons.Outlined.Pause else Icons.Outlined.PlayArrow,if(s.playing)uiResources.getString(R.string.ui_pause) else uiResources.getString(R.string.ui_play),big=true,
                     modifier=Modifier.focusRequester(play),onClick=a.playPause)
-                IconButton(Icons.Outlined.Forward10,"Forward 10 seconds"){a.seekBy(10_000)}
+                IconButton(Icons.Outlined.Forward10,uiResources.getString(R.string.ui_forward_10_seconds)){a.seekBy(10_000)}
             }
             Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(horizontal=32.dp,vertical=18.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
                 if(s.seekPreview>=0f && s.duration>0) {
@@ -421,10 +423,10 @@ private fun EmberXControls(s:ControlsState,a:ControlsActions) {
                     Text(time(if(s.seekPreview>=0f)(s.seekPreview*s.duration).toLong() else s.position)+"  ·  "+time(s.duration),
                         style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Color.White,fontWeight=FontWeight.SemiBold)
                     Spacer(Modifier.weight(1f))
-                    if(s.fileQueueNext)IconButton(Icons.Outlined.SkipNext,if(s.fileQueueLabel!=null)"Next file" else "Next episode",onClick=a.next)
-                    if(s.fileQueueLabel!=null)IconButton(Icons.AutoMirrored.Outlined.FormatListBulleted,"Queue",onClick=a.queue)
+                    if(s.fileQueueNext)IconButton(Icons.Outlined.SkipNext,if(s.fileQueueLabel!=null)uiResources.getString(R.string.ui_next_file) else uiResources.getString(R.string.ui_next_episode),onClick=a.next)
+                    if(s.fileQueueLabel!=null)IconButton(Icons.AutoMirrored.Outlined.FormatListBulleted,uiResources.getString(R.string.ui_queue),onClick=a.queue)
                     TrackButtons(s)
-                    IconButton(Icons.Outlined.Settings,"Player settings"){a.openMenu("quick",null)}
+                    IconButton(Icons.Outlined.Settings,uiResources.getString(R.string.ui_player_settings)){a.openMenu("quick",null)}
                 }
             }
             if(s.sheet=="info")s.details?.let {InfoPanel(it)}
@@ -444,6 +446,8 @@ internal const val SUBTITLE_SHEET = "subtitles"
  */
 @Composable
 private fun TrackButtons(s: ControlsState) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     val subtitles = remember { FocusRequester() }
     val sound = remember { FocusRequester() }
     var last by remember { mutableStateOf<String?>(null) }
@@ -452,32 +456,34 @@ private fun TrackButtons(s: ControlsState) {
         last = s.sheet
         if (s.sheet == null && s.menu == null) runCatching { when (closed) { SUBTITLE_SHEET -> subtitles.requestFocus(); SOUND_SHEET -> sound.requestFocus() } }
     }
-    IconButton(Icons.Outlined.Subtitles, "Subtitles", modifier = Modifier.focusRequester(subtitles)) { s.sheet = if (s.sheet == SUBTITLE_SHEET) null else SUBTITLE_SHEET }
-    IconButton(Icons.AutoMirrored.Outlined.VolumeUp, "Sound", modifier = Modifier.focusRequester(sound)) { s.sheet = if (s.sheet == SOUND_SHEET) null else SOUND_SHEET }
+    IconButton(Icons.Outlined.Subtitles, uiResources.getString(R.string.ui_subtitles), modifier = Modifier.focusRequester(subtitles)) { s.sheet = if (s.sheet == SUBTITLE_SHEET) null else SUBTITLE_SHEET }
+    IconButton(Icons.AutoMirrored.Outlined.VolumeUp, uiResources.getString(R.string.ui_sound), modifier = Modifier.focusRequester(sound)) { s.sheet = if (s.sheet == SOUND_SHEET) null else SOUND_SHEET }
 }
 
 @Composable
 private fun TrackSheet(s: ControlsState, a: ControlsActions) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     when (s.sheet) {
         SOUND_SHEET -> {
             val tracks = s.audioTracks
             val on = tracks.indexOfFirst { it.second }.coerceAtLeast(0)
-            SideSheet("Sound", start = on) {
-                if (tracks.isEmpty()) item("none") { SheetRow("No other sound tracks", first = true) { s.sheet = null } }
+            SideSheet(uiResources.getString(R.string.ui_sound), start = on) {
+                if (tracks.isEmpty()) item("none") { SheetRow(uiResources.getString(R.string.ui_no_other_sound_tracks), first = true) { s.sheet = null } }
                 itemsIndexed(tracks, key = { i, t -> "a$i:${t.first}" }) { i, (label, chosen) ->
                     SheetRow(tick(label, chosen), first = i == on) { s.sheet = null; if (!chosen) a.pickAudio(i) }
                 }
-                item("more") { SheetRow("Sound settings…") { s.sheet = null; a.openMenu("options", "audio") } }
+                item("more") { SheetRow(uiResources.getString(R.string.ui_sound_settings)) { s.sheet = null; a.openMenu("options", "audio") } }
             }
         }
         SUBTITLE_SHEET -> {
             val options = s.subtitleOptions
             val on = options.indexOfFirst { it.second }.coerceAtLeast(0)
-            SideSheet("Subtitles", start = on) {
+            SideSheet(uiResources.getString(R.string.ui_subtitles), start = on) {
                 itemsIndexed(options, key = { i, t -> "s$i:${t.first}" }) { i, (label, chosen) ->
-                    SheetRow(tick(if (i == 0) "Off" else label, chosen), first = i == on) { s.sheet = null; if (!chosen) a.pickSubtitle(i) }
+                    SheetRow(tick(if (i == 0) uiResources.getString(R.string.ui_off) else label, chosen), first = i == on) { s.sheet = null; if (!chosen) a.pickSubtitle(i) }
                 }
-                item("more") { SheetRow("Subtitle settings…", first = options.isEmpty()) { s.sheet = null; a.openMenu("options", "subtitles") } }
+                item("more") { SheetRow(uiResources.getString(R.string.ui_subtitle_settings_fdfc57), first = options.isEmpty()) { s.sheet = null; a.openMenu("options", "subtitles") } }
             }
         }
     }

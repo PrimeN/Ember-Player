@@ -1,5 +1,7 @@
 package app.ember.player
 
+import app.ember.tv.R
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -12,37 +14,41 @@ import app.ember.tv.ui.*
 
 @Composable
 internal fun StreamSettings(config:PlaybackConfig,save:(PlaybackConfig)->Unit) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     val p=config.stream.normalized()
     fun update(value:StreamConfig){save(config.copy(stream=value.normalized()))}
-    timeoutFields.forEach {f->PlayerChoice(f.label,f.choices(p).map {it.toString() to "$it ${f.unit}"},f.read(p).toString()){update(f.write(p,it.toInt()))}}
-    Text("Timeouts apply when a stream is reopened. These HTTP limits are shared by both playback engines and background audio.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
-    SwitchChip("Custom buffering",p.custom){update(p.copy(custom=!p.custom))}
+    timeoutFields.forEach {f->PlayerChoice(uiResources.getString(f.label),f.choices(p).map {it.toString() to "$it ${f.unit}"},f.read(p).toString()){update(f.write(p,it.toInt()))}}
+    Text(uiResources.getString(R.string.ui_timeouts_apply_when_a_stream_is_reopened_these_http),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+    SwitchChip(uiResources.getString(R.string.ui_custom_buffering),p.custom){update(p.copy(custom=!p.custom))}
     if(p.custom) {
-        bufferFields.forEach {f->PlayerChoice(f.label,f.choices(p).map {it.toString() to "$it ${f.unit}"},f.read(p).toString()){update(f.write(p,it.toInt()))}}
-        SwitchChip("Wait for buffer refill",p.pauseForBuffer){update(p.copy(pauseForBuffer=!p.pauseForBuffer))}
+        bufferFields.forEach {f->PlayerChoice(uiResources.getString(f.label),f.choices(p).map {it.toString() to "$it ${f.unit}"},f.read(p).toString()){update(f.write(p,it.toInt()))}}
+        SwitchChip(uiResources.getString(R.string.ui_wait_for_buffer_refill),p.pauseForBuffer){update(p.copy(pauseForBuffer=!p.pauseForBuffer))}
     }
     val effective=StreamConfig.plan(LocalContext.current,config)
-    Text("Device limit: ${effective.forwardMiB} MiB forward + ${effective.rewindMiB} MiB rewind. Standard uses the forward cap; byte-limited rewind is Compatibility-only. Standard applies buffer changes on prepare; Compatibility applies them while playing. Larger buffers cannot fix a persistently slow connection.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+    Text(uiResources.getString(R.string.ui_device_limit_mib_forward_mib_rewind_standard_uses_the ,effective.forwardMiB.toString(),effective.rewindMiB.toString()),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
 }
 
 @Composable
 internal fun SubtitlePresetSettings(prefs:Prefs,config:SubtitleConfig,apply:(SubtitleConfig)->Unit) {
+    val uiResources=androidx.compose.ui.platform.LocalResources.current
+
     var open by remember {mutableStateOf(false)}
     var name by remember {mutableStateOf("")}
     var tick by remember {mutableIntStateOf(0)}
     var deleting by remember {mutableStateOf<String?>(null)}
     var notice by remember {mutableStateOf<PlayerFeedback?>(null)}
     val styles=remember(tick){prefs.subtitlePresets.take(12)}
-    Chip(if(open)"Hide saved subtitle styles" else "Saved subtitle styles"){open=!open}
+    Chip(if(open)uiResources.getString(R.string.ui_hide_saved_subtitle_styles) else uiResources.getString(R.string.ui_saved_subtitle_styles)){open=!open}
     if(!open)return
-    TvTextField(name,{name=it.take(32)},Modifier.fillMaxWidth(),placeholder="Style name",startEditing=!PlayerTouchControls.isTelevision(LocalContext.current))
-    Chip("Save subtitle style") {runCatching {SubtitlePresets.save(prefs.subtitlePresets,name,config)}.onSuccess {prefs.subtitlePresets=it;tick++;notice=PlayerFeedback("Style saved",false)}.onFailure {notice=it.message?.let {PlayerFeedback(it)}}}
+    TvTextField(name,{name=it.take(32)},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_style_name),startEditing=!PlayerTouchControls.isTelevision(LocalContext.current))
+    Chip(uiResources.getString(R.string.ui_save_subtitle_style)) {runCatching {SubtitlePresets.save(prefs.subtitlePresets,name,config)}.onSuccess {prefs.subtitlePresets=it;tick++;notice=PlayerFeedback(uiResources.getString(R.string.ui_style_saved),false)}.onFailure {notice=PlayerFeedback(uiResources.getString(R.string.ui_enter_a_style_name_you_can_save_up_to))}}
     styles.forEach {style->ButtonRow {
-        Chip("Apply ${style.name}"){apply(style.style.applyTo(config));notice=PlayerFeedback("Style applied",false)}
-        PlayerAction("Delete ${style.name}",destructive=true){deleting=style.name}
+        Chip(uiResources.getString(R.string.ui_apply ,style.name)){apply(style.style.applyTo(config));notice=PlayerFeedback(uiResources.getString(R.string.ui_style_applied),false)}
+        PlayerAction(uiResources.getString(R.string.ui_delete ,style.name),destructive=true){deleting=style.name}
     }}
-    Text("Appearance only. Languages, subtitle providers and speech services stay unchanged. Custom font files may need to be reimported after restoring a backup.",style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
-    deleting?.let {name->PlayerConfirmationDialog("Delete subtitle style?","Remove $name from saved subtitle styles? Current subtitle settings will be kept.","Delete",{deleting=null}) {
+    Text(uiResources.getString(R.string.ui_appearance_only_languages_subtitle_providers_and_speech_services_stay),style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
+    deleting?.let {name->PlayerConfirmationDialog(uiResources.getString(R.string.ui_delete_subtitle_style),uiResources.getString(R.string.ui_remove_from_saved_subtitle_styles_current_subtitle_settings_will ,name),uiResources.getString(R.string.ui_delete_f6fdbe),{deleting=null}) {
         deleting=null;prefs.subtitlePresets=prefs.subtitlePresets.filterNot {it.name==name};tick++
     }}
     notice?.let {PlayerFeedbackText(it)}

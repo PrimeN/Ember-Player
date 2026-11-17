@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.R
+
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
@@ -41,12 +43,12 @@ internal class PlayerClipExport(private val activity:PlayerActivity):java.io.Clo
     private fun resetForSource(){if(visit!=activity.playbackVisit&&!active){startMs=null;endMs=null;visit=activity.playbackVisit}}
     fun chooseDestination() {
         resetForSource()
-        if(active||!activity.exports.permitted()||!validRange(startMs,endMs)){message("Mark a clip start and end at least one second apart.");return}
+        if(active||!activity.exports.permitted()||!validRange(startMs,endMs)){message(activity.getString(R.string.ui_mark_a_clip_start_and_end_at_least_one));return}
         source=activity.currentUrl;visit=activity.playbackVisit
         activity.closeMenu();activity.pickingSidecar=true
         activity.player?.pause()
         try {picker.launch("Ember-clip-${System.currentTimeMillis()}.mp4")}
-        catch(_:Exception){activity.pickingSidecar=false;source=null;message("No file picker is available.")}
+        catch(_:Exception){activity.pickingSidecar=false;source=null;message(activity.getString(R.string.ui_no_file_picker_is_available))}
     }
     private fun validSource()=!closed&&source!=null&&visit==activity.playbackVisit&&source==activity.currentUrl&&activity.exports.permitted()
     private fun begin() {
@@ -67,21 +69,21 @@ internal class PlayerClipExport(private val activity:PlayerActivity):java.io.Clo
                                     while(true){ensureActive();val count=input.read(buffer);if(count<0)break;out.write(buffer,0,count)}
                                 };out.flush()} ?: error("Cannot write clip")
                             }
-                            if(!validSource()){remove(uri);message("Export canceled because playback changed.")}else message("Clip saved")
+                            if(!validSource()){remove(uri);message(activity.getString(R.string.ui_export_canceled_because_playback_changed))}else message(activity.getString(R.string.ui_clip_saved))
                             output=null
                         } catch(e:CancellationException){remove(uri);throw e}
-                          catch(_:Exception){remove(uri);message("Could not save the clip.")}
+                          catch(_:Exception){remove(uri);message(activity.getString(R.string.ui_could_not_save_the_clip))}
                         finally {cleanup()}
                     }
                 }
-                override fun onError(composition:Composition,result:ExportResult,exception:ExportException) {cancel();message("This format cannot be exported with the device's encoders.")}
+                override fun onError(composition:Composition,result:ExportResult,exception:ExportException) {cancel();message(activity.getString(R.string.ui_this_format_cannot_be_exported_with_the_device_s))}
             }
             transformer=Transformer.Builder(activity).setVideoMimeType(MimeTypes.VIDEO_H264).setAudioMimeType(MimeTypes.AUDIO_AAC).addListener(listener).build()
             keepAwake=activity.window.decorView.keepScreenOn
             activity.window.decorView.keepScreenOn=true
             transformer!!.start(EditedMediaItem.Builder(media).build(),file.absolutePath)
-            message("Exporting clip. Keep this page open; cancel from Playback options.")
-        } catch(_:Exception){cancel();message("Could not start clip export.")}
+            message(activity.getString(R.string.ui_exporting_clip_keep_this_page_open_cancel_from_playback))
+        } catch(_:Exception){cancel();message(activity.getString(R.string.ui_could_not_start_clip_export))}
     }
     fun cancel(){transformer?.cancel();transformer=null;copy?.cancel();copy=null;output?.let(::remove);output=null;cleanup()}
     private fun cleanup(){temporary?.delete();temporary=null;source=null;activity.window.decorView.keepScreenOn=keepAwake}
