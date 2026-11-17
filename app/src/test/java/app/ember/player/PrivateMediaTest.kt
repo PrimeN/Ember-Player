@@ -19,6 +19,21 @@ import javax.crypto.spec.GCMParameterSpec
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[35],application=Application::class)
 class PrivateMediaTest {
+    @Test fun externalPublicFilesOpenWithoutUnlockingButProtectedFilesStillRequireThePin() {
+        PrivateMedia.configure("123456")
+        PrivateMedia.add(PrivateItem("content://files.example/private","Private"))
+        PrivateMedia.lock()
+        fun open(uri:String):android.content.Intent? {
+            val intent=android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse(uri))
+            val activity=org.robolectric.Robolectric.buildActivity(OpenMediaActivity::class.java,intent).create().get()
+            return org.robolectric.Shadows.shadowOf(activity).nextStartedActivity
+        }
+        assertNotNull(open("content://files.example/public"))
+        assertNull(open("content://files.example/private"))
+        assertFalse(PrivateMedia.unlocked.value)
+        assertTrue(PrivateMedia.authenticate("123456"))
+        assertNotNull(open("content://files.example/private"))
+    }
     private val context:Context get()=RuntimeEnvironment.getApplication()
     @Before fun setup() {
         val key=KeyGenerator.getInstance("AES").apply {init(256)}.generateKey()
