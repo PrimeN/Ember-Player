@@ -1,4 +1,4 @@
-"""Publish a requested version using its successful main-build artifact."""
+"""Publish the approved signed artifact for a validated main commit."""
 from pathlib import Path
 import hashlib
 import json
@@ -55,18 +55,25 @@ def notes_for_version(text, version):
     return re.split(r'^## ', text[heading.end():], maxsplit=1, flags=re.MULTILINE)[0].strip()
 
 
+def successful_main_build(runs, commit):
+    run = next((run for run in runs if run.get('head_sha') == commit
+                and run.get('head_branch') == 'main' and run.get('event') == 'push'
+                and run.get('status') == 'completed' and run.get('conclusion') == 'success'), None)
+    if run is None:
+        raise ValueError('A successful Android player build of this commit on main is required before releasing.')
+    return run
+
+
 def main():
     root = Path(__file__).resolve().parents[2]
     version, commit = version_and_commit(root)
     repo = os.environ['GITHUB_REPOSITORY']
     if len(sys.argv) > 1 and sys.argv[1] == 'find-build':
         data = json.loads(gh('api', f'repos/{repo}/actions/workflows/android.yml/runs?branch=main&event=push&status=success&per_page=100'))
-        run = next((run for run in data.get('workflow_runs', []) if run['head_sha'] == commit
-                    and run['head_branch'] == 'main' and run['conclusion'] == 'success'), None)
-        if run is None:
-            raise ValueError('A successful Android player build of this commit on main is required before releasing.')
+        run = successful_main_build(data.get('workflow_runs', []), commit)
         with open(os.environ['GITHUB_OUTPUT'], 'a') as outputs:
             outputs.write(f'run_id={run["id"]}\n')
+            outputs.write(f'commit={commit}\n')
         print(f'Using validated main build {run["id"]}.')
         return
     apk, digest = validate_assets(root, version, commit)

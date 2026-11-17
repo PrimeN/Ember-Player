@@ -95,15 +95,16 @@ and install it on your device. The current release is **0.7.5**;
 [the changelog](CHANGELOG.md) describes its features and requirements.
 
 Development happens on [`beta`](https://github.com/PrimeN/Ember-Player/tree/beta).
-Code pushes build and validate the app, with downloadable APK artifacts. Publishing
-a release requires an explicit version tag or manual publication request.
+Code pushes build and validate the app, with unsigned APK artifacts. Publishing
+a signed release requires an explicit version tag or manual request and approval
+through the protected release-signing Environment.
 
-To build the preview with JDK 17, Gradle 9.8.2 and Android SDK platform 37:
+To build the preview with JDK 21 and Android SDK platform 37:
 
 ```sh
 git clone --branch beta https://github.com/PrimeN/Ember-Player.git
 cd Ember-Player
-gradle testDebugUnitTest assembleDebug
+./gradlew testDebugUnitTest assembleDebug
 ```
 
 [Build instructions and native components →](docs/building.md)

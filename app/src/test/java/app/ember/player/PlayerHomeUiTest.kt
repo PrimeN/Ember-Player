@@ -12,7 +12,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk=[35],application=Application::class,qualifiers="w960dp-h540dp-land-mdpi")
+@Config(sdk=[35,36],application=Application::class,qualifiers="w960dp-h540dp-land-mdpi")
 class PlayerHomeUiTest {
     @get:Rule val compose=createAndroidComposeRule<MediaFilesActivity>()
     @Test fun firstScreenHasFileSelectionAndStreamDialogCanClose() {

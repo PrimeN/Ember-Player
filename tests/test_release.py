@@ -21,6 +21,17 @@ publish = load('publish_player_release', ROOT / '.github/scripts/release.py')
 
 
 class ReleaseChecks(unittest.TestCase):
+    def test_signing_requires_successful_push_checks_for_the_exact_main_commit(self):
+        valid = {'id': 42, 'head_sha': 'approved', 'head_branch': 'main', 'event': 'push',
+                 'status': 'completed', 'conclusion': 'success'}
+        self.assertEqual(publish.successful_main_build([valid], 'approved')['id'], 42)
+        for change in [{'head_sha': 'other'}, {'head_branch': 'beta'}, {'event': 'pull_request'},
+                       {'status': 'in_progress'}, {'conclusion': 'failure'}]:
+            with self.subTest(change=change), self.assertRaisesRegex(ValueError, 'main is required'):
+                publish.successful_main_build([{**valid, **change}], 'approved')
+        with self.assertRaises(ValueError):
+            publish.successful_main_build([], 'approved')
+
     def test_signer_fingerprints_support_current_and_older_sdk_output(self):
         fingerprint = 'a' * 64
         for prefix in ['Signer #1', 'V2 Signer:', 'V3 Signer:']:

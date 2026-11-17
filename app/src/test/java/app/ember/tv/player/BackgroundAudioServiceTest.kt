@@ -19,7 +19,7 @@ import org.robolectric.annotation.Config
 import java.lang.reflect.Proxy
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk=[35],application=Application::class)
+@Config(sdk=[35,36],application=Application::class)
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class BackgroundAudioServiceTest {
     private val context:Context get()=RuntimeEnvironment.getApplication()

@@ -1,6 +1,6 @@
 name: Publish requested player release
 
-# Publishing requires an explicit version tag. Ordinary main/beta pushes only build.
+# Signing and publication require an explicit version tag or manual request.
 on:
   push:
     tags: ['v*']
@@ -19,7 +19,83 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      commit: ${{ steps.build.outputs.commit }}
+    env:
+      REQUESTED_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
+      - name: Verify the requested version and successful main checks
+        id: build
+        run: python3 .github/scripts/release.py find-build
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  sign:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: release-signing
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ needs.verify.outputs.commit }}
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        with:
+          packages: platform-tools
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+      - name: Restore the approved release signing key
+        env:
+          EMBER_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          EMBER_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          EMBER_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          EMBER_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import base64, os
+          from pathlib import Path
+          required = ('EMBER_KEYSTORE_BASE64', 'EMBER_KEYSTORE_PASSWORD', 'EMBER_KEY_ALIAS', 'EMBER_KEY_PASSWORD')
+          if any(not os.environ.get(name, '').strip() for name in required):
+              raise SystemExit('Configure all four signing secrets in the protected release-signing environment.')
+          key = Path(os.environ['RUNNER_TEMP']) / 'ember-player-release.p12'
+          key.touch(mode=0o600, exist_ok=False)
+          key.write_bytes(base64.b64decode(''.join(os.environ['EMBER_KEYSTORE_BASE64'].split()), validate=True))
+          with open(os.environ['GITHUB_ENV'], 'a') as env:
+              env.write(f'EMBER_KEYSTORE_FILE={key}\n')
+          PY
+      - name: Build the approved signed release
+        env:
+          EMBER_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          EMBER_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          EMBER_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon --max-workers=2 assembleRelease
+      - name: Verify release identity and prepare the APK
+        run: python3 scripts/prepare-release.py --require-signed
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Ember-Player-signed-release
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error
+      - name: Remove the temporary signing key
+        if: always()
+        run: rm -f -- "$RUNNER_TEMP/ember-player-release.p12"
+
   publish:
+    needs: [verify, sign]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -28,22 +104,15 @@ jobs:
     env:
       REQUESTED_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
-          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
-      - name: Find successful production build
-        id: build
-        run: python3 .github/scripts/release.py find-build
-        env:
-          GH_TOKEN: ${{ github.token }}
-      - uses: actions/download-artifact@v4
+          ref: ${{ needs.verify.outputs.commit }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: Ember-Player-release
-          run-id: ${{ steps.build.outputs.run_id }}
-          github-token: ${{ github.token }}
+          name: Ember-Player-signed-release
           path: dist
-      - name: Publish signed APK and changelog
+      - name: Publish the signed APK and changelog
         run: python3 .github/scripts/release.py
         env:
           GH_TOKEN: ${{ github.token }}

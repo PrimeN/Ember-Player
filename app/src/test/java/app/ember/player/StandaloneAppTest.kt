@@ -18,7 +18,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk=[35],application=Application::class)
+@Config(sdk=[35,36],application=Application::class)
 class StandaloneAppTest {
     @Test fun installationIsSeparateAndHasNoHomeOrAccessibilityEntryPoint() {
         val app:Application=RuntimeEnvironment.getApplication();val pm=app.packageManager

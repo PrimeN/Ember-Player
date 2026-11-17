@@ -227,7 +227,7 @@ android {
     defaultConfig {
         applicationId = "app.ember.player"
         minSdk = 29
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 705
         versionName = "0.7.5"
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
@@ -285,8 +285,6 @@ dependencies {
     // Google's Material icons for the Settings pages (only the icons used stay in release builds; R8 drops the rest).
     // Compose 1.12's BOM no longer lists the icon libraries, so the last release is named here.
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
-
-    implementation("androidx.security:security-crypto:1.1.0")
 
     // Built-in Media3 playback engine
     implementation("androidx.media3:media3-exoplayer:1.11.1")
