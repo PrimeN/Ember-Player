@@ -12,7 +12,10 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -229,12 +232,12 @@ private fun ChoiceLine(label: String, chosen: Boolean, first: Boolean, compact: 
 
 // ---- the options panel: Video, Audio, Subtitles, sliding in on the right ----
 
-private val Tabs = listOf(
-    Triple("playback", "Play", Icons.Outlined.Speed),
-    Triple("video", "Picture", Icons.Outlined.Videocam),
-    Triple("audio", "Audio", Icons.AutoMirrored.Outlined.VolumeUp),
-    Triple("subtitles", "Subtitles", Icons.Outlined.Subtitles),
-)
+private val Tabs = PlayerMenuLayout.categories.map {(id,label)->Triple(id,label,when(id) {
+    "playback"->Icons.Outlined.Speed
+    "video"->Icons.Outlined.Videocam
+    "audio"->Icons.AutoMirrored.Outlined.VolumeUp
+    else->Icons.Outlined.Subtitles
+})}
 
 @Composable
 fun OptionsPage(s: ControlsState, a: ControlsActions) {
@@ -324,6 +327,7 @@ private fun TabBar(s: ControlsState, modifier: Modifier) {
     }
     Row(
         modifier.clip(RoundedCornerShape(50)).background(Color(0xFF1C1C1E)).border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(50)).padding(6.dp)
+            .horizontalScroll(rememberScrollState())
             .onPreviewKeyEvent { e ->
                 // Only a Left or Right press inside the bar counts as moving along the tabs.
                 // Focus moves on the press; the release ends it, so a press at the end of the bar
@@ -350,13 +354,13 @@ private fun TabBar(s: ControlsState, modifier: Modifier) {
                         if (it.isFocused && moving) { moving = false; show(id) }
                     }
                     .onKeyEvent { e -> if (isOk(e.key) && e.type == KeyEventType.KeyUp) show(id); isOk(e.key) }
-                    .focusable()
+                    .clickable {show(id)}
                     .padding(horizontal = 6.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Image(icon, null, colorFilter = ColorFilter.tint(tint), modifier = Modifier.size(16.dp))
-                Text(label, fontSize = TvTokens.Type.Caption.sp, color = tint)
+                Text(label, fontSize = TvTokens.Type.Caption.sp, color = tint, maxLines = 1)
             }
         }
     }

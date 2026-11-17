@@ -5,7 +5,7 @@ object EffectPresets {
     data class Preset(val id:String,val label:String,val description:String,val effects:CustomPerformance,val glass:Boolean)
     val options=listOf(
         Preset("fast","Fast","Sharp artwork with quiet, immediate controls.",CustomPerformance(false,false,false,false,false,0),false),
-        Preset("balanced","Balanced","Subtle motion and focused colours, with restrained prefetch.",CustomPerformance(false,true,true,false,false,1),false),
+        Preset("balanced","Balanced","Subtle motion and focused colors, with restrained prefetch.",CustomPerformance(false,true,true,false,false,1),false),
         Preset("cinematic","Cinematic","Richer motion, framing, frost and opted-in previews.",CustomPerformance(true,true,true,true,true,2),true))
 }
 

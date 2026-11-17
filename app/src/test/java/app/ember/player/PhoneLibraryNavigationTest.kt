@@ -17,12 +17,14 @@ import org.robolectric.annotation.Config
 @Config(sdk=[35],application=Application::class,qualifiers="w360dp-h720dp-port-mdpi")
 class PhoneLibraryNavigationTest {
     @get:Rule val compose=createComposeRule()
-    @Test fun everySectionCanBeSelectedDirectlyOnANarrowPhone() {
+    @Test fun secondarySectionsCanBeSelectedWithoutRepeatingDockDestinations() {
         compose.setContent {PlayerTheme(Prefs(LocalContext.current)) {
             var selected by remember {mutableStateOf(PlayerLibraryDestination.VIDEOS)}
             PhoneLibraryNavigation(selected){selected=it}
         }}
-        for(destination in PlayerLibraryDestination.entries) {
+        compose.onNodeWithText("Videos").assertDoesNotExist()
+        compose.onNodeWithText("Folders").assertDoesNotExist()
+        for(destination in listOf(PlayerLibraryDestination.NETWORK,PlayerLibraryDestination.PLAYLISTS,PlayerLibraryDestination.DOWNLOADS,PlayerLibraryDestination.PRIVATE)) {
             compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(destination.label))
             compose.onNodeWithText(destination.label).performClick()
             compose.onNodeWithText(destination.label).assert(SemanticsMatcher.expectValue(SemanticsProperties.Selected,true))

@@ -79,18 +79,18 @@ class PlayerSettingsUiTest {
 
     @Test fun settingsSearchOpensTheRealAudioSectionAndBackRestoresResults() {
         compose.onNodeWithText("Search settings").performTextInput("Bluetooth")
-        compose.onNodeWithText("Sound").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithText("Audio").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithTag("settingsContent").performScrollToNode(hasText("Bluetooth delay:",substring=true))
         compose.onNodeWithText("Bluetooth delay:",substring=true).assertExists()
         compose.onNodeWithContentDescription("Back").performSemanticsAction(SemanticsActions.OnClick){it()}
-        compose.onNodeWithText("Sound").assertExists()
+        compose.onNodeWithText("Audio").assertExists()
         compose.onNodeWithText("Bluetooth").assertExists()
     }
     @Test fun emptySearchDoesNotInventResultsAndPrivacyAndBackupRemainReachable() {
         compose.onNodeWithText("Search settings").performTextInput("not-a-setting")
         compose.onNodeWithText("No settings match",substring=true).assertExists()
         compose.onNode(hasSetTextAction()).performTextReplacement("")
-        category("Privacy")
+        category("Private media")
         compose.onNodeWithTag("settingsContent").performScrollToNode(hasText("Backups"))
         compose.onNodeWithText("Backups").assertExists()
     }

@@ -139,11 +139,12 @@ class PlaybackOverlayTest {
     }
     @Test fun unknownDurationDoesNotOfferSeekingAndHiddenOverlayHasNoButtons() {
         val s=state().apply {duration=0};show(s)
+        compose.onNodeWithContentDescription("Ember Player").assertExists()
         compose.onNodeWithTag("player_forward").assertIsNotEnabled()
         compose.onNodeWithTag("player_rewind").assertIsNotEnabled()
         compose.runOnIdle {s.visible=false}
         compose.onNodeWithTag("player_play").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Ember").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Ember Player").assertDoesNotExist()
     }
     @Test fun smallWindowsAndLargeTextKeepUtilitiesAndTransportSeparated() {
         val s=state().apply {title="A very long media title that must remain a single line in the control dock"}

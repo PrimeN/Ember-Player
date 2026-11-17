@@ -25,10 +25,13 @@ class PlayerHomeUiTest {
         compose.onNodeWithText("Cancel").assertDoesNotExist()
     }
     @Test fun browserDestinationsKeepFolderAndNetworkToolsReachable() {
-        compose.onNodeWithText("Files").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithText("Folders").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithText("Add a media folder").assertExists()
         compose.onNodeWithText("Network").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithText("Add network folder").assertExists()
+        compose.onNodeWithText("Folders").assertIsNotSelected().performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithText("Add a media folder").assertExists()
+        compose.onNodeWithText("Folders").assertIsSelected()
         compose.onNodeWithContentDescription("More options").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithContentDescription("Playlists").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithText("New playlist from files").assertExists()
@@ -54,7 +57,7 @@ class PlayerHomeUiTest {
 
     @Test @Config(qualifiers="w360dp-h800dp-port-mdpi")
     fun phoneDockKeepsNavigationReachableAndBrowseChoicesPersist() {
-        listOf("Home","Files","Search","Settings").forEach {compose.onNodeWithText(it,useUnmergedTree=true).assertIsDisplayed()}
+        listOf("Videos","Folders","Search","Settings").forEach {compose.onNodeWithText(it,useUnmergedTree=true).assertIsDisplayed()}
         compose.onNodeWithContentDescription("All media").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithContentDescription("Watched").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithContentDescription("Date modified").performSemanticsAction(SemanticsActions.OnClick){it()}
@@ -64,9 +67,9 @@ class PlayerHomeUiTest {
             org.junit.Assert.assertEquals("watched",stored.playerLibraryFilter)
             org.junit.Assert.assertEquals("name",stored.playerLibrarySort)
         }
-        compose.onNodeWithText("Files").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithText("Folders").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithText("Add a media folder").assertExists()
-        compose.onNodeWithText("Home").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithText("Videos").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithContentDescription("Watched").assertExists()
     }
 

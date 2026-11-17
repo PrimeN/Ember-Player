@@ -67,7 +67,7 @@ internal class PlayerClipExport(private val activity:PlayerActivity):java.io.Clo
                                     while(true){ensureActive();val count=input.read(buffer);if(count<0)break;out.write(buffer,0,count)}
                                 };out.flush()} ?: error("Cannot write clip")
                             }
-                            if(!validSource()){remove(uri);message("Export cancelled because playback changed.")}else message("Clip saved")
+                            if(!validSource()){remove(uri);message("Export canceled because playback changed.")}else message("Clip saved")
                             output=null
                         } catch(e:CancellationException){remove(uri);throw e}
                           catch(_:Exception){remove(uri);message("Could not save the clip.")}
