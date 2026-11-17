@@ -115,6 +115,22 @@ class MediaDownloadServiceTest {
             assertEquals("paused",store.read().single().state)
         }
     }
+    @Test fun destroyingTheServiceLeavesWaitingDownloadsResumableInTheSameProcess() {
+        Origin().use {origin->
+            val store=DownloadStore(context);val first=store.add("${origin.url}/first.mp4","first.mp4");val second=store.add("${origin.url}/second.mp4","second.mp4")
+            val controller=Robolectric.buildService(MediaDownloadService::class.java).create();val service=controller.get()
+            start(service,first.id,1);waitFor {store.read().any {it.id==first.id&&it.state=="downloading"}}
+            start(service,second.id,2);waitFor {store.read().any {it.state=="queued"}}
+            controller.destroy()
+            waitFor {store.read().all {it.state=="paused"}}
+            val resumed=Robolectric.buildService(MediaDownloadService::class.java).create()
+            try {
+                start(resumed.get(),second.id,3)
+                waitFor {store.read().any {it.id==second.id&&it.state=="complete"}}
+                assertEquals("paused",store.read().first {it.id==first.id}.state)
+            }finally {origin.release.countDown();resumed.destroy();shadowOf(Looper.getMainLooper()).idle()}
+        }
+    }
     private class Origin:Closeable {
         private val socket=ServerSocket(0,8,InetAddress.getByName("127.0.0.1"))
         private val workers=Executors.newCachedThreadPool {r->Thread(r,"Download fixture").apply {isDaemon=true}}

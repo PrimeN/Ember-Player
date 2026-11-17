@@ -55,6 +55,7 @@ class MediaDownloadService:Service() {
     private var task:Job?=null
     @Volatile private var call:okhttp3.Call?=null
     private var active:String?=null
+    private var preparing:String?=null
     private val waiting=linkedSetOf<String>()
     private data class Command(val action:String,val id:String?=null,val startId:Int=0,val run:Long=0)
     private val commands=Channel<Command>(Channel.UNLIMITED)
@@ -73,6 +74,7 @@ class MediaDownloadService:Service() {
                         "start"-> {
                             val id=command.id ?: continue
                             if(id==active||id in waiting)continue
+                            preparing=id
                             val queued=withContext(Dispatchers.IO) {
                                 runCatching {
                                     val store=DownloadStore(this@MediaDownloadService)
@@ -82,6 +84,7 @@ class MediaDownloadService:Service() {
                                 }.getOrDefault(false)
                             }
                             if(queued)waiting+=id
+                            preparing=null
                             advance()
                         }
                         "finished"->if(active==command.id&&activeRun==command.run){active=null;task=null;advance()}
@@ -104,8 +107,8 @@ class MediaDownloadService:Service() {
             } finally {
                 withContext(NonCancellable) {
                     call?.cancel();task?.cancelAndJoin()
-                    val paused=waiting.toList();waiting.clear()
-                    withContext(Dispatchers.IO){paused.forEach {id->runCatching {DownloadStore(this@MediaDownloadService).change(id){it.copy(state="paused")}}}}
+                    val paused=(waiting+listOfNotNull(active,preparing)).distinct();waiting.clear()
+                    withContext(Dispatchers.IO){paused.forEach {id->runCatching {DownloadStore(this@MediaDownloadService).change(id){if(it.state in setOf("queued","downloading"))it.copy(state="paused") else it}}}}
                 }
             }
         }
@@ -148,6 +151,7 @@ class MediaDownloadService:Service() {
                     if(part.length()>0&&item.validator.isNotBlank()) {header("Range","bytes=${part.length()}-");header("If-Range",item.validator)}
                 }.build()
                 val next=client.newCall(request);call=next
+                currentCoroutineContext().ensureActive()
                 val reply=next.execute()
                 if(reply.code in listOf(301,302,303,307,308)) {
                     val location=reply.header("Location");val resolved=location?.let {reply.request.url.resolve(it)};reply.close()
