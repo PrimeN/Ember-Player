@@ -19,6 +19,21 @@ import javax.crypto.spec.GCMParameterSpec
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[35],application=Application::class)
 class PrivateMediaTest {
+    @Test fun oldPinRecordsUpgradeOnlyAfterSuccessfulAuthentication() {
+        val salt=ByteArray(16){it.toByte()}
+        val spec=javax.crypto.spec.PBEKeySpec("123456".toCharArray(),salt,120000,256)
+        val hash=javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
+        spec.clearPassword()
+        val legacy=java.util.Base64.getEncoder().encodeToString(salt)+":"+java.util.Base64.getEncoder().encodeToString(hash)
+        assertTrue(TokenStore(context).putEncrypted(PrivateMedia.KEY,kotlinx.serialization.json.Json.encodeToString(PrivacyData.serializer(),PrivacyData(pin=legacy))))
+        PrivateMedia.reload(context)
+        assertFalse(PrivateMedia.authenticate("000000"));assertEquals(legacy,PrivateMedia.state.value.pin)
+        assertTrue(PrivateMedia.authenticate("123456"));assertTrue(PrivateMedia.state.value.pin.startsWith("v2:"))
+        PrivateMedia.reload(context)
+        assertTrue(PrivateMedia.authenticate("123456"))
+        assertFalse(PrivatePin.validRecord("v99:"+legacy))
+        hash.fill(0)
+    }
     @Test fun externalPublicFilesOpenWithoutUnlockingButProtectedFilesStillRequireThePin() {
         PrivateMedia.configure("123456")
         PrivateMedia.add(PrivateItem("content://files.example/private","Private"))

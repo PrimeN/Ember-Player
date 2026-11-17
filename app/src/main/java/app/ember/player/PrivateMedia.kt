@@ -34,23 +34,31 @@ internal object PrivatePinRetry {
 }
 
 internal object PrivatePin {
-    private fun derive(pin:CharArray,salt:ByteArray):ByteArray {
-        val spec=PBEKeySpec(pin,salt,120000,256)
+    private fun derive(pin:CharArray,salt:ByteArray,iterations:Int=600000):ByteArray {
+        val spec=PBEKeySpec(pin,salt,iterations,256)
         return try {SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded} finally {spec.clearPassword()}
     }
     fun valid(pin:String)=pin.length in 6..12 && pin.all {it in '0'..'9'}
     fun create(pin:String):String {
         require(valid(pin))
         val salt=ByteArray(16).also {SecureRandom().nextBytes(it)};val chars=pin.toCharArray()
-        return try {Base64.getEncoder().encodeToString(salt)+":"+Base64.getEncoder().encodeToString(derive(chars,salt))} finally {chars.fill('\u0000')}
+        return try {"v2:"+Base64.getEncoder().encodeToString(salt)+":"+Base64.getEncoder().encodeToString(derive(chars,salt))} finally {chars.fill('\u0000')}
     }
+    fun needsUpgrade(record:String)=!record.startsWith("v2:")
+    private fun fields(record:String):List<String>? {
+        val parts=record.split(':')
+        return when {parts.size==2->parts;parts.size==3&&parts[0]=="v2"->parts.drop(1);else->null}
+    }
+    fun validRecord(record:String)=runCatching {val parts=fields(record) ?: return false
+        Base64.getDecoder().decode(parts[0]).size==16&&Base64.getDecoder().decode(parts[1]).size==32
+    }.getOrDefault(false)
     fun verify(pin:String,record:String):Boolean=runCatching {
         if(!valid(pin))return false
-        val fields=record.split(':');if(fields.size!=2)return false
+        val fields=fields(record) ?: return false
         val salt=Base64.getDecoder().decode(fields[0]);val expected=Base64.getDecoder().decode(fields[1])
         if(salt.size!=16||expected.size!=32)return false
         val chars=pin.toCharArray()
-        try {val actual=derive(chars,salt);try {MessageDigest.isEqual(expected,actual)} finally {actual.fill(0)}} finally {chars.fill('\u0000')}
+        try {val actual=derive(chars,salt,if(needsUpgrade(record))120000 else 600000);try {MessageDigest.isEqual(expected,actual)} finally {actual.fill(0)}} finally {chars.fill('\u0000')}
     }.getOrDefault(false)
 }
 
@@ -136,8 +144,7 @@ internal object PrivateMedia {
         require(value.items.size<=256 && value.failures in 0..10 && value.retryAfter>=0 && value.retryElapsed>=0 && value.retryBoot>=-1)
         if(value.pin.isNotEmpty()) {
             require(value.pin.length<=100)
-            val fields=value.pin.split(':');require(fields.size==2)
-            require(Base64.getDecoder().decode(fields[0]).size==16 && Base64.getDecoder().decode(fields[1]).size==32)
+            require(PrivatePin.validRecord(value.pin))
         } else require(value.items.isEmpty())
         require(value.items.all {item->item.name.isNotBlank()&&item.name.length<=180&&item.uri.length<=16384&&ExternalMedia.allowed(item.uri)&&
             (!item.folder || item.uri.startsWith("content://"))&&item.aliases.size<=8&&item.aliases.all {it.length<=16384&&it.startsWith("content://")&&ExternalMedia.allowed(it)}})
@@ -166,7 +173,8 @@ internal object PrivateMedia {
         check(current.retryElapsed<=now){"Too many attempts. Wait before trying again."}
         val okay=PrivatePin.verify(pin,current.pin)
         val failures=if(okay)0 else (current.failures+1).coerceAtMost(10)
-        save(current.copy(failures=failures,retryAfter=0,retryElapsed=if(failures>=5)now+PrivatePinRetry.DELAY else 0))
+        val upgraded=if(okay&&PrivatePin.needsUpgrade(current.pin))PrivatePin.create(pin) else current.pin
+        save(current.copy(pin=upgraded,failures=failures,retryAfter=0,retryElapsed=if(failures>=5)now+PrivatePinRetry.DELAY else 0))
         if(okay)check(session.unlock(ticket)){"Private session closed. Unlock again."}
         return okay
     }
