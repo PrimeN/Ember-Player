@@ -5,11 +5,13 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Looper
 import android.os.Handler
 import app.ember.tv.tracker.SecretCipher
 import app.ember.tv.tracker.SecretVault
 import app.ember.tv.tracker.TokenStore
+import androidx.core.content.FileProvider
 import kotlinx.coroutines.*
 import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.test.setMain
@@ -42,6 +44,8 @@ class MediaDownloadServiceTest {
     private val destroyed=mutableSetOf<ServiceController<MediaDownloadService>>()
     @Before fun setup() {
         Dispatchers.setMain(Handler(Looper.getMainLooper()).asCoroutineDispatcher())
+        val provider=context.packageManager.resolveContentProvider(context.packageName+".downloads",PackageManager.GET_META_DATA)!!
+        FileProvider().attachInfo(context,provider)
         val key=KeyGenerator.getInstance("AES").apply {init(256)}.generateKey()
         val cipher=object:SecretCipher {
             override fun encrypt(name:String,value:ByteArray):ByteArray {
