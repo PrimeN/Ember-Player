@@ -61,6 +61,25 @@ class NativeTransportRequestsTest {
             assertEquals(listOf("GET /opaque","GET /opaque"),origin.requests.toList())
         }}
     }
+    @Test fun extensionlessPlaylistsApplyRangesToTheCompleteRewrittenManifest() {
+        Net.init(RuntimeEnvironment.getApplication())
+        Origin().use {origin->NativeHttpTransport(emptyMap(),listOf(origin.url)).use {transport->
+            val url=transport.expose("${origin.url}/opaque")
+            val full=URL(url).readBytes()
+            val prefix=connection(url,"bytes=0-6")
+            try {
+                assertEquals(206,prefix.responseCode)
+                assertEquals("bytes 0-6/${full.size}",prefix.getHeaderField("Content-Range"))
+                assertEquals("#EXTM3U",prefix.inputStream.bufferedReader().readText())
+            }finally {prefix.disconnect()}
+            val suffix=connection(url,"bytes=-5")
+            try {
+                assertEquals(206,suffix.responseCode)
+                assertEquals("bytes ${full.size-5}-${full.size-1}/${full.size}",suffix.getHeaderField("Content-Range"))
+                assertEquals("t.ts\n",suffix.inputStream.bufferedReader().readText())
+            }finally {suffix.disconnect()}
+        }}
+    }
     internal class Origin:Closeable {
         private val socket=ServerSocket(0,8,InetAddress.getByName("127.0.0.1"))
         private val workers=Executors.newCachedThreadPool {r->Thread(r,"Origin fixture").apply {isDaemon=true}}

@@ -113,8 +113,9 @@ internal class NativeHttpTransport(private val headers:Map<String,String>,origin
             }
             val type=response.header("Content-Type").orEmpty()
             if(isManifest(response.request.url,type)) {
-                if(head){val final=response.request.url;val fetched=if(response.request.method=="GET"&&response.code==200)response else {response.close();null};return manifestResponse(manifest(final,fetched),range,true)}
-                return manifestResponse(manifest(url,response),range,false)
+                val final=response.request.url
+                val fetched=if(response.request.method=="GET"&&response.code==200)response else {response.close();null}
+                return manifestResponse(manifest(final,fetched),range,head)
             }
             val result=response.relayResponse(head,upstreamRange)
             if(result.code in setOf(200,206)) {
