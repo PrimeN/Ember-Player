@@ -47,6 +47,10 @@ object Net {
 
     val base: OkHttpClient by lazy {
         OkHttpClient.Builder()
+            .addInterceptor {chain->
+                val request=chain.request()
+                chain.proceed(if(request.header("User-Agent")==null)request.newBuilder().header("User-Agent",HttpIdentity.userAgent).build() else request)
+            }
             .addInterceptor(cacheRetention)
             .connectionPool(ConnectionPool(16, 5, TimeUnit.MINUTES))
             .apply { cacheDir?.let { cache(Cache(it, 64L * 1024 * 1024)) } }

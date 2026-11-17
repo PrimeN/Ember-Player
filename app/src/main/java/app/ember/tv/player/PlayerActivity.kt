@@ -132,7 +132,7 @@ class PlayerActivity : ComponentActivity() {
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(prefs.playbackConfig.stream.normalized().connectSeconds*1000)
             .setReadTimeoutMs(prefs.playbackConfig.stream.normalized().readSeconds*1000)
-            .setUserAgent("EmberTV/0.9")
+            .setUserAgent(app.ember.tv.data.HttpIdentity.userAgent)
     }
 
     /** Trailers play without saving positions or reporting to trackers and servers. */
@@ -200,7 +200,7 @@ class PlayerActivity : ComponentActivity() {
     internal val hideLiveBanner = Runnable { liveBanner.value = null }
 
     /** Some providers only answer a particular player name or referrer. */
-    internal var sourceHeaders:Map<String,String> = mapOf("User-Agent" to "EmberTV/0.9")
+    internal var sourceHeaders:Map<String,String> = mapOf("User-Agent" to app.ember.tv.data.HttpIdentity.userAgent)
 
     internal var numberDigits = ""
     internal var numberToast: Toast? = null

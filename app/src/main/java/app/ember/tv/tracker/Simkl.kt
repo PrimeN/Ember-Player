@@ -296,7 +296,7 @@ class SimklTracker(context: Context) : Tracker {
     }
 
     companion object {
-        val USER_AGENT: String get() = "EmberTV/" + app.ember.tv.BuildConfig.VERSION_NAME
+        val USER_AGENT: String get() = app.ember.tv.data.HttpIdentity.userAgent
     }
 }
 

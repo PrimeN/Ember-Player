@@ -51,7 +51,7 @@ internal fun PlayerActivity.checkMarkers() {
             val part = transport.parts[index]
             if (subsInitialized) subs.startSearch(part.url, app.ember.tv.data.Subtitles.Query(
                 imdb = item.imdbId, movie = item.kind == Kind.MOVIE, season = item.season, episode = item.episode,
-                release = item.title, hash = null, size = null), part.subtitles, preserve = true)
+                release = item.title, hash = null, size = null), part.subtitles, preserve = true, headers=sourceHeaders)
         }
     }
     // #227: with automatic play on, Up next shows by itself at the credits, or near the end without them.

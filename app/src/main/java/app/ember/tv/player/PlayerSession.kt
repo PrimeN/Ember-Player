@@ -121,6 +121,7 @@ internal fun PlayerActivity.start(url: String, title: String, addonSubs: List<Su
                 size = sourceHash?.second,
             ),
             addonSubs,
+            headers=sourceHeaders,
         )
     }
     subsTouched=false

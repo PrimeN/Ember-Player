@@ -147,7 +147,7 @@ class MediaDownloadService:Service() {
             var url=item.url;var response:okhttp3.Response?=null
             for(hop in 0..5) {
                 currentCoroutineContext().ensureActive()
-                val request=Request.Builder().url(url).header("User-Agent","EmberPlayer/0.1").apply {
+                val request=Request.Builder().url(url).header("User-Agent",app.ember.tv.data.HttpIdentity.userAgent).apply {
                     if(part.length()>0&&item.validator.isNotBlank()) {header("Range","bytes=${part.length()}-");header("If-Range",item.validator)}
                 }.build()
                 val next=client.newCall(request);call=next
