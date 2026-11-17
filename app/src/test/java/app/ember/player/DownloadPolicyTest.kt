@@ -4,6 +4,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class DownloadPolicyTest {
+    @Test fun filenameSuggestionsKeepTheDecodedPathExtensionAndExcludeUrlParameters() {
+        assertEquals("Movie One.mkv",DownloadStore.suggestedName("https://example.test/Movies/Movie%20One.mkv?token=secret"))
+        assertEquals("clip.webm",DownloadStore.suggestedName("https://example.test/clip.webm#ignored"))
+        assertEquals("AB.webm",DownloadStore.suggestedName("https://example.test/A%2BB.webm"))
+        assertEquals("video.mkv",DownloadStore.suggestedName("https://example.test/a%2Fvideo.mkv"))
+        for(url in listOf("https://example.test/","https://example.test/?name=video.mp4","not a URL"))assertEquals("media",DownloadStore.suggestedName(url))
+    }
     @Test fun downloadAcceptsDirectFilesAndRejectsManifestsOrLocalSchemes() {
         assertTrue(DownloadStore.supported("https://example.test/movie.mp4?token=value"))
         for(url in listOf("file:///data/private","content://provider/file","ftp://example.test/movie.mp4","https://example.test/live.m3u8","https://example.test/stream.mpd","https://example.test/movie.mp4#fragment"))assertFalse(url,DownloadStore.supported(url))

@@ -47,12 +47,13 @@ internal fun DownloadsPanel(activity:ComponentActivity) {
     notice?.let {Text(it,fontSize=12.sp,color=Mute)}
     if(adding) {
         var url by remember {mutableStateOf("")}
-        var name by remember {mutableStateOf("media.mp4")}
+        var editedName by remember {mutableStateOf<String?>(null)}
+        val name=editedName ?: DownloadStore.suggestedName(url)
         var error by remember {mutableStateOf<String?>(null)}
         TvDialog({adding=false},width=560.dp,resizeForKeyboard=true) {
             DialogHeading("Download media")
             TvTextField(url,{url=it.take(16384)},Modifier.fillMaxWidth(),placeholder="https://…/video.mp4")
-            TvTextField(name,{name=it.take(120)},Modifier.fillMaxWidth(),placeholder="Filename")
+            TvTextField(name,{editedName=it.take(120)},Modifier.fillMaxWidth(),placeholder="Filename")
             error?.let {Text(it,color=Mute,fontSize=12.sp)}
             ButtonRow {
                 Chip("Download"){if(!DownloadStore.supported(url.trim())||PrivateMedia.hidden(url.trim()))error="Enter a direct, non-private media URL."

@@ -4,6 +4,27 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SavedPlaylistsTest {
+    @Test fun everyMutationPreservesUnreadableOrPartlyInvalidSavedPlaylists() {
+        var raw:String?=null;var writes=0;var unavailable=false
+        val store=SavedPlaylists({check(!unavailable);raw},{raw=it;writes++;true})
+        val media=QueueMedia("https://example.test/video.mkv","Video")
+        assertTrue(store.save("Keep",listOf(media)))
+        val good=raw;val id=store.read().single().id
+        val invalid=good!!.replace("https://example.test/video.mkv","file:///private")
+        for(bad in listOf("not json",good.dropLast(1),invalid," ".repeat(16*1024*1024+1))) {
+            raw=bad;writes=0
+            assertTrue(store.read().isEmpty())
+            assertFalse(store.save("New",listOf(media)))
+            assertFalse(store.rename(id,"Renamed"))
+            assertFalse(store.progress(id,media.key))
+            assertFalse(store.remove(id))
+            assertEquals(0,writes);assertEquals(bad,raw)
+        }
+        raw=good;unavailable=true;writes=0
+        assertFalse(store.save("New",listOf(media)));assertFalse(store.remove(id));assertEquals(0,writes)
+        unavailable=false
+        assertTrue(store.rename(id,"Recovered"));assertEquals("Recovered",store.read().single().name)
+    }
     @Test fun savedPlaylistsKeepOrderAndSettingsAndCanBeRenamed() {
         var raw:String?=null
         val store=SavedPlaylists({raw},{raw=it;true})

@@ -41,6 +41,11 @@ class TokenStore internal constructor(context: Context, private val vaultProvide
     }
 
     fun get(key: String): String? = existingVault()?.get(key) ?: legacy.getString(key,null)
+    /** A missing record is empty; an unreadable existing record must never become a replacement list. */
+    internal fun getForUpdate(key:String):String? {
+        if(encrypted.contains(key))return checkNotNull(existingVault()?.get(key)) {"Saved encrypted data could not be read."}
+        return legacy.getString(key,null)
+    }
     fun put(key: String, value: String) {putAll(mapOf(key to value))}
     fun putAll(values:Map<String,String>) {
         check(writeEncrypted(values)) {"Encrypted storage is unavailable or credentials could not be saved."}
