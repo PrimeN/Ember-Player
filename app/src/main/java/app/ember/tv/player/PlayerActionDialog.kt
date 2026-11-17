@@ -21,11 +21,13 @@ internal data class PlayerDialogAction(val label: String, val icon: ImageVector?
 
 /** The shared TV dialog owns its window; removing this tiny host also disposes its composition. */
 internal class PlayerActionDialog(private val host: ComposeView, private val restore: View?, private val cancel: () -> Unit) {
+    var onDismissed:()->Unit={}
     var target: View? = null
     var isShowing = true; private set
     fun dismiss() {
         if (!isShowing) return
         isShowing = false
+        onDismissed()
         target = null
         host.disposeComposition()
         (host.parent as? ViewGroup)?.removeView(host)

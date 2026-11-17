@@ -89,11 +89,14 @@ import java.util.Locale
  * State of the advanced player controls (Settings > Player > Player look: Advanced). Kept up to
  * date by PlayerActivity; read by [AdvancedControls].
  */
-class ControlsState {
+class ControlsState(private val navigationChanged:()->Unit={}) {
     var fileQueueLabel by mutableStateOf<String?>(null)
     var fileQueueNext by mutableStateOf(false)
     var localUri by mutableStateOf<String?>(null)
-    var visible by mutableStateOf(false)
+    private var visibleState by mutableStateOf(false)
+    var visible:Boolean
+        get()=visibleState
+        set(value){visibleState=value;navigationChanged()}
     var playing by mutableStateOf(false)
     var buffering by mutableStateOf(false)
     var playbackSpeed by mutableFloatStateOf(1f)
@@ -107,7 +110,10 @@ class ControlsState {
     var details by mutableStateOf<PlayerDetails?>(null)
     var seasonEpisode by mutableStateOf<String?>(null)
     /** Which side sheet is open: null, "info", "audio", "episodes". */
-    var sheet by mutableStateOf<String?>(null)
+    private var sheetState by mutableStateOf<String?>(null)
+    var sheet:String?
+        get()=sheetState
+        set(value){sheetState=value;navigationChanged()}
     var audioTracks by mutableStateOf<List<Pair<String, Boolean>>>(emptyList())
     /** Changes whenever the controls are shown again, so focus returns to Play. */
     var shownAt by mutableLongStateOf(0L)
@@ -119,7 +125,10 @@ class ControlsState {
     /** "Skip intro" / "Skip recap" / "Skip credits" while one is on screen, else null. */
     var skipLabel by mutableStateOf<String?>(null)
     /** Open menu: null, "quick" (the small menu) or "options" (the full page with tabs). */
-    var menu by mutableStateOf<String?>(null)
+    private var menuState by mutableStateOf<String?>(null)
+    var menu:String?
+        get()=menuState
+        set(value){menuState=value;navigationChanged()}
     /** Tab of the options page: "video", "audio", "subtitles". */
     var menuTab by mutableStateOf("playback")
     /** Title of the option whose choices are open, or null for the list. */
