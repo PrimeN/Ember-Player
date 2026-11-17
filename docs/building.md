@@ -4,9 +4,10 @@
 
 | Component | Version |
 | --- | --- |
-| Java | JDK 17 |
+| Java | JDK 21 |
 | Gradle | 9.8.2 (included wrapper) |
 | Android compile platform | API 37 |
+| Android target | Android 16 / API 36 |
 | Minimum Android version | Android 10 / API 29 |
 | Packaged processors | `arm64-v8a` and `armeabi-v7a` |
 
@@ -15,6 +16,9 @@ The project uses Android Gradle Plugin 9.4.0, Kotlin 2.4.21 and Compose BOM
 distribution SHA-256 before use. On Windows, use `gradlew.bat` instead of
 `./gradlew`. Configure the Android SDK with `ANDROID_HOME` or an untracked
 `local.properties` file containing `sdk.dir`.
+
+Java 21 is needed for the Android 16 Robolectric tests. The app's Java/Kotlin
+bytecode target remains 17.
 
 ## Build and install
 
@@ -48,16 +52,27 @@ Download preparation verifies signed builds against that identity before distrib
 
 The [Android workflow](../.github/workflows/android.yml) runs functional tests,
 optimized release compilation, lint and native dependency/alignment checks on
-pushes and pull requests. Pushes and manual runs provide a release-build artifact,
-retained for seven days. When signing secrets are configured, it contains an
-installable signed APK; otherwise it is clearly marked as unsigned. Manual runs
-also provide a separate debug APK. Pull requests validate without restoring the
-release signing key.
+pushes and pull requests. Pushes and manual runs provide an unsigned release-build
+artifact, retained for seven days. Manual runs also provide an installable debug
+APK. Validation jobs have no signing-secret references. All workflow actions use
+full commit SHAs.
 
-Repository Actions secrets for signed builds are `EMBER_KEYSTORE_BASE64` (the
-Base64-encoded PKCS12 file), `EMBER_KEYSTORE_PASSWORD`, `EMBER_KEY_ALIAS` and
-`EMBER_KEY_PASSWORD`. The key is decoded only into temporary runner storage and
-removed after the build. It is never uploaded with the APK artifact.
+Configure the GitHub Environment **release-signing** before publishing:
+
+1. Require reviewer approval, and disable bypassing protection rules where available.
+2. Allow deployments only from `main` and version tags matching `v*`. The workflow
+   also verifies that the tagged commit belongs to `main` and passed its checks.
+3. Add Environment secrets `RELEASE_KEYSTORE_BASE64` (the original PKCS12 file,
+   Base64 encoded), `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS` and
+   `RELEASE_KEY_PASSWORD`.
+4. Remove the old repository-scoped `EMBER_KEYSTORE_BASE64`,
+   `EMBER_KEYSTORE_PASSWORD`, `EMBER_KEY_ALIAS` and `EMBER_KEY_PASSWORD` secrets
+   after the Environment secrets are configured.
+
+The signing job uses only the `RELEASE_*` secret names, so old repository secrets
+cannot silently enable it. The key is decoded only into temporary runner storage
+and removed after the build. It is never uploaded with the APK artifact. The
+signing job stops if any required secret is missing.
 
 Ordinary pushes do not publish releases. To publish a requested version:
 
@@ -66,11 +81,12 @@ Ordinary pushes do not publish releases. To publish a requested version:
 2. Merge to `main` and wait for its **Android player** workflow to pass.
 3. Push a tag matching the version, such as `v0.7.5`, or run **Publish requested
    player release** manually with that tag name.
+4. Review and approve the **release-signing** Environment deployment.
 
-Publication reuses the successful main-build artifact, verifies its source commit,
-version, signing identity and checksum, and publishes the APK with changelog notes.
-It does not rebuild or replace an existing version. If an artifact has expired,
-rerun the corresponding main build before retrying publication.
+After approval, the signing job builds the exact validated main commit and
+verifies its signing identity. Publication consumes that job's signed artifact
+from the same workflow run, verifies its source commit, version and checksum,
+and publishes the APK with changelog notes. It does not replace an existing version.
 
 Development takes place on `beta`. Published versions, when available, appear
 under [Releases](https://github.com/PrimeN/Ember-Player/releases).
