@@ -12,28 +12,40 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.io.File
 import java.util.concurrent.TimeUnit
 
 @Serializable
 internal data class MediaDownload(val id:String,val url:String,val name:String,val state:String="paused",val bytes:Long=0,val total:Long=-1,val validator:String="",val session:String="")
 internal class DownloadStore(private val context:Context) {
-    fun read():List<MediaDownload> = TokenStore(context).get(KEY)?.takeIf {it.length<=1024*1024}?.let {runCatching {Json.decodeFromString<List<MediaDownload>>(it)}.getOrNull()}.orEmpty().filter {valid(it)}.take(50).map {
-        when {
-            it.state=="complete"&&!file(context,it).isFile->it.copy(state="paused",bytes=0,total=-1,validator="",session="")
-            it.state in setOf("queued","downloading")&&it.session!=SESSION->it.copy(state="paused",session="")
-            else->it
+    private fun load():List<MediaDownload> {
+        val raw=TokenStore(context).getForUpdate(KEY) ?: return emptyList()
+        require(raw.length<=1024*1024) {"Saved downloads could not be read."}
+        val values=Json.decodeFromString<List<MediaDownload>>(raw)
+        require(values.size<=50&&values.all(::valid)&&values.distinctBy {it.id}.size==values.size) {"Saved downloads could not be read."}
+        return values.map {
+            when {
+                it.state=="complete"&&!file(context,it).isFile->it.copy(state="paused",bytes=0,total=-1,validator="",session="")
+                it.state in setOf("queued","downloading")&&it.session!=SESSION->it.copy(state="paused",session="")
+                else->it
+            }
         }
     }
-    fun add(url:String,name:String):MediaDownload=synchronized(lock) {
+    fun read():List<MediaDownload> = runCatching {load()}.getOrDefault(emptyList())
+    fun add(url:String,name:String=""):MediaDownload=synchronized(lock) {
         require(supported(url)) {"Use a direct HTTP or HTTPS media file, rather than a playlist or protected stream."}
-        val values=read();check(values.size<50) {"Remove an old download first."}
-        val item=MediaDownload(java.util.UUID.randomUUID().toString(),url,safeName(name))
+        val values=load();check(values.size<50) {"Remove an old download first."}
+        val item=MediaDownload(java.util.UUID.randomUUID().toString(),url,safeName(name.ifBlank {suggestedName(url)}))
         save(values+item);item
     }
-    fun change(id:String,change:(MediaDownload)->MediaDownload)=synchronized(lock){save(read().map {if(it.id==id)change(it) else it})}
-    fun remove(id:String)=synchronized(lock){save(read().filterNot {it.id==id});folder(context,id).deleteRecursively();Unit}
-    private fun save(values:List<MediaDownload>){check(TokenStore(context).putEncrypted(KEY,Json.encodeToString(values))) {"Encrypted download storage is unavailable."}}
+    fun change(id:String,change:(MediaDownload)->MediaDownload)=synchronized(lock){save(load().map {if(it.id==id)change(it) else it})}
+    fun remove(id:String)=synchronized(lock){save(load().filterNot {it.id==id});folder(context,id).deleteRecursively();Unit}
+    private fun save(values:List<MediaDownload>){
+        val raw=Json.encodeToString(values)
+        require(values.size<=50&&values.all(::valid)&&raw.length<=1024*1024)
+        check(TokenStore(context).putEncrypted(KEY,raw)) {"Encrypted download storage is unavailable."}
+    }
     companion object {
         private val lock=Any();private const val KEY="player.downloads"
         val SESSION=java.util.UUID.randomUUID().toString()
@@ -42,6 +54,10 @@ internal class DownloadStore(private val context:Context) {
                 uri.fragment==null && uri.path.orEmpty().substringAfterLast('.').lowercase() !in setOf("m3u8","m3u","mpd","ism")
         }.getOrDefault(false)
         fun safeName(name:String)=name.substringAfterLast('/').substringAfterLast('\\').filter {it.isLetterOrDigit()||it in " ._-"}.trim().take(120).takeUnless {it.isEmpty()||it in setOf(".","..")} ?: "media.mp4"
+        fun suggestedName(url:String):String {
+            val segment=url.trim().toHttpUrlOrNull()?.pathSegments?.lastOrNull().orEmpty()
+            return segment.takeIf {it.isNotBlank()&&it !in setOf(".","..")&&it.any(Char::isLetterOrDigit)}?.let(::safeName) ?: "media"
+        }
         private fun valid(item:MediaDownload)=item.id.matches(Regex("[a-f0-9-]{36}"))&&supported(item.url)&&item.name==safeName(item.name)&&item.bytes>=0&&item.total>=-1&&item.validator.length<=512&&item.state in setOf("paused","queued","downloading","complete","failed")
         fun folder(context:Context,id:String):File {require(id.matches(Regex("[a-f0-9-]{36}")));return File(context.filesDir,"offline-media/$id")}
         fun file(context:Context,item:MediaDownload)=File(folder(context,item.id),item.name)

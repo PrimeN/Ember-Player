@@ -48,29 +48,32 @@ internal fun playerLibraryColumns(width:Float,television:Boolean)=when {
 internal fun RowScope.PlayerVideos(activity:MediaFilesActivity,version:Int,query:String,searching:Boolean,grid:Boolean,filter:PlayerLibraryFilter,sort:PlayerLibrarySort,play:(QueueMedia)->Unit,
     background:BackgroundNowPlaying?,casting:CastingState?,notice:String?,folders:(String?)->Unit) {
     var offsets by rememberSaveable {mutableStateOf(listOf(0))}
-    var page by remember {mutableStateOf(PlayerLibraryPage(emptyList(),null))}
+    var snapshot by remember {mutableStateOf(PlayerLibrarySnapshot(emptyList()))}
     var savedFolders by remember {mutableStateOf(emptyList<DeviceFolder>())}
     var busy by remember {mutableStateOf(true)}
     var error by remember {mutableStateOf<String?>(null)}
     var expanded by rememberSaveable {mutableStateOf<String?>(null)}
-    LaunchedEffect(query,sort,filter){offsets=listOf(0);expanded=null}
-    LaunchedEffect(query,sort,version,offsets) {
+    LaunchedEffect(query,sort,filter){expanded=null}
+    val actualFilter=expanded?.let(PlayerLibraryFilter::from) ?: filter
+    LaunchedEffect(query,sort,actualFilter,version){offsets=listOf(0)}
+    LaunchedEffect(query,version) {
         busy=true;error=null
         try {
             delay(if(query.isBlank())0 else 180)
-            val loaded=withContext(Dispatchers.IO){loadPlayerLibrary(activity,query,offsets.last(),sort) to DeviceFolders(activity).read()}
-            page=loaded.first;savedFolders=loaded.second.filterNot {PrivateMedia.hidden(it.uri)}
+            val loaded=withContext(Dispatchers.IO){loadPlayerLibrary(activity,query){ensureActive()} to DeviceFolders(activity).read()}
+            snapshot=loaded.first;savedFolders=loaded.second.filterNot {PrivateMedia.hidden(it.uri)}
         }
         catch(e:CancellationException){throw e}
-        catch(_:Exception){page=PlayerLibraryPage(emptyList(),null);error="Could not load saved media."}
+        catch(_:Exception){snapshot=PlayerLibrarySnapshot(emptyList());error="Could not load saved media."}
         finally {busy=false}
     }
     BackHandler(enabled=expanded!=null&&!searching){expanded=null}
+    val page=remember(snapshot,offsets,sort,actualFilter){snapshot.page(offsets.last(),sort,actualFilter)}
     val visible=page.entries.filterNot {PrivateMedia.hidden(it.media.uri)}
-    val actualFilter=expanded?.let(PlayerLibraryFilter::from) ?: filter
-    val filtered=visible.filter(actualFilter::accepts)
+    val filtered=visible
+    val emptyLibrary=snapshot.entries.isEmpty()&&query.isBlank()
     val home=grid&&!searching&&filter==PlayerLibraryFilter.ALL&&query.isBlank()&&expanded==null&&offsets.size==1
-    val continuing=visible.filter {it.continuing}
+    val continuing=remember(snapshot){snapshot.continuing}.filterNot {PrivateMedia.hidden(it.media.uri)}
     val unwatched=visible.filterNot {it.watched}
     val television=LocalPlayerTelevision.current
     val fontScale=LocalDensity.current.fontScale.coerceAtLeast(1f)
@@ -113,10 +116,10 @@ internal fun RowScope.PlayerVideos(activity:MediaFilesActivity,version:Int,query
                     if(entry.duration>0)"${playerMediaTime(entry.position)} / ${playerMediaTime(entry.duration)}" else "",Icons.Outlined.Movie){play(entry.media)}}
             }
             if(filtered.isEmpty()&&!busy)item {
-                PlayerSection(if(visible.isEmpty()&&query.isBlank())"Your media, ready to play" else "No matching media on this page") {
+                PlayerSection(if(emptyLibrary)"Your media, ready to play" else "No matching media") {
                     Text(if(page.indexUnavailable)"The saved folder index is unavailable. Check folder access or refresh it in Files."
-                        else if(visible.isEmpty()&&query.isBlank())"Open a file or add a media folder to begin."
-                        else if(page.next!=null)"Try the next page or choose another filter." else "Try another filename or media filter.",color=MaterialTheme.colorScheme.onSurfaceVariant)
+                        else if(emptyLibrary)"Open a file or add a media folder to begin."
+                        else "Try another filename or media filter.",color=MaterialTheme.colorScheme.onSurfaceVariant)
                     PlayerAction("Media folders",Icons.Outlined.CreateNewFolder){folders(null)}
                 }
             }

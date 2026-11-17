@@ -74,7 +74,7 @@ internal class SecretVault(private val prefs: SharedPreferences, private val cip
      * by anything else simply reads again. Values are already in memory whenever they are used;
      * nothing extra is written anywhere.
      */
-    private val opened = java.util.concurrent.ConcurrentHashMap<String, Pair<String, String?>>()
+    private val opened = java.util.concurrent.ConcurrentHashMap<String, Pair<String, String>>()
 
     fun get(name: String): String? = prefs.getString(name, null)?.let { cached(name, it) }
 
@@ -84,7 +84,8 @@ internal class SecretVault(private val prefs: SharedPreferences, private val cip
 
     private fun cached(name: String, stored: String): String? {
         opened[name]?.takeIf { it.first == stored }?.let { return it.second }
-        return open(name, stored).also { opened[name] = stored to it }
+        // A temporary unlock failure must remain retryable without changing the saved record.
+        return open(name, stored)?.also { opened[name] = stored to it }
     }
 
     /** Null removes a value. Written synchronously; false when nothing was committed. */
@@ -96,7 +97,7 @@ internal class SecretVault(private val prefs: SharedPreferences, private val cip
             sealed.forEach { (name, value) -> if (value == null) remove(name) else putString(name, value) }
         }.commit()
         if (clear) opened.clear()
-        if (committed) sealed.forEach { (name, value) -> if (value == null) opened.remove(name) else opened[name] = value to values[name] }
+        if (committed) sealed.forEach { (name, value) -> if (value == null) opened.remove(name) else opened[name] = value to checkNotNull(values[name]) }
         else values.keys.forEach(opened::remove)
         return committed
     }
@@ -104,7 +105,7 @@ internal class SecretVault(private val prefs: SharedPreferences, private val cip
     private fun seal(name: String, value: String) =
         java.util.Base64.getEncoder().encodeToString(cipher.encrypt(name, value.toByteArray(Charsets.UTF_8)))
 
-    // An unreadable value (Keystore reset, corrupt file) reads as absent, as if never saved.
+    // Callers that modify collections use TokenStore.getForUpdate to distinguish this from absence.
     private fun open(name: String, stored: String): String? = runCatching {
         String(cipher.decrypt(name, java.util.Base64.getDecoder().decode(stored)), Charsets.UTF_8)
     }.getOrNull()

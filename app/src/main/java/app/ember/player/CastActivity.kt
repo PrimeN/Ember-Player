@@ -50,7 +50,7 @@ class CastActivity:FragmentActivity() {
                 val scope=rememberCoroutineScope()
                 var receivers by remember {mutableStateOf<List<DlnaReceiver>>(emptyList())}
                 var discovery by remember {mutableStateOf<Job?>(null)}
-                LazyColumn(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(horizontal=32.dp),contentPadding=PaddingValues(vertical=24.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
+                LazyColumn(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding().padding(horizontal=32.dp),contentPadding=PaddingValues(vertical=24.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
                     item {ButtonRow {Text("Receiver playback",fontSize=24.sp);Chip("Back"){finish()}}}
                     item {Text(pending?.title ?: casting?.title ?: "Select media in the player to send it to a receiver.",fontSize=16.sp,maxLines=2)}
                     item {Text("Use a receiver on the same network. Playback depends on its supported formats; the app does not transcode video for receivers. Private or protected playback cannot be sent.",fontSize=12.sp,color=Mute)}

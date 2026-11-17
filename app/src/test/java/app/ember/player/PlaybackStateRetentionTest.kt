@@ -29,13 +29,13 @@ class PlaybackStateRetentionTest {
         repeat(PlaybackStateRetention.MAX_POSITIONS){edit.putString("video-${it.toString().padStart(5,'0')}","100,1000")};edit.commit()
         val store=PositionStore(context)
         store.finished("video-00000",1000)
-        PositionStore(context).put("new",200,1000)
+        PositionStore(context).put("new",60_000,100_000)
         PlaybackStateRetention.prune(context)
         assertEquals(PlaybackStateRetention.MAX_POSITIONS,preferences.all.size)
         assertEquals(1000L to 1000L,store.get("video-00000"));assertNull(store.resume("video-00000"))
-        assertNull(store.get("video-00001"));assertEquals(200L,store.resume("new")!!.first)
+        assertNull(store.get("video-00001"));assertEquals(60_000L,store.resume("new")!!.first)
         store.moveKey("new","renamed")
-        assertNull(store.get("new"));assertEquals(200L,store.resume("renamed")!!.first)
+        assertNull(store.get("new"));assertEquals(60_000L,store.resume("renamed")!!.first)
     }
     @Test fun oversizedLegacyStateCanExportAgainWithoutDeletingBookmarks() {
         val edit=context.getSharedPreferences("positions",Context.MODE_PRIVATE).edit()

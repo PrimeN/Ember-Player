@@ -159,11 +159,11 @@ internal fun PlayerActivity.resume(p: ExoPlayer): Boolean {
     val saved = positions.resume(resumeKey)
     val duration = playbackDuration(p).takeIf {it>0}
     if(duration==null) {
-        if(playbackEngine?.compatibility!=null && saved!=null && saved.first>30_000 && saved.first<saved.second*0.95){p.seekTo(saved.first);return true}
+        if(playbackEngine?.compatibility!=null && saved!=null){p.seekTo(saved.first);return true}
         return false
     }
     when {
-        saved != null && saved.first > 30_000 && saved.first < duration * 0.95 -> p.seekTo(saved.first)
+        saved != null && PositionStore.canResume(saved.first,duration) -> p.seekTo(saved.first)
         resumeFraction in 0.02f..0.95f -> p.seekTo((duration * resumeFraction).toLong())
     }
     return true

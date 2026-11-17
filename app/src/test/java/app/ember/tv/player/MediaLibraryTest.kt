@@ -17,6 +17,17 @@ import org.robolectric.shadows.ShadowContentResolver
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[35],application=android.app.Application::class)
 class MediaLibraryTest {
+    @Test fun skippedPrivateRowsDoNotHideTheRemainderOfTheIndex() {
+        val db=database();val folder=DeviceFolder("content://device.files/tree/root","Root")
+        val root=java.security.MessageDigest.getInstance("SHA-256").digest(folder.uri.toByteArray()).joinToString(""){"%02x".format(it)}
+        MediaLibrary(app,{db},{listOf(folder)},{it.endsWith("/private")}).use {index->
+            for(i in 0 until 220)db.execSQL("INSERT INTO media VALUES(?,?,?,?,?,?,?,?)",arrayOf<Any>("id-$i",root,"content://device.files/tree/root/document/"+(if(i<30)"$i/private" else "$i"),"clip-%03d".format(i),"video/mp4",100L,i.toLong(),"generation"))
+            val first=index.search("")
+            assertEquals(100,first.entries.size);assertNotNull(first.nextOffset)
+            val second=index.search("",first.nextOffset!!)
+            assertEquals(90,second.entries.size);assertNull(second.nextOffset)
+        }
+    }
     private val app:Context get()=RuntimeEnvironment.getApplication()
     private fun database():SupportSQLiteDatabase=FrameworkSQLiteOpenHelperFactory().create(SupportSQLiteOpenHelper.Configuration.builder(app)
         .callback(object:SupportSQLiteOpenHelper.Callback(1){override fun onCreate(db:SupportSQLiteDatabase){};override fun onUpgrade(db:SupportSQLiteDatabase,oldVersion:Int,newVersion:Int){}}).build()).writableDatabase

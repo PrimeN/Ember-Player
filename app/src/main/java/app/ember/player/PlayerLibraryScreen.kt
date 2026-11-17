@@ -5,7 +5,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -106,6 +108,7 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
                     }
                     PlayerIconAction("More options",Icons.Outlined.MoreVert){menu=true}
                 }
+                if(!television)PhoneLibraryNavigation(destination){folderUri=null;go(it)}
                 if(narrow&&destination==PlayerLibraryDestination.VIDEOS)Row(Modifier.fillMaxWidth().padding(bottom=8.dp),horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically) {
                     LibraryUtility(filter.label,Icons.Outlined.FilterList,Modifier.weight(1f)){filterMenu=true}
                     LibraryUtility(sort.label,Icons.AutoMirrored.Outlined.Sort,Modifier.weight(1f)){sortMenu=true}
@@ -128,10 +131,6 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
                             {uri->folderUri=uri;go(PlayerLibraryDestination.FOLDERS)})
                         else Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(androidx.compose.foundation.rememberScrollState())
                             .padding(top=8.dp,bottom=if(television)20.dp else 100.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
-                            if(!television&&(destination==PlayerLibraryDestination.FOLDERS||destination==PlayerLibraryDestination.NETWORK))Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                                LibraryNavigation("Folders",Icons.Outlined.Folder,Modifier.weight(1f),destination==PlayerLibraryDestination.FOLDERS){go(PlayerLibraryDestination.FOLDERS)}
-                                LibraryNavigation("Network",Icons.Outlined.Wifi,Modifier.weight(1f),destination==PlayerLibraryDestination.NETWORK){go(PlayerLibraryDestination.NETWORK)}
-                            }
                             when(destination) {
                                 PlayerLibraryDestination.FOLDERS->{DeviceFilesPanel(activity,version,folderUri);UsbFilesPanel(activity,version);DirectUsbPanel(activity,version);PlayerSection("Saved folder library"){MediaLibraryPanel(activity,version,showTitle=false)}}
                                 PlayerLibraryDestination.NETWORK->NetworkFilesPanel(activity,version)
@@ -145,7 +144,7 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
                 }
             }
             if(!television)LibraryDock(Modifier.align(Alignment.BottomCenter).padding(bottom=12.dp),
-                when {search->"search";destination==PlayerLibraryDestination.VIDEOS->"home";else->"files"},
+                when {search->"search";destination==PlayerLibraryDestination.VIDEOS->"home";destination in setOf(PlayerLibraryDestination.FOLDERS,PlayerLibraryDestination.NETWORK)->"files";else->""},
                 {go(PlayerLibraryDestination.VIDEOS)}, {if(destination!=PlayerLibraryDestination.NETWORK){folderUri=null;go(PlayerLibraryDestination.FOLDERS)}},::toggleSearch,::settings)
         }
     }
@@ -156,6 +155,17 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
         listOf(MenuOption("Settings"){settings()},MenuOption("Open stream URL"){stream=true},MenuOption("Refresh library view"){localRevision++},
             MenuOption("Clear recent media"){scope.launch {val ok=withContext(Dispatchers.IO){MediaHistory(activity).clear()};if(ok)localRevision++ else notice="Could not clear saved history."}}),{menu=false})
     if(stream)PlayerStreamDialog(activity,{stream=false}){notice=it}
+}
+
+@Composable
+internal fun PhoneLibraryNavigation(destination:PlayerLibraryDestination,go:(PlayerLibraryDestination)->Unit) {
+    val state=rememberLazyListState()
+    LaunchedEffect(destination){state.animateScrollToItem(destination.ordinal)}
+    LazyRow(Modifier.fillMaxWidth().padding(bottom=8.dp),state=state,horizontalArrangement=Arrangement.spacedBy(4.dp)) {
+        items(PlayerLibraryDestination.entries,key={it.name}) {item->
+            LibraryNavigation(item.label,item.icon,isSelected=destination==item){go(item)}
+        }
+    }
 }
 
 @Composable
