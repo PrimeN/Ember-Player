@@ -1,0 +1,69 @@
+package app.ember.player
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.semantics.*
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import app.ember.tv.ui.*
+
+internal data class PlayerFeedback(val text:String,val error:Boolean=true)
+
+@Composable
+internal fun PlayerFeedbackText(message:PlayerFeedback) {
+    if(message.error)PlayerErrorText(message.text) else PlayerStatusText(message.text)
+}
+
+@Composable
+internal fun PlayerErrorText(message:String,modifier:Modifier=Modifier) {
+    Row(modifier.fillMaxWidth().semantics(mergeDescendants=true){liveRegion=LiveRegionMode.Polite;error(message)},
+        horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically) {
+        Icon(Icons.Outlined.ErrorOutline,null,Modifier.size(20.dp),tint=androidx.tv.material3.MaterialTheme.colorScheme.error)
+        Text(message,style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=androidx.tv.material3.MaterialTheme.colorScheme.error)
+    }
+}
+
+@Composable
+internal fun PlayerStatusText(message:String) {
+    Text(message,style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=androidx.tv.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier=Modifier.semantics {liveRegion=LiveRegionMode.Polite})
+}
+
+@Composable
+internal fun PlayerConfirmationDialog(title:String,message:String,confirmLabel:String,close:()->Unit,busy:Boolean=false,confirm:()->Unit) {
+    val cancelFocus=remember {FocusRequester()}
+    val television=LocalPlayerTelevision.current
+    TvDialog({if(!busy)close()},width=520.dp,scrollContent=true) {
+        DialogHeading(title)
+        Text(message,style=androidx.tv.material3.MaterialTheme.typography.bodyMedium)
+        ButtonRow {
+            PlayerAction(if(busy)"Working…" else confirmLabel,destructive=true,enabled=!busy,onClick=confirm)
+            PlayerAction("Cancel",modifier=Modifier.focusRequester(cancelFocus),enabled=!busy,onClick=close)
+        }
+    }
+    LaunchedEffect(television){if(television){withFrameNanos {};runCatching {cancelFocus.requestFocus()}}}
+}
+
+@Composable
+internal fun PlayerFileRow(name:String,directory:Boolean,modifier:Modifier=Modifier,selected:Boolean=false,click:()->Unit) {
+    val scheme=MaterialTheme.colorScheme
+    Focusable(click,modifier.fillMaxWidth().heightIn(min=48.dp).semantics {
+        this.selected=selected;contentDescription=if(directory)"Folder: $name" else name
+    },container=if(selected)scheme.primaryContainer else scheme.surfaceVariant,focusedContainer=scheme.primary,
+        contentColor=if(selected)scheme.onPrimaryContainer else scheme.onSurfaceVariant,
+        focusedContent=scheme.onPrimary,outline=false,focusedScale=1f) {
+        Row(Modifier.fillMaxWidth().padding(12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+            Icon(if(directory)Icons.Outlined.Folder else Icons.AutoMirrored.Outlined.InsertDriveFile,null,Modifier.size(22.dp))
+            Text(name,Modifier.weight(1f),style=androidx.tv.material3.MaterialTheme.typography.bodyLarge,maxLines=2,overflow=TextOverflow.Ellipsis)
+            if(selected)Icon(Icons.Outlined.Check,"Selected",Modifier.size(20.dp))
+        }
+    }
+}

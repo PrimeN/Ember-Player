@@ -72,7 +72,7 @@ internal fun PlayerActionMenu(title: String, actions: List<PlayerDialogAction>, 
     CompactActionMenu(title, actions.map { it.label }, close) { first ->
         val view=LocalView.current
         DisposableEffect(view) { target(view); onDispose {target(null)} }
-        message?.let { Text(it, color = Mute, fontSize = 13.sp, maxLines = 2) }
+        message?.let { Text(it, color = Mute, style=androidx.tv.material3.MaterialTheme.typography.bodySmall, maxLines = 2) }
         actions.forEachIndexed { index, action ->
             MenuActionRow(action.label, if (index == 0) Modifier.focusRequester(first) else Modifier,
                 action.icon ?: Icons.Outlined.MoreHoriz, selected = action.selected, destructive = action.destructive) { selected(action) }

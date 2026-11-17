@@ -103,11 +103,11 @@ internal fun PlaybackOverlay(s:ControlsState,a:ControlsActions) {
             Column(dock.then(material).padding(horizontal=if(glass)18.dp else 0.dp,vertical=if(glass)12.dp else 0.dp)) {
                 Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(16.dp)) {
                     Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(2.dp)) {
-                        Text(s.details?.name ?: s.title,color=Ivory,fontSize=18.sp,fontWeight=FontWeight.SemiBold,maxLines=1,overflow=TextOverflow.Ellipsis)
+                        Text(s.details?.name ?: s.title,color=Ivory,style=androidx.tv.material3.MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold,maxLines=1,overflow=TextOverflow.Ellipsis)
                         val episode=listOfNotNull(s.seasonEpisode,s.details?.episodeTitle).filter(String::isNotBlank).joinToString(" · ")
-                        if(episode.isNotEmpty())Text(episode,color=Soft,fontSize=12.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
+                        if(episode.isNotEmpty())Text(episode,color=Soft,style=androidx.tv.material3.MaterialTheme.typography.bodySmall,maxLines=1,overflow=TextOverflow.Ellipsis)
                     }
-                    if(s.buffering)Text(stringResource(R.string.pl_buffering),color=Ivory,fontSize=12.sp)
+                    if(s.buffering)Text(stringResource(R.string.pl_buffering),color=Ivory,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
                     else if(!narrow)PlaybackEndTime(s)
                 }
                 val positionLabel=stringResource(R.string.player_position)
@@ -122,9 +122,9 @@ internal fun PlaybackOverlay(s:ControlsState,a:ControlsActions) {
                         }
                     })
                 Row(Modifier.fillMaxWidth()) {
-                    Text(time(if(s.seekPreview>=0f)(s.seekPreview*s.duration).toLong() else s.position),color=Soft,fontSize=12.sp)
+                    Text(time(if(s.seekPreview>=0f)(s.seekPreview*s.duration).toLong() else s.position),color=Soft,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.weight(1f))
-                    Text(if(s.duration>0)time(s.duration) else "—:—",color=Soft,fontSize=12.sp)
+                    Text(if(s.duration>0)time(s.duration) else "—:—",color=Soft,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
                 }
                 @Composable fun transport() {
                     Row(horizontalArrangement=Arrangement.spacedBy(10.dp),verticalAlignment=Alignment.CenterVertically) {
@@ -232,7 +232,7 @@ private fun PlaybackEndTime(s:ControlsState) {
     // estimate does not drift between timer ticks, and only format when its minute changes.
     playbackEndTime(System.currentTimeMillis(),s.position,s.duration,s.playbackSpeed)?.let {end->
         val label=remember(end/60_000,format){format.format(Date(end))}
-        Text(stringResource(R.string.player_ends_at,label),color=Soft,fontSize=12.sp,maxLines=1)
+        Text(stringResource(R.string.player_ends_at,label),color=Soft,style=androidx.tv.material3.MaterialTheme.typography.bodySmall,maxLines=1)
     }
 }
 
@@ -247,15 +247,16 @@ private fun PlaybackChoices(s:ControlsState,a:ControlsActions) {
     val chosen=choices.indexOfFirst {it.second}.coerceAtLeast(0)
     val measure=rememberTextMeasurer()
     val density=LocalDensity.current
-    val width=remember(choices,title,more,density) {
-        with(density){(choices.map {it.first}+listOfNotNull(title,more)).maxOf {measure.measure(AnnotatedString(it),TextStyle(fontSize=14.sp),maxLines=1).size.width}.toDp()}+64.dp
+    val labelStyle=androidx.tv.material3.MaterialTheme.typography.bodyMedium
+    val width=remember(choices,title,more,density,labelStyle) {
+        with(density){(choices.map {it.first}+listOfNotNull(title,more)).maxOf {measure.measure(AnnotatedString(it),labelStyle,maxLines=1).size.width}.toDp()}+64.dp
     }
     BoxWithConstraints(Modifier.fillMaxSize().guardOpeningPress().focusProperties {onExit={cancelFocusChange()}}.focusGroup(),contentAlignment=Alignment.CenterEnd) {
         val panelWidth=width.coerceIn(minOf(220.dp,maxWidth*.8f),minOf(420.dp,maxWidth*.8f))
         Column(Modifier.padding(18.dp).width(panelWidth).heightIn(max=maxHeight*.68f).clip(RoundedCornerShape(TvTokens.Shape.Panel.dp))
             .background(Color(0xF01B1E23)).border(.7.dp,Color.White.copy(alpha=.14f),RoundedCornerShape(TvTokens.Shape.Panel.dp)).padding(10.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically) {
-                Text(title,color=Ivory,fontSize=16.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f).padding(8.dp))
+                Text(title,color=Ivory,style=androidx.tv.material3.MaterialTheme.typography.bodyLarge,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f).padding(8.dp))
                 val close=remember {FocusRequester()}
                 if(choices.isEmpty() && more==null)LaunchedEffect(Unit){close.requestFocus()}
                 PlaybackControl(Icons.AutoMirrored.Outlined.ArrowBack,stringResource(R.string.player_back),false,Modifier.focusRequester(close)){s.sheet=null}
@@ -281,7 +282,7 @@ private fun PlaybackChoice(label:String,selected:Boolean,first:Boolean,onClick:(
     Focusable(onClick,Modifier.focusRequester(focus).fillMaxWidth().onFocusChanged {focused=it.isFocused}.semantics {this.selected=selected},radius=TvTokens.Shape.Card,
         container=Color.Transparent,focusedContainer=Ivory,focusedContent=Coal,outline=false,focusedScale=TvTokens.Focus.None) {
         Row(Modifier.padding(horizontal=10.dp,vertical=9.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-            Text(label,color=if(focused)Coal else Ivory,fontSize=14.sp,maxLines=1,overflow=TextOverflow.Ellipsis,modifier=Modifier.weight(1f))
+            Text(label,color=if(focused)Coal else Ivory,style=androidx.tv.material3.MaterialTheme.typography.bodyMedium,maxLines=1,overflow=TextOverflow.Ellipsis,modifier=Modifier.weight(1f))
             if(selected)Box(Modifier.size(6.dp).clip(CircleShape).background(if(focused)Coal else LocalPlayerAccent.current))
         }
     }

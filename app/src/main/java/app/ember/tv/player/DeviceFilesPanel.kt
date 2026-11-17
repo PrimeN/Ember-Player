@@ -2,6 +2,7 @@ package app.ember.tv.player
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -32,6 +33,7 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
     var loading by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var notice by remember { mutableStateOf<String?>(null) }
+    var status by remember {mutableStateOf<String?>(null)}
     var revision by remember { mutableIntStateOf(0) }
     var select by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<Set<Uri>>(emptySet()) }
@@ -52,7 +54,7 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
 
     fun operation(block: suspend () -> Unit) {
         if (busy) return
-        busy = true; notice = null
+        busy = true; notice = null;status=null
         scope.launch {
             try {block(); selected = emptySet(); revision++}
             catch (e: CancellationException) {throw e}
@@ -117,7 +119,7 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
                     transferFilePlaybackState(activity,file,moved,DeviceFiles.root(tree),file.name)
                 }
             }
-            notice = "Files moved"
+            status = "Files moved"
         }
     }
     fun share(files: List<DeviceFile>) {
@@ -129,90 +131,87 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
         intent.clipData = android.content.ClipData.newRawUri("Media", uris.first()).apply {uris.drop(1).forEach {addItem(android.content.ClipData.Item(it))}}
         runCatching {activity.startActivity(Intent.createChooser(intent, "Share media"))}.onFailure {notice = "No app is available to share these files."}
     }
-    Text("Device folders", fontSize = 20.sp)
-    if (root == null) {
-        Chip("Add a media folder") {if (!busy) runCatching {addFolder.launch(null)}.onFailure {notice = "No document picker is installed on this device."}}
-        folders.forEach {folder -> ButtonRow {
-            Chip(folder.name, maxLines = 1) {root = folder; parents = emptyList(); query = ""}
-            Chip("Forget folder") {operation {withContext(Dispatchers.IO) {check(store.remove(folder.uri)) {"Could not update saved folders."}}; folders = withContext(Dispatchers.IO) {store.read().filterNot {app.ember.player.PrivateMedia.hidden(it.uri)}}}}
-        }}
-    } else {
-        Text(current?.second ?: root!!.name, fontSize = 16.sp, maxLines = 1)
-        TvTextField(query, {query = it.take(120)}, Modifier.fillMaxWidth(), placeholder = "Search this folder")
-        ButtonRow {
-            Chip("Back") {if (!busy) back()}
-            Chip("Refresh") {if (!busy) {DeviceThumbnails.clear();revision++}}
-            Chip(when(sort) {"date" -> "Newest first"; "size" -> "Largest first"; else -> "Name A–Z"}) {sort = when(sort) {"name" -> "date"; "date" -> "size"; else -> "name"}}
-            Chip("Hidden files", selected = hidden) {hidden = !hidden}
-            Chip(if (select) "Done selecting" else "Select files", selected = select) {select = !select; selected = emptySet()}
-        }
-        val entries = DeviceFiles.sorted(page.entries.filterNot {app.ember.player.PrivateMedia.hidden(it.uri.toString())}, query, sort, hidden)
-        lastPlayed?.let {last->page.entries.firstOrNull {it.uri.toString()==last.uri && !app.ember.player.PrivateMedia.hidden(it.uri.toString()) && (hidden || !it.name.startsWith('.'))}?.let {file->Chip("Resume · ${last.title}",maxLines=1) {open(listOf(file))}}}
-        val chosen = page.entries.filter {it.uri in selected && !it.directory && !app.ember.player.PrivateMedia.hidden(it.uri.toString())}
-        if (chosen.isNotEmpty()) ButtonRow {
-            Chip("Play ${chosen.size}") {open(chosen)}
-            Chip("Share") {share(chosen)}
-            Chip("Move") {if (!busy) {moving = chosen; runCatching {destination.launch(null)}.onFailure {moving = emptyList(); notice = "No document picker is installed."}}}
-            Chip("Delete") {deleting = chosen}
-        }
-        if (loading || busy) Text(if (busy) "Working…" else "Loading folder…", color = Mute, fontSize = 13.sp)
-        else if (entries.isEmpty()) Text("No matching media in this folder", color = Mute, fontSize = 13.sp)
-        LazyColumn(Modifier.fillMaxWidth().heightIn(max = 440.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            items(entries, key = {it.uri.toString()}) {entry ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DeviceThumbnail(entry)
-                    Chip((if (entry.directory) "▸ " else if (entry.uri in selected) "✓ " else "") + entry.name,
-                        selected = entry.uri in selected, modifier = Modifier.weight(1f), maxLines = 1) {
-                        if (!busy) when {
-                            entry.directory -> {parents = parents + (entry.uri to entry.name); query = ""; selected = emptySet()}
-                            select -> selected = if (entry.uri in selected) selected - entry.uri else selected + entry.uri
-                            else -> open(listOf(entry))
+    app.ember.player.PlayerSection("Device folders") {
+        if (root == null) {
+            Chip("Add a media folder") {if (!busy) runCatching {addFolder.launch(null)}.onFailure {notice = "No document picker is installed on this device."}}
+            folders.forEach {folder -> ButtonRow {
+                Chip(folder.name, maxLines = 1) {root = folder; parents = emptyList(); query = ""}
+                Chip("Forget folder") {operation {withContext(Dispatchers.IO) {check(store.remove(folder.uri)) {"Could not update saved folders."}}; folders = withContext(Dispatchers.IO) {store.read().filterNot {app.ember.player.PrivateMedia.hidden(it.uri)}}}}
+            }}
+        } else {
+            Text(current?.second ?: root!!.name, style=androidx.tv.material3.MaterialTheme.typography.bodyLarge, maxLines = 1)
+            TvTextField(query, {query = it.take(120)}, Modifier.fillMaxWidth(), placeholder = "Search this folder")
+            ButtonRow {
+                Chip("Back") {if (!busy) back()}
+                Chip("Refresh") {if (!busy) {DeviceThumbnails.clear();revision++}}
+                Chip(when(sort) {"date" -> "Newest first"; "size" -> "Largest first"; else -> "Name A–Z"}) {sort = when(sort) {"name" -> "date"; "date" -> "size"; else -> "name"}}
+                Chip("Hidden files", selected = hidden) {hidden = !hidden}
+                Chip(if (select) "Done selecting" else "Select files", selected = select) {select = !select; selected = emptySet()}
+            }
+            val entries = DeviceFiles.sorted(page.entries.filterNot {app.ember.player.PrivateMedia.hidden(it.uri.toString())}, query, sort, hidden)
+            lastPlayed?.let {last->page.entries.firstOrNull {it.uri.toString()==last.uri && !app.ember.player.PrivateMedia.hidden(it.uri.toString()) && (hidden || !it.name.startsWith('.'))}?.let {file->Chip("Resume · ${last.title}",maxLines=1) {open(listOf(file))}}}
+            val chosen = page.entries.filter {it.uri in selected && !it.directory && !app.ember.player.PrivateMedia.hidden(it.uri.toString())}
+            if (chosen.isNotEmpty()) ButtonRow {
+                Chip("Play ${chosen.size}") {open(chosen)}
+                Chip("Share") {share(chosen)}
+                Chip("Move") {if (!busy) {moving = chosen; runCatching {destination.launch(null)}.onFailure {moving = emptyList(); notice = "No document picker is installed."}}}
+                app.ember.player.PlayerAction("Delete",destructive=true) {deleting = chosen}
+            }
+            if (loading || busy) Text(if (busy) "Working…" else "Loading folder…", color = Mute, style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+            else if (entries.isEmpty()) Text("No matching media in this folder", color = Mute, style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 440.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(entries, key = {it.uri.toString()}) {entry ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        DeviceThumbnail(entry)
+                        app.ember.player.PlayerFileRow(entry.name,entry.directory,selected=entry.uri in selected,modifier=Modifier.weight(1f)) {
+                            if (!busy) when {
+                                entry.directory -> {parents = parents + (entry.uri to entry.name); query = ""; selected = emptySet()}
+                                select -> selected = if (entry.uri in selected) selected - entry.uri else selected + entry.uri
+                                else -> open(listOf(entry))
+                            }
                         }
+                        if (!entry.directory) app.ember.player.PlayerIconAction("More options for ${entry.name}",androidx.compose.material.icons.Icons.Outlined.MoreHoriz) {menu = entry}
                     }
-                    if (!entry.directory) Chip("⋯") {menu = entry}
+                }
+            }
+            ButtonRow {
+                if(offsets.size>1)Chip("Previous page"){offsets=offsets.dropLast(1)}
+                if(page.limited)Chip("Next page"){offsets=offsets+page.nextOffset}
+            }
+            Text("Search and sorting apply to this page. Use Library search to find files across folders.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+            if (entries.any {!it.directory}) Chip("Play this page") {open(entries.filterNot {it.directory})}
+        }
+        notice?.let {app.ember.player.PlayerErrorText(it)}
+        status?.let {app.ember.player.PlayerStatusText(it)}
+        menu?.takeUnless {app.ember.player.PrivateMedia.hidden(it.uri.toString())}?.let {file -> OptionMenu(file.name, listOf(
+            MenuOption("Play") {open(listOf(file))},
+            MenuOption("Keep private") {protect=file;protectPin=true},
+            MenuOption("Rename") {rename = file},
+            MenuOption("Share") {share(listOf(file))},
+            MenuOption("Move") {moving = listOf(file); runCatching {destination.launch(null)}.onFailure {notice = "No document picker is installed."}},
+            MenuOption("Delete") {deleting = listOf(file)},
+        ), {menu = null})}
+        if(protectPin)app.ember.player.PrivatePinPrompt({protectPin=false;protect=null},{
+            val file=protect;protectPin=false;protect=null
+            if(file!=null)operation {withContext(Dispatchers.IO){app.ember.player.PrivateMedia.add(app.ember.player.PrivateItem(file.uri.toString(),file.name,file.directory))}}
+        })
+        rename?.takeUnless {app.ember.player.PrivateMedia.hidden(it.uri.toString())}?.let {file ->
+            var name by remember(file) {mutableStateOf(file.name)}
+            TvDialog({rename = null}, width = 520.dp, resizeForKeyboard = true,scrollContent=true) {
+                DialogHeading("Rename file")
+                TvTextField(name, {name = it.take(180)}, Modifier.fillMaxWidth())
+                ButtonRow {
+                    app.ember.player.PlayerAction("Save",primary=true) {if (DeviceFiles.validName(name)) {rename = null; operation {withContext(Dispatchers.IO) {
+                        val renamed=DeviceFiles.rename(activity,file,name)
+                        transferFilePlaybackState(activity,file,renamed,file.parent,name)
+                    }}} else notice = "Enter a valid filename."}
+                    app.ember.player.PlayerAction("Cancel") {rename = null}
                 }
             }
         }
-        ButtonRow {
-            if(offsets.size>1)Chip("Previous page"){offsets=offsets.dropLast(1)}
-            if(page.limited)Chip("Next page"){offsets=offsets+page.nextOffset}
-        }
-        Text("Search and sorting apply to this page. Use Library search to find files across folders.",color=Mute,fontSize=12.sp)
-        if (entries.any {!it.directory}) Chip("Play this page") {open(entries.filterNot {it.directory})}
-    }
-    notice?.let {Text(it, fontSize = 13.sp, color = Mute)}
-    menu?.takeUnless {app.ember.player.PrivateMedia.hidden(it.uri.toString())}?.let {file -> OptionMenu(file.name, listOf(
-        MenuOption("Play") {open(listOf(file))},
-        MenuOption("Keep private") {protect=file;protectPin=true},
-        MenuOption("Rename") {rename = file},
-        MenuOption("Share") {share(listOf(file))},
-        MenuOption("Move") {moving = listOf(file); runCatching {destination.launch(null)}.onFailure {notice = "No document picker is installed."}},
-        MenuOption("Delete") {deleting = listOf(file)},
-    ), {menu = null})}
-    if(protectPin)app.ember.player.PrivatePinPrompt({protectPin=false;protect=null},{
-        val file=protect;protectPin=false;protect=null
-        if(file!=null)operation {withContext(Dispatchers.IO){app.ember.player.PrivateMedia.add(app.ember.player.PrivateItem(file.uri.toString(),file.name,file.directory))}}
-    })
-    rename?.takeUnless {app.ember.player.PrivateMedia.hidden(it.uri.toString())}?.let {file ->
-        var name by remember(file) {mutableStateOf(file.name)}
-        TvDialog({rename = null}, width = 520.dp, resizeForKeyboard = true) {
-            DialogHeading("Rename file")
-            TvTextField(name, {name = it.take(180)}, Modifier.fillMaxWidth())
-            ButtonRow {
-                Chip("Save") {if (DeviceFiles.validName(name)) {rename = null; operation {withContext(Dispatchers.IO) {
-                    val renamed=DeviceFiles.rename(activity,file,name)
-                    transferFilePlaybackState(activity,file,renamed,file.parent,name)
-                }}} else notice = "Enter a valid filename."}
-                Chip("Cancel") {rename = null}
-            }
-        }
-    }
-    if (deleting.isNotEmpty()&&deleting.none {app.ember.player.PrivateMedia.hidden(it.uri.toString())}) TvDialog({deleting = emptyList()}, width = 480.dp) {
-        DialogHeading("Delete ${deleting.size} file${if (deleting.size == 1) "" else "s"}?")
-        Text("This removes the selected files from storage.", fontSize = 14.sp)
-        ButtonRow {
-            Chip("Delete") {val files = deleting; deleting = emptyList(); operation {withContext(Dispatchers.IO) {DeviceFiles.delete(activity, files)}}}
-            Chip("Cancel") {deleting = emptyList()}
+        if (deleting.isNotEmpty()&&deleting.none {app.ember.player.PrivateMedia.hidden(it.uri.toString())}) app.ember.player.PlayerConfirmationDialog(
+            "Delete ${deleting.size} file${if(deleting.size==1)"" else "s"}?","This removes the selected files from storage.","Delete",{deleting=emptyList()}) {
+            val files=deleting;deleting=emptyList();operation {withContext(Dispatchers.IO){DeviceFiles.delete(activity,files)}}
         }
     }
 }

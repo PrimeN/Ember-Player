@@ -31,18 +31,17 @@ internal fun CompactActionMenu(title: String, labels: List<String>, close: () ->
     val window=LocalWindowInfo.current.containerSize
     val measure=rememberTextMeasurer()
     val labelStyle=actionMenuTextStyle()
-    val width=remember(title,labels,density,window,measure,labelStyle) {with(density) {
-        fun textWidth(text:String,size:androidx.compose.ui.unit.TextUnit,weight:FontWeight)=
-            measure.measure(text,TextStyle(fontSize=size,fontWeight=weight),softWrap=false,maxLines=1).size.width.toDp()
+    val titleStyle=androidx.tv.material3.MaterialTheme.typography.titleMedium.copy(fontWeight=FontWeight.SemiBold)
+    val width=remember(title,labels,density,window,measure,labelStyle,titleStyle) {with(density) {
         MenuSizing.actionMenuWidth((labels.maxOfOrNull {measure.measure(MenuSizing.actionLabel(it),labelStyle,softWrap=false,maxLines=1).size.width.toDp()} ?: 0.dp),
-            textWidth(title,TvTokens.Type.Navigation.sp,FontWeight.SemiBold),(window.width.toDp()-48.dp).coerceAtLeast(0.dp))
+            measure.measure(title,titleStyle,softWrap=false,maxLines=1).size.width.toDp(),(window.width.toDp()-48.dp).coerceAtLeast(0.dp))
     }}
     val first=remember {FocusRequester()}
     val closeFocus=remember {FocusRequester()}
     TvDialog(close,width=width,height=with(density){window.height.toDp()},scrollContent=true,
         contentPadding=MenuSizing.ACTION_DIALOG_PADDING,glassSurface=true) {
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-            Text(title,color=Fg,fontSize=TvTokens.Type.Navigation.sp,fontWeight=FontWeight.SemiBold,maxLines=1,softWrap=false,overflow=TextOverflow.Ellipsis,
+            Text(title,color=Fg,style=titleStyle,maxLines=1,softWrap=false,overflow=TextOverflow.Ellipsis,
                 modifier=Modifier.weight(1f).semantics {heading()})
             Focusable(close,Modifier.focusRequester(closeFocus).size(32.dp).semantics {contentDescription=closeLabel},radius=TvTokens.Shape.Pill,
                 container=Wash,focusedContainer=PillColor,focusedContent=OnPillColor,outline=false) {

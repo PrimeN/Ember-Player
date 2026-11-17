@@ -77,15 +77,15 @@ internal fun StreamingControls(s: ControlsState, a: ControlsActions) {
                     if (s.fileQueueNext)
                         StreamingIcon(Icons.Outlined.SkipNext, if (s.fileQueueLabel != null) "Next file" else "Next episode", { label = it }, onClick = a.next)
                 }
-                Text(label?.uppercase() ?: "", fontSize = 13.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp, color = Color.White,
+                Text(label?.uppercase() ?: "", style=androidx.tv.material3.MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, letterSpacing = 1.sp, color = Color.White,
                     modifier = Modifier.padding(top = 10.dp).height(18.dp))
             }
 
             // Top right: title, then season, episode and episode name.
             Column(Modifier.align(Alignment.TopEnd).padding(end = 56.dp, top = 40.dp).widthIn(max = 520.dp), horizontalAlignment = Alignment.End) {
-                Text(d?.name ?: s.title, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
+                Text(d?.name ?: s.title, style=androidx.tv.material3.MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
                 val episode = listOfNotNull(s.seasonEpisode, d?.episodeTitle?.let { "“$it”" }).joinToString(" ")
-                if (episode.isNotBlank()) Text(episode, fontSize = 17.sp, color = Color.White.copy(alpha = .72f), maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
+                if (episode.isNotBlank()) Text(episode, style=androidx.tv.material3.MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = .72f), maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
             }
 
             // Left, a little below the middle: the title's logo, or its name.
@@ -93,7 +93,7 @@ internal fun StreamingControls(s: ControlsState, a: ControlsActions) {
             var logoOk by remember(logo) { mutableStateOf(logo != null) }
             Box(Modifier.align(Alignment.CenterStart).padding(start = 56.dp, top = 40.dp).width(320.dp).height(110.dp), contentAlignment = Alignment.BottomStart) {
                 if (logo != null && logoOk) AsyncImage(logo, d.name, Modifier.fillMaxSize(), contentScale = ContentScale.Fit, alignment = Alignment.BottomStart, onError = { logoOk = false })
-                else Text(d?.name ?: s.title, fontSize = 38.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 42.sp)
+                else Text(d?.name ?: s.title, style=androidx.tv.material3.MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis,)
             }
 
             if (s.sheet == "info") d?.let { InfoPanel(it) }
@@ -106,9 +106,9 @@ internal fun StreamingControls(s: ControlsState, a: ControlsActions) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     StreamingIcon(if (s.playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow, if (s.playing) "Pause" else "Play", null,
                         Modifier.focusRequester(play), size = 52.dp, onClick = a.playPause)
-                    Text(time(if (s.seekPreview >= 0f) (s.seekPreview * s.duration).toLong() else s.position), fontSize = 17.sp, color = Color.White)
+                    Text(time(if (s.seekPreview >= 0f) (s.seekPreview * s.duration).toLong() else s.position), style=androidx.tv.material3.MaterialTheme.typography.bodyLarge, color = Color.White)
                     Box(Modifier.weight(1f)) { SeekBar(s, a) }
-                    Text(if (s.duration > 0) time(s.duration) else "", fontSize = 17.sp, color = Color.White)
+                    Text(if (s.duration > 0) time(s.duration) else "", style=androidx.tv.material3.MaterialTheme.typography.bodyLarge, color = Color.White)
                 }
                 // Sound and Subtitles are drop-ups: OK opens a short list above the button, and picking an
                 // entry applies it straight away. Back closes the list and returns to its button.
@@ -208,7 +208,7 @@ private fun DropRow(text: String, selected: Boolean, onFocus: (Boolean) -> Unit,
             Box(Modifier.size(18.dp)) {
                 if (selected) Image(Icons.Outlined.Check, null, colorFilter = ColorFilter.tint(if (focused) Color.Black else Color.White), modifier = Modifier.fillMaxSize())
             }
-            Text(text, fontSize = 16.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            Text(text, style=androidx.tv.material3.MaterialTheme.typography.bodyLarge, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                 color = if (focused) Color.Black else Color.White.copy(alpha = if (dim) .7f else 1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
@@ -238,9 +238,9 @@ private fun StreamingChip(text: String, modifier: Modifier = Modifier, arrow: St
     Focusable(onClick = onClick, modifier = modifier.heightIn(min = 40.dp).widthIn(max = 420.dp).onFocusChanged { focused = it.isFocused },
         radius = TvTokens.Shape.Tight, container = Color.White.copy(alpha = .16f), focusedContainer = Color.White, focusedContent = Color.Black, outline = false, focusedScale = TvTokens.Focus.None) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = if (focused) Color.Black else Color.White, maxLines = 1,
+            Text(text, style=androidx.tv.material3.MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = if (focused) Color.Black else Color.White, maxLines = 1,
                 overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-            if (arrow != null) Text(arrow, fontSize = 13.sp, color = if (focused) Color.Black else Color.White.copy(alpha = .8f))
+            if (arrow != null) Text(arrow, style=androidx.tv.material3.MaterialTheme.typography.bodySmall, color = if (focused) Color.Black else Color.White.copy(alpha = .8f))
         }
     }
 }

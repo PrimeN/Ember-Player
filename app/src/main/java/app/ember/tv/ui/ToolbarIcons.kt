@@ -61,7 +61,7 @@ internal fun ToolbarHint(label: String, focused: Boolean) {
         val gap = with(LocalDensity.current) { 6.dp.roundToPx() }
         Popup(popupPositionProvider = remember(gap) { ToolbarHintPosition(gap) },
             properties = PopupProperties(focusable = false, dismissOnBackPress = false, dismissOnClickOutside = false)) {
-            Text(label, color = Fg, fontSize = TvTokens.Type.Caption.sp, maxLines = 3, overflow = TextOverflow.Ellipsis,
+            Text(label, color = Fg, style = androidx.tv.material3.MaterialTheme.typography.labelMedium, maxLines = 3, overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.widthIn(max = 280.dp).clearAndSetSemantics { }
                     .background(PanelHi, RoundedCornerShape(10.dp)).border(1.dp, Fg.copy(alpha = .14f), RoundedCornerShape(10.dp))
                     .padding(horizontal = 10.dp, vertical = 6.dp))

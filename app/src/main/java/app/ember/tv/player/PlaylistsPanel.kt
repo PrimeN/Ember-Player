@@ -1,5 +1,6 @@
 package app.ember.tv.player
 
+import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -51,44 +52,40 @@ internal fun PlaylistsPanel(activity:ComponentActivity,refresh:Int) {
             }
         }
     }
-    Text("Playlists",fontSize=20.sp)
-    Chip(if(busy)"Working…" else "New playlist from files") {if(!busy)runCatching {picker.launch(arrayOf("video/*","audio/*","application/octet-stream"))}.onFailure {notice="No document picker is installed on this device."}}
-    values.filter {it.entries.none {entry->app.ember.player.PrivateMedia.hidden(entry.uri)}}.forEach {value->ButtonRow {
-        Chip("${value.name} · ${value.entries.size}",maxLines=1) {if(!busy)play(value,value.index)}
-        Chip("⋯") {if(!busy)selected=value}
-    }}
-    notice?.let {Text(it,color=Mute,fontSize=13.sp)}
-    selected?.let {value->OptionMenu(value.name,listOf(
-        MenuOption("Resume playlist") {play(value,value.index)},
-        MenuOption("Play from beginning") {play(value,0)},
-        MenuOption("Rename") {rename=value},
-        MenuOption("Delete playlist") {deleting=value},
-    ),{selected=null})}
-    if(files.isNotEmpty() || rename!=null) {
-        var name by remember(files,rename?.id) {mutableStateOf(rename?.name ?: "Playlist")}
-        TvDialog({files=emptyList();rename=null},width=480.dp,resizeForKeyboard=true) {
-            DialogHeading(if(rename==null)"Save playlist" else "Rename playlist")
-            TvTextField(name,{name=it.take(80)},Modifier.fillMaxWidth(),placeholder="Playlist name")
-            ButtonRow {
-                Chip("Save") {if(name.isNotBlank()&&!busy) {
-                    val changing=rename;val items=files;busy=true
-                    scope.launch {
-                        try {
-                            val saved=withContext(Dispatchers.IO) {if(changing==null)store.save(name,items) else store.rename(changing.id,name)}
-                            if(saved){files=emptyList();rename=null;revision++}else notice="Could not save playlist. Check encrypted storage and the 50-playlist limit."
-                        } finally {busy=false}
-                    }
-                }}
-                Chip("Cancel") {if(!busy){files=emptyList();rename=null}}
+    app.ember.player.PlayerSection("Playlists") {
+        Chip(if(busy)"Working…" else "New playlist from files") {if(!busy)runCatching {picker.launch(arrayOf("video/*","audio/*","application/octet-stream"))}.onFailure {notice="No document picker is installed on this device."}}
+        values.filter {it.entries.none {entry->app.ember.player.PrivateMedia.hidden(entry.uri)}}.forEach {value->ButtonRow {
+            Chip("${value.name} · ${value.entries.size}",maxLines=1) {if(!busy)play(value,value.index)}
+            app.ember.player.PlayerIconAction("More options for ${value.name}",androidx.compose.material.icons.Icons.Outlined.MoreHoriz) {if(!busy)selected=value}
+        }}
+        notice?.let {app.ember.player.PlayerErrorText(it)}
+        selected?.let {value->OptionMenu(value.name,listOf(
+            MenuOption("Resume playlist") {play(value,value.index)},
+            MenuOption("Play from beginning") {play(value,0)},
+            MenuOption("Rename") {rename=value},
+            MenuOption("Delete playlist") {deleting=value},
+        ),{selected=null})}
+        if(files.isNotEmpty() || rename!=null) {
+            var name by remember(files,rename?.id) {mutableStateOf(rename?.name ?: "Playlist")}
+            TvDialog({files=emptyList();rename=null},width=480.dp,resizeForKeyboard=true,scrollContent=true) {
+                DialogHeading(if(rename==null)"Save playlist" else "Rename playlist")
+                TvTextField(name,{name=it.take(80)},Modifier.fillMaxWidth(),placeholder="Playlist name")
+                ButtonRow {
+                    app.ember.player.PlayerAction("Save",primary=true) {if(name.isNotBlank()&&!busy) {
+                        val changing=rename;val items=files;busy=true
+                        scope.launch {
+                            try {
+                                val saved=withContext(Dispatchers.IO) {if(changing==null)store.save(name,items) else store.rename(changing.id,name)}
+                                if(saved){files=emptyList();rename=null;revision++}else notice="Could not save playlist. Check encrypted storage and the 50-playlist limit."
+                            } finally {busy=false}
+                        }
+                    }}
+                    app.ember.player.PlayerAction("Cancel") {if(!busy){files=emptyList();rename=null}}
+                }
             }
         }
+        deleting?.let {value->app.ember.player.PlayerConfirmationDialog("Delete playlist?","${value.name} will be removed. Its media files will stay on your device.","Delete",{deleting=null}) {
+            deleting=null;scope.launch {val saved=withContext(Dispatchers.IO){store.remove(value.id)};if(saved)revision++ else notice="Could not update encrypted playlist storage."}
+        }}
     }
-    deleting?.let {value->TvDialog({deleting=null},width=480.dp) {
-        DialogHeading("Delete playlist?")
-        Text("${value.name} will be removed. Its media files will stay on your device.",fontSize=14.sp)
-        ButtonRow {
-            Chip("Delete") {deleting=null;scope.launch {val saved=withContext(Dispatchers.IO) {store.remove(value.id)};if(saved)revision++ else notice="Could not update encrypted playlist storage."}}
-            Chip("Cancel") {deleting=null}
-        }
-    }}
 }

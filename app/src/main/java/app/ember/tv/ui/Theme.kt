@@ -206,8 +206,10 @@ fun EmberTheme(accentIndex: Int, interfaceStyle: String = app.ember.tv.data.Inte
     val index=app.ember.tv.data.ColorThemes.normalize(accentIndex)
     val style = app.ember.tv.data.InterfaceStyles.normalize(interfaceStyle)
     val scheme = emberColorScheme(index,style!=app.ember.tv.data.InterfaceStyles.EMBER_X && Ui.isDay && !LocalNight.current,Ui.isOled)
-    MaterialTheme(colorScheme = scheme) {
-        androidx.compose.runtime.CompositionLocalProvider(LocalAccentIndex provides index, LocalInterfaceStyle provides style, content = content)
+    val television=app.ember.tv.player.PlayerTouchControls.isTelevision(androidx.compose.ui.platform.LocalContext.current)
+    MaterialTheme(colorScheme = scheme,typography=app.ember.player.playerTvTypography(television)) {
+        androidx.compose.runtime.CompositionLocalProvider(LocalAccentIndex provides index, LocalInterfaceStyle provides style,
+            app.ember.player.LocalPlayerTelevision provides television,content = content)
     }
 }
 

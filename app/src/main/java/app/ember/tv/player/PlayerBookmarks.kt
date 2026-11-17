@@ -50,7 +50,7 @@ internal fun PlayerActivity.bookmarkName(title:String,initial:String,saved:(Stri
             DisposableEffect(view) {dialog.target=view;onDispose {dialog.target=null}}
             DialogHeading(title)
             TvTextField(text,{text=it.take(80)},Modifier.fillMaxWidth(),placeholder="Name")
-            ButtonRow {Chip("Save") {val value=PlaybackBookmarks.label(text);if(value.isNotEmpty()){dialog.dismiss();saved(value)}};Chip("Cancel") {dialog.dismiss()}}
+            ButtonRow {app.ember.player.PlayerAction("Save",primary=true) {val value=PlaybackBookmarks.label(text);if(value.isNotEmpty()){dialog.dismiss();saved(value)}};app.ember.player.PlayerAction("Cancel") {dialog.dismiss()}}
         }
     }}}
 }

@@ -29,6 +29,7 @@ class CastActivity:FragmentActivity() {
     private var pending:CastRequest?=null
     private var sdk by mutableStateOf<CastContext?>(null)
     private var notice by mutableStateOf<String?>(null)
+    private var status by mutableStateOf<String?>(null)
     private var initializing by mutableStateOf(false)
     private var registered=false
     private val observer=object:CastSessionObserver() {
@@ -51,37 +52,37 @@ class CastActivity:FragmentActivity() {
                 var receivers by remember {mutableStateOf<List<DlnaReceiver>>(emptyList())}
                 var discovery by remember {mutableStateOf<Job?>(null)}
                 LazyColumn(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding().padding(horizontal=32.dp),contentPadding=PaddingValues(vertical=24.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
-                    item {ButtonRow {Text("Receiver playback",fontSize=24.sp);Chip("Back"){finish()}}}
-                    item {Text(pending?.title ?: casting?.title ?: "Select media in the player to send it to a receiver.",fontSize=16.sp,maxLines=2)}
-                    item {Text("Use a receiver on the same network. Playback depends on its supported formats; the app does not transcode video for receivers. Private or protected playback cannot be sent.",fontSize=12.sp,color=Mute)}
+                    item {ButtonRow {Text("Receiver playback",style=androidx.tv.material3.MaterialTheme.typography.headlineSmall);Chip("Back"){finish()}}}
+                    item {Text(pending?.title ?: casting?.title ?: "Select media in the player to send it to a receiver.",style=androidx.tv.material3.MaterialTheme.typography.bodyLarge,maxLines=2)}
+                    item {Text("Use a receiver on the same network. Playback depends on its supported formats; the app does not transcode video for receivers. Private or protected playback cannot be sent.",style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)}
                     item {
-                        Text("Google Cast",fontSize=18.sp)
+                        Text("Google Cast",style=androidx.tv.material3.MaterialTheme.typography.titleMedium)
                         if(sdk==null)Chip(if(initializing)"Setting up Cast…" else "Enable Google Cast for this session"){initializeCast()}
                         else {
-                            Text("Choose a receiver",fontSize=13.sp,color=Mute)
+                            Text("Choose a receiver",style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
                             AndroidView(factory={context->MediaRouteButton(context).apply {CastButtonFactory.setUpMediaRouteButton(this@CastActivity,this)}},modifier=Modifier.size(52.dp))
                             if(pending!=null&&sdk?.sessionManager?.currentCastSession?.isConnected==true)Chip("Play selected media on this receiver"){sendToReceiver()}
                         }
                     }
                     item {
-                        Text("DLNA receivers",fontSize=18.sp)
+                        Text("DLNA receivers",style=androidx.tv.material3.MaterialTheme.typography.titleMedium)
                         Chip(if(discovery?.isActive==true)"Cancel discovery" else "Find receivers") {
                             if(discovery?.isActive==true)discovery?.cancel()
                             else discovery=scope.launch {
-                                notice=null
-                                try {receivers=withContext(Dispatchers.IO){DlnaReceivers.discover(this@CastActivity){ensureActive()}};if(receivers.isEmpty())notice="No DLNA media receiver found."}
+                                notice=null;status=null
+                                try {receivers=withContext(Dispatchers.IO){DlnaReceivers.discover(this@CastActivity){ensureActive()}};if(receivers.isEmpty())status="No DLNA media receiver found."}
                                 catch(e:CancellationException){throw e}
                                 catch(_:Exception){notice="Could not discover receivers. Check the local network."}
                             }
                         }
-                        receivers.forEach {receiver->Chip(receiver.name){if(pending!=null)sendToReceiver(receiver) else notice="Open receiver controls from the media you want to play."}}
+                        receivers.forEach {receiver->Chip(receiver.name){if(pending!=null)sendToReceiver(receiver) else status="Open receiver controls from the media you want to play."}}
                     }
                     casting?.let {view->item {
-                        Text(view.receiver,fontSize=18.sp)
-                        view.error?.let {Text(it,color=Mute,fontSize=13.sp)}
+                        Text(view.receiver,style=androidx.tv.material3.MaterialTheme.typography.titleMedium)
+                        view.error?.let {PlayerErrorText(it)}
                         if(view.ready&&view.error==null) {
                             val status=view.status
-                            Text("${DlnaReceivers.clock(status.position)} / ${DlnaReceivers.clock(status.duration)}",fontSize=14.sp)
+                            Text("${DlnaReceivers.clock(status.position)} / ${DlnaReceivers.clock(status.duration)}",style=androidx.tv.material3.MaterialTheme.typography.bodyMedium)
                             ButtonRow {
                                 Chip(if(status.playing)"Pause" else "Play"){CastPlaybackService.command(if(status.playing)"pause" else "play")}
                                 if(status.duration>0) {
@@ -91,13 +92,14 @@ class CastActivity:FragmentActivity() {
                             }
                             ButtonRow {
                                 Chip("Volume −"){CastPlaybackService.command("volume",status.volume-.05)}
-                                Text("${(status.volume*100).toInt()}%",fontSize=14.sp)
+                                Text("${(status.volume*100).toInt()}%",style=androidx.tv.material3.MaterialTheme.typography.bodyMedium)
                                 Chip("Volume +"){CastPlaybackService.command("volume",status.volume+.05)}
                                 Chip("Disconnect"){CastPlaybackService.disconnect()}
                             }
-                        } else if(view.error==null)Text("Preparing media…",fontSize=13.sp,color=Mute)
+                        } else if(view.error==null)Text("Preparing media…",style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
                     }}
-                    notice?.let {item {Text(it,fontSize=13.sp,color=Mute)}}
+                    notice?.let {item {PlayerErrorText(it)}}
+                    status?.let {item {PlayerStatusText(it)}}
                 }
             }
         }}

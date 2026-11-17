@@ -49,8 +49,8 @@ internal fun PlayerTheme(prefs:Prefs,content:@Composable ()->Unit) {
                 background=tv.background,onBackground=tv.onBackground,surface=tv.surface,onSurface=tv.onSurface,surfaceVariant=tv.surfaceVariant,onSurfaceVariant=tv.onSurfaceVariant,
                 surfaceContainer=tv.surface,surfaceContainerLow=tv.background,surfaceContainerHigh=tv.surfaceVariant,
                 outline=tv.onSurfaceVariant.copy(alpha=.55f),outlineVariant=tv.onSurfaceVariant.copy(alpha=.18f),error=tv.error,onError=tv.onError,errorContainer=tv.errorContainer,onErrorContainer=tv.onErrorContainer)
-            androidx.tv.material3.MaterialTheme(colorScheme=tv) {
-                androidx.compose.material3.MaterialTheme(colorScheme=touch) {
+            androidx.tv.material3.MaterialTheme(colorScheme=tv,typography=playerTvTypography(television)) {
+                androidx.compose.material3.MaterialTheme(colorScheme=touch,typography=playerMaterialTypography(television)) {
                     CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides touch.onSurface,
                         androidx.tv.material3.LocalContentColor provides tv.onSurface,content=content)
                 }

@@ -215,7 +215,7 @@ private fun SkipPill(s: ControlsState, a: ControlsActions) {
                 .focusable()
                 .padding(horizontal = 26.dp, vertical = 12.dp),
         ) {
-            Text(label, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = if (focused) Color(0xFF1F1F1F) else Color.White)
+            Text(label, style=androidx.tv.material3.MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = if (focused) Color(0xFF1F1F1F) else Color.White)
         }
     }
 }
@@ -326,25 +326,25 @@ internal fun InfoPanel(d: PlayerDetails) {
     Row(Modifier.fillMaxSize().padding(start = 56.dp, end = 56.dp, top = 120.dp, bottom = 190.dp), horizontalArrangement = Arrangement.spacedBy(48.dp)) {
         Column(Modifier.weight(1f)) {
             if (!d.synopsis.isNullOrBlank()) {
-                Text(stringResource(R.string.ui_synopsis), fontSize = 13.sp, color = Soft, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.ui_synopsis), style=androidx.tv.material3.MaterialTheme.typography.bodySmall, color = Soft, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(10.dp))
-                Text(d.synopsis, fontSize = 17.sp, lineHeight = 25.sp, color = Color.White, maxLines = 7, overflow = TextOverflow.Ellipsis)
+                Text(d.synopsis, style=androidx.tv.material3.MaterialTheme.typography.bodyLarge, color = Color.White, maxLines = 7, overflow = TextOverflow.Ellipsis)
             }
         }
         if (d.cast.isNotEmpty()) {
             Column(Modifier.width(260.dp).fillMaxHeight()) {
-                Text(stringResource(R.string.ui_cast_crew_2), fontSize = 13.sp, color = Soft, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.ui_cast_crew_2), style=androidx.tv.material3.MaterialTheme.typography.bodySmall, color = Soft, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(10.dp))
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(d.cast) { p ->
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Box(Modifier.size(44.dp).clip(CircleShape).background(Color(0xFF3A3B40)), contentAlignment = Alignment.Center) {
-                                Text(p.name.take(1), fontSize = 16.sp, color = Color.White)
+                                Text(p.name.take(1), style=androidx.tv.material3.MaterialTheme.typography.bodyLarge, color = Color.White)
                                 if (!p.photo.isNullOrBlank()) AsyncImage(model = p.photo, contentDescription = p.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                             }
                             Column {
-                                Text(p.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1)
-                                p.role?.takeIf { it.isNotBlank() }?.let { Text(it, fontSize = 13.sp, color = Soft, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                                Text(p.name, style=androidx.tv.material3.MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1)
+                                p.role?.takeIf { it.isNotBlank() }?.let { Text(it, style=androidx.tv.material3.MaterialTheme.typography.bodySmall, color = Soft, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                             }
                         }
                     }
@@ -361,7 +361,7 @@ internal fun SideSheet(title: String, start: Int = 0, content: androidx.compose.
         Column(
             Modifier.padding(18.dp).width(300.dp).fillMaxHeight(.72f).clip(RoundedCornerShape(24.dp)).background(Color(0xF21D1E22)).padding(vertical = 10.dp),
         ) {
-            Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color.White, modifier = Modifier.padding(start = 24.dp, bottom = 10.dp))
+            Text(title, style=androidx.tv.material3.MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Color.White, modifier = Modifier.padding(start = 24.dp, bottom = 10.dp))
             // Opens scrolled near [start], so the row that takes focus is already on screen.
             LazyColumn(state = androidx.compose.foundation.lazy.rememberLazyListState((start - 3).coerceAtLeast(0)), content = content)
         }
@@ -385,7 +385,7 @@ internal fun SheetRow(label: String, first: Boolean = false, onClick: () -> Unit
             .focusable()
             .padding(horizontal = 16.dp, vertical = 6.dp),
     ) {
-        Text(label, fontSize = 13.sp, color = if (focused) Color(0xFF1F1F1F) else Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(label, style=androidx.tv.material3.MaterialTheme.typography.bodySmall, color = if (focused) Color(0xFF1F1F1F) else Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -400,9 +400,9 @@ private fun EmberXControls(s:ControlsState,a:ControlsActions) {
             Row(Modifier.fillMaxWidth().padding(horizontal=32.dp,vertical=24.dp),horizontalArrangement=Arrangement.spacedBy(16.dp),verticalAlignment=Alignment.CenterVertically) {
                 IconButton(Icons.AutoMirrored.Outlined.ArrowBack,"Back",onClick=a.close)
                 Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(5.dp)) {
-                    Text(s.details?.name ?: s.title,fontSize=25.sp,fontWeight=FontWeight.Bold,color=Color.White,maxLines=1,overflow=TextOverflow.Ellipsis)
+                    Text(s.details?.name ?: s.title,style=androidx.tv.material3.MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold,color=Color.White,maxLines=1,overflow=TextOverflow.Ellipsis)
                     val episode=listOfNotNull(s.seasonEpisode,s.details?.episodeTitle).joinToString(" · ")
-                    if(episode.isNotBlank())Text(episode,color=EmberXColors.Secondary,fontSize=14.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
+                    if(episode.isNotBlank())Text(episode,color=EmberXColors.Secondary,style=androidx.tv.material3.MaterialTheme.typography.bodyMedium,maxLines=1,overflow=TextOverflow.Ellipsis)
                 }
                 IconButton(Icons.Outlined.Info,"Details"){s.sheet=if(s.sheet=="info")null else "info"}
             }
@@ -419,7 +419,7 @@ private fun EmberXControls(s:ControlsState,a:ControlsActions) {
                 SeekBar(s,a)
                 Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
                     Text(time(if(s.seekPreview>=0f)(s.seekPreview*s.duration).toLong() else s.position)+"  ·  "+time(s.duration),
-                        fontSize=13.sp,color=Color.White,fontWeight=FontWeight.SemiBold)
+                        style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Color.White,fontWeight=FontWeight.SemiBold)
                     Spacer(Modifier.weight(1f))
                     if(s.fileQueueNext)IconButton(Icons.Outlined.SkipNext,if(s.fileQueueLabel!=null)"Next file" else "Next episode",onClick=a.next)
                     if(s.fileQueueLabel!=null)IconButton(Icons.AutoMirrored.Outlined.FormatListBulleted,"Queue",onClick=a.queue)

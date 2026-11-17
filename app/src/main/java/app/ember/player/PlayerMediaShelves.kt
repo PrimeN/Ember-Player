@@ -127,8 +127,8 @@ internal fun RowScope.PlayerVideos(activity:MediaFilesActivity,version:Int,query
                 if(offsets.size>1)PlayerAction("Previous page",enabled=!busy){offsets=offsets.dropLast(1)}
                 page.next?.let {next->PlayerAction("Next page",enabled=!busy){offsets=offsets+next}}
             }}
-            notice?.let {item {Text(it,color=MaterialTheme.colorScheme.error)}}
-            error?.let {item {Text(it,color=MaterialTheme.colorScheme.error)}}
+            notice?.let {item {PlayerErrorText(it)}}
+            error?.let {item {PlayerErrorText(it)}}
         }
     }
 }

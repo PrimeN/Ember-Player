@@ -16,12 +16,12 @@ internal fun PlayerActivity.comparePicture() {
         var original by remember {mutableStateOf(false)}
         DisposableEffect(owner,visit){onDispose {if(player===owner && playbackVisit==visit)endPictureComparison()}}
         LaunchedEffect(visit){while(dialog.isShowing){if(player!==owner || playbackVisit!=visit){dialog.dismiss();break};delay(150)}}
-        Text(if(original)"Original output" else "Saved picture processing",fontSize=18.sp)
-        Text("Framing and playback position stay the same. Closing restores your saved processing.",color=Mute,fontSize=13.sp)
+        Text(if(original)"Original output" else "Saved picture processing",style=androidx.tv.material3.MaterialTheme.typography.titleMedium)
+        Text("Framing and playback position stay the same. Closing restores your saved processing.",color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
         ButtonRow {
             Chip("Original"){if(player===owner&&playbackVisit==visit){original=true;compareOriginal=true;applyEffectivePicture()}}
             Chip("Processed"){if(player===owner&&playbackVisit==visit){original=false;endPictureComparison()}}
         }
-        Chip("Done"){dialog.dismiss()}
+        app.ember.player.PlayerAction("Done",primary=true){dialog.dismiss()}
     }
 }

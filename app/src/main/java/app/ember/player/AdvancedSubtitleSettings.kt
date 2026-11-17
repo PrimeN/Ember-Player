@@ -18,22 +18,22 @@ internal fun AdvancedSubtitleSettings(config:SubtitleConfig,save:(SubtitleConfig
     val context=LocalContext.current
     val scope=rememberCoroutineScope()
     var expanded by remember {mutableStateOf(false)}
-    var notice by remember {mutableStateOf<String?>(null)}
+    var notice by remember {mutableStateOf<PlayerFeedback?>(null)}
     val fontPicker=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {uri->if(uri!=null)scope.launch {
         try {
             val family=withContext(Dispatchers.IO) {
                 val bytes=context.contentResolver.openInputStream(uri)?.use {SubtitleFiles.read(it,SubtitleFonts.MAX_BYTES.toInt())} ?: error("Font unavailable.")
                 SubtitleFonts.install(context,bytes)
             }
-            save(config.copy(font=SubtitleFonts.CUSTOM,customFontName=family));notice="Font installed"
+            save(config.copy(font=SubtitleFonts.CUSTOM,customFontName=family));notice=PlayerFeedback("Font installed",false)
         } catch(e:CancellationException){throw e}
-        catch(_:Exception){notice="Could not install this font. Choose a valid TTF or OTF file, up to 12 MB."}
+        catch(_:Exception){notice=PlayerFeedback("Could not install this font. Choose a valid TTF or OTF file, up to 12 MB.")}
     }}
     Chip(if(expanded)"Hide subtitle details" else "More subtitle controls") {expanded=!expanded}
     if(!expanded)return
     val fonts=SubtitleFonts.options.filter {it.first!=SubtitleFonts.CUSTOM || SubtitleFonts.hasCustom(context)}
     PlayerChoice("Font",fonts,config.font){save(config.copy(font=it))}
-    Chip("Load a font file") {runCatching {fontPicker.launch(arrayOf("font/*","application/octet-stream","*/*"))}.onFailure {notice="No document picker is installed on this device."}}
+    Chip("Load a font file") {runCatching {fontPicker.launch(arrayOf("font/*","application/octet-stream","*/*"))}.onFailure {notice=PlayerFeedback("No document picker is installed on this device.")}}
     PlayerChoice("Text color",listOf("white" to "White","yellow" to "Yellow","green" to "Green","cyan" to "Cyan"),config.color){save(config.copy(color=it,layout=config.layout.copy(foreground="")))}
     PlayerChoice("Text scale",(50..200 step 5).map {it.toString() to "$it%"},config.layout.scalePercent.toString()){save(config.copy(layout=config.layout.copy(scalePercent=it.toInt())))}
     PlayerChoice("Alignment",listOf("auto" to "From subtitle file","left" to "Left","center" to "Center","right" to "Right"),config.layout.alignment){save(config.copy(layout=config.layout.copy(alignment=it)))}
@@ -42,7 +42,7 @@ internal fun AdvancedSubtitleSettings(config:SubtitleConfig,save:(SubtitleConfig
     PlayerChoice("Line spacing",listOf(-5f,0f,2f,4f,8f,12f,20f).map {it.toString() to "$it px"},config.layout.lineSpacing.toString()){save(config.copy(layout=config.layout.copy(lineSpacing=it.toFloat())))}
     PlayerChoice("Bottom margin",listOf("auto" to "From position setting")+(0..35 step 5).map {it.toString() to "$it%"},config.layout.bottomMarginPercent?.toString() ?: "auto") {save(config.copy(layout=config.layout.copy(bottomMarginPercent=it.toIntOrNull())))}
     PlayerChoice("Character encoding",SubtitleEncodings.options,config.encoding){save(config.copy(encoding=it))}
-    Text("Default timing · ${config.defaultDelayMs} ms",fontSize=13.sp)
+    Text("Default timing · ${config.defaultDelayMs} ms",style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
     ButtonRow {
         Chip("−100 ms"){save(config.copy(defaultDelayMs=(config.defaultDelayMs-100).coerceAtLeast(-600000)))}
         Chip("+100 ms"){save(config.copy(defaultDelayMs=(config.defaultDelayMs+100).coerceAtMost(600000)))}
@@ -57,10 +57,10 @@ internal fun AdvancedSubtitleSettings(config:SubtitleConfig,save:(SubtitleConfig
     Chip("Apply custom colors") {
         if(listOf(foreground,background,edge).all {it.isBlank() || SubtitleLayout.validColor(it)})
             save(config.copy(layout=config.layout.copy(foreground=foreground,background=background,edgeColor=edge)))
-        else notice="Use #RRGGBB or #AARRGGBB colors."
+        else notice=PlayerFeedback("Use #RRGGBB or #AARRGGBB colors.")
     }
     SubtitleStylePreview(config)
-    Text(if(config.systemStyle)"System caption colors, font and edge style take priority." else if(config.authoredStyles)"Preview of your defaults. A subtitle file’s authored styling takes priority during playback." else "Preview of your selected subtitle style.",fontSize=12.sp,color=Mute)
-    Text("Alignment, spacing and custom outline width use Compatibility playback. System caption settings take priority. Turn off authored styling to override a subtitle file’s fonts and colors.",fontSize=12.sp,color=Mute)
-    notice?.let {Text(it,fontSize=12.sp,color=Mute)}
+    Text(if(config.systemStyle)"System caption colors, font and edge style take priority." else if(config.authoredStyles)"Preview of your defaults. A subtitle file’s authored styling takes priority during playback." else "Preview of your selected subtitle style.",style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
+    Text("Alignment, spacing and custom outline width use Compatibility playback. System caption settings take priority. Turn off authored styling to override a subtitle file’s fonts and colors.",style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
+    notice?.let {PlayerFeedbackText(it)}
 }
