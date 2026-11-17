@@ -283,6 +283,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
     })
 
     p.addListener(object : Player.Listener {
+        override fun onEvents(player:Player,events:Player.Events){subtitleTicker.refresh()}
         override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
             // PlayerView sets the video's own shape; a forced one goes back on top.
             if (aspect != 0) handler.post { applyAspect() }
@@ -466,7 +467,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
     view.subtitleView?.let { sv ->
         SubtitleEngine.style(sv, subCfg)
         baseSubCfg = subCfg
-        subs = SubtitleController(this, { player }, SubtitleEngine(sv), subConfigFor(subCfg), {refreshSubtitlePanel();updateSubtitleSheet()}) { text,format,wholeFile ->
+        subs = SubtitleController(this, { player }, SubtitleEngine(sv){subtitleTicker.refresh()}, subConfigFor(subCfg), {refreshSubtitlePanel();updateSubtitleSheet();subtitleTicker.refresh()}) { text,format,wholeFile ->
             if(config.engine=="auto" && (format=="ass"&&prefs.subtitleConfig.authoredStyles || prefs.subtitleConfig.layout.needsCompatibility&&!prefs.subtitleConfig.systemStyle))playbackEngine?.switch()
             playbackEngine?.compatibility?.external(text,format,wholeFile)==true
         }
@@ -475,7 +476,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         p.subtitleDelayMilliseconds=subs.engine.offsetMs
         playbackEngine?.compatibility?.subtitleDelay(subs.engine.offsetMs)
     }
-    handler.post(subtitleTicker)
+    subtitleTicker.refresh()
     handler.post(markerTicker)
     liveSession?.let { session -> lifecycleScope.launch {
         lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
