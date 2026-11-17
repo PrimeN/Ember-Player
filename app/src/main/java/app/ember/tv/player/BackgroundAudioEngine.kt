@@ -36,7 +36,7 @@ internal class AndroidBackgroundAudioEngine(context:Context,private val request:
         .setTrackSelector(DefaultTrackSelector(app))
         .setLoadControl(Playback.loadControl(config,app))
         .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),true)
-        .setHandleAudioBecomingNoisy(true).setWakeMode(C.WAKE_MODE_NETWORK).setMediaSourceFactory(factory).build()
+        .setHandleAudioBecomingNoisy(true).setWakeMode(C.WAKE_MODE_LOCAL).setMediaSourceFactory(factory).build()
     private var boost:android.media.audiofx.LoudnessEnhancer?=null
     private var boostSession=0
     private val engine=PlaybackEngine(app,standard,{config.copy(passthrough=config.passthrough&&!choice.pcm)}) {native->

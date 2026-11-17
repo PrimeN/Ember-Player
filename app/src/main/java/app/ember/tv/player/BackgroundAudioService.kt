@@ -3,34 +3,38 @@ package app.ember.tv.player
 import android.app.*
 import android.content.*
 import android.content.pm.ServiceInfo
-import android.media.MediaMetadata
-import android.media.session.MediaSession
-import android.media.session.PlaybackState
 import android.net.Uri
 import android.os.*
 import androidx.core.content.ContextCompat
 import androidx.media3.common.*
+import androidx.media3.session.*
+import androidx.media3.session.MediaLibraryService.MediaLibrarySession
 import androidx.media3.common.util.UnstableApi
 import java.lang.ref.WeakReference
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.*
 
 internal data class BackgroundNowPlaying(val id:String,val title:String,val playing:Boolean)
 
 internal data class BackgroundAudioRequest(
     val source:EngineSource,val config:PlaybackConfig,val resumeIntent:Intent,val queueId:String?,
-    val profile:String,val scope:String,val position:Long,val speed:Float,val volume:Float,val boostMillibels:Int=0,val audioTrack:BackgroundAudioTrack?=null,
+    val profile:String,val scope:String,val position:Long,val speed:Float,val volume:Float,val boostMillibels:Int=0,val audioTrack:BackgroundAudioTrack?=null,val artwork:ByteArray?=null,
 )
 
 /** A single foreground media session, explicitly opted into by the user. */
 @androidx.annotation.OptIn(UnstableApi::class)
-class BackgroundAudioService:Service(),Player.Listener {
+class BackgroundAudioService:MediaLibraryService(),Player.Listener {
     private val handler=Handler(Looper.getMainLooper())
     private var id:String?=null
     private var handoff:BackgroundHandoff<BackgroundAudioRequest>?=null
     private var audio:BackgroundAudioEngine?=null
-    private var session:MediaSession?=null
+    private var session:MediaLibrarySession?=null
+    private var sessionPlayer:BackgroundSessionPlayer?=null
+    private val artworkScope=CoroutineScope(SupervisorJob()+Dispatchers.Main.immediate)
+    private var artworkJob:Job?=null
+    private var artwork:ByteArray?=null
     private var source:EngineSource?=null
     private var sleepWatch:java.io.Closeable?=null
     private var usbWatch:java.io.Closeable?=null
@@ -39,7 +43,7 @@ class BackgroundAudioService:Service(),Player.Listener {
     private var closing=false
     private var wanted=true
     private var wake:android.os.PowerManager.WakeLock?=null
-    private var wifi:android.net.wifi.WifiManager.WifiLock?=null
+    private var wakeUntil=0L
     private val timeout=Runnable {if(audio==null)stopPlayback()}
     private val preferences=android.content.SharedPreferences.OnSharedPreferenceChangeListener {_,key->
         if(key==null || key=="playbackConfig" || key=="currentProfile")handler.post {
@@ -47,35 +51,25 @@ class BackgroundAudioService:Service(),Player.Listener {
             if(!prefs.playbackConfig.backgroundAudio || handoff?.value?.profile?.let {it!=prefs.currentProfile}==true)stopPlayback()
         }
     }
-    private val ticker=object:Runnable {override fun run(){savePosition();update();handler.postDelayed(this,5000)}}
-    override fun onBind(intent:Intent?)=null
+    private val ticker=object:Runnable {override fun run(){if(closing)return;savePosition();updatePower();if(audio?.player?.playWhenReady==true)handler.postDelayed(this,5000)}}
+    override fun onGetSession(controllerInfo:MediaSession.ControllerInfo):MediaLibrarySession? {if(closing)return null;return session ?: createSession()}
     override fun onCreate() {
         super.onCreate();current=WeakReference(this)
         sleepWatch=app.ember.tv.data.SleepTimer.listen {stopPlayback()}
         getSharedPreferences("ember",MODE_PRIVATE).registerOnSharedPreferenceChangeListener(preferences)
         getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel(CHANNEL,"Background playback",NotificationManager.IMPORTANCE_LOW))
-        session=MediaSession(this,"Ember Player").apply {
-            setCallback(object:MediaSession.Callback() {
-                override fun onPlay(){setPlaying(true)}
-                override fun onPause(){setPlaying(false)}
-                override fun onStop(){stopPlayback()}
-                override fun onSeekTo(pos:Long){audio?.player?.let {if(it.isCommandAvailable(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM))it.seekTo(pos.coerceIn(0,it.duration.takeIf {d->d>0} ?: Long.MAX_VALUE))}}
-                override fun onSkipToNext(){step(1)}
-                override fun onSkipToPrevious(){step(-1)}
-            },handler)
-            isActive=true
-        }
+        configureNotifications()
         wake=(getSystemService(POWER_SERVICE) as PowerManager).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"EmberPlayer:background").apply {setReferenceCounted(false)}
-        @Suppress("DEPRECATION")
-        wifi=(applicationContext.getSystemService(WIFI_SERVICE) as? android.net.wifi.WifiManager)
-            ?.createWifiLock(android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF,"EmberPlayer:audio-network")?.apply {setReferenceCounted(false)}
+
     }
     override fun onStartCommand(intent:Intent?,flags:Int,startId:Int):Int {
+        if(intent!=null&&!intent.hasExtra(EXTRA_ID))return super.onStartCommand(intent,flags,startId)
         val incoming=intent?.getStringExtra(EXTRA_ID)
         if(intent?.action!=null && (incoming!=id || closing)) {
             if(id==null || closing)stopSelf()
             return START_NOT_STICKY
         }
+        if(intent?.action==ACTION_TOGGLE){setPlaying(audio?.player?.playWhenReady!=true);return START_NOT_STICKY}
         if(intent?.action==ACTION_STOP){if(incoming==id)stopPlayback();return START_NOT_STICKY}
         if(intent?.action==ACTION_PLAY){if(incoming==id)setPlaying(true);return START_NOT_STICKY}
         if(intent?.action==ACTION_PAUSE){if(incoming==id)setPlaying(false);return START_NOT_STICKY}
@@ -83,9 +77,11 @@ class BackgroundAudioService:Service(),Player.Listener {
         if(intent?.action==ACTION_PREVIOUS){if(incoming==id)step(-1);return START_NOT_STICKY}
         val entry=incoming?.let(pending::get)
         if(entry==null || entry.state==BackgroundHandoff.State.CLOSED){stopPlayback();return START_NOT_STICKY}
-        if(id!=null && id!=incoming)releaseSession(true)
-        id=incoming;handoff=entry;closing=false
-        startForeground(NOTIFICATION,notification(),ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+        if(id==incoming&&audio!=null)return START_NOT_STICKY
+        if(id!=incoming||handoff==null&&session!=null)releaseSession(true)
+        id=incoming;handoff=entry;closing=false;wanted=true
+        createSession()
+        startForeground(NOTIFICATION,preparingNotification(),ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
         handler.removeCallbacks(timeout);handler.postDelayed(timeout,10000)
         beginIfCommitted()
         return START_NOT_STICKY
@@ -103,8 +99,9 @@ class BackgroundAudioService:Service(),Player.Listener {
             audio!!.player.addListener(this)
             audio!!.load(request.source,request.position)
             audio!!.player.playWhenReady=wanted
+            loadArtwork()
             update()
-            handler.post(ticker)
+            handler.removeCallbacks(ticker);handler.postDelayed(ticker,5000)
         } catch(_:Exception){stopPlayback()} catch(_:LinkageError){stopPlayback()}
     }
     private fun setPlaying(value:Boolean){if(closing)return;wanted=value;audio?.player?.playWhenReady=value;update()}
@@ -149,6 +146,7 @@ class BackgroundAudioService:Service(),Player.Listener {
             audioLanguages=request.source.audioLanguages,filename=media.title)
         val at=PositionStore(this,request.scope).resume(media.key)?.first ?: 0
         audio?.load(source!!,at)
+        loadArtwork()
         MediaQueues.get(request.queueId)?.let {queue->queue.playlistId?.let {PlaylistProgress.save(applicationContext,request.profile,it,media.key)}}
         update()
     }
@@ -163,57 +161,91 @@ class BackgroundAudioService:Service(),Player.Listener {
             store.put(key,player.currentPosition.coerceAtLeast(0),duration)
         }
     }
-    // MediaStyle notifications with an active MediaSession are exempt from Android 13's
-    // notification runtime permission: developer.android.com/develop/ui/views/notifications/notification-permission#exemptions
-    @android.annotation.SuppressLint("NotificationPermission")
+    private fun updatePower() {
+        val player=audio?.player
+        val awake=player?.playWhenReady==true&&player.playbackState in setOf(Player.STATE_BUFFERING,Player.STATE_READY)
+        val now=SystemClock.elapsedRealtime()
+        wake?.let {
+            if(awake&&(!it.isHeld||now>=wakeUntil-60_000)) {
+                if(it.isHeld)it.release()
+                it.acquire(30*60_000L);wakeUntil=now+30*60_000L
+            }else if(!awake&&it.isHeld)it.release()
+        }
+    }
     private fun update() {
         if(closing)return
+        updatePower()
         val player=audio?.player
-        val playing=player?.isPlaying==true
-        val awake=player?.playWhenReady==true && player.playbackState in setOf(Player.STATE_BUFFERING,Player.STATE_READY)
-        wake?.let {if(awake&&!it.isHeld)it.acquire(30*60_000L) else if(!awake&&it.isHeld)it.release()}
-        wifi?.let {runCatching {if(awake&&!it.isHeld)it.acquire() else if(!awake&&it.isHeld)it.release()}}
-        val queue=MediaQueues.get(handoff?.value?.queueId)
-        val actions=PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_PLAY_PAUSE or PlaybackState.ACTION_STOP or
-            PlaybackState.ACTION_SEEK_TO or (if(queue?.hasNext()==true)PlaybackState.ACTION_SKIP_TO_NEXT else 0L) or
-            (if(player!=null)PlaybackState.ACTION_SKIP_TO_PREVIOUS else 0L)
-        val state=when {player==null || player.playbackState==Player.STATE_BUFFERING->PlaybackState.STATE_BUFFERING;playing->PlaybackState.STATE_PLAYING;else->PlaybackState.STATE_PAUSED}
-        session?.setMetadata(MediaMetadata.Builder().putString(MediaMetadata.METADATA_KEY_TITLE,source?.title?.take(180) ?: "Ember Player")
-            .putLong(MediaMetadata.METADATA_KEY_DURATION,player?.duration?.coerceAtLeast(0) ?: 0).build())
-        session?.setPlaybackState(PlaybackState.Builder().setActions(actions).setState(state,player?.currentPosition ?: 0,if(playing)player?.playbackParameters?.speed ?: 1f else 0f).build())
-        if(audio!=null && !closing)id?.let {playingState.value=BackgroundNowPlaying(it,source?.title ?: "Ember Player",playing)}
-        getSystemService(NotificationManager::class.java).notify(NOTIFICATION,notification())
+        id?.let {playingState.value=BackgroundNowPlaying(it,source?.title ?: "Ember Player",player?.isPlaying==true)}
+        sessionPlayer?.refresh()
+        handler.removeCallbacks(ticker)
+        if(player?.playWhenReady==true)handler.postDelayed(ticker,5000)
+    }
+    private fun select(index:Int) {
+        val queue=MediaQueues.get(handoff?.value?.queueId) ?: return
+        val item=queue.items.getOrNull(index)?.takeUnless {app.ember.player.PrivateMedia.hidden(it.uri)} ?: return
+        savePosition();queue.select(index);loadQueueItem(item)
+    }
+    private fun createSession():MediaLibrarySession {
+        val adapter=BackgroundSessionPlayer({audio?.player},{source},{id ?: "idle"},{MediaQueues.get(handoff?.value?.queueId)},::select,::step,::setPlaying,{handler.post {stopPlayback()}},{artwork})
+        sessionPlayer=adapter
+        val resume=PendingIntent.getActivity(this,id?.hashCode() ?: 0,Intent(this,ResumeBackgroundAudioActivity::class.java)
+            .setData(Uri.parse("emberplayer:background:$id")).putExtra(EXTRA_ID,id),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        return MediaLibrarySession.Builder(this,adapter,BackgroundLibrary(adapter::libraryItems)).setId(id ?: java.util.UUID.randomUUID().toString())
+            .setSessionActivity(resume).build().also {session=it;addSession(it)}
+    }
+    private fun loadArtwork() {
+        artworkJob?.cancel();artwork=null
+        val current=source ?: return
+        val request=handoff?.value
+        artwork=if(current.key==request?.source?.key)request.artwork else null
+        if(artwork!=null)return
+        artworkJob=artworkScope.launch {
+            val bytes=withContext(Dispatchers.IO){BackgroundArtwork.read(applicationContext,current.urls.first())}
+            if(!closing&&source===current){artwork=bytes;sessionPlayer?.refresh()}
+        }
+    }
+    private fun configureNotifications() {
+        val delegate=DefaultMediaNotificationProvider.Builder(this).setNotificationId(NOTIFICATION).setChannelId(CHANNEL).build()
+        delegate.setSmallIcon(app.ember.tv.R.drawable.ic_player_notification)
+        fun privateNotification(value:MediaNotification):MediaNotification {value.notification.visibility=Notification.VISIBILITY_PRIVATE;return value}
+        setMediaNotificationProvider(object:MediaNotification.Provider {
+            override fun getNotificationChannelInfo()=delegate.notificationChannelInfo
+            override fun createNotification(mediaSession:MediaSession,mediaButtonPreferences:com.google.common.collect.ImmutableList<CommandButton>,actionFactory:MediaNotification.ActionFactory,onNotificationChangedCallback:MediaNotification.Provider.Callback):MediaNotification {
+                val actions=object:MediaNotification.ActionFactory by actionFactory {
+                    override fun createMediaActionPendingIntent(mediaSession:MediaSession,command:Int):PendingIntent=control(when(command){
+                        Player.COMMAND_SEEK_TO_NEXT,Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM->ACTION_NEXT
+                        Player.COMMAND_SEEK_TO_PREVIOUS,Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM->ACTION_PREVIOUS
+                        Player.COMMAND_STOP->ACTION_STOP
+                        else->ACTION_TOGGLE
+                    })
+                    override fun createMediaAction(mediaSession:MediaSession,icon:androidx.core.graphics.drawable.IconCompat,title:CharSequence,command:Int)=androidx.core.app.NotificationCompat.Action(icon,title,createMediaActionPendingIntent(mediaSession,command))
+                    override fun createNotificationDismissalIntent(mediaSession:MediaSession)=control(ACTION_STOP)
+                }
+                return privateNotification(delegate.createNotification(mediaSession,mediaButtonPreferences,actions) {onNotificationChangedCallback.onNotificationChanged(privateNotification(it))})
+            }
+            override fun handleCustomCommand(session:MediaSession,action:String,extras:Bundle)=delegate.handleCustomCommand(session,action,extras)
+        })
     }
     private fun control(action:String):PendingIntent = PendingIntent.getService(this,action.hashCode(),Intent(this,BackgroundAudioService::class.java)
         .setAction(action).setData(Uri.Builder().scheme("emberplayer").authority("background").appendPath(id).appendPath(action).build())
         .putExtra(EXTRA_ID,id),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-    private fun notification():Notification {
-        val resume=PendingIntent.getActivity(this,0,Intent(this,ResumeBackgroundAudioActivity::class.java)
-            .setData(Uri.parse("emberplayer:background:$id")).putExtra(EXTRA_ID,id),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val playing=audio?.player?.playWhenReady==true
-        return Notification.Builder(this,CHANNEL).setSmallIcon(app.ember.tv.R.drawable.ic_player_notification)
-            .setContentTitle(source?.title?.filterNot {it.isISOControl()}?.take(180) ?: "Ember Player")
-            .setContentText(if(audio==null)"Preparing background playback" else if(playing)"Background audio" else "Paused")
-            .setContentIntent(resume).setVisibility(Notification.VISIBILITY_PRIVATE).setOnlyAlertOnce(true).setOngoing(playing)
-            .setCategory(Notification.CATEGORY_TRANSPORT)
-            .addAction(Notification.Action.Builder(android.R.drawable.ic_media_previous,"Previous",control(ACTION_PREVIOUS)).build())
-            .addAction(Notification.Action.Builder(if(playing)android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,if(playing)"Pause" else "Play",control(if(playing)ACTION_PAUSE else ACTION_PLAY)).build())
-            .addAction(Notification.Action.Builder(android.R.drawable.ic_media_next,"Next",control(ACTION_NEXT)).build())
-            .addAction(Notification.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel,"Stop",control(ACTION_STOP)).build())
-            .setDeleteIntent(control(ACTION_STOP)).setStyle(Notification.MediaStyle().setMediaSession(checkNotNull(session).sessionToken).setShowActionsInCompactView(0,1,2)).build()
-    }
+    private fun preparingNotification():Notification=Notification.Builder(this,CHANNEL).setSmallIcon(app.ember.tv.R.drawable.ic_player_notification)
+        .setContentTitle("Ember Player").setContentText("Preparing background playback").setVisibility(Notification.VISIBILITY_PRIVATE).setOnlyAlertOnce(true).build()
     private fun releaseSession(releaseQueue:Boolean) {
         usbWatch?.close();usbWatch=null
         closing=true
+        artworkJob?.cancel();artworkJob=null;artwork=null
         handler.removeCallbacksAndMessages(null)
         savePosition()
+        session?.let {removeSession(it);it.release()};session=null
+        sessionPlayer?.release();sessionPlayer=null
         audio?.let {it.player.removeListener(this);it.close()};audio=null
         val state=handoff
         if(state?.close()==true && releaseQueue)MediaQueues.release(state.value.queueId)
         id?.let(pending::remove);handoff=null;source=null
         if(playingState.value?.id==id)playingState.value=null
         wake?.let {if(it.isHeld)it.release()}
-        wifi?.let {runCatching {if(it.isHeld)it.release()}}
     }
     internal fun stopPlayback(){releaseSession(true);stopForeground(STOP_FOREGROUND_REMOVE);stopSelf()}
     internal fun takeResume(expected:String):BackgroundAudioRequest? {
@@ -229,7 +261,7 @@ class BackgroundAudioService:Service(),Player.Listener {
     override fun onDestroy(){
         sleepWatch?.close();sleepWatch=null
         getSharedPreferences("ember",MODE_PRIVATE).unregisterOnSharedPreferenceChangeListener(preferences)
-        releaseSession(true);session?.isActive=false;session?.release();session=null;if(current?.get()===this)current=null;super.onDestroy()
+        releaseSession(true);artworkScope.cancel();if(current?.get()===this)current=null;super.onDestroy()
     }
     override fun onTaskRemoved(rootIntent:Intent?){super.onTaskRemoved(rootIntent)}
 
@@ -241,6 +273,7 @@ class BackgroundAudioService:Service(),Player.Listener {
         internal const val FORCE_SPEED="player.backgroundSpeed"
         internal const val FORCE_SOUND="player.backgroundSound"
         internal const val FORCE_TRACK="player.backgroundTrack"
+        private const val ACTION_TOGGLE="app.ember.player.TOGGLE_AUDIO"
         private const val ACTION_STOP="app.ember.player.STOP_AUDIO"
         private const val ACTION_PLAY="app.ember.player.PLAY_AUDIO"
         private const val ACTION_PAUSE="app.ember.player.PAUSE_AUDIO"
