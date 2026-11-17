@@ -51,7 +51,7 @@ internal object UsbMedia {
                 items+=QueueMedia(ContentUris.withAppendedId(collection,id).toString(),name)
             }
         } ?: error("This drive is not available to Android’s media library.")
-        return UsbPage(items,last)
+        return UsbPage(items.sortedWith(compareBy(NaturalOrder){it.title}),last)
     }
     fun watch(context:Context,uri:String,onRemoved:()->Unit):Closeable? {
         val volume=volume(uri) ?: return null

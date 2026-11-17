@@ -90,7 +90,7 @@ internal fun PrivateMediaPanel(activity:ComponentActivity) {
         entries=emptyList()
         val root=folder ?: return@LaunchedEffect
         if(!unlocked)return@LaunchedEffect
-        try {entries=withContext(Dispatchers.IO){DeviceFiles.list(activity,android.net.Uri.parse(root.uri),parents.lastOrNull() ?: DeviceFiles.root(android.net.Uri.parse(root.uri))){ensureActive()}.entries}}
+        try {entries=withContext(Dispatchers.IO){DeviceFiles.list(activity,android.net.Uri.parse(root.uri),parents.lastOrNull() ?: DeviceFiles.root(android.net.Uri.parse(root.uri))){ensureActive()}.entries.sortedWith(compareByDescending<DeviceFile> {it.directory}.thenBy(NaturalOrder) {it.name})}}
         catch(e:CancellationException){throw e}
         catch(_:Exception){notice="Private folder is unavailable. Add it again to renew access."}
     }
@@ -107,14 +107,14 @@ internal fun PrivateMediaPanel(activity:ComponentActivity) {
                 Chip("Lock"){PrivateMedia.lock()}
             }
             if(folder==null)LazyColumn(Modifier.fillMaxWidth().heightIn(max=360.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
-                items(state.items,key={it.uri}) {item->ButtonRow {
-                    Chip(item.name,maxLines=1){if(item.folder){folder=item;parents=emptyList()}else runCatching {MediaFiles.launch(activity,listOf(QueueMedia(item.uri,item.name)))}.onFailure {notice="This media is unavailable. Add it again to renew access."}}
+                items(state.items.sortedWith(compareByDescending<PrivateItem> {it.folder}.thenBy(NaturalOrder) {it.name}),key={it.uri}) {item->ButtonRow {
+                    DeviceMediaRow(DeviceFile(android.net.Uri.parse(item.uri),android.net.Uri.parse(item.uri),item.name,if(item.folder)android.provider.DocumentsContract.Document.MIME_TYPE_DIR else "video/*",-1,0,0)){if(item.folder){folder=item;parents=emptyList()}else runCatching {MediaFiles.launch(activity,listOf(QueueMedia(item.uri,item.name)))}.onFailure {notice="This media is unavailable. Add it again to renew access."}}
                     Chip("Make visible"){scope.launch {runCatching {withContext(Dispatchers.IO){PrivateMedia.remove(item.uri)}}.onFailure {notice="Could not update private media."}}}
                 }}
             } else {
                 Chip("Back"){if(parents.isEmpty())folder=null else parents=parents.dropLast(1)}
                 LazyColumn(Modifier.fillMaxWidth().heightIn(max=360.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
-                    items(entries,key={it.uri.toString()}) {entry->PlayerFileRow(entry.name,entry.directory){
+                    items(entries,key={it.uri.toString()}) {entry->DeviceMediaRow(entry){
                         if(entry.directory)parents=parents+entry.uri else runCatching {MediaFiles.launch(activity,listOf(QueueMedia(entry.uri.toString(),entry.name,directory=entry.parent.toString())))}.onFailure {notice="Could not open private media."}
                     }}
                 }

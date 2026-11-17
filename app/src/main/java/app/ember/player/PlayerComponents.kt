@@ -1,6 +1,10 @@
 package app.ember.player
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import app.ember.tv.player.BrowserPreview
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
@@ -53,7 +57,7 @@ internal fun PlayerConfirmationDialog(title:String,message:String,confirmLabel:S
 }
 
 @Composable
-internal fun PlayerFileRow(name:String,directory:Boolean,modifier:Modifier=Modifier,selected:Boolean=false,click:()->Unit) {
+internal fun PlayerFileRow(name:String,directory:Boolean,modifier:Modifier=Modifier,selected:Boolean=false,preview:BrowserPreview=BrowserPreview(),audio:Boolean=false,click:()->Unit) {
     val scheme=MaterialTheme.colorScheme
     Focusable(click,modifier.fillMaxWidth().heightIn(min=48.dp).semantics {
         this.selected=selected;contentDescription=if(directory)"Folder: $name" else name
@@ -61,8 +65,12 @@ internal fun PlayerFileRow(name:String,directory:Boolean,modifier:Modifier=Modif
         contentColor=if(selected)scheme.onPrimaryContainer else scheme.onSurfaceVariant,
         focusedContent=scheme.onPrimary,outline=false,focusedScale=1f) {
         Row(Modifier.fillMaxWidth().padding(12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
-            Icon(if(directory)Icons.Outlined.Folder else Icons.AutoMirrored.Outlined.InsertDriveFile,null,Modifier.size(22.dp))
-            Text(name,Modifier.weight(1f),style=androidx.tv.material3.MaterialTheme.typography.bodyLarge,maxLines=2,overflow=TextOverflow.Ellipsis)
+            if(!directory&&preview.bitmap!=null)Image(preview.bitmap.asImageBitmap(),null,Modifier.size(80.dp,45.dp),contentScale=ContentScale.Crop)
+            else Icon(if(directory)Icons.Outlined.Folder else if(audio)Icons.Outlined.AudioFile else Icons.Outlined.Movie,null,Modifier.size(if(directory)24.dp else 40.dp))
+            Column(Modifier.weight(1f)) {
+                Text(name,style=androidx.tv.material3.MaterialTheme.typography.bodyLarge,maxLines=2,overflow=TextOverflow.Ellipsis)
+                if(!directory&&preview.duration>0)Text(playerMediaTime(preview.duration),style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+            }
             if(selected)Icon(Icons.Outlined.Check,"Selected",Modifier.size(20.dp))
         }
     }

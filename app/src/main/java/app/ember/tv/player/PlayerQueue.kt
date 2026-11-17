@@ -34,6 +34,12 @@ internal fun PlayerActivity.showFileQueue(page:Int=0) {
             ))
         }
     }.toMutableList()
+    if(queue.items.isNotEmpty()&&queue.items.all {queueItemAllowed(it)&&it.identity?.startsWith(DirectUsbIdentity.PREFIX)!=true})actions.add(0,PlayerDialogAction("Save queue to playlist",Icons.Outlined.PlaylistAdd) {
+        val snapshot=queue.items.toList();val index=queue.index;val repeat=queue.repeat;val shuffle=queue.shuffle
+        playerControlDialog("Add queue to playlist") {dialog->
+            app.ember.player.PlaylistPickerContent(this,snapshot,index,repeat,shuffle){dialog.dismiss()}
+        }
+    })
     if(start>0)actions.add(0,PlayerDialogAction("Previous page"){showFileQueue(page-1)})
     if(start+100<queue.items.size)actions.add(PlayerDialogAction("Next page"){showFileQueue(page+1)})
     showPlayerActions("Queue · ${start+1}–${minOf(start+100,queue.items.size)} of ${queue.items.size}",actions)

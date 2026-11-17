@@ -113,4 +113,17 @@ class PlayerSettingsUiTest {
         }
     }
 
+    @Test fun subtitleLanguagesSaveImmediatelyAndInvalidEditsKeepTheLastValidCodes() {
+        category("Subtitles")
+        compose.onNodeWithText("Languages: en, fr, ja",substring=true).performTouchInput {click()}
+        compose.onNode(hasSetTextAction()).performTextReplacement("en, pt-br")
+        compose.runOnIdle {assertEquals(listOf("en","pt-BR"),Prefs(RuntimeEnvironment.getApplication()).subtitleConfig.languages)}
+        compose.onNode(hasSetTextAction()).performTextReplacement("en, zz")
+        compose.onNodeWithText("Invalid edits are not saved.",substring=true).assertExists()
+        compose.runOnIdle {assertEquals(listOf("en","pt-BR"),Prefs(RuntimeEnvironment.getApplication()).subtitleConfig.languages)}
+        compose.onNodeWithText("Save languages").assertDoesNotExist()
+        compose.onNode(hasSetTextAction()).performTextReplacement("fr")
+        compose.runOnIdle {assertEquals(listOf("fr"),Prefs(RuntimeEnvironment.getApplication()).subtitleConfig.languages)}
+    }
+
 }

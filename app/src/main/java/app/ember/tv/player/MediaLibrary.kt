@@ -20,6 +20,9 @@ internal class MediaLibrary(context:Context,
         db.execSQL("CREATE TABLE IF NOT EXISTS media (id TEXT PRIMARY KEY, root TEXT NOT NULL, uri TEXT NOT NULL, title TEXT NOT NULL, mime TEXT NOT NULL, size INTEGER, modified INTEGER, generation TEXT NOT NULL)")
         db.execSQL("CREATE INDEX IF NOT EXISTS media_root ON media(root)")
         db.execSQL("CREATE INDEX IF NOT EXISTS media_title ON media(title COLLATE NOCASE)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS media_order (id TEXT PRIMARY KEY, sort_key TEXT NOT NULL)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS media_natural_order ON media_order(sort_key,id)")
+        db.execSQL("CREATE TRIGGER IF NOT EXISTS media_order_delete AFTER DELETE ON media BEGIN DELETE FROM media_order WHERE id=old.id; END")
         db.execSQL("CREATE VIRTUAL TABLE IF NOT EXISTS names USING fts4(title, tokenize=unicode61)")
         db.execSQL("CREATE TRIGGER IF NOT EXISTS media_insert AFTER INSERT ON media BEGIN INSERT INTO names(docid,title) VALUES(new.rowid,new.title); END")
         db.execSQL("CREATE TRIGGER IF NOT EXISTS media_delete BEFORE DELETE ON media BEGIN DELETE FROM names WHERE docid=old.rowid; END")
@@ -65,17 +68,32 @@ internal class MediaLibrary(context:Context,
         }
     }
     data class Result(val entries:List<QueueMedia>,val nextOffset:Int?,val modified:Map<String,Long> = emptyMap())
+    private fun updateNameOrder() {
+        while(true) {
+            val pending=mutableListOf<Pair<String,String>>()
+            db.query("SELECT media.id,title FROM media LEFT JOIN media_order ON media.id=media_order.id WHERE media_order.id IS NULL LIMIT 500").use {cursor->
+                while(cursor.moveToNext())pending+=cursor.getString(0) to NaturalOrder.key(cursor.getString(1))
+            }
+            if(pending.isEmpty())return
+            db.beginTransaction()
+            try {
+                pending.forEach {(id,key)->db.execSQL("INSERT OR REPLACE INTO media_order VALUES(?,?)",arrayOf(id,key))}
+                db.setTransactionSuccessful()
+            } finally {db.endTransaction()}
+        }
+    }
     fun search(query:String,offset:Int=0,sort:String="name"):Result {
         require(offset>=0)
+        updateNameOrder()
         val allowed=folders().filterNot {hidden(it.uri)}.map {digest(it.uri)}.toSet()
         val match=terms(query)
         val found=mutableListOf<QueueMedia>();val dates=mutableMapOf<String,Long>();var cursorOffset=offset;var more=true
-        val order=if(sort=="modified")"modified DESC,title COLLATE NOCASE,id" else "title COLLATE NOCASE,id"
+        val order=(if(sort=="modified")"modified DESC," else "")+"sort_key,title,media.id"
         while(found.size<100 && more) {
-            val clause=if(match.isEmpty())"" else " WHERE rowid IN (SELECT docid FROM names WHERE names MATCH ?)"
+            val clause=if(match.isEmpty())"" else " WHERE media.rowid IN (SELECT docid FROM names WHERE names MATCH ?)"
             val args=(if(match.isEmpty())emptyList() else listOf(match))+listOf("100",cursorOffset.toString())
             var rows=0
-            db.query("SELECT uri,title,root,modified FROM media$clause ORDER BY $order LIMIT ? OFFSET ?",args.toTypedArray()).use {cursor->
+            db.query("SELECT uri,title,root,modified FROM media JOIN media_order ON media.id=media_order.id$clause ORDER BY $order LIMIT ? OFFSET ?",args.toTypedArray()).use {cursor->
                 while(cursor.moveToNext()) {
                     rows++;cursorOffset++
                     if(cursor.getString(2) in allowed && !hidden(cursor.getString(0))) {

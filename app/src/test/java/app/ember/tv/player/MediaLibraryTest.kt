@@ -79,4 +79,18 @@ class MediaLibraryTest {
             assertEquals(5,last.entries.size);assertNull(last.nextOffset)
         }
     }
+    @Test fun naturalOrderingIsAppliedBeforePaginationAndUpdatesWhenFilesChange() {
+        val db=database();val folder=DeviceFolder("content://device.files/tree/root","Root")
+        val root=java.security.MessageDigest.getInstance("SHA-256").digest(folder.uri.toByteArray()).joinToString(""){"%02x".format(it)}
+        MediaLibrary(app,{db},{listOf(folder)},{false}).use {index->
+            for(i in 0..204)db.execSQL("INSERT INTO media VALUES(?,?,?,?,?,?,?,?)",arrayOf<Any>("id-$i",root,"content://device.files/tree/root/document/$i","Episode $i","video/mp4",100L,i.toLong(),"generation"))
+            val first=index.search("Episode");val second=index.search("Episode",first.nextOffset!!)
+            assertEquals((0..99).map {"Episode $it"},first.entries.map {it.title})
+            assertEquals((100..199).map {"Episode $it"},second.entries.map {it.title})
+            db.execSQL("DELETE FROM media WHERE id='id-0'")
+            db.execSQL("INSERT INTO media VALUES(?,?,?,?,?,?,?,?)",arrayOf<Any>("id-0",root,"content://device.files/tree/root/document/0","Episode 1000","video/mp4",100L,0L,"generation"))
+            assertEquals("Episode 1",index.search("Episode").entries.first().title)
+        }
+    }
+
 }
