@@ -2,6 +2,7 @@ package app.ember.tv.player
 
 import android.app.Application
 import android.view.KeyEvent
+import androidx.activity.BackEventCompat
 import androidx.compose.ui.platform.ComposeView
 import androidx.media3.exoplayer.ExoPlayer
 import org.junit.Assert.*
@@ -31,13 +32,23 @@ class PlayerBackNavigationTest {
         activity.onBackPressedDispatcher.onBackPressed()
         assertTrue(activity.isFinishing)
     }
-    @Test fun remoteBackUsesTheSameLayerOrderAndCancelledKeysDoNothing()=fixture {activity->
+    @Test fun cancelledBackGesturesKeepTheOpenSheet()=fixture {activity->
         activity.controls.visible=true;activity.controls.sheet="audio"
-        activity.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN,KeyEvent.KEYCODE_BACK))
+        val gesture=BackEventCompat(0f,100f,.5f,BackEventCompat.EDGE_LEFT)
+        activity.onBackPressedDispatcher.dispatchOnBackStarted(gesture)
+        activity.onBackPressedDispatcher.dispatchOnBackProgressed(gesture)
+        activity.onBackPressedDispatcher.dispatchOnBackCancelled()
         assertEquals("audio",activity.controls.sheet)
-        val cancelled=KeyEvent(0,0,KeyEvent.ACTION_UP,KeyEvent.KEYCODE_BACK,0,0,0,0,KeyEvent.FLAG_CANCELED)
-        activity.dispatchKeyEvent(cancelled);assertEquals("audio",activity.controls.sheet)
-        activity.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP,KeyEvent.KEYCODE_BACK))
+        activity.onBackPressedDispatcher.onBackPressed()
+        assertNull(activity.controls.sheet);assertTrue(activity.controls.visible);assertFalse(activity.isFinishing)
+    }
+    @Test @Config(sdk=[29])
+    fun legacyTrackedBackKeysRespectCancellationBeforeDismissingASheet()=fixture {activity->
+        activity.controls.visible=true;activity.controls.sheet="audio"
+        fun event(flags:Int)=KeyEvent(0,0,KeyEvent.ACTION_UP,KeyEvent.KEYCODE_BACK,0,0,0,0,flags)
+        activity.onKeyUp(KeyEvent.KEYCODE_BACK,event(KeyEvent.FLAG_TRACKING or KeyEvent.FLAG_CANCELED))
+        assertEquals("audio",activity.controls.sheet)
+        activity.onKeyUp(KeyEvent.KEYCODE_BACK,event(KeyEvent.FLAG_TRACKING))
         assertNull(activity.controls.sheet);assertTrue(activity.controls.visible);assertFalse(activity.isFinishing)
     }
     @Test fun systemBackDismissesAnActionDialogBeforePlaybackControls()=fixture {activity->

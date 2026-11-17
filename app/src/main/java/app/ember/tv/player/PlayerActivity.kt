@@ -506,10 +506,6 @@ class PlayerActivity : ComponentActivity() {
     /** Route physical remote keys to the active player controls or dialog. */
     @android.annotation.SuppressLint("RestrictedApi") // super.dispatchKeyEvent is the normal Activity path
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if(event.keyCode==KeyEvent.KEYCODE_BACK) {
-            if(event.action==KeyEvent.ACTION_UP&&!event.isCanceled)onBackPressedDispatcher.onBackPressed()
-            return true
-        }
         if (touchControls?.dispatchKey(event) == true) return true
         if (actionDialog?.dispatch(event) == true) return true
         if(fileQueue!=null && event.keyCode in setOf(KeyEvent.KEYCODE_MEDIA_NEXT,KeyEvent.KEYCODE_MEDIA_PREVIOUS)){
