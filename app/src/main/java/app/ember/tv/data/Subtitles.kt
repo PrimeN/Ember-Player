@@ -1,18 +1,17 @@
 package app.ember.tv.data
 
-import app.ember.tv.tracker.Http
-import app.ember.tv.tracker.arr
-import app.ember.tv.tracker.bool
-import app.ember.tv.tracker.dbl
-import app.ember.tv.tracker.int
-import app.ember.tv.tracker.list
-import app.ember.tv.tracker.long
-import app.ember.tv.tracker.obj
-import app.ember.tv.tracker.str
+import app.ember.tv.data.Http
+import app.ember.tv.data.arr
+import app.ember.tv.data.bool
+import app.ember.tv.data.dbl
+import app.ember.tv.data.int
+import app.ember.tv.data.list
+import app.ember.tv.data.long
+import app.ember.tv.data.obj
+import app.ember.tv.data.str
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
@@ -21,17 +20,14 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.ByteArrayInputStream
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.net.URLEncoder
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.Charset
 import java.nio.charset.CharacterCodingException
 import java.nio.charset.CodingErrorAction
-import java.util.concurrent.TimeUnit
-import java.util.zip.ZipInputStream
 
 /** Settings > Subtitles. Saved as JSON in preferences (in backups). */
 @Serializable
@@ -48,8 +44,6 @@ data class SubtitleConfig(
     val openSubsCom: Boolean = false,
     /** SubDL: needs a free API key. */
     val subdl: Boolean = false,
-    /** Subtitles from your Stremio addons (as before). */
-    val addonSubs: Boolean = true,
     // ---- matching ----
     /** Read 128 KB of the video to compute its OpenSubtitles hash, for subtitles made for this exact file. */
     val hashMatch: Boolean = true,
@@ -155,18 +149,33 @@ object Subtitles {
     // ---- OpenSubtitles file hash ----
 
     private val http = Net.client(10, 15).newBuilder().cache(null).build()
+    private val hashHttp by lazy {http.newBuilder().followRedirects(false).followSslRedirects(false).build()}
 
     /**
      * OpenSubtitles' movie hash: file size plus the 64-bit little-endian sums of the first and last
      * 64 KB. Read with two range requests, so a streamed file works too. Null if the server does not
      * allow ranges. Returns the hash and the file size.
      */
-    suspend fun movieHash(url: String): Pair<String, Long>? = kotlinx.coroutines.coroutineScope {
+    suspend fun movieHash(url: String,headers:Map<String,String> = emptyMap()): Pair<String, Long>? = kotlinx.coroutines.coroutineScope {
         val chunk = 65536L
+        val original=runCatching {url.toHttpUrl()}.getOrNull() ?: return@coroutineScope null
+        val supplied=StreamHeaders.clean(headers.toList())
         suspend fun range(from: Long, to: Long, expectedSize: Long? = null): Pair<ByteArray, Long>? {
-            val call = http.newCall(Request.Builder().url(url).header("Range", "bytes=$from-$to")
-                .header("User-Agent", "EmberTV/0.9").build())
-            return withResponse(call) { r -> withContext(Dispatchers.IO) {
+            var address=original
+            repeat(6) {
+                require(address.username.isEmpty()&&address.password.isEmpty())
+                val sameOrigin=address.scheme==original.scheme&&address.host==original.host&&address.port==original.port
+                val request=Request.Builder().url(address).header("User-Agent",StreamHeaders.userAgent(supplied) ?: HttpIdentity.userAgent).apply {
+                    supplied.forEach {(name,value)->if(sameOrigin||name.equals("User-Agent",true))header(name,value)}
+                    header("Range","bytes=$from-$to")
+                }.build()
+                var next:okhttp3.HttpUrl?=null
+                val result=withResponse(hashHttp.newCall(request)) { r -> withContext(Dispatchers.IO) {
+                if(r.code in setOf(301,302,303,307,308)) {
+                    next=address.resolve(r.header("Location").orEmpty()) ?: error("Invalid media redirect")
+                    require(!address.isHttps||next!!.isHttps)
+                    return@withContext null
+                }
                 if (r.code != 206) return@withContext null
                 val fields = Regex("bytes ([0-9]+)-([0-9]+)/([0-9]+)").matchEntire(r.header("Content-Range").orEmpty())
                     ?.groupValues?.drop(1)?.map { it.toLongOrNull() ?: return@withContext null } ?: return@withContext null
@@ -181,6 +190,10 @@ object Subtitles {
                 val bytes = source.readByteArray()
                 if (bytes.size.toLong() != count) null else bytes to total
             } }
+                if(next==null)return result
+                address=next!!
+            }
+            return null
         }
         try {
             val head = range(0, chunk - 1) ?: return@coroutineScope null
@@ -249,7 +262,7 @@ object Subtitles {
 
     private fun osHeaders(): Map<String, String> = buildMap {
         put("Api-Key", ApiKeys.get("OPENSUBTITLES_API_KEY"))
-        put("User-Agent", "EmberTV v0.9")
+        put("User-Agent", app.ember.tv.data.HttpIdentity.userAgent)
         put("Accept", "application/json")
         osToken?.let { put("Authorization", "Bearer $it") }
     }
@@ -381,7 +394,7 @@ object Subtitles {
     suspend fun download(s: SubtitleCandidate, target: Query? = null,encoding:String="auto"): Pair<String,String>? = kotlinx.coroutines.coroutineScope {
         try {
             val url = s.url ?: s.fileId?.let { resolveOpenSubsCom(it) } ?: return@coroutineScope null
-            val call = http.newCall(Request.Builder().url(url).header("User-Agent", "EmberTV/0.9").build())
+            val call = http.newCall(Request.Builder().url(url).header("User-Agent", app.ember.tv.data.HttpIdentity.userAgent).build())
             val bytes = withResponse(call) { response ->
                 if (!response.isSuccessful) return@coroutineScope null
                 withContext(Dispatchers.IO) { response.body.byteStream().use { SubtitleFiles.read(it) } }
@@ -429,16 +442,6 @@ object Subtitles {
         }
         return String(raw, runCatching { Charset.forName(cp) }.getOrDefault(Charsets.ISO_8859_1))
     }
-
-    /** Keep provenance/forced/SDH facts for sidecar files beside embedded and online tracks. */
-    fun fromOptions(options: List<SubtitleOption>): List<SubtitleCandidate> = options.mapIndexed { i, option ->
-        SubtitleCandidate(option.addonName.ifBlank { "Addon" }, normalise(option.lang), null, option.url,
-            downloads = 500 - i, hearingImpaired = option.hearingImpaired, forced = option.forced)
-    }
-
-    /** Addon subtitle links, as candidates ranked like the rest. */
-    fun fromAddons(urls: List<String>, langs: List<String>): List<SubtitleCandidate> =
-        urls.mapIndexed { i, u -> SubtitleCandidate("Addon", normalise(langs.getOrNull(i)), null, u, downloads = 500 - i) }
 
     @Suppress("unused")
     private fun JsonElement?.asText(): String? = (this as? JsonPrimitive)?.content

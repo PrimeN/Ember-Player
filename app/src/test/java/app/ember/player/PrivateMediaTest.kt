@@ -3,7 +3,10 @@ package app.ember.player
 import android.app.Application
 import android.content.Context
 import app.ember.tv.player.*
-import app.ember.tv.tracker.*
+import app.ember.player.storage.*
+import app.ember.tv.data.*
+import app.ember.tv.player.Kind
+import app.ember.tv.player.PlaybackItem
 import org.junit.Assert.*
 import org.junit.After
 import org.junit.Before
@@ -19,6 +22,60 @@ import javax.crypto.spec.GCMParameterSpec
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[35],application=Application::class)
 class PrivateMediaTest {
+    @Test @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    fun protectingAQueuedFileHidesItFromControllersAndProtectingTheCurrentFileStopsAudio() {
+        val first=QueueMedia("https://media.example/first.mp3","First")
+        val second=QueueMedia("https://media.example/second.mp3","Second")
+        val queue=MediaQueues.put(listOf(first,second))
+        val original=BackgroundAudioService.factory
+        val engine=BackgroundAudioServiceTest.FakeEngine()
+        BackgroundAudioService.factory={_,_->engine}
+        val request=BackgroundAudioRequest(EngineSource(listOf(first.uri),first.title,first.key),PlaybackConfig(backgroundAudio=true),android.content.Intent(),queue,"main","shared",0,1f,1f)
+        val id=BackgroundAudioService.stage(context,request)
+        val controller=org.robolectric.Robolectric.buildService(BackgroundAudioService::class.java).create()
+        try {
+            controller.get().onStartCommand(android.content.Intent(context,BackgroundAudioService::class.java).putExtra(BackgroundAudioService.EXTRA_ID,id),0,1)
+            assertTrue(BackgroundAudioService.commit(id,request))
+            val player=controller.get().sessions.single().player
+            assertEquals(2,player.mediaItemCount)
+            PrivateMedia.configure("123456");PrivateMedia.add(PrivateItem(second.uri,second.title))
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+            assertEquals(1,player.mediaItemCount);assertEquals(0,engine.closed)
+            PrivateMedia.add(PrivateItem(first.uri,first.title))
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+            assertEquals(1,engine.closed)
+        }finally {controller.destroy();BackgroundAudioService.factory=original;MediaQueues.release(queue)}
+    }
+    @Test fun oldPinRecordsUpgradeOnlyAfterSuccessfulAuthentication() {
+        val salt=ByteArray(16){it.toByte()}
+        val spec=javax.crypto.spec.PBEKeySpec("123456".toCharArray(),salt,120000,256)
+        val hash=javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
+        spec.clearPassword()
+        val legacy=java.util.Base64.getEncoder().encodeToString(salt)+":"+java.util.Base64.getEncoder().encodeToString(hash)
+        assertTrue(TokenStore(context).putEncrypted(PrivateMedia.KEY,kotlinx.serialization.json.Json.encodeToString(PrivacyData.serializer(),PrivacyData(pin=legacy))))
+        PrivateMedia.reload(context)
+        assertFalse(PrivateMedia.authenticate("000000"));assertEquals(legacy,PrivateMedia.state.value.pin)
+        assertTrue(PrivateMedia.authenticate("123456"));assertTrue(PrivateMedia.state.value.pin.startsWith("v2:"))
+        PrivateMedia.reload(context)
+        assertTrue(PrivateMedia.authenticate("123456"))
+        assertFalse(PrivatePin.validRecord("v99:"+legacy))
+        hash.fill(0)
+    }
+    @Test fun externalPublicFilesOpenWithoutUnlockingButProtectedFilesStillRequireThePin() {
+        PrivateMedia.configure("123456")
+        PrivateMedia.add(PrivateItem("content://files.example/private","Private"))
+        PrivateMedia.lock()
+        fun open(uri:String):android.content.Intent? {
+            val intent=android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse(uri))
+            val activity=org.robolectric.Robolectric.buildActivity(OpenMediaActivity::class.java,intent).create().get()
+            return org.robolectric.Shadows.shadowOf(activity).nextStartedActivity
+        }
+        assertNotNull(open("content://files.example/public"))
+        assertNull(open("content://files.example/private"))
+        assertFalse(PrivateMedia.unlocked.value)
+        assertTrue(PrivateMedia.authenticate("123456"))
+        assertNotNull(open("content://files.example/private"))
+    }
     private val context:Context get()=RuntimeEnvironment.getApplication()
     @Before fun setup() {
         val key=KeyGenerator.getInstance("AES").apply {init(256)}.generateKey()

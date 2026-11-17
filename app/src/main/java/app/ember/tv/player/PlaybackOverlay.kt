@@ -132,7 +132,7 @@ internal fun PlaybackOverlay(s:ControlsState,a:ControlsActions) {
                         control("play",if(s.playing)Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
                             stringResource(if(s.playing)R.string.player_pause else R.string.player_play),large=true,action=a.playPause)
                         control("forward",Icons.Outlined.Forward30,stringResource(R.string.player_forward_thirty),enabled=s.duration>0){a.seekBy(30_000)}
-                        if(s.nextEpisodes.isNotEmpty() || s.fileQueueNext)control("next",Icons.Outlined.SkipNext,
+                        if(s.fileQueueNext)control("next",Icons.Outlined.SkipNext,
                             stringResource(if(s.fileQueueLabel!=null)R.string.player_next_file else R.string.ui_next_episode),action=a.next)
                     }
                 }
@@ -145,9 +145,7 @@ internal fun PlaybackOverlay(s:ControlsState,a:ControlsActions) {
                             rememberOrigin("subtitles");s.sheet=SUBTITLE_SHEET
                         }
                         if(s.fileQueueLabel!=null)control("queue",Icons.AutoMirrored.Outlined.FormatListBulleted,stringResource(R.string.player_queue),action=a.queue)
-                        else if(s.nextEpisodes.isNotEmpty())control("episodes",Icons.AutoMirrored.Outlined.FormatListBulleted,stringResource(R.string.player_episodes)) {
-                            rememberOrigin("episodes");s.sheet="episodes"
-                        }
+
                         control("settings",Icons.Outlined.Settings,stringResource(R.string.player_settings)) {
                             rememberOrigin("settings");a.openMenu("quick",null)
                         }
@@ -172,13 +170,12 @@ internal fun PlaybackOverlay(s:ControlsState,a:ControlsActions) {
                 BoxWithConstraints(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(start=inset,end=inset,bottom=dockHeight+30.dp)) {
                     val x=(maxWidth*s.seekPreview-120.dp).coerceIn(0.dp,(maxWidth-240.dp).coerceAtLeast(0.dp))
                     Box(Modifier.offset(x=x)) {
-                        if(s.trickplay?.valid==true)Thumbnail(s.trickplay!!,(s.seekPreview*s.duration).toLong())
-                        else s.localUri?.let {LocalSeekPreview(it,(s.seekPreview*s.duration).toLong())}
+                        s.localUri?.let {LocalSeekPreview(it,(s.seekPreview*s.duration).toLong())}
                     }
                 }
             }
             when(s.sheet) {
-                SOUND_SHEET,SUBTITLE_SHEET,"episodes"->PlaybackChoices(s,a)
+                SOUND_SHEET,SUBTITLE_SHEET->PlaybackChoices(s,a)
                 "info"->s.details?.let {details->
                     Box(Modifier.fillMaxSize().focusProperties {onExit={cancelFocusChange()}}.focusGroup().background(Coal.copy(alpha=.92f))) {
                         InfoPanel(details)
@@ -244,11 +241,9 @@ private fun PlaybackEndTime(s:ControlsState) {
 private fun PlaybackChoices(s:ControlsState,a:ControlsActions) {
     val kind=s.sheet
     val audio=kind==SOUND_SHEET
-    val episodes=kind=="episodes"
-    val title=stringResource(if(episodes)R.string.player_episodes else if(audio)R.string.player_audio else R.string.settings_subtitles)
-    val choices=if(episodes)s.nextEpisodes.map {"S${it.season} · E${it.episode}  ${it.title}" to false}
-        else if(audio)s.audioTracks else s.subtitleOptions
-    val more=if(episodes)null else stringResource(if(audio)R.string.player_more_audio else R.string.player_more_subtitles)
+    val title=stringResource(if(audio)R.string.player_audio else R.string.settings_subtitles)
+    val choices=if(audio)s.audioTracks else s.subtitleOptions
+    val more=stringResource(if(audio)R.string.player_more_audio else R.string.player_more_subtitles)
     val chosen=choices.indexOfFirst {it.second}.coerceAtLeast(0)
     val measure=rememberTextMeasurer()
     val density=LocalDensity.current
@@ -269,7 +264,7 @@ private fun PlaybackChoices(s:ControlsState,a:ControlsActions) {
                 itemsIndexed(choices,key={i,_->i}) {index,(label,selected)->
                     PlaybackChoice(label,selected,index==chosen) {
                         s.sheet=null
-                        if(episodes)a.playEpisode(index) else if(!selected){if(audio)a.pickAudio(index) else a.pickSubtitle(index)}
+                        if(!selected){if(audio)a.pickAudio(index) else a.pickSubtitle(index)}
                     }
                 }
                 if(more!=null)item("more") {PlaybackChoice(more,false,choices.isEmpty()) {s.sheet=null;a.openMenu("options",if(audio)"audio" else "subtitles")}}

@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.tv.data.HttpIdentity
+
 import android.content.Context
 import androidx.media3.common.*
 import androidx.media3.common.util.UnstableApi
@@ -28,13 +30,13 @@ internal class AndroidBackgroundAudioEngine(context:Context,private val request:
     private val delay=Playback.AudioDelay()
     private val effects=AudioEffectState().apply {value=config.audioEffects}
     private val http=DefaultHttpDataSource.Factory().setConnectTimeoutMs(config.stream.normalized().connectSeconds*1000).setReadTimeoutMs(config.stream.normalized().readSeconds*1000)
-        .setAllowCrossProtocolRedirects(true).setUserAgent("EmberPlayer/0.1").setDefaultRequestProperties(request.source.headers)
+        .setAllowCrossProtocolRedirects(true).setUserAgent(HttpIdentity.userAgent).setDefaultRequestProperties(request.source.headers)
     private val factory=DefaultMediaSourceFactory(DefaultDataSource.Factory(app,http))
     private val standard=ExoPlayer.Builder(app,Playback.Renderers(app,config,delay,choice,manager,effects))
         .setTrackSelector(DefaultTrackSelector(app))
         .setLoadControl(Playback.loadControl(config,app))
         .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),true)
-        .setHandleAudioBecomingNoisy(true).setWakeMode(C.WAKE_MODE_NETWORK).setMediaSourceFactory(factory).build()
+        .setHandleAudioBecomingNoisy(true).setWakeMode(C.WAKE_MODE_LOCAL).setMediaSourceFactory(factory).build()
     private var boost:android.media.audiofx.LoudnessEnhancer?=null
     private var boostSession=0
     private val engine=PlaybackEngine(app,standard,{config.copy(passthrough=config.passthrough&&!choice.pcm)}) {native->

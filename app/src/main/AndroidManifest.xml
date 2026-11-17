@@ -41,6 +41,7 @@
             </intent-filter>
         </activity>
         <meta-data android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME" android:value="app.ember.player.EmberCastOptions" />
+        <meta-data android:name="com.google.android.gms.car.application" android:resource="@xml/automotive_app_desc" />
         <activity android:name="app.ember.player.CastActivity" android:exported="false" android:theme="@style/Theme.Ember.Cast" android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|uiMode" />
         <service android:name="app.ember.player.CastPlaybackService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
         <activity android:name="app.ember.player.PlayerSettingsActivity" android:exported="false" />
@@ -52,7 +53,14 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/download_paths" />
         </provider>
         <service android:name="app.ember.player.MediaDownloadService" android:exported="false" android:foregroundServiceType="dataSync" />
-        <service android:name="app.ember.tv.player.BackgroundAudioService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
+        <service android:name="app.ember.tv.player.BackgroundAudioService" android:exported="true" android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+                <action android:name="androidx.media3.session.MediaLibraryService" />
+                <action android:name="android.media.browse.MediaBrowserService" />
+                <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
+            </intent-filter>
+        </service>
         <activity android:name="app.ember.tv.player.PlayerActivity" android:exported="false" android:supportsPictureInPicture="true"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|density|uiMode" />
     </application>

@@ -4,7 +4,7 @@ import android.app.*
 import android.content.*
 import android.os.*
 import androidx.core.content.FileProvider
-import app.ember.tv.tracker.TokenStore
+import app.ember.player.storage.TokenStore
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.Serializable
@@ -90,14 +90,14 @@ class MediaDownloadService:Service() {
                         "finished"->if(active==command.id&&activeRun==command.run){active=null;task=null;advance()}
                         "pause"-> {
                             val paused=waiting.toList();waiting.clear()
-                            call?.cancel();task?.cancelAndJoin();task=null;active=null
+                            task?.cancel();call?.cancel();task?.join();task=null;active=null
                             withContext(Dispatchers.IO){paused.forEach {id->runCatching {DownloadStore(this@MediaDownloadService).change(id){it.copy(state="paused")}}}}
                             advance()
                         }
                         "remove"-> {
                             val id=command.id ?: continue
                             waiting-=id
-                            if(active==id){call?.cancel();task?.cancelAndJoin();task=null;active=null}
+                            if(active==id){task?.cancel();call?.cancel();task?.join();task=null;active=null}
                             withContext(Dispatchers.IO){runCatching {DownloadStore(this@MediaDownloadService).remove(id)}}
                             getSystemService(NotificationManager::class.java).cancel("download:$id",731)
                             advance()
@@ -106,7 +106,7 @@ class MediaDownloadService:Service() {
                 }
             } finally {
                 withContext(NonCancellable) {
-                    call?.cancel();task?.cancelAndJoin()
+                    task?.cancel();call?.cancel();task?.join()
                     val paused=(waiting+listOfNotNull(active,preparing)).distinct();waiting.clear()
                     withContext(Dispatchers.IO){paused.forEach {id->runCatching {DownloadStore(this@MediaDownloadService).change(id){if(it.state in setOf("queued","downloading"))it.copy(state="paused") else it}}}}
                 }
@@ -147,7 +147,7 @@ class MediaDownloadService:Service() {
             var url=item.url;var response:okhttp3.Response?=null
             for(hop in 0..5) {
                 currentCoroutineContext().ensureActive()
-                val request=Request.Builder().url(url).header("User-Agent","EmberPlayer/0.1").apply {
+                val request=Request.Builder().url(url).header("User-Agent",app.ember.tv.data.HttpIdentity.userAgent).apply {
                     if(part.length()>0&&item.validator.isNotBlank()) {header("Range","bytes=${part.length()}-");header("If-Range",item.validator)}
                 }.build()
                 val next=client.newCall(request);call=next
@@ -233,8 +233,8 @@ class MediaDownloadService:Service() {
             .setVisibility(Notification.VISIBILITY_PRIVATE).build()
         runCatching {getSystemService(NotificationManager::class.java).notify("download:${item.id}",731,notification)}
     }
-    override fun onDestroy(){commands.close();call?.cancel();scope.cancel();super.onDestroy()}
-    override fun onTimeout(startId:Int,fgsType:Int){call?.cancel();task?.cancel();stopSelf()}
+    override fun onDestroy(){commands.close();scope.cancel();call?.cancel();super.onDestroy()}
+    override fun onTimeout(startId:Int,fgsType:Int){task?.cancel();call?.cancel();stopSelf()}
     companion object {
         fun start(context:Context,id:String){context.startForegroundService(Intent(context,MediaDownloadService::class.java).putExtra("id",id))}
         fun pause(context:Context){context.startService(Intent(context,MediaDownloadService::class.java).setAction("pause"))}

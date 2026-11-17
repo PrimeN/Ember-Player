@@ -48,6 +48,7 @@ class CastPlaybackService:Service() {
         session=MediaSession(this,"Ember remote playback").apply {
             setCallback(object:MediaSession.Callback() {
                 override fun onPlay(){control("play")};override fun onPause(){control("pause")}
+                override fun onPlayFromSearch(query:String?,extras:Bundle?) {if(MediaSearch.matches(request?.title,query))onPlay()}
                 override fun onStop(){stopRemote()};override fun onSeekTo(pos:Long){control("seek",pos.toDouble())}
             })
             isActive=true
@@ -119,7 +120,7 @@ class CastPlaybackService:Service() {
                     }
                     failures=0;state.value=state.value?.copy(status=status)
                     val platform=if(status.playing)PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED
-                    session?.setPlaybackState(PlaybackState.Builder().setState(platform,status.position,if(status.playing)1f else 0f,SystemClock.elapsedRealtime()).setActions(PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_STOP or PlaybackState.ACTION_SEEK_TO).build())
+                    session?.setPlaybackState(PlaybackState.Builder().setState(platform,status.position,if(status.playing)1f else 0f,SystemClock.elapsedRealtime()).setActions(PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PLAY_FROM_SEARCH or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_STOP or PlaybackState.ACTION_SEEK_TO).build())
                     val text=if(status.playing)"Playing on ${state.value?.receiver}" else "Paused on ${state.value?.receiver}"
                     if(text!=lastNotification){lastNotification=text;getSystemService(NotificationManager::class.java).notify(740,notification(text,status.playing))}
                     if(status.finished&&SystemClock.elapsedRealtime()-started>10000){SleepTimer.itemEnded();stopRemote();break}

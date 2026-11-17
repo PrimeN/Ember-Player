@@ -74,7 +74,7 @@ internal fun StreamingControls(s: ControlsState, a: ControlsActions) {
                 Row(horizontalArrangement = Arrangement.spacedBy(28.dp), verticalAlignment = Alignment.CenterVertically) {
                     StreamingIcon(Icons.AutoMirrored.Outlined.ArrowBack, "Back", { label = it }, onClick = a.close)
                     StreamingIcon(Icons.Outlined.Replay, "Start over", { label = it }) { a.seekBy(-s.position) }
-                    if (s.nextEpisodes.isNotEmpty() || s.fileQueueNext)
+                    if (s.fileQueueNext)
                         StreamingIcon(Icons.Outlined.SkipNext, if (s.fileQueueLabel != null) "Next file" else "Next episode", { label = it }, onClick = a.next)
                 }
                 Text(label?.uppercase() ?: "", fontSize = 13.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp, color = Color.White,
@@ -97,18 +97,11 @@ internal fun StreamingControls(s: ControlsState, a: ControlsActions) {
             }
 
             if (s.sheet == "info") d?.let { InfoPanel(it) }
-            if (s.sheet == "episodes") SideSheet("Episodes") {
-                itemsIndexed(s.nextEpisodes) { index, episode -> SheetRow("S${episode.season} · E${episode.episode}  ${episode.title}", first = index == 0) { s.sheet = null; a.playEpisode(index) } }
-            }
 
             // Bottom: play, elapsed, progress, total; then the choices and menus.
             Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start = 56.dp, end = 56.dp, bottom = 34.dp)) {
-                val trick = s.trickplay
                 if (s.seekPreview >= 0f && s.duration > 0) {
-                    if (trick != null) BoxWithConstraints(Modifier.fillMaxWidth().height(150.dp)) {
-                        val x = (maxWidth * s.seekPreview - 120.dp).coerceIn(0.dp, (maxWidth - 240.dp).coerceAtLeast(0.dp))
-                        Box(Modifier.offset(x = x).align(Alignment.BottomStart).padding(bottom = 8.dp)) { Thumbnail(trick, (s.seekPreview * s.duration).toLong()) }
-                    } else s.localUri?.let { LocalSeekPreview(it, (s.seekPreview * s.duration).toLong()) }
+                    s.localUri?.let { LocalSeekPreview(it, (s.seekPreview * s.duration).toLong()) }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     StreamingIcon(if (s.playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow, if (s.playing) "Pause" else "Play", null,
@@ -143,7 +136,6 @@ internal fun StreamingControls(s: ControlsState, a: ControlsActions) {
                             options = options, onPick = { i -> s.sheet = null; if (!s.subtitleOptions[i].second) a.pickSubtitle(i) },
                             onClose = { s.sheet = null }, more = "Subtitle settings" to { s.sheet = null; a.openMenu("options", "subtitles") })
                     }
-                    if (s.nextEpisodes.isNotEmpty()) StreamingSquare(Icons.AutoMirrored.Outlined.FormatListBulleted, "Episodes") { s.sheet = if (s.sheet == "episodes") null else "episodes" }
                     if (s.fileQueueLabel != null) StreamingSquare(Icons.AutoMirrored.Outlined.FormatListBulleted, "Queue", a.queue)
                     if (d != null) StreamingSquare(Icons.Outlined.Info, "Details") { s.sheet = if (s.sheet == "info") null else "info" }
                     StreamingSquare(Icons.Outlined.Settings, "Player settings") { a.openMenu("quick", null) }

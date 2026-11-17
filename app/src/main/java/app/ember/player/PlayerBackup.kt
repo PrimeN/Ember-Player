@@ -5,7 +5,7 @@ import app.ember.tv.data.SubtitleConfig
 import app.ember.tv.player.PlaybackBookmarks
 import app.ember.tv.player.PlaybackConfig
 import app.ember.tv.player.PlaybackStateRetention
-import app.ember.tv.tracker.TokenStore
+import app.ember.player.storage.TokenStore
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -24,10 +24,11 @@ internal data class PlayerBackupData(val version:Int=1,val preferences:Map<Strin
 /** The envelope has fixed KDF parameters; untrusted files cannot request excessive KDF work. */
 internal object PlayerBackupCipher {
     const val MAX_BYTES=8*1024*1024
-    private val magic="EMBERPB1".toByteArray(Charsets.US_ASCII)
-    private fun key(password:CharArray,salt:ByteArray):SecretKeySpec {
+    private val magic="EMBERPB2".toByteArray(Charsets.US_ASCII)
+    private val legacyMagic="EMBERPB1".toByteArray(Charsets.US_ASCII)
+    private fun key(password:CharArray,salt:ByteArray,iterations:Int=600000):SecretKeySpec {
         require(password.size in 10..256) {"Use a password between 10 and 256 characters."}
-        val spec=PBEKeySpec(password,salt,210000,256)
+        val spec=PBEKeySpec(password,salt,iterations,256)
         val bytes=try {SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded} finally {spec.clearPassword()}
         return try {SecretKeySpec(bytes,"AES")} finally {bytes.fill(0)}
     }
@@ -42,9 +43,14 @@ internal object PlayerBackupCipher {
         return header+cipher.doFinal(data)
     }
     fun decrypt(data:ByteArray,password:CharArray):ByteArray {
-        require(data.size in 52..MAX_BYTES+52 && data.copyOfRange(0,8).contentEquals(magic)) {"This is not an Ember Player backup."}
+        require(data.size in 52..MAX_BYTES+52) {"This is not an Ember Player backup."}
+        val iterations=when {
+            data.copyOfRange(0,8).contentEquals(magic)->600000
+            data.copyOfRange(0,8).contentEquals(legacyMagic)->210000
+            else->throw IllegalArgumentException("This is not an Ember Player backup.")
+        }
         val cipher=Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE,key(password,data.copyOfRange(8,24)),GCMParameterSpec(128,data.copyOfRange(24,36)))
+        cipher.init(Cipher.DECRYPT_MODE,key(password,data.copyOfRange(8,24),iterations),GCMParameterSpec(128,data.copyOfRange(24,36)))
         cipher.updateAAD(data,0,36)
         return cipher.doFinal(data,36,data.size-36)
     }
@@ -87,7 +93,7 @@ internal object PlayerBackups {
         check(!PrivateMedia.enabled||PrivateMedia.unlocked.value){"Unlock private media before exporting settings."}
         PlaybackStateRetention.prune(context)
         val tokens=TokenStore(context)
-        if(context.getSharedPreferences(app.ember.tv.tracker.SecretVault.FILE,Context.MODE_PRIVATE).all.isNotEmpty())
+        if(context.getSharedPreferences(app.ember.player.storage.SecretVault.FILE,Context.MODE_PRIVATE).all.isNotEmpty())
             check(tokens.encryptionAvailable) {"Stored connection details could not be unlocked. No backup was created."}
         val preferences=files.associateWith {file->context.getSharedPreferences(file,Context.MODE_PRIVATE).all.mapValues {(_,value)->
             when(value) {

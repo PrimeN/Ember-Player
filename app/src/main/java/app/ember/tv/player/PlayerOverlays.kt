@@ -1,20 +1,16 @@
 package app.ember.tv.player
 
-import app.ember.tv.iptv.*
 import app.ember.tv.R
 import android.view.View
 import android.widget.Button
 import android.widget.Toast
-import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import app.ember.tv.tracker.Kind
-import kotlinx.coroutines.launch
 import java.util.Locale
 import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleDelayMilliseconds
 
 // PlayerActivity's skip-intro markers, sound timing, info panel and subtitle panel.
-/** Server markers take priority; eligible IMDb titles can fall back to the public IntroDB lookup. */
+/** Fetch optional intro timings for a title with an exact IMDb identity. */
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.loadMarkers() {
     if(privatePlayback)return
@@ -23,49 +19,21 @@ internal fun PlayerActivity.loadMarkers() {
     markersFromIntroDb = false
     autoSkipped.clear()
     showSkip(null)
-    controls.trickplay = null
     chapters = emptyList()
-    val ref = serverRef
-    val s = servers
-    val sourceId = serverPlayback?.sourceId
-    if (advanced && !trailer && ref != null && s != null) {
-        metadataLoads.load({ s.trickplay(ref, sourceId) }) { controls.trickplay = it }
-        metadataLoads.load({ s.chapters(ref) }) { chapters = it }
-    }
-    if (trailer || config.skipIntro == "off") return
-    val query = if (config.introDb && !live) IntroDbQuery.from(item) else null
-    metadataLoads.load({ resolveMarkers(
-        server = { if (ref != null && s != null) s.markers(ref) else emptyList() },
-        database = { query?.let { introDbClient.markers(it) }.orEmpty() },
-    ) }) { markers = it.markers; markersFromIntroDb = it.introDb }
+    if (config.skipIntro == "off") return
+    val query = if (config.introDb) IntroDbQuery.from(item) else null
+    if(query==null)return
+    metadataLoads.load({introDbClient.markers(query)}) {markers=it;markersFromIntroDb=true}
 }
 
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.checkMarkers() {
     val p = player ?: return
     if (subsInitialized && p.playbackState==Player.STATE_READY) subs.onReady()
-    serverPlayback?.takeIf { it.parts.size > 1 }?.let { transport ->
-        val index = playbackEngine?.compatibility?.partIndex ?: transport.seek(p.currentPosition)?.first ?: p.currentPeriodIndex.coerceIn(transport.parts.indices)
-        if (index != serverPartIndex) {
-            serverPartIndex = index
-            val part = transport.parts[index]
-            if (subsInitialized) subs.startSearch(part.url, app.ember.tv.data.Subtitles.Query(
-                imdb = item.imdbId, movie = item.kind == Kind.MOVIE, season = item.season, episode = item.episode,
-                release = item.title, hash = null, size = null), part.subtitles, preserve = true)
-        }
-    }
-    // #227: with automatic play on, Up next shows by itself at the credits, or near the end without them.
-    val credits = if (markers.isEmpty() || markersFromIntroDb && !config.introDb) null
-        else (if (markersFromIntroDb) IntroDbSegments.forRuntime(markers, p.duration) else markers).firstOrNull { it.kind == "credits" }
-    val due = UpNextTiming.due(p.currentPosition, p.duration, credits?.startMs, credits?.endMs, prefs.countdown)
-    if (!due) upNextDismissed = false
-    val autoNext = prefs.autoplay && fileQueue == null && nextEpisodes.isNotEmpty() && liveSession == null && !trailer
-    if (autoNext && due && !ended && !upNextDismissed && upNextInitialized && !upNextUi.visible) nextEpisodes.firstOrNull()?.let { showUpNext(it) }
     if (markers.isEmpty() || ended || config.skipIntro == "off" || markersFromIntroDb && !config.introDb) return showSkip(null)
     val pos = p.currentPosition
     val eligible = if (markersFromIntroDb) IntroDbSegments.forRuntime(markers, p.duration) else markers
-    // The card replaces the credits' Next episode button when automatic play is on.
-    val m = eligible.firstOrNull { pos >= it.startMs && pos < it.endMs - 1_000 }?.takeUnless { it.kind == "credits" && autoNext }
+    val m = eligible.firstOrNull { pos >= it.startMs && pos < it.endMs - 1_000 }
     if (m != null && m.kind != "credits" && config.skipIntro == "auto" && m !in autoSkipped) {
         autoSkipped += m
         p.seekTo(m.endMs)
@@ -75,19 +43,8 @@ internal fun PlayerActivity.checkMarkers() {
     showSkip(m)
 }
 
-/** When the Up next card is due by itself (#227). */
-internal object UpNextTiming {
-    /** Without credit markers, this long before the end on top of the countdown. */
-    const val MARGIN_MS = 5_000L
-    fun due(position: Long, duration: Long, creditsStart: Long?, creditsEnd: Long?, countdownSeconds: Int): Boolean {
-        if (duration <= 0 || position < 0) return false
-        if (creditsStart != null) return position >= creditsStart && (creditsEnd == null || position < creditsEnd + 60_000)
-        return duration - position <= countdownSeconds * 1000L + MARGIN_MS
-    }
-}
-
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
-internal fun PlayerActivity.showSkip(m: app.ember.tv.mediaserver.Marker?) {
+internal fun PlayerActivity.showSkip(m: app.ember.tv.player.Marker?) {
     if (!skipButtonInitialized) return
     skipTarget = m
     if (advanced) {
@@ -96,7 +53,7 @@ internal fun PlayerActivity.showSkip(m: app.ember.tv.mediaserver.Marker?) {
         controls.skipLabel = m?.let {
             when (it.kind) {
                 "recap" -> getString(R.string.pl_skip_recap)
-                "credits" -> if (nextEpisodes.isNotEmpty()) getString(R.string.ui_next_episode) else getString(R.string.pl_skip_credits)
+                "credits" -> getString(R.string.pl_skip_credits)
                 else -> getString(R.string.ui_skip_intro)
             }
         }
@@ -108,19 +65,19 @@ internal fun PlayerActivity.showSkip(m: app.ember.tv.mediaserver.Marker?) {
     }
     skipButton.text = when (m.kind) {
         "recap" -> getString(R.string.pl_action_arrow, getString(R.string.pl_skip_recap))
-        "credits" -> getString(R.string.pl_action_arrow, getString(if (nextEpisodes.isNotEmpty()) R.string.ui_next_episode else R.string.pl_skip_credits))
+        "credits" -> getString(R.string.pl_action_arrow, getString(R.string.pl_skip_credits))
         else -> getString(R.string.pl_action_arrow, getString(R.string.ui_skip_intro))
     }
     skipButton.visibility = View.VISIBLE
 }
 
-/** OK while the Skip button shows: jump past the marker; in the credits, go to the next episode. */
+/** Jump past the selected intro, recap or credits marker. */
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.doSkip() {
     val p = player ?: return
     val m = skipTarget ?: return
     if (m.kind == "credits") {
-        // Ending the video starts the usual "Up next" countdown (or closes the player).
+        // Reaching the end advances the file queue or closes playback.
         val d = p.duration
         if (d > 0) p.seekTo(d) else p.seekTo(m.endMs)
     } else {

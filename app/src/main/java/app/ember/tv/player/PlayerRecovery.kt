@@ -1,109 +1,20 @@
 package app.ember.tv.player
 
-import androidx.core.view.isVisible
-import androidx.compose.ui.graphics.toArgb
-import app.ember.tv.iptv.*
 import app.ember.tv.R
-import android.graphics.Color
-import android.net.Uri
-import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.util.TypedValue
-import android.view.Gravity
-import android.view.KeyEvent
-import android.view.View
-import android.view.ViewGroup
-import android.widget.Button
-import android.widget.FrameLayout
-import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.annotation.OptIn
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
-import androidx.media3.common.MediaItem
-import androidx.media3.exoplayer.DecoderReuseEvaluation
-import androidx.media3.exoplayer.analytics.AnalyticsListener
-import androidx.media3.common.Tracks
 import androidx.media3.common.Format
 import androidx.media3.common.C
-import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
-import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
-import androidx.media3.exoplayer.source.MergingMediaSource
-import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
-import androidx.media3.ui.PlayerView
-import app.ember.tv.data.Episode
-import app.ember.tv.data.Prefs
-import app.ember.tv.data.SubtitleOption
-import app.ember.tv.mediaserver.MediaServers
-import app.ember.tv.mediaserver.ReportState
-import app.ember.tv.tracker.Kind
-import app.ember.tv.tracker.ScrobbleState
-import app.ember.tv.tracker.TrackedItem
-import app.ember.tv.tracker.TrackerHub
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.ensureActive
-import java.util.Locale
-import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderManager
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
-import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleDelayMilliseconds
-import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleSpeed
 
 @OptIn(UnstableApi::class)
-/** One retry owner for live streams: Media3 must not add hidden retries ahead of our budget. */
-internal fun PlayerActivity.mediaSourceFactory(http: DefaultDataSource.Factory) = DefaultMediaSourceFactory(http,
-    androidx.media3.extractor.DefaultExtractorsFactory().setTsExtractorFlags(androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory.FLAG_ENABLE_HDMV_DTS_AUDIO_STREAMS)
-        .setTsExtractorTimestampSearchBytes(1500 * 188)).apply {
-    if (live) setLoadErrorHandlingPolicy(object : androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy(0) {
-        override fun getRetryDelayMsFor(info: androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy.LoadErrorInfo) = C.TIME_UNSET
-        override fun getFallbackSelectionFor(
-            options: androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy.FallbackOptions,
-            info: androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy.LoadErrorInfo,
-        ): androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy.FallbackSelection? = null
-    })
-}
-
-@OptIn(UnstableApi::class)
-internal fun PlayerActivity.retryLive(e: PlaybackException): Boolean {
-    val http = generateSequence<Throwable>(e) { it.cause }
-        .filterIsInstance<androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException>().firstOrNull()
-    val malformed = PlaybackErrors.malformedContainer(e.errorCode)
-    val network = PlaybackErrors.liveNetwork(e.errorCode)
-    if ((!network && !malformed) || !LiveRetryPolicy.retryable(http?.responseCode)) return false
-    val url = currentUrl ?: return false
-    val retryAfter = http?.headerFields?.entries?.firstOrNull { it.key.equals("Retry-After", true) }?.value?.firstOrNull()
-    val attempt = liveBudget.next(android.os.SystemClock.elapsedRealtime()) ?: return false
-    val pause = LiveRetryPolicy.delayMillis(attempt, LiveRetryPolicy.retryAfterSeconds(retryAfter))
-    if (pause > 15_000) return false // Leave long provider cooldowns to a deliberate user retry.
-    val retryUrl = if (malformed) PlaybackErrors.alternateLiveUrl(url) ?: return false else url
-    val key = sessionChannel?.key
-    val name = zapNames.getOrNull(zapIndex).orEmpty()
-    lastRetryAt = android.os.SystemClock.elapsedRealtime()
-    liveRetryJob?.cancel()
-    liveRetryJob = lifecycleScope.launch {
-        delay(pause)
-        if (currentUrl != url || sessionChannel?.key != key ||
-            !lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) return@launch
-        if (key != null && liveSession?.channels()?.none { it.key == key } != false) return@launch
-        liveRetryJob = null
-        start(retryUrl, name, emptyList(), null)
-    }
-    return true
-}
+internal fun PlayerActivity.mediaSourceFactory(factory: androidx.media3.datasource.DataSource.Factory)=DefaultMediaSourceFactory(factory)
 
 @OptIn(UnstableApi::class)
 internal fun PlayerActivity.describe(f: androidx.media3.common.Format?) = PlaybackErrors.describe(f)

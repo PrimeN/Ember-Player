@@ -95,6 +95,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     private var externalSubtitle:File?=null
     private var externalGlobal=false
     var captionText="";private set
+    var onCaptionTextChanged:(()->Unit)?=null
     private var subtitleOffset=0L
     private var subtitleRate=1f
     private var previousTextureListener:TextureView.SurfaceTextureListener?=null
@@ -275,9 +276,10 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         fail()
     }
     private fun fail(){status=Player.STATE_IDLE;busy=false;error=PlaybackException("Compatibility playback failed. Try another version or server quality.",null,transport?.failureCode?:PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED);invalidateState()}
-    override fun eventProperty(property:String)=onMain {refreshTracks();invalidateState()}
+    private fun captions(value:String) {if(captionText!=value){captionText=value;onCaptionTextChanged?.invoke()}}
+    override fun eventProperty(property:String)=onMain {if(property=="sub-text")captions("") else {refreshTracks();invalidateState()}}
     override fun eventProperty(property:String,value:Long) {}
-    override fun eventProperty(property:String,value:String)=onMain {if(property=="sub-text")captionText=value else {refreshTracks();invalidateState()}}
+    override fun eventProperty(property:String,value:String)=onMain {if(property=="sub-text")captions(value) else {refreshTracks();invalidateState()}}
     override fun eventProperty(property:String,value:Double)=onMain {
         when(property){"time-pos"->{if(requestedHdr.expand && android.os.SystemClock.elapsedRealtime()-lastSurfaceCheck>1000){lastSurfaceCheck=android.os.SystemClock.elapsedRealtime();applyHdrOutput()};val at=(value*1000).toLong();if(!loading && (!waitingSeek || approximateSeek || kotlin.math.abs(at-(pendingSeek-prefix(partIndex)))<2000)){waitingSeek=false;approximateSeek=false;partPosition=at;position=prefix(partIndex)+partPosition}};"duration"->{if(value>0)durations[partIndex]=(value*1000).toLong()};"demuxer-cache-time"->buffered=prefix(partIndex)+(value*1000).toLong()};invalidateState()
     }
@@ -340,7 +342,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         native.detachSurface();ownedSurface?.release();ownedSurface=null;output=null
     }
     override fun handleClearVideoOutput(videoOutput:Any?):ListenableFuture<*> {if(videoOutput==null||videoOutput===output)detachOutput();return done()}
-    override fun handleRelease():ListenableFuture<*> {if(!closed){closed=true;detachOutput();handler.removeCallbacksAndMessages(null);runCatching {context.unregisterReceiver(noisy)};audioManager.abandonAudioFocusRequest(focus);native.removeObserver(this);transport?.close();native.destroy();ownedSurface?.release();descriptors.forEach {it.close()};temporary.forEach {it.delete()}};return done()}
+    override fun handleRelease():ListenableFuture<*> {if(!closed){closed=true;onCaptionTextChanged=null;detachOutput();handler.removeCallbacksAndMessages(null);runCatching {context.unregisterReceiver(noisy)};audioManager.abandonAudioFocusRequest(focus);native.removeObserver(this);transport?.close();native.destroy();ownedSurface?.release();descriptors.forEach {it.close()};temporary.forEach {it.delete()}};return done()}
     fun geometry(zoom:String,ratio:Float) {
         native.setPropertyDouble("video-zoom",0.0)
         native.setPropertyDouble("panscan",if(zoom=="crop")1.0 else 0.0)
@@ -458,9 +460,9 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
             }
         }
     }
-    fun chapters():List<app.ember.tv.mediaserver.Chapter> =(0 until (native.getPropertyInt("chapter-list/count")?:0).coerceAtMost(2000)).mapNotNull {i->
+    fun chapters():List<app.ember.tv.player.Chapter> =(0 until (native.getPropertyInt("chapter-list/count")?:0).coerceAtMost(2000)).mapNotNull {i->
         val time=native.getPropertyDouble("chapter-list/$i/time")?:return@mapNotNull null
-        app.ember.tv.mediaserver.Chapter(native.getPropertyString("chapter-list/$i/title")?:"Chapter ${i+1}",(time*1000).toLong()+prefix(partIndex))
+        app.ember.tv.player.Chapter(native.getPropertyString("chapter-list/$i/title")?:"Chapter ${i+1}",(time*1000).toLong()+prefix(partIndex))
     }
     val audioEffectsAvailable get() = AudioProcessingPolicy.allowed(
         tracks.groups.firstOrNull {it.type==C.TRACK_TYPE_AUDIO && it.isSelected}?.getTrackFormat(0)?.sampleMimeType,

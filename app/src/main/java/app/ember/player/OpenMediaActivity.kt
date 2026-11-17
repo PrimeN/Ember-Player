@@ -16,7 +16,7 @@ class OpenMediaActivity:ComponentActivity() {
         if(uri==null || !ExternalMedia.allowed(uri.toString())) {
             Toast.makeText(this,"Choose a media file or a supported stream URL.",Toast.LENGTH_LONG).show();finish();return
         }
-        if(PrivateMedia.enabled) {
+        if(PrivateMedia.hidden(uri.toString())&&!PrivateMedia.unlocked.value) {
             window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
             setContent {PlayerTheme(app.ember.tv.data.Prefs(this)) {PrivatePinPrompt({finish()},{open(uri)})}}
         } else open(uri)

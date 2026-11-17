@@ -7,7 +7,7 @@ import androidx.media3.common.util.UnstableApi
 @androidx.annotation.OptIn(UnstableApi::class)
 internal fun PlayerActivity.backgroundRequest():BackgroundAudioRequest? {
     if(privatePlayback||app.ember.player.PrivateMedia.hidden(currentUrl.orEmpty()))return null
-    if(!config.backgroundAudio || pickingSidecar || isFinishing || live || trailer || serverRef!=null || isInPictureInPictureMode)return null
+    if(!config.backgroundAudio || pickingSidecar || isFinishing || isInPictureInPictureMode)return null
     val p=player ?: return null
     if(!p.playWhenReady || ended)return null
     val source=playbackEngine?.snapshot()?.takeIf {it.urls.size==1} ?: return null
@@ -19,7 +19,7 @@ internal fun PlayerActivity.backgroundRequest():BackgroundAudioRequest? {
     )
     return BackgroundAudioRequest(source.copy(audioLanguages=(listOfNotNull(p.audioFormat?.language)+source.audioLanguages).distinct()),effective,
         Intent(intent),queueId,watchProfileId,localActivityScope,p.currentPosition.coerceAtLeast(0),p.playbackParameters.speed,p.volume,
-        boosts.getOrElse(boostLevel){0},BackgroundAudioTrack.from(p.audioFormat))
+        boosts.getOrElse(boostLevel){0},BackgroundAudioTrack.from(p.audioFormat),p.mediaMetadata.artworkData?.takeIf {it.size<=512*1024})
 }
 
 @androidx.annotation.OptIn(UnstableApi::class)

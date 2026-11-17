@@ -1,5 +1,8 @@
 package app.ember.tv.player
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+
 import app.ember.tv.ui.TvTokens
 
 import androidx.compose.ui.res.stringResource
@@ -23,10 +26,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -47,21 +46,17 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Replay10
-import androidx.compose.material.icons.outlined.Forward30
 import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material.icons.outlined.Subtitles
-import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -86,7 +81,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
-import app.ember.tv.data.Episode
 import coil.compose.AsyncImage
 import java.util.Locale
 
@@ -111,7 +105,6 @@ class ControlsState {
     var title by mutableStateOf("")
     var details by mutableStateOf<PlayerDetails?>(null)
     var seasonEpisode by mutableStateOf<String?>(null)
-    var nextEpisodes by mutableStateOf<List<Episode>>(emptyList())
     /** Which side sheet is open: null, "info", "audio", "episodes". */
     var sheet by mutableStateOf<String?>(null)
     var audioTracks by mutableStateOf<List<Pair<String, Boolean>>>(emptyList())
@@ -147,7 +140,6 @@ class ControlsState {
     /** Settings > Player > Player interface (PlayerInterfaces), for the layouts sharing these controls. */
     var design by mutableStateOf(PlayerInterfaces.MODERN)
     /** Seek thumbnails from Plex or Jellyfin, when the server has them. */
-    var trickplay by mutableStateOf<app.ember.tv.mediaserver.Trickplay?>(null)
 }
 
 /** What the buttons do; PlayerActivity provides them. */
@@ -160,7 +152,6 @@ class ControlsActions(
     /** The rows of a menu: "quick", "video", "audio" or "subtitles". */
     val options: (String) -> List<OptionRow>,
     val next: () -> Unit,
-    val playEpisode: (Int) -> Unit,
     /** Any key on the controls: keeps them from hiding. */
     val touched: () -> Unit,
     val queue: () -> Unit = {},
@@ -218,7 +209,6 @@ private fun SkipPill(s: ControlsState, a: ControlsActions) {
         }
     }
 }
-
 
 internal fun time(ms: Long): String {
     val t = (ms / 1000).coerceAtLeast(0)
@@ -389,27 +379,6 @@ internal fun SheetRow(label: String, first: Boolean = false, onClick: () -> Unit
     }
 }
 
-/** One seek thumbnail: the right cell of a Plex/Jellyfin sprite sheet, cropped. */
-@Composable
-internal fun Thumbnail(t: app.ember.tv.mediaserver.Trickplay, positionMs: Long) {
-    if (!t.valid) return
-    val (url, col, row) = t.at(positionMs)
-    val w = 240.dp
-    val h = w * (t.height.toFloat() / t.width.coerceAtLeast(1))
-    Box(Modifier.size(w, h).clip(RoundedCornerShape(10.dp)).background(Color.Black).border(2.dp, Color.White, RoundedCornerShape(10.dp))) {
-        AsyncImage(
-            model = url,
-            contentDescription = null,
-            contentScale = ContentScale.FillBounds,
-            modifier = Modifier
-                .wrapContentSize(Alignment.TopStart, unbounded = true)
-                .offset(x = -w * col, y = -h * row)
-                .requiredSize(w * t.cols, h * t.rows),
-        )
-    }
-}
-
-
 /** Cinema transport matches the TV reference while keeping all existing player actions/engines. */
 @Composable
 private fun EmberXControls(s:ControlsState,a:ControlsActions) {
@@ -434,27 +403,22 @@ private fun EmberXControls(s:ControlsState,a:ControlsActions) {
                 IconButton(Icons.Outlined.Forward10,"Forward 10 seconds"){a.seekBy(10_000)}
             }
             Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(horizontal=32.dp,vertical=18.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
-                val trick=s.trickplay
                 if(s.seekPreview>=0f && s.duration>0) {
-                    if(trick!=null)Thumbnail(trick,(s.seekPreview*s.duration).toLong())
-                    else s.localUri?.let {LocalSeekPreview(it,(s.seekPreview*s.duration).toLong())}
+                    s.localUri?.let {LocalSeekPreview(it,(s.seekPreview*s.duration).toLong())}
                 }
                 SeekBar(s,a)
                 Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
                     Text(time(if(s.seekPreview>=0f)(s.seekPreview*s.duration).toLong() else s.position)+"  ·  "+time(s.duration),
                         fontSize=13.sp,color=Color.White,fontWeight=FontWeight.SemiBold)
                     Spacer(Modifier.weight(1f))
-                    if(s.nextEpisodes.isNotEmpty() || s.fileQueueNext)IconButton(Icons.Outlined.SkipNext,if(s.fileQueueLabel!=null)"Next file" else "Next episode",onClick=a.next)
-                    if(s.nextEpisodes.isNotEmpty())IconButton(Icons.AutoMirrored.Outlined.FormatListBulleted,"Episodes"){s.sheet=if(s.sheet=="episodes")null else "episodes"}
+                    if(s.fileQueueNext)IconButton(Icons.Outlined.SkipNext,if(s.fileQueueLabel!=null)"Next file" else "Next episode",onClick=a.next)
                     if(s.fileQueueLabel!=null)IconButton(Icons.AutoMirrored.Outlined.FormatListBulleted,"Queue",onClick=a.queue)
                     TrackButtons(s)
                     IconButton(Icons.Outlined.Settings,"Player settings"){a.openMenu("quick",null)}
                 }
             }
             if(s.sheet=="info")s.details?.let {InfoPanel(it)}
-            if(s.sheet=="episodes")SideSheet("Episodes") {
-                itemsIndexed(s.nextEpisodes){index,episode->SheetRow("S${episode.season} · E${episode.episode}  ${episode.title}",first=index==0){s.sheet=null;a.playEpisode(index)}}
-            }
+
             TrackSheet(s,a)
         }
     }

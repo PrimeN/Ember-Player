@@ -55,7 +55,6 @@ internal object RuntimeBudgets {
             pressured=true;val generation=++pressureRevision
             main.postDelayed({if(generation==pressureRevision)pressured=false},30_000)
         }
-        FrostCache.clear()
     }
     fun pressureLevel(level:Int)=level==10 || level==15 || level>=40
 }

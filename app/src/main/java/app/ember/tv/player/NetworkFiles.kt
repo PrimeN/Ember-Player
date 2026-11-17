@@ -1,7 +1,6 @@
 package app.ember.tv.player
 
 import app.ember.tv.data.Net
-import app.ember.tv.data.SubtitleFiles
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.msfscc.FileAttributes
 import com.hierynomus.mssmb2.*
@@ -10,7 +9,6 @@ import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.share.DiskShare
 import com.jcraft.jsch.*
 import okhttp3.*
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.apache.commons.net.ftp.*
@@ -66,26 +64,20 @@ internal object NetworkFiles {
     private fun smbPath(l:NetworkLocation,path:String)=listOf(l.root.substringAfter('/',""),path).filter {it.isNotEmpty()}.joinToString("\\").replace('/','\\')
     private fun sftp(a:NetworkAccount,o:Owner):ChannelSftp {
         val l=NetworkLocation.parse(a.address)
-        val fingerprint=NetworkLocation.normalizeFingerprint(a.fingerprint)
-        require(fingerprint!=null) {"Enter the server's verified SHA256 host key fingerprint."}
         val jsch=JSch()
-        var mismatch=false
-        jsch.setHostKeyRepository(object:HostKeyRepository {
-            override fun check(host:String,key:ByteArray):Int {
-                if(NetworkLocation.fingerprintMatches(fingerprint,key))return HostKeyRepository.OK
-                mismatch=true;return HostKeyRepository.CHANGED
-            }
-            override fun add(hostkey:HostKey,ui:UserInfo?){}
-            override fun remove(host:String,type:String?){}
-            override fun remove(host:String,type:String?,key:ByteArray?){}
-            override fun getKnownHostsRepositoryID()="Ember pinned host key"
-            override fun getHostKey()=emptyArray<HostKey>()
-            override fun getHostKey(host:String?,type:String?)=emptyArray<HostKey>()
-        })
+        val hostKeys=SftpHostKeys(a.fingerprint)
+        jsch.setHostKeyRepository(hostKeys)
+        val authentication=SftpCredentials.install(jsch,a)
+        o.add {jsch.removeAllIdentity()}
         val session=jsch.getSession(a.username,l.host,l.port);o.add {session.disconnect()}
-        session.setPassword(a.password.toByteArray(Charsets.UTF_8));session.setConfig("StrictHostKeyChecking","yes");session.setConfig("PreferredAuthentications","password,keyboard-interactive")
+        if(a.authentication=="password")session.setPassword(a.password.toByteArray(Charsets.UTF_8))
+        session.setConfig("StrictHostKeyChecking","yes");session.setConfig("PreferredAuthentications",authentication)
         session.timeout=30_000
-        try {session.connect(20_000)}catch(e:JSchException){if(mismatch)throw SftpHostKeyMismatchException(e);throw e}
+        try {session.connect(20_000)}catch(e:JSchException){
+            hostKeys.confirmation?.let {throw SftpHostKeyConfirmationException(it)}
+            if(hostKeys.mismatch)throw SftpHostKeyMismatchException(e)
+            throw e
+        }
         return (session.openChannel("sftp") as ChannelSftp).also {channel->o.add {channel.disconnect()};channel.connect(20_000)}
     }
     private interface ListingFtp { fun listing(command:FTPCmd,path:String):java.net.Socket? }

@@ -3,9 +3,9 @@ package app.ember.tv.player
 import app.ember.tv.data.Net
 import app.ember.tv.data.boundedText
 import app.ember.tv.data.withResponse
-import app.ember.tv.mediaserver.Marker
-import app.ember.tv.tracker.Kind
-import app.ember.tv.tracker.TrackedItem
+import app.ember.tv.player.Marker
+import app.ember.tv.player.Kind
+import app.ember.tv.player.PlaybackItem
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -18,7 +18,7 @@ import okhttp3.Request
 
 internal data class IntroDbQuery(val imdb: String, val season: Int?, val episode: Int?) {
     companion object {
-        fun from(item: TrackedItem): IntroDbQuery? {
+        fun from(item: PlaybackItem): IntroDbQuery? {
             val imdb = item.imdbId?.takeIf { Regex("tt[0-9]{5,12}").matches(it) } ?: return null
             if (item.kind == Kind.MOVIE) return IntroDbQuery(imdb, null, null)
             return if (item.season != null && item.season >= 0 && item.episode != null && item.episode > 0)
@@ -94,13 +94,4 @@ internal object IntroDbSegments {
             if (it.kind == "credits") it.startMs >= duration / 2
             else it.startMs < duration / 2 && it.endMs - it.startMs <= duration / 3
     }
-}
-
-internal data class LoadedMarkers(val markers: List<Marker>, val introDb: Boolean)
-
-internal suspend fun resolveMarkers(server: suspend () -> List<Marker>, database: suspend () -> List<Marker>): LoadedMarkers {
-    val local = try { server().filter { it.startMs >= 0 && it.endMs > it.startMs } }
-    catch (e: CancellationException) { throw e }
-    catch (_: Exception) { emptyList() }
-    return if (local.isNotEmpty()) LoadedMarkers(local, false) else LoadedMarkers(database(), true)
 }

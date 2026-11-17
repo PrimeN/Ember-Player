@@ -20,7 +20,7 @@ internal fun PlayerActivity.managePictureProfiles() {
     val actions=safe.pictureProfiles.map {profile->PlayerDialogAction(profile.name,selected=profile.id==bound?.id) {
         showPlayerActions(profile.name,buildList {
             add(PlayerDialogAction("Use as default") {store(profile.state.applyTo(if(resumeKey.isNotBlank())PictureProfiles.bind(config,resumeKey,null) else config))})
-            if(resumeKey.isNotBlank()&&!privatePlayback&&!live&&!trailer)
+            if(resumeKey.isNotBlank()&&!privatePlayback)
                 add(PlayerDialogAction("Use for this media") {store(PictureProfiles.bind(config,resumeKey,profile.id))})
             add(PlayerDialogAction("Delete profile",destructive=true){store(PictureProfiles.remove(config,profile.id));managePictureProfiles()})
         },message="Includes picture, shader and HDR output settings.")

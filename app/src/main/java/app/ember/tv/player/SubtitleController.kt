@@ -10,7 +10,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import app.ember.tv.data.SubtitleCandidate
 import app.ember.tv.data.SubtitleConfig
-import app.ember.tv.data.SubtitleOption
 import app.ember.tv.data.Subtitles
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.Job
@@ -60,8 +59,8 @@ class SubtitleController(
     private var manualBitmap=false
     val wholeFileTiming:Boolean get()=manualFile!=null || manualBitmap
 
-    /** Starts looking for subtitles for a new video. [addon] are the subtitles the Stremio addons gave. */
-    fun startSearch(url: String, query: Subtitles.Query, addon: List<SubtitleOption>, preserve: Boolean = false) {
+    /** Starts looking for online subtitles for a new video. */
+    fun startSearch(url: String, query: Subtitles.Query, preserve: Boolean = false, headers:Map<String,String> = emptyMap()) {
         if (!preserve) { choice=null; chosenOff=false;manualFile=null;manualBitmap=false }
         this.query = query
         searchJob?.cancel()
@@ -79,24 +78,21 @@ class SubtitleController(
             manualFile?.let {(text,format)->loadJob=activity.lifecycleScope.launch {loadManual(text,format,restoring=true)}}
             onChange();return
         }
-        val fromAddons = Subtitles.fromOptions(addon.filter { it.server || config.addonSubs })
-        candidates = Subtitles.rank(fromAddons,config,release,player()?.videoFormat?.frameRate?.takeIf { it > 0 })
-        searched = candidates.isNotEmpty()
         if (chosenOff) autoSelection.manual()
         val anyProvider = config.stremioOpenSubs || config.openSubsCom || config.subdl
         status = if (anyProvider) "Searching for subtitles..." else null
         onChange()
         autoSelect()
         searchJob = activity.lifecycleScope.launch {
-            // The addon's own file hash when it gave one (#74): no need to download parts of the file.
+            // Use an existing file hash when available to avoid unnecessary range reads.
             val hashed: Pair<String, Long?>? = if (!config.hashMatch || !anyProvider) null
-                else query.hash?.let { it to query.size } ?: if (url.startsWith("http")) kotlinx.coroutines.withTimeoutOrNull(5000) { Subtitles.movieHash(url) } else null
+                else query.hash?.let { it to query.size } ?: if (url.startsWith("http")) kotlinx.coroutines.withTimeoutOrNull(5000) { Subtitles.movieHash(url,headers) } else null
             val found = if (anyProvider) Subtitles.search(query.copy(hash = hashed?.first, size = hashed?.second), config) { batch ->
                 candidates=Subtitles.rank((candidates+batch).distinctBy { it.url ?: it.fileId.toString() },config,release,player()?.videoFormat?.frameRate?.takeIf { it>0 })
                 searched=true;onChange();autoSelect()
             } else emptyList()
             ensureActive()
-            candidates = Subtitles.rank((candidates + fromAddons + found).distinctBy {it.url ?: it.fileId.toString()}, config, release, player()?.videoFormat?.frameRate?.takeIf { it > 0 })
+            candidates = Subtitles.rank((candidates + found).distinctBy {it.url ?: it.fileId.toString()}, config, release, player()?.videoFormat?.frameRate?.takeIf { it > 0 })
             searched = true
             status = when {
                 candidates.isEmpty() -> "No subtitles found in your languages."
@@ -106,16 +102,6 @@ class SubtitleController(
             onChange()
             autoSelect()
         }
-    }
-
-    /** Late add-on results extend this visit without clearing a manual subtitle choice. */
-    fun addOptions(options: List<SubtitleOption>) {
-        val found = Subtitles.fromOptions(options.filter { it.server || config.addonSubs })
-        candidates = Subtitles.rank((candidates + found).distinctBy { it.url ?: it.fileId.toString() },
-            config, release, player()?.videoFormat?.frameRate?.takeIf { it > 0 })
-        searched = true
-        onChange()
-        autoSelect()
     }
 
     /** Call when the player is ready: the audio language is known then. */

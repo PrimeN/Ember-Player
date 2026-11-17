@@ -11,6 +11,17 @@ import org.robolectric.RuntimeEnvironment
 @RunWith(RobolectricTestRunner::class)
 @org.robolectric.annotation.Config(sdk=[35])
 class FolderPlaybackHistoryTest {
+    @Test fun savedActivityScopesRemainReadableWithoutTheOldProfileIntegrations() {
+        val context=RuntimeEnvironment.getApplication()
+        context.getSharedPreferences("ember",android.content.Context.MODE_PRIVATE).edit()
+            .putString("profiles","""[{"id":"saved","name":"Saved","kids":true,"personal":false,"activityMode":"local"}]""")
+            .putString("currentProfile","saved").commit()
+        val scope=LocalActivity.scope(context)
+        assertEquals("local:saved",scope)
+        PositionStore(context,scope).put("media",1234,9000)
+        assertEquals(1234L to 9000L,PositionStore(context,LocalActivity.scope(context)).get("media"))
+        assertNull(PositionStore(context,LocalActivity.SHARED).get("media"))
+    }
     @Test fun foldersRememberTheirOwnLastPlayedItemAndMoveItToTheDestination() {
         var raw:String?=null
         val history=FolderPlaybackHistory({raw},{raw=it;true})

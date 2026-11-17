@@ -102,6 +102,4 @@ const val GLASS_CACHED = "cached"
 const val GLASS_LIVE = "live"
 
 val LocalRenderOptions = staticCompositionLocalOf { RenderOptions() }
-val LocalHeroArtworkMode = compositionLocalOf { app.ember.tv.data.HeroArtworkMode.STANDARD }
 val LocalBackdropArtwork = compositionLocalOf { ReadyArtwork(null, null) }
-val LocalArtworkPresented = compositionLocalOf<(ReadyArtwork) -> Unit> { {} }

@@ -4,25 +4,17 @@ import androidx.compose.ui.res.stringResource
 import app.ember.tv.R
 
 import app.ember.tv.data.toHex
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.tv.material3.Text
 import app.ember.tv.data.Prefs
-import app.ember.tv.tracker.TokenStore
+import app.ember.player.storage.TokenStore
 import app.ember.tv.ui.TvDialog
 import app.ember.tv.ui.DialogHeading
 import app.ember.tv.ui.TvTextField
@@ -62,6 +54,21 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
         var domain by remember {mutableStateOf("")};var fingerprint by remember {mutableStateOf("")}
         var unencryptedSmb by remember {mutableStateOf(false)}
         var saving by remember {mutableStateOf(false)};var note by remember {mutableStateOf<String?>(null)}
+        var authentication by remember {mutableStateOf("password")}
+        var privateKey by remember {mutableStateOf("")};var keyPassphrase by remember {mutableStateOf("")}
+        var importing by remember {mutableStateOf(false)}
+        val importKey=androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) {uri->
+            app.ember.player.PrivateMedia.endPicker()
+            if(uri!=null)scope.launch {
+                importing=true
+                try {
+                    privateKey=withContext(Dispatchers.IO){activity.contentResolver.openInputStream(uri)?.use(SftpCredentials::read) ?: error("Unavailable key file")}
+                    note="Private key imported. It will be encrypted when you save the folder."
+                }catch(e:CancellationException){throw e}
+                catch(_:Exception){note="Could not import this key. Choose an OpenSSH or PEM private key smaller than 64 KiB."}
+                finally {importing=false}
+            }
+        }
         val editScope=rememberCoroutineScope()
         var finding by remember {mutableStateOf(false)}
         var servers by remember {mutableStateOf<List<SmbServer>>(emptyList())}
@@ -106,9 +113,24 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                 items(servers,key={"server:"+it.address}) {server->Chip(server.name){finding=false;address=server.address;if(label.isBlank())label=server.name}}
                 items(shares,key={"share:"+it}) {share->Chip(share){address=NetworkLocation.parse(address,allowSmbRoot=true).smbShare(share);if(label.isBlank())label=share;shares=emptyList()}}
                 item {NetworkField("Username",user){user=it}}
-                item {NetworkField("Password",password,true){password=it}}
+                val sftp=address.trim().startsWith("sftp://")
+                if(sftp)item {ButtonRow {
+                    Chip("Password",selected=authentication=="password"){authentication="password"}
+                    Chip("Private key",selected=authentication=="key"){authentication="key"}
+                }}
+                if(!sftp||authentication=="password")item {NetworkField("Password",password,true){password=it}}
+                if(sftp&&authentication=="key") {
+                    item {Chip(if(importing)"Importing key…" else if(privateKey.isEmpty())"Import private key" else "Replace private key") {
+                        if(!importing)runCatching {
+                            if(app.ember.player.PrivateMedia.enabled&&app.ember.player.PrivateMedia.unlocked.value)app.ember.player.PrivateMedia.beginPicker()
+                            importKey.launch(arrayOf("*/*"))
+                        }.onFailure {app.ember.player.PrivateMedia.endPicker();note="No file picker is available."}
+                    }}
+                    item {NetworkField("Private key passphrase (optional)",keyPassphrase,true){keyPassphrase=it}}
+                }
                 item {NetworkField("SMB domain (optional)",domain){domain=it}}
-                item {NetworkField("SFTP verified SHA256 fingerprint",fingerprint){fingerprint=it}}
+                item {NetworkField("SFTP verified SHA256 fingerprint (optional)",fingerprint){fingerprint=it}}
+                if(sftp)item {Text("Leave the fingerprint empty to verify and confirm the server's key on your first connection.",fontSize=13.sp)}
                 if(address.trim().startsWith("smb://",ignoreCase=true))item {
                     Column(verticalArrangement=Arrangement.spacedBy(6.dp)) {
                         Chip(if(unencryptedSmb)"SMB encryption: not required" else "SMB encryption: required",selected=unencryptedSmb) {unencryptedSmb=!unencryptedSmb}
@@ -117,13 +139,17 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                 }
                 note?.let {item {Text(it)}}
                 item {Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                    Chip(if(saving)"Saving…" else "Save") {if(!saving)scope.launch {
+                    Chip(if(saving)"Saving…" else "Save") {if(!saving&&!importing)scope.launch {
                         note=null
                         val pin=NetworkLocation.normalizeFingerprint(fingerprint)
-                        if(address.trim().startsWith("sftp://")&&pin==null){note="Enter a valid SHA256 host key fingerprint verified with the server owner.";return@launch}
-                        val valid=runCatching {val l=NetworkLocation.parse(address);require(label.isNotBlank());require(user.none {it.isISOControl()});NetworkAccount(label=label.trim().take(80),address=address.trim(),username=user,password=password,domain=domain,fingerprint=pin ?: "",allowUnencryptedSmb=unencryptedSmb&&l.scheme=="smb")}.getOrNull()
+                        if(sftp&&fingerprint.isNotBlank()&&pin==null){note="Enter a valid SHA256 host key fingerprint verified with the server owner.";return@launch}
+                        val valid=runCatching {val l=NetworkLocation.parse(address);require(label.isNotBlank());require(user.none {it.isISOControl()});NetworkAccount(label=label.trim().take(80),address=address.trim(),username=user,password=if(sftp&&authentication=="key")"" else password,domain=domain,fingerprint=pin ?: "",allowUnencryptedSmb=unencryptedSmb&&l.scheme=="smb",authentication=if(sftp)authentication else "password",privateKey=if(sftp&&authentication=="key")privateKey else "",keyPassphrase=if(sftp&&authentication=="key")keyPassphrase else "")}.getOrNull()
                         if(valid==null){note="Check the name, address and SFTP host fingerprint.";return@launch}
                         saving=true
+                        if(sftp&&authentication=="key") {
+                            val validKey=withContext(Dispatchers.IO){runCatching {val ssh=com.jcraft.jsch.JSch();try {SftpCredentials.install(ssh,valid)}finally {ssh.removeAllIdentity()}}.isSuccess}
+                            if(!validKey){saving=false;note="Could not unlock this private key. Check its format and passphrase.";return@launch}
+                        }
                         val updated=accounts+valid
                         val saved=withContext(Dispatchers.IO){TokenStore(activity).putEncrypted(key,json.encodeToString(updated))}
                         saving=false
@@ -144,6 +170,8 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
         var offset by remember(account.id,path) {mutableIntStateOf(0)}
         var next by remember(account.id,path) {mutableStateOf<Int?>(null)}
         var reload by remember {mutableIntStateOf(0)}
+        var hostKey by remember(account.id) {mutableStateOf<String?>(null)}
+        var trusting by remember(account.id) {mutableStateOf(false)}
         LaunchedEffect(account.id,path,offset,reload) {
             busy=true;note=null;entries=emptyList();selected=emptySet()
             try {val context=currentCoroutineContext()
@@ -151,10 +179,32 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                 ensureActive();entries=page.entries;next=page.next}
             catch(e:CancellationException){throw e}
             catch(_:ListingLimitException){note="This directory listing is too large. Open a smaller folder."}
+            catch(e:SftpHostKeyConfirmationException){hostKey=e.fingerprint}
             catch(e:SftpHostKeyMismatchException){note=e.message}
             catch(_:Exception){note="Could not open this folder. Check its address, credentials, permissions and host key."}
             finally {busy=false}
         }
+        hostKey?.let {fingerprint->TvDialog({if(!trusting){hostKey=null;browse=null}},width=560.dp) {
+            DialogHeading("Verify SFTP server")
+            val server=NetworkLocation.parse(account.address)
+            Text("${server.host}:${server.port}")
+            androidx.compose.foundation.text.selection.SelectionContainer {Text(fingerprint)}
+            Text("Verify this fingerprint with the server owner through another trusted channel. Trusting an unverified key could connect you to the wrong server. A changed key will be rejected.",fontSize=13.sp)
+            note?.let {Text(it)}
+            ButtonRow {
+                Chip(if(trusting)"Saving…" else "Trust this key") {if(!trusting)scope.launch {
+                    trusting=true
+                    val current=accounts.firstOrNull {it.id==account.id}
+                    if(current==null||current.fingerprint.isNotBlank()){trusting=false;hostKey=null;note="The saved folder changed. Reopen it before verifying its key.";return@launch}
+                    val trusted=current.copy(fingerprint=fingerprint)
+                    val updated=accounts.map {if(it.id==trusted.id)trusted else it}
+                    val saved=withContext(Dispatchers.IO){TokenStore(activity).putEncrypted(key,json.encodeToString(updated))}
+                    trusting=false
+                    if(saved){accounts=updated;browse=trusted;hostKey=null;reload++}else note="Could not save the trusted key in encrypted storage."
+                }}
+                Chip("Cancel"){if(!trusting){hostKey=null;browse=null}}
+            }
+        }}
         fun play(all:Boolean) {
             val chosen=entries.filter {!it.directory&&it.size>0&&(if(all)MediaFileTypes.playable(it) else it.name in selected)}
             if(chosen.isEmpty())return
@@ -170,7 +220,7 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
             } catch(e:SftpHostKeyMismatchException) {cleanup?.close();note=e.message}
               catch(_:Exception) {cleanup?.close();note="Could not start file playback."}
         }
-        TvDialog({browse=null},width=620.dp) {
+        if(hostKey==null)TvDialog({browse=null},width=620.dp) {
             androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth(),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
                 DialogHeading(account.label,Modifier.weight(1f))
                 app.ember.tv.ui.DialogClose({browse=null})

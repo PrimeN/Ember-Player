@@ -3,7 +3,7 @@ package app.ember.tv.player
 import android.content.Context
 import app.ember.player.ExternalMedia
 import app.ember.tv.data.Prefs
-import app.ember.tv.tracker.TokenStore
+import app.ember.player.storage.TokenStore
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json

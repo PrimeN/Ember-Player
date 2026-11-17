@@ -5,6 +5,24 @@ import org.junit.Test
 import javax.crypto.AEADBadTagException
 
 class PlayerBackupTest {
+    @Test fun legacyBackupsRemainReadableAndNewBackupsUseTheVersionTwoEnvelope() {
+        val password="a sufficiently long password".toCharArray()
+        val salt=ByteArray(16){it.toByte()};val nonce=ByteArray(12){(it+16).toByte()}
+        val spec=javax.crypto.spec.PBEKeySpec(password,salt,210000,256)
+        val key=javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
+        spec.clearPassword()
+        val header="EMBERPB1".toByteArray()+salt+nonce
+        val cipher=javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(javax.crypto.Cipher.ENCRYPT_MODE,javax.crypto.spec.SecretKeySpec(key,"AES"),javax.crypto.spec.GCMParameterSpec(128,nonce))
+        cipher.updateAAD(header)
+        val original="legacy settings".toByteArray()
+        assertArrayEquals(original,PlayerBackupCipher.decrypt(header+cipher.doFinal(original),password))
+        val current=PlayerBackupCipher.encrypt(original,password)
+        assertEquals("EMBERPB2",String(current,0,8,Charsets.US_ASCII))
+        val unknown=current.clone().apply {this[7]='9'.code.toByte()}
+        try {PlayerBackupCipher.decrypt(unknown,password);fail("Unknown formats must not select arbitrary derivation parameters")}catch(_:IllegalArgumentException){}
+        key.fill(0);password.fill('\u0000')
+    }
     private fun sample(text:String="1")=PlayerBackupData(preferences=PlayerBackups.files.associateWith {file->
         if(file=="ember")mapOf("theme" to BackupValue("string",text)) else emptyMap()
     },secrets=mapOf("connection" to "private-value"))

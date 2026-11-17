@@ -23,8 +23,5 @@ object PlayerInterfaces {
     fun resolve(config: PlaybackConfig, launcher: String): String = config.playerInterface?.let(::normalize)
         ?: if (InterfaceStyles.normalize(launcher) == InterfaceStyles.EMBER_X) EMBER_X else normalize(config.playerLook)
 
-    fun customControls(style: String, live: Boolean, trailer: Boolean): Boolean =
-        !live && !trailer
-
     fun layoutStyle(style: String): String = if (normalize(style) == EMBER_X) InterfaceStyles.EMBER_X else InterfaceStyles.MODERN
 }
