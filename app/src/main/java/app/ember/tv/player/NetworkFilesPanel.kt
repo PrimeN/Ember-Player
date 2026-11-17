@@ -119,7 +119,9 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                 item {Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                     Chip(if(saving)"Saving…" else "Save") {if(!saving)scope.launch {
                         note=null
-                        val valid=runCatching {val l=NetworkLocation.parse(address);require(label.isNotBlank());require(user.none {it.isISOControl()});if(l.scheme=="sftp")require(fingerprint.startsWith("SHA256:"));NetworkAccount(label=label.trim().take(80),address=address.trim(),username=user,password=password,domain=domain,fingerprint=fingerprint.trim(),allowUnencryptedSmb=unencryptedSmb&&l.scheme=="smb")}.getOrNull()
+                        val pin=NetworkLocation.normalizeFingerprint(fingerprint)
+                        if(address.trim().startsWith("sftp://")&&pin==null){note="Enter a valid SHA256 host key fingerprint verified with the server owner.";return@launch}
+                        val valid=runCatching {val l=NetworkLocation.parse(address);require(label.isNotBlank());require(user.none {it.isISOControl()});NetworkAccount(label=label.trim().take(80),address=address.trim(),username=user,password=password,domain=domain,fingerprint=pin ?: "",allowUnencryptedSmb=unencryptedSmb&&l.scheme=="smb")}.getOrNull()
                         if(valid==null){note="Check the name, address and SFTP host fingerprint.";return@launch}
                         saving=true
                         val updated=accounts+valid
@@ -149,6 +151,7 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                 ensureActive();entries=page.entries;next=page.next}
             catch(e:CancellationException){throw e}
             catch(_:ListingLimitException){note="This directory listing is too large. Open a smaller folder."}
+            catch(e:SftpHostKeyMismatchException){note=e.message}
             catch(_:Exception){note="Could not open this folder. Check its address, credentials, permissions and host key."}
             finally {busy=false}
         }
@@ -164,7 +167,8 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                     QueueMedia(relay.register(NetworkFiles.resource(account,relative,e.size),e.name),e.name,identity,NetworkQueueEntry(account.id,relative,e.size))
                 }
                 MediaFiles.launch(activity,items,listOf(relay))
-            } catch(_:Exception) {cleanup?.close();note="Could not start file playback."}
+            } catch(e:SftpHostKeyMismatchException) {cleanup?.close();note=e.message}
+              catch(_:Exception) {cleanup?.close();note="Could not start file playback."}
         }
         TvDialog({browse=null},width=620.dp) {
             androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth(),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
@@ -196,6 +200,7 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                                     (result.slowestMbps?.let {String.format(java.util.Locale.US," · slowest sample %.1f Mbps",it)}?:"")+". Short sample; actual playback may vary."
                             } catch(_:TimeoutCancellationException){probeNote="Test timed out. Check the connection and try again."}
                               catch(e:CancellationException){throw e}
+                              catch(e:SftpHostKeyMismatchException){probeNote=e.message}
                               catch(_:Exception){probeNote="Could not read the sample. Check server access and connection."}
                         }
                     }

@@ -33,16 +33,15 @@ internal fun DownloadsPanel(activity:ComponentActivity) {
     Chip(if(expanded)"Hide downloads" else "Manage downloads"){expanded=!expanded}
     if(!expanded)return
     LaunchedEffect(version) {activity.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED){while(true){entries=withContext(Dispatchers.IO){DownloadStore(activity).read()};delay(1500)}}}
-    fun action(block:()->Unit){scope.launch {try {withContext(Dispatchers.IO){block()};version++}catch(e:CancellationException){throw e}catch(_:Exception){notice="Could not update this download."}}}
-    ButtonRow {Chip("Download media URL"){adding=true};Chip("Pause download"){MediaDownloadService.pause(activity)}}
-    Text("Direct media files only. Adaptive playlists and protected streams are not downloaded. Downloads pause if Android stops the task; choose Resume to continue.",fontSize=12.sp,color=Mute)
+    ButtonRow {Chip("Download media URL"){adding=true};Chip("Pause downloads"){MediaDownloadService.pause(activity)}}
+    Text("Direct media files download one at a time; additional requests wait in the queue. Adaptive playlists and protected streams are not downloaded. Pause stops the active download and clears the waiting queue. If Android stops the task, choose Resume to continue.",fontSize=12.sp,color=Mute)
     entries.filterNot {PrivateMedia.hidden(it.url)||PrivateMedia.hidden(DownloadStore.uri(activity,it).toString())}.forEach {entry->
         Text(entry.name,fontSize=14.sp,maxLines=1)
         Text("${entry.state} · ${entry.bytes/1024/1024} MB"+(if(entry.total>0)" / ${entry.total/1024/1024} MB" else ""),fontSize=12.sp,color=Mute)
         ButtonRow {
             if(entry.state=="complete")Chip("Play"){runCatching {MediaFiles.launch(activity,listOf(QueueMedia(DownloadStore.uri(activity,entry).toString(),entry.name)))}.onFailure {notice="The downloaded file is unavailable."}}
-            else Chip("Resume"){runCatching {start(entry.id)}.onFailure {notice="Android could not start this download."}}
-            Chip("Remove"){action {DownloadStore(activity).remove(entry.id)}}
+            else if(entry.state !in setOf("queued","downloading"))Chip("Resume"){runCatching {start(entry.id)}.onFailure {notice="Android could not start this download."}}
+            Chip("Remove"){runCatching {MediaDownloadService.remove(activity,entry.id);version++}.onFailure {notice="Could not remove this download."}}
         }
     }
     notice?.let {Text(it,fontSize=12.sp,color=Mute)}

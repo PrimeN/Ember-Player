@@ -14,6 +14,15 @@ internal interface RemoteMedia {
     val mime:String get()="application/octet-stream"
     fun open(offset:Long):InputStream
 }
+/** HTTP resources provide headers and the body from the same upstream request. */
+internal interface RemoteHttpMedia:RemoteMedia {
+    override val length:Long get()=-1
+    fun response(range:String?,head:Boolean):RemoteHttpResponse
+    override fun open(offset:Long):InputStream=error("Use an HTTP response for this resource.")
+}
+internal class RemoteHttpResponse(val code:Int,val length:Long,val mime:String,val contentRange:String?=null,val acceptsRanges:Boolean=false,val body:InputStream?=null):Closeable {
+    override fun close(){body?.close()}
+}
 internal data class ByteRange(val start:Long,val end:Long) {
     companion object {
         fun parse(value:String?,size:Long):ByteRange? {
@@ -92,6 +101,28 @@ internal class MediaRelay(private val lan:LanRelayAccess?=null):Closeable {
                 val path=request[1];val prefix=path.substringBefore('?',path).split('/').take(3).joinToString("/")
                 val factory=families[prefix]?:run {status("404 Not Found");return}
                 try {factory(path.removePrefix(prefix).ifEmpty {"/"})}catch(_:Exception){status("502 Bad Gateway");return}
+            }
+            if(source is RemoteHttpMedia) {
+                val range=headers["range"]
+                if(range!=null&&(range.length>128||!range.matches(Regex("bytes=(?:\\d+-\\d*|-\\d+)")))){status("416 Range Not Satisfiable");return}
+                val response=try {source.response(range,request[0]=="HEAD")}catch(_:Exception){status("502 Bad Gateway");return}
+                response.use {
+                    val stream=it.body
+                    if(closed)return
+                    if(stream!=null)clients+=stream
+                    try {
+                        val code=when(it.code){200->"200 OK";206->"206 Partial Content";416->"416 Range Not Satisfiable";else->"502 Bad Gateway"}
+                        val mime=it.mime.takeIf {value->value.matches(Regex("[A-Za-z0-9.+-]+/[A-Za-z0-9.+-]+"))} ?: "application/octet-stream"
+                        val contentRange=it.contentRange?.takeIf {value->value.matches(Regex("bytes (?:\\d+-\\d+|\\*)/\\d+|bytes \\d+-\\d+/\\*"))}
+                        val extra="Content-Type: $mime\r\n"+(if(it.acceptsRanges)"Accept-Ranges: bytes\r\n" else "")+(contentRange?.let {value->"Content-Range: $value\r\n"}?:"")
+                        status(code,extra,it.length)
+                        if(request[0]!="HEAD"&&stream!=null) {
+                            val buffer=ByteArray(64*1024)
+                            while(!closed){val n=stream.read(buffer);if(n<0)break;if(n>0)out.write(buffer,0,n)}
+                        }
+                    }finally {if(stream!=null)clients-=stream}
+                }
+                return
             }
             val mime=source.mime.takeIf {it.matches(Regex("[A-Za-z0-9.+-]+/[A-Za-z0-9.+-]+"))} ?: "application/octet-stream"
             if(source.length<0) {
