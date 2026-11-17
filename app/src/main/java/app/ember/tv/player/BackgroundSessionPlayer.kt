@@ -70,7 +70,7 @@ internal class BackgroundSessionPlayer(private val backend:()->Player?,private v
         if(mediaItems.isEmpty()||mediaItems.any {it.mediaId !in available})return Futures.immediateFailedFuture<Void>(IllegalArgumentException("Choose an item from the active queue."))
         val requested=mediaItems.getOrNull(startIndex.takeIf {it>=0} ?: 0) ?: return Futures.immediateFailedFuture<Void>(IllegalArgumentException("Invalid queue position."))
         val index=requested.mediaId.substringAfterLast(':').toInt()
-        if(queue()!=null)select(index)
+        if(queue()!=null&&(queue()?.index!=index||queue()?.current?.key!=source()?.key))select(index)
         if(startPositionMs>=0)backend()?.seekTo(startPositionMs)
         return Futures.immediateVoidFuture()
     }

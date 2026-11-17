@@ -60,7 +60,10 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
             combine(app.ember.player.PrivateMedia.state,app.ember.player.PrivateMedia.unlocked){_,_->Unit}.collect {
                 if(!closing) {
                     if(source?.urls?.any {app.ember.player.PrivateMedia.hidden(it)}==true)stopPlayback()
-                    else sessionPlayer?.refresh()
+                    else {
+                        sessionPlayer?.refresh()
+                        session?.notifyChildrenChanged(BackgroundLibrary.ROOT,sessionPlayer?.libraryItems()?.size ?: 0,null)
+                    }
                 }
             }
         }

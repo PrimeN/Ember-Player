@@ -25,9 +25,27 @@ internal class BackgroundLibrary(private val items:()->List<MediaItem>):MediaLib
         return Futures.immediateFuture(LibraryResult.ofItemList(values.subList(start,end),params))
     }
     override fun onAddMediaItems(session:MediaSession,controller:MediaSession.ControllerInfo,mediaItems:List<MediaItem>):ListenableFuture<List<MediaItem>> {
-        return try {Futures.immediateFuture(resolve(mediaItems))}catch(e:IllegalArgumentException){Futures.immediateFailedFuture(e)}
+        return try {Futures.immediateFuture(resolve(mediaItems,session.player.currentMediaItem?.mediaId))}catch(e:IllegalArgumentException){Futures.immediateFailedFuture(e)}
     }
-    internal fun resolve(mediaItems:List<MediaItem>):List<MediaItem> {
+    override fun onSearch(session:MediaLibrarySession,browser:MediaSession.ControllerInfo,query:String,params:LibraryParams?):ListenableFuture<LibraryResult<Void>> {
+        session.notifySearchResultChanged(browser,query,search(query).size,params)
+        return Futures.immediateFuture(LibraryResult.ofVoid())
+    }
+    override fun onGetSearchResult(session:MediaLibrarySession,browser:MediaSession.ControllerInfo,query:String,page:Int,pageSize:Int,params:LibraryParams?):ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
+        if(page<0||pageSize<1)return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_BAD_VALUE))
+        val values=search(query);val start=(page.toLong()*pageSize).coerceAtMost(values.size.toLong()).toInt()
+        val end=(start.toLong()+pageSize).coerceAtMost(values.size.toLong()).toInt()
+        return Futures.immediateFuture(LibraryResult.ofItemList(values.subList(start,end),params))
+    }
+    internal fun search(query:String)=items().filter {MediaSearch.matches(it.mediaMetadata.title,query)}
+    internal fun resolve(mediaItems:List<MediaItem>,currentMediaId:String?=null):List<MediaItem> {
+        val query=mediaItems.singleOrNull()?.requestMetadata?.searchQuery
+        if(query!=null) {
+            val found=if(query.isBlank())items().firstOrNull {it.mediaId==currentMediaId} ?: items().firstOrNull()
+                else search(query).firstOrNull()
+            require(found!=null){"No matching item in the active queue."}
+            return listOf(found)
+        }
         val allowed=items().associateBy {it.mediaId}
         require(mediaItems.isNotEmpty()&&mediaItems.all {it.mediaId in allowed}){"Choose an item from the active queue."}
         return mediaItems.map {allowed.getValue(it.mediaId)}

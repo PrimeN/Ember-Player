@@ -16,6 +16,7 @@ class PlatformPlaybackSession(context: Context, private val player: Player, priv
     init {
         session.setCallback(object : MediaSession.Callback() {
             override fun onPlay() { player.play() }
+            override fun onPlayFromSearch(query:String?,extras:Bundle?) {if(MediaSearch.matches(player.mediaMetadata.title,query))onPlay()}
             override fun onPause() { player.pause() }
             override fun onSeekTo(pos: Long) { player.seekTo(pos.coerceAtLeast(0)) }
             override fun onStop() { stop() }
@@ -36,7 +37,7 @@ class PlatformPlaybackSession(context: Context, private val player: Player, priv
         }
         session.setMetadata(MediaMetadata.Builder().putString(MediaMetadata.METADATA_KEY_TITLE,player.mediaMetadata.title?.toString())
             .putLong(MediaMetadata.METADATA_KEY_DURATION,player.duration.coerceAtLeast(0)).build())
-        val actions = PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_PLAY_PAUSE or PlaybackState.ACTION_STOP or PlaybackState.ACTION_SEEK_TO or (if (canNext) PlaybackState.ACTION_SKIP_TO_NEXT else 0L)
+        val actions = PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PLAY_FROM_SEARCH or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_PLAY_PAUSE or PlaybackState.ACTION_STOP or PlaybackState.ACTION_SEEK_TO or (if (canNext) PlaybackState.ACTION_SKIP_TO_NEXT else 0L)
         session.setPlaybackState(PlaybackState.Builder().setActions(actions).setState(state,player.currentPosition,if(player.isPlaying) player.playbackParameters.speed else 0f).build())
     }
     fun release() { player.removeListener(this); session.isActive = false; session.release() }

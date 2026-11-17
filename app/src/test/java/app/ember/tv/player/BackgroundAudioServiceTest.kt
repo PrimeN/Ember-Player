@@ -138,6 +138,16 @@ class BackgroundAudioServiceTest {
         assertSame(allowed,library.resolve(listOf(request)).single())
         try {library.resolve(listOf(request.buildUpon().setMediaId("unknown").build()));fail("Unknown sources must be rejected")}catch(_:IllegalArgumentException){}
     }
+    @Test fun voiceSearchResolvesOnlyMatchingItemsFromTheActiveQueue() {
+        val first=MediaItem.Builder().setMediaId("opaque:0").setMediaMetadata(MediaMetadata.Builder().setTitle("First song").build()).build()
+        val second=first.buildUpon().setMediaId("opaque:1").setMediaMetadata(MediaMetadata.Builder().setTitle("Second song").build()).build()
+        val library=BackgroundLibrary {listOf(first,second)}
+        fun request(query:String)=MediaItem.Builder().setRequestMetadata(MediaItem.RequestMetadata.Builder().setSearchQuery(query).build()).build()
+        assertSame(second,library.resolve(listOf(request("SECOND"))).single())
+        assertSame(second,library.resolve(listOf(request("")),second.mediaId).single())
+        assertEquals(listOf(first,second),library.search("song"))
+        try {library.resolve(listOf(request("https://untrusted.example/media")));fail("Voice requests must stay in the authorized queue")}catch(_:IllegalArgumentException){}
+    }
     @Test fun savingProgressDoesNotRepostAnUnchangedMediaNotification() {
         val request=request();val id=BackgroundAudioService.stage(context,request);val controller=service(id)
         try {
