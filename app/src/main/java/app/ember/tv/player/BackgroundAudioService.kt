@@ -207,7 +207,7 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
         sessionPlayer=adapter
         val resume=PendingIntent.getActivity(this,id?.hashCode() ?: 0,Intent(this,ResumeBackgroundAudioActivity::class.java)
             .setData(Uri.parse("emberplayer:background:$id")).putExtra(EXTRA_ID,id),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        return MediaLibrarySession.Builder(this,adapter,BackgroundLibrary(adapter::libraryItems)).setId(id ?: java.util.UUID.randomUUID().toString())
+        return MediaLibrarySession.Builder(this,adapter,BackgroundLibrary(applicationContext,adapter::libraryItems)).setId(id ?: java.util.UUID.randomUUID().toString())
             .setSessionActivity(resume).build().also {session=it;addSession(it)}
     }
     private fun loadArtwork() {
