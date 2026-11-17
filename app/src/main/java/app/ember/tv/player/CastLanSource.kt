@@ -62,33 +62,15 @@ internal class CastLanSource(private val context:Context,peer:InetAddress):Close
             prefix+"/v/"+tokens.joinToString("/")
         }
     }
-    private fun request(url:String,head:Boolean=false,offset:Long=0):okhttp3.Response {
+    private fun request(url:String,head:Boolean=false,range:String?=null):okhttp3.Response {
         check(!closed)
-        val request=Request.Builder().url(url).apply {if(head)head() else if(offset>0)header("Range","bytes=$offset-")}.build()
+        val request=Request.Builder().url(url).apply {if(head)head();if(range!=null)header("Range",range)}.build()
         val call=client.newCall(request);calls+=call
-        try {val response=call.execute();calls-=call;check(response.code in setOf(200,206)){response.close();"Media unavailable"};return response}
+        try {val response=call.execute();calls-=call;check(response.code in setOf(200,206,416)){response.close();"Media unavailable"};return response}
         catch(e:Exception){calls-=call;throw e}
     }
-    private fun resource(url:String):RemoteMedia {
-        var size=-1L;var mime="application/octet-stream"
-        val knownManifest=listOf(".m3u8",".m3u",".mpd").any {url.substringBefore('?').endsWith(it,true)}
-        if(!knownManifest)request(url,true).use {size=it.header("Content-Length")?.toLongOrNull() ?: -1L;mime=it.header("Content-Type")?.substringBefore(';') ?: mime}
-        if(knownManifest||mime.contains("mpegurl",true)||mime.contains("dash+xml",true)) {
-            val bytes=request(url).use {response->
-                mime=response.header("Content-Type")?.substringBefore(';') ?: mime
-                app.ember.tv.data.SubtitleFiles.read(response.body.byteStream(),4*1024*1024)
-            }
-            return object:RemoteMedia {override val length=bytes.size.toLong();override val mime=mime;override fun open(offset:Long)=bytes.inputStream().apply {skip(offset)}}
-        }
-        return object:RemoteMedia {
-            override val length=size
-            override val mime=mime
-            override fun open(offset:Long):InputStream {
-                val response=request(url,offset=offset)
-                if(offset>0&&(response.code!=206||response.header("Content-Range")?.startsWith("bytes $offset-")!=true)){response.close();error("Receiver source cannot seek")}
-                return object:java.io.FilterInputStream(response.body.byteStream()){override fun close(){response.close()}}
-            }
-        }
+    private fun resource(url:String):RemoteMedia=object:RemoteHttpMedia {
+        override fun response(range:String?,head:Boolean)=request(url,head,range).relayResponse(head,range)
     }
     override fun close(){closed=true;relay.close();transport?.close();calls.forEach {it.cancel()};calls.clear();aliases.clear();descriptors.forEach {runCatching {it.close()}};descriptors.clear()}
     companion object {
