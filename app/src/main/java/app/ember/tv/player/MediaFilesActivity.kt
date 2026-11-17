@@ -16,6 +16,7 @@ import kotlinx.coroutines.*
 
 /** Uses document grants by default; mounted-drive browsing requests media access explicitly. */
 class MediaFilesActivity:ComponentActivity() {
+    internal val library by lazy {androidx.lifecycle.ViewModelProvider(this)[app.ember.player.PlayerLibraryViewModel::class.java].library}
     private lateinit var openedProfile:String
     private var preparing by mutableStateOf(false)
     private var refresh by mutableIntStateOf(0)

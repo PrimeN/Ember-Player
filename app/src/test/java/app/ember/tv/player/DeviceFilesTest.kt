@@ -70,16 +70,43 @@ class DeviceFilesTest {
         assertEquals(initial, provider.files.keys.toSet())
         assertEquals(100000L, provider.files.getValue("video").length())
     }
-    @Test fun encryptedFolderStoreRejectsCorruptDataAndDeduplicatesRoots() {
+    @Test fun encryptedFolderStorePreservesCorruptDataUntilItCanBeRead() {
         var raw: String? = "not json"
         val store = DeviceFolders({raw}, {raw = it; true})
         assertTrue(store.read().isEmpty())
+        assertFalse(store.add(DeviceFolder(tree.toString(), "Videos")))
+        assertFalse(store.remove(tree.toString()))
+        assertEquals("not json",raw)
+        raw=null
         assertTrue(store.add(DeviceFolder(tree.toString(), "Videos")))
         assertTrue(store.add(DeviceFolder(tree.toString(), "Renamed")))
         assertEquals(listOf(DeviceFolder(tree.toString(), "Renamed")), store.read())
         assertTrue(store.remove(tree.toString()))
         assertTrue(store.read().isEmpty())
     }
+    @Test fun folderMutationsRejectUnreadablePartialAndOversizedCopiesWithoutWriting() {
+        val valid=DeviceFolder(tree.toString(),"Videos")
+        for(raw in listOf("not json", " ".repeat(65537),Json.encodeToString(listOf(valid,valid.copy(uri="file:///private"))),Json.encodeToString(listOf(valid,valid)))) {
+            var writes=0
+            val store=DeviceFolders({raw},{writes++;true})
+            assertFalse(store.add(valid));assertFalse(store.remove(valid.uri));assertEquals(0,writes)
+        }
+        var writes=0
+        val unavailable=DeviceFolders({throw IllegalStateException("Locked")},{writes++;true})
+        assertFalse(unavailable.add(valid));assertFalse(unavailable.remove(valid.uri));assertEquals(0,writes)
+    }
+    @Test fun folderLimitAndWriteFailureDoNotDiscardExistingRoots() {
+        var raw=Json.encodeToString((1..16).map {DeviceFolder("content://device.files/tree/$it","Folder $it")})
+        val original=raw
+        val store=DeviceFolders({raw},{raw=it;true})
+        assertFalse(store.add(DeviceFolder(tree.toString(),"Extra")))
+        assertEquals(original,raw)
+        val failed=DeviceFolders({raw},{false})
+        assertFalse(failed.remove("content://device.files/tree/1"));assertEquals(original,raw)
+        assertTrue(store.add(DeviceFolder("content://device.files/tree/1","Renamed")))
+        assertEquals(16,store.read().size)
+    }
+
 }
 
 class DeviceTestProvider : DocumentsProvider() {

@@ -22,16 +22,35 @@ internal data class DeviceFile(val uri: Uri, val parent: Uri, val name: String, 
 /** Folder access is explicit and uses persisted Android document grants. No startup scan. */
 internal class DeviceFolders(private val readValue: () -> String?, private val writeValue: (String) -> Boolean) {
     constructor(context: Context) : this(
-        { TokenStore(context.applicationContext).get("player.folders") },
+        { TokenStore(context.applicationContext).getForUpdate("player.folders") },
         { TokenStore(context.applicationContext).putEncrypted("player.folders", it) },
     )
-    fun read(): List<DeviceFolder> = readValue()?.takeIf { it.length <= 65536 }?.let {
-        runCatching { Json.decodeFromString<List<DeviceFolder>>(it) }.getOrNull()
-            ?.filter { f -> f.name.isNotBlank() && f.name.length <= 180 && f.uri.length <= 4096 && runCatching { val uri=Uri.parse(f.uri);uri.scheme=="content" && !uri.authority.isNullOrBlank() && DocumentsContract.isTreeUri(uri) }.getOrDefault(false) }
-            ?.distinctBy { f -> f.uri }?.take(16)
-    }.orEmpty()
-    fun add(value: DeviceFolder): Boolean = writeValue(Json.encodeToString((read().filterNot { it.uri == value.uri } + value).takeLast(16)))
-    fun remove(uri: String): Boolean = writeValue(Json.encodeToString(read().filterNot { it.uri == uri }))
+    private fun load(): List<DeviceFolder> {
+        val raw=readValue() ?: return emptyList()
+        require(raw.length<=65536)
+        val values=Json.decodeFromString<List<DeviceFolder>>(raw)
+        require(values.size<=16 && values.all(::valid) && values.distinctBy {it.uri}.size==values.size)
+        return values
+    }
+    fun read(): List<DeviceFolder> = runCatching {load()}.getOrDefault(emptyList())
+    fun add(value: DeviceFolder): Boolean = update {values->
+        require(valid(value))
+        (values.filterNot {it.uri==value.uri}+value).also {require(it.size<=16)}
+    }
+    fun remove(uri: String): Boolean = update {values->values.filterNot {it.uri==uri}}
+    private fun update(change:(List<DeviceFolder>)->List<DeviceFolder>):Boolean=synchronized(lock) {
+        runCatching {
+            val encoded=Json.encodeToString(change(load()))
+            encoded.length<=65536 && writeValue(encoded)
+        }.getOrDefault(false)
+    }
+    companion object {
+        private val lock=Any()
+        private fun valid(f:DeviceFolder)=f.name.isNotBlank() && f.name.length<=180 && f.uri.length<=4096 && runCatching {
+            val uri=Uri.parse(f.uri)
+            uri.scheme=="content" && !uri.authority.isNullOrBlank() && DocumentsContract.isTreeUri(uri)
+        }.getOrDefault(false)
+    }
 }
 
 internal object DeviceFiles {

@@ -30,42 +30,44 @@ internal class MediaLibrary(context:Context,
         db.query("PRAGMA busy_timeout=5000").use {it.moveToFirst()}
     }
     fun refresh(folders:List<DeviceFolder>,check:()->Unit,progress:(Int)->Unit) {
-        val roots=folders.filterNot {hidden(it.uri)}
-        val known=roots.map {digest(it.uri)}.toSet()
-        val removed=mutableListOf<String>()
-        db.query("SELECT DISTINCT root FROM media").use {while(it.moveToNext())if(it.getString(0) !in known)removed+=it.getString(0)}
-        removed.forEach {db.execSQL("DELETE FROM media WHERE root=?",arrayOf(it))}
-        var count=0
-        for(folder in roots) {
-            check()
-            val generation=java.util.UUID.randomUUID().toString();val root=digest(folder.uri);val tree=Uri.parse(folder.uri)
-            val pending=java.util.ArrayDeque<Uri>();pending.add(DeviceFiles.root(tree));val visited=hashSetOf<String>()
-            while(pending.isNotEmpty()) {
-                check();val directory=pending.removeFirst()
-                if(!visited.add(directory.toString()))continue
-                require(visited.size<=100000) {"This folder has too many subdirectories. Add a smaller root."}
-                var offset=0
-                do {
-                    val page=DeviceFiles.list(app,tree,directory,offset,check)
-                    db.beginTransaction()
-                    try {
-                        for(file in page.entries) {
-                            check();if(hidden(file.uri.toString()))continue
-                            if(file.directory)pending.add(file.uri)
-                            else {
-                                // DELETE first keeps the FTS index correct when a file is replaced.
-                                db.execSQL("DELETE FROM media WHERE id=?",arrayOf(digest(file.uri.toString())))
-                                db.execSQL("INSERT INTO media VALUES(?,?,?,?,?,?,?,?)",arrayOf<Any>(digest(file.uri.toString()),root,file.uri.toString(),file.name,file.mime,file.size,file.modified,generation))
-                                count++
+        try {
+            val roots=folders.filterNot {hidden(it.uri)}
+            val known=roots.map {digest(it.uri)}.toSet()
+            val removed=mutableListOf<String>()
+            db.query("SELECT DISTINCT root FROM media").use {while(it.moveToNext())if(it.getString(0) !in known)removed+=it.getString(0)}
+            removed.forEach {db.execSQL("DELETE FROM media WHERE root=?",arrayOf(it))}
+            var count=0
+            for(folder in roots) {
+                check()
+                val generation=java.util.UUID.randomUUID().toString();val root=digest(folder.uri);val tree=Uri.parse(folder.uri)
+                val pending=java.util.ArrayDeque<Uri>();pending.add(DeviceFiles.root(tree));val visited=hashSetOf<String>()
+                while(pending.isNotEmpty()) {
+                    check();val directory=pending.removeFirst()
+                    if(!visited.add(directory.toString()))continue
+                    require(visited.size<=100000) {"This folder has too many subdirectories. Add a smaller root."}
+                    var offset=0
+                    do {
+                        val page=DeviceFiles.list(app,tree,directory,offset,check)
+                        db.beginTransaction()
+                        try {
+                            for(file in page.entries) {
+                                check();if(hidden(file.uri.toString()))continue
+                                if(file.directory)pending.add(file.uri)
+                                else {
+                                    // DELETE first keeps the FTS index correct when a file is replaced.
+                                    db.execSQL("DELETE FROM media WHERE id=?",arrayOf(digest(file.uri.toString())))
+                                    db.execSQL("INSERT INTO media VALUES(?,?,?,?,?,?,?,?)",arrayOf<Any>(digest(file.uri.toString()),root,file.uri.toString(),file.name,file.mime,file.size,file.modified,generation))
+                                    count++
+                                }
                             }
-                        }
-                        db.setTransactionSuccessful()
-                    } finally {db.endTransaction()}
-                    progress(count);offset=if(page.limited)page.nextOffset else -1
-                } while(offset>=0)
+                            db.setTransactionSuccessful()
+                        } finally {db.endTransaction()}
+                        progress(count);offset=if(page.limited)page.nextOffset else -1
+                    } while(offset>=0)
+                }
+                check();db.execSQL("DELETE FROM media WHERE root=? AND generation<>?",arrayOf(root,generation))
             }
-            check();db.execSQL("DELETE FROM media WHERE root=? AND generation<>?",arrayOf(root,generation))
-        }
+        } finally {revision.incrementAndGet()}
     }
     data class Result(val entries:List<QueueMedia>,val nextOffset:Int?,val modified:Map<String,Long> = emptyMap())
     private fun updateNameOrder() {
@@ -109,6 +111,7 @@ internal class MediaLibrary(context:Context,
     }
     override fun close(){db.close()}
     companion object {
+        internal val revision=java.util.concurrent.atomic.AtomicLong()
         private fun encrypted(app:Context):androidx.sqlite.db.SupportSQLiteDatabase {
         System.loadLibrary("sqlcipher")
         val store=TokenStore(app)

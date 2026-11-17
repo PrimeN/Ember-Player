@@ -9,6 +9,9 @@ internal class PlaybackStateRetention(context:Context,private val file:String) {
     private val app=context.applicationContext
     private val values=app.getSharedPreferences(file,Context.MODE_PRIVATE)
     fun entry(key:String):Pair<String,Long>?=values.getString(key,null)?.let {record(file,it).let {entry->entry.value to entry.touched}}
+    fun entries():Map<String,Pair<String,Long>> = values.all.mapNotNull {(key,value)->
+        (value as? String)?.let {raw->record(file,raw).let {key to (it.value to it.touched)}}
+    }.toMap()
     fun get(key:String):String?=entry(key)?.first
     fun put(key:String,value:String)=synchronized(lock) {
         values.edit().putString(key,encode(file,value,System.currentTimeMillis().coerceAtLeast(0))).apply()

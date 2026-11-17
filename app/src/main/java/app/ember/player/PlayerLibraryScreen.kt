@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ViewList
@@ -21,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -65,7 +65,7 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
     var filterMenu by remember {mutableStateOf(false)}
     var sortMenu by remember {mutableStateOf(false)}
     var notice by remember {mutableStateOf<String?>(null)}
-    var localRevision by remember {mutableIntStateOf(0)}
+    var localRevision by rememberSaveable {mutableIntStateOf(0)}
     var grid by remember {mutableStateOf(prefs.playerLibraryGrid)}
     var filter by remember {mutableStateOf(PlayerLibraryFilter.from(prefs.playerLibraryFilter))}
     var sort by remember {mutableStateOf(PlayerLibrarySort.from(prefs.playerLibrarySort))}
@@ -108,13 +108,11 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
                         PlayerIconAction(if(grid)uiResources.getString(R.string.ui_list_view) else uiResources.getString(R.string.ui_grid_view),if(grid)Icons.AutoMirrored.Outlined.ViewList else Icons.Outlined.GridView){grid=!grid;prefs.playerLibraryGrid=grid}
                     }
                     PlayerIconAction(if(preparing||opening)uiResources.getString(R.string.ui_preparing_files) else uiResources.getString(R.string.ui_open_file),Icons.AutoMirrored.Outlined.InsertDriveFile,Modifier.focusRequester(openFocus),enabled=!preparing&&!opening,onClick=openFiles)
-                    if(television) {
-                        PlayerIconAction(uiResources.getString(R.string.ui_search_media),Icons.Outlined.Search,onClick=::toggleSearch)
-                        PlayerIconAction(uiResources.getString(R.string.ui_settings),Icons.Outlined.Settings,onClick=::settings)
-                    }
+                    PlayerIconAction(uiResources.getString(R.string.ui_search_media),Icons.Outlined.Search,Modifier.semantics {selected=search},onClick=::toggleSearch)
+                    PlayerIconAction(uiResources.getString(R.string.ui_settings),Icons.Outlined.Settings,onClick=::settings)
                     PlayerIconAction(uiResources.getString(R.string.ui_more_options),Icons.Outlined.MoreVert){menu=true}
                 }
-                if(!television)PhoneLibraryNavigation(destination){folderUri=null;go(it)}
+                if(!television)PhoneLibraryNavigation(destination.takeUnless {search}){folderUri=null;go(it)}
                 if(narrow&&destination==PlayerLibraryDestination.VIDEOS)Row(Modifier.fillMaxWidth().padding(bottom=8.dp),horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically) {
                     LibraryUtility(uiResources.getString(filter.label),Icons.Outlined.FilterList,Modifier.weight(1f)){filterMenu=true}
                     LibraryUtility(uiResources.getString(sort.label),Icons.AutoMirrored.Outlined.Sort,Modifier.weight(1f)){sortMenu=true}
@@ -128,15 +126,15 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
                 Row(Modifier.weight(1f).fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(16.dp)) {
                     if(television)LazyColumn(Modifier.width(160.dp),contentPadding=PaddingValues(vertical=8.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
                         items(PlayerLibraryDestination.entries,key={it.name}) {item->
-                            LibraryNavigation(uiResources.getString(item.label),item.icon,Modifier.fillMaxWidth().focusRequester(navigationFocus.getValue(item)),destination==item){go(item)}
+                            LibraryNavigation(uiResources.getString(item.label),item.icon,Modifier.fillMaxWidth().focusRequester(navigationFocus.getValue(item)),!search&&destination==item){go(item)}
                         }
                     }
                     stateHolder.SaveableStateProvider(destination.name) {
-                        if(destination==PlayerLibraryDestination.VIDEOS)PlayerVideos(activity,version+localRevision,query,search,grid,filter,sort,::play,
+                        if(destination==PlayerLibraryDestination.VIDEOS)PlayerVideos(activity,version,query,search,grid,filter,sort,::play,
                             background?.takeUnless {BackgroundAudioService.currentIsPrivate()},casting?.takeIf {it.ready&&it.error==null},notice,
-                            {uri->folderUri=uri;go(PlayerLibraryDestination.FOLDERS)})
+                            {uri->folderUri=uri;go(PlayerLibraryDestination.FOLDERS)},catalogRevision=localRevision)
                         else Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(androidx.compose.foundation.rememberScrollState())
-                            .padding(top=8.dp,bottom=if(television)20.dp else 100.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
+                            .padding(top=8.dp,bottom=20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
                             when(destination) {
                                 PlayerLibraryDestination.FOLDERS->{DeviceFilesPanel(activity,version,folderUri);UsbFilesPanel(activity,version);DirectUsbPanel(activity,version);PlayerSection(uiResources.getString(R.string.ui_saved_folder_library)){MediaLibraryPanel(activity,version,showTitle=false)}}
                                 PlayerLibraryDestination.NETWORK->NetworkFilesPanel(activity,version)
@@ -149,16 +147,13 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
                     }
                 }
             }
-            if(!television)LibraryDock(Modifier.align(Alignment.BottomCenter).padding(bottom=12.dp),
-                when {search->"search";destination==PlayerLibraryDestination.VIDEOS->"home";destination==PlayerLibraryDestination.FOLDERS->"files";else->""},
-                {go(PlayerLibraryDestination.VIDEOS)}, {folderUri=null;go(PlayerLibraryDestination.FOLDERS)},::toggleSearch,::settings)
         }
     }
     LaunchedEffect(Unit){if(television){withFrameNanos {};runCatching {openFocus.requestFocus()}}}
     if(filterMenu)OptionMenu(uiResources.getString(R.string.ui_show_media),PlayerLibraryFilter.entries.map {value->MenuOption(uiResources.getString(value.label),filter==value){filter=value;prefs.playerLibraryFilter=value.id}},{filterMenu=false})
     if(sortMenu)OptionMenu(uiResources.getString(R.string.ui_sort_media),PlayerLibrarySort.entries.map {value->MenuOption(uiResources.getString(value.label),sort==value){sort=value;prefs.playerLibrarySort=value.id}},{sortMenu=false})
-    if(menu)OptionMenu(uiResources.getString(R.string.ui_ember_player),PlayerLibraryDestination.entries.map {item->MenuOption(uiResources.getString(item.label),destination==item){folderUri=null;go(item,restoreFocus=true)}}+
-        listOf(MenuOption(uiResources.getString(R.string.ui_settings)){settings()},MenuOption(uiResources.getString(R.string.ui_open_stream_url)){stream=true},MenuOption(uiResources.getString(R.string.ui_refresh_library_view)){localRevision++},
+    if(menu)OptionMenu(uiResources.getString(R.string.ui_ember_player),
+        listOf(MenuOption(uiResources.getString(R.string.ui_open_stream_url)){stream=true},MenuOption(uiResources.getString(R.string.ui_refresh_library_view)){localRevision++},
             MenuOption(uiResources.getString(R.string.ui_clear_recent_media)){clearingRecent=true}),{menu=false})
     if(clearingRecent)PlayerConfirmationDialog(uiResources.getString(R.string.ui_clear_recent_media_6abe06),uiResources.getString(R.string.ui_clear_the_recent_media_list_resume_positions_playlists_and),uiResources.getString(R.string.ui_clear_recent_media),{clearingRecent=false}) {
         clearingRecent=false
@@ -168,12 +163,12 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
 }
 
 @Composable
-internal fun PhoneLibraryNavigation(destination:PlayerLibraryDestination,go:(PlayerLibraryDestination)->Unit) {
+internal fun PhoneLibraryNavigation(destination:PlayerLibraryDestination?,go:(PlayerLibraryDestination)->Unit) {
     val uiResources=androidx.compose.ui.platform.LocalResources.current
-    val destinations=remember {PlayerLibraryDestination.entries.filterNot {it==PlayerLibraryDestination.VIDEOS||it==PlayerLibraryDestination.FOLDERS}}
+    val destinations=remember {PlayerLibraryDestination.entries.toList()}
     val state=rememberLazyListState()
-    LaunchedEffect(destination){state.animateScrollToItem(destinations.indexOf(destination).coerceAtLeast(0))}
-    LazyRow(Modifier.fillMaxWidth().padding(bottom=8.dp),state=state,horizontalArrangement=Arrangement.spacedBy(4.dp)) {
+    LaunchedEffect(destination){if(destination!=null)state.animateScrollToItem(destinations.indexOf(destination))}
+    LazyRow(Modifier.fillMaxWidth().testTag("library-navigation").padding(bottom=8.dp),state=state,horizontalArrangement=Arrangement.spacedBy(4.dp)) {
         items(destinations,key={it.name}) {item->
             LibraryNavigation(uiResources.getString(item.label),item.icon,isSelected=destination==item){go(item)}
         }
@@ -200,26 +195,6 @@ private fun LibraryNavigation(label:String,icon:ImageVector,modifier:Modifier=Mo
         container=if(isSelected)scheme.primaryContainer else Color.Transparent,focusedContainer=scheme.primary,focusedContent=scheme.onPrimary,outline=false,focusedScale=1f) {
         Row(Modifier.padding(horizontal=10.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             Icon(icon,null,Modifier.size(18.dp));Text(label,style=if(LocalPlayerTelevision.current)MaterialTheme.typography.bodyLarge else MaterialTheme.typography.labelLarge,maxLines=if(LocalPlayerTelevision.current)2 else 1,overflow=TextOverflow.Ellipsis)
-        }
-    }
-}
-
-@Composable
-private fun LibraryDock(modifier:Modifier,selected:String,home:()->Unit,files:()->Unit,search:()->Unit,settings:()->Unit) {
-    val uiResources=androidx.compose.ui.platform.LocalResources.current
-    val scheme=MaterialTheme.colorScheme
-    Surface(modifier.widthIn(max=440.dp),shape=RoundedCornerShape(32.dp),color=scheme.surfaceVariant.copy(alpha=if(LocalRenderOptions.current.glass).96f else 1f),
-        border=androidx.compose.foundation.BorderStroke(1.dp,scheme.outlineVariant),shadowElevation=4.dp) {
-        Row(Modifier.padding(6.dp),horizontalArrangement=Arrangement.spacedBy(2.dp)) {
-            listOf(Triple("home",PlayerLibraryDestination.VIDEOS.icon,home),Triple("files",PlayerLibraryDestination.FOLDERS.icon,files),Triple("search",Icons.Outlined.Search,search),Triple("settings",Icons.Outlined.Settings,settings)).forEach {(id,icon,action)->
-                val label=when(id){"home"->uiResources.getString(PlayerUiLabels.VIDEOS);"files"->uiResources.getString(PlayerUiLabels.FOLDERS);"search"->uiResources.getString(R.string.ui_search);else->uiResources.getString(R.string.ui_settings)}
-                Surface(action,Modifier.weight(1f).heightIn(min=56.dp).semantics {this.selected=selected==id},shape=RoundedCornerShape(26.dp),
-                    color=if(selected==id)scheme.primaryContainer else Color.Transparent,contentColor=if(selected==id)scheme.onPrimaryContainer else scheme.onSurface) {
-                    Column(Modifier.padding(vertical=6.dp,horizontal=6.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(2.dp)) {
-                        Icon(icon,null,Modifier.size(22.dp));Text(label,style=MaterialTheme.typography.labelMedium,maxLines=1,overflow=TextOverflow.Ellipsis)
-                    }
-                }
-            }
         }
     }
 }

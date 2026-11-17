@@ -49,6 +49,18 @@ class MediaLibraryTest {
             roots.clear();assertTrue(index.search("").entries.isEmpty())
         }
     }
+    @Test fun interruptedRefreshInvalidatesAnyCatalogLoadedBeforePartialChanges() {
+        MediaLibrary(app,{database()},{emptyList()},{false}).use {index->
+            val revision=MediaLibrary.revision.get()
+            index.refresh(emptyList(),{}, {})
+            assertEquals(revision+1,MediaLibrary.revision.get())
+            try {
+                index.refresh(listOf(DeviceFolder("content://device.files/tree/root","Root")),{throw kotlinx.coroutines.CancellationException()}, {})
+                fail("Expected cancellation")
+            } catch(_:kotlinx.coroutines.CancellationException) {}
+            assertEquals(revision+2,MediaLibrary.revision.get())
+        }
+    }
     @Test fun providerWithoutOffsetSupportStillPagesAllRows() {
         val provider=DeviceTestProvider();provider.attachInfo(app,ProviderInfo().apply {authority="device.files";exported=true;grantUriPermissions=true;readPermission="android.permission.MANAGE_DOCUMENTS";writePermission="android.permission.MANAGE_DOCUMENTS"})
         ShadowContentResolver.registerProviderInternal("device.files",provider)

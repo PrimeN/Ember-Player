@@ -17,18 +17,20 @@ import org.robolectric.annotation.Config
 @Config(sdk=[35],application=Application::class,qualifiers="w360dp-h720dp-port-mdpi")
 class PhoneLibraryNavigationTest {
     @get:Rule val compose=createComposeRule()
-    @Test fun secondarySectionsCanBeSelectedWithoutRepeatingDockDestinations() {
+    @Test fun allSixDestinationsShareOneSelection() {
         compose.setContent {PlayerTheme(Prefs(LocalContext.current)) {
             var selected by remember {mutableStateOf(PlayerLibraryDestination.VIDEOS)}
             PhoneLibraryNavigation(selected){selected=it}
         }}
-        compose.onNodeWithText("Videos").assertDoesNotExist()
-        compose.onNodeWithText("Folders").assertDoesNotExist()
-        for(destination in listOf(PlayerLibraryDestination.NETWORK,PlayerLibraryDestination.PLAYLISTS,PlayerLibraryDestination.DOWNLOADS,PlayerLibraryDestination.PRIVATE)) {
-            compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(org.robolectric.RuntimeEnvironment.getApplication().getString(destination.label)))
+        for(destination in PlayerLibraryDestination.entries) {
+            compose.onNodeWithTag("library-navigation").performScrollToNode(hasText(org.robolectric.RuntimeEnvironment.getApplication().getString(destination.label)))
             compose.onNodeWithText(org.robolectric.RuntimeEnvironment.getApplication().getString(destination.label)).performClick()
             compose.onNodeWithText(org.robolectric.RuntimeEnvironment.getApplication().getString(destination.label)).assert(SemanticsMatcher.expectValue(SemanticsProperties.Selected,true))
             compose.onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.Selected,true)).assertCountEquals(1)
         }
+    }
+    @Test fun searchCanLeaveEveryDestinationUnselected() {
+        compose.setContent {PlayerTheme(Prefs(LocalContext.current)) {PhoneLibraryNavigation(null){}}}
+        compose.onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.Selected,true)).assertCountEquals(0)
     }
 }
