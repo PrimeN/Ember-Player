@@ -4,6 +4,7 @@ import android.content.Context
 import app.ember.tv.data.SubtitleConfig
 import app.ember.tv.player.PlaybackBookmarks
 import app.ember.tv.player.PlaybackConfig
+import app.ember.tv.player.PlaybackStateRetention
 import app.ember.tv.tracker.TokenStore
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -84,6 +85,7 @@ internal object PlayerBackups {
     }
     fun snapshot(context:Context):PlayerBackupData {
         check(!PrivateMedia.enabled||PrivateMedia.unlocked.value){"Unlock private media before exporting settings."}
+        PlaybackStateRetention.prune(context)
         val tokens=TokenStore(context)
         if(context.getSharedPreferences(app.ember.tv.tracker.SecretVault.FILE,Context.MODE_PRIVATE).all.isNotEmpty())
             check(tokens.encryptionAvailable) {"Stored connection details could not be unlocked. No backup was created."}
@@ -103,7 +105,10 @@ internal object PlayerBackups {
     fun export(context:Context,password:CharArray):ByteArray {
         val value=snapshot(context);validate(value)
         val bytes=json.encodeToString(value).toByteArray()
-        return try {PlayerBackupCipher.encrypt(bytes,password)} finally {bytes.fill(0)}
+        return try {
+            require(bytes.size<=PlayerBackupCipher.MAX_BYTES) {"Saved bookmarks or settings exceed the backup size limit. Remove unneeded bookmarks or reduce saved settings, then export again."}
+            PlayerBackupCipher.encrypt(bytes,password)
+        } finally {bytes.fill(0)}
     }
     fun decode(bytes:ByteArray,password:CharArray):PlayerBackupData {
         val plain=PlayerBackupCipher.decrypt(bytes,password)
@@ -123,11 +128,18 @@ internal object PlayerBackups {
             }}
             check(edit.commit()) {"Could not write restored settings."}
         }
+        context.getSharedPreferences("playbackStateRecency",Context.MODE_PRIVATE).edit().clear().apply()
     }
     fun restore(context:Context,data:PlayerBackupData)=synchronized(this) {
         check(!PrivateMedia.enabled||PrivateMedia.unlocked.value){"Unlock private media before restoring settings."}
         validate(data)
-        replace(data,{snapshot(context)},{write(context,it)})
+        val retained=data.copy(preferences=data.preferences.mapValues {(file,values)->
+            if(file in setOf("positions","trackMemory")) {
+                val kept=PlaybackStateRetention.bounded(file,values.mapValues {it.value.text})
+                values.filterKeys {it in kept}
+            } else values
+        })
+        replace(retained,{snapshot(context)},{write(context,it)})
         PrivateMedia.reload(context)
         app.ember.tv.data.CacheManagement.preferencesRestored(context.applicationContext)
     }

@@ -16,6 +16,7 @@ class PlayerApplication:Application(),ImageLoaderFactory {
         Net.init(this)
         CacheManagement.init(this)
         LocalLibrary.init(this)
+        scope.launch {app.ember.tv.player.PlaybackStateRetention.prune(this@PlayerApplication)}
         scope.launch {ApiKeys.init(this@PlayerApplication)}
     }
     override fun newImageLoader()=ImageLoader.Builder(this)

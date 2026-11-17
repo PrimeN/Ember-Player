@@ -1,7 +1,5 @@
 package app.ember.tv.player
 
-import androidx.core.content.edit
-
 import android.content.Context
 
 /**
@@ -10,28 +8,23 @@ import android.content.Context
  */
 class TrackMemory(context: Context,scope:String=app.ember.tv.data.LocalActivity.SHARED) {
     private val prefix=app.ember.tv.data.LocalActivity.prefix(scope)
-    private val sp = context.getSharedPreferences("trackMemory", Context.MODE_PRIVATE)
+    private val sp = PlaybackStateRetention(context,"trackMemory")
 
     /** [audio]: a language code; [subtitles]: "off" or a language code; null when not set. */
     data class Choice(val audio: String?, val subtitles: String?)
 
     fun get(show: String): Choice? {
-        val a = sp.getString(prefix+"a:$show", null)
-        val s = sp.getString(prefix+"s:$show", null)
+        val a = sp.get(prefix+"a:$show")
+        val s = sp.get(prefix+"s:$show")
         return if (a == null && s == null) null else Choice(a, s)
     }
 
-    fun putAudio(show: String, language: String) = sp.edit { putString(prefix+"a:$show", language) }
-    fun putSubtitles(show: String, choice: String) = sp.edit { putString(prefix+"s:$show", choice) }
+    fun putAudio(show: String, language: String) = sp.put(prefix+"a:$show", language)
+    fun putSubtitles(show: String, choice: String) = sp.put(prefix+"s:$show", choice)
     fun moveKey(from:String,to:String) {
         if(from==to)return
-        val audio=sp.getString(prefix+"a:$from",null)
-        val subtitles=sp.getString(prefix+"s:$from",null)
-        sp.edit {
-            audio?.let {putString(prefix+"a:$to",it)}
-            subtitles?.let {putString(prefix+"s:$to",it)}
-            remove(prefix+"a:$from");remove(prefix+"s:$from")
-        }
+        sp.move(prefix+"a:$from",prefix+"a:$to")
+        sp.move(prefix+"s:$from",prefix+"s:$to")
     }
-    fun clear() {val keys=sp.all.keys.filter {key->if(prefix.isEmpty())key.startsWith("a:") || key.startsWith("s:") else key.startsWith(prefix)};sp.edit {keys.forEach {remove(it)}}}
+    fun clear()=sp.clear {key->if(prefix.isEmpty())key.startsWith("a:") || key.startsWith("s:") else key.startsWith(prefix)}
 }
