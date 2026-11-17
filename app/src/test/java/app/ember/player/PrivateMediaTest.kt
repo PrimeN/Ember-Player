@@ -71,11 +71,12 @@ class PrivateMediaTest {
     }
     @Test fun failedAttemptsPersistAndThrottleBeforeUnlock() {
         PrivateMedia.configure("123456");PrivateMedia.lock()
-        repeat(5){assertFalse(PrivateMedia.authenticate("000000",100000))}
+        repeat(5){assertFalse(PrivateMedia.authenticate("000000"))}
         PrivateMedia.reload(context)
-        try {PrivateMedia.authenticate("123456",100001);fail("Expected cooldown")}catch(_:IllegalStateException){}
+        try {PrivateMedia.authenticate("123456");fail("Expected cooldown")}catch(_:IllegalStateException){}
         assertFalse(PrivateMedia.unlocked.value)
-        assertTrue(PrivateMedia.authenticate("123456",160001));assertEquals(0,PrivateMedia.state.value.failures)
+        org.robolectric.shadows.ShadowSystemClock.advanceBy(java.time.Duration.ofMillis(60001))
+        assertTrue(PrivateMedia.authenticate("123456"));assertEquals(0,PrivateMedia.state.value.failures)
     }
     @Test fun inaccessibleEncryptedStateFailsClosed() {
         PrivateMedia.configure("123456")

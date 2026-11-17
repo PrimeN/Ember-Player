@@ -18,7 +18,20 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
 @Serializable internal data class PrivateItem(val uri:String,val name:String,val folder:Boolean=false,val aliases:List<String> = emptyList())
-@Serializable internal data class PrivacyData(val pin:String="",val items:List<PrivateItem> = emptyList(),val history:Boolean=true,val failures:Int=0,val retryAfter:Long=0)
+@Serializable internal data class PrivacyData(val pin:String="",val items:List<PrivateItem> = emptyList(),val history:Boolean=true,val failures:Int=0,val retryAfter:Long=0,val retryElapsed:Long=0,val retryBoot:Int=-1)
+
+internal object PrivatePinRetry {
+    const val DELAY=60_000L
+    fun normalized(value:PrivacyData,now:Long,boot:Int):PrivacyData {
+        val pending=value.retryElapsed>0 || value.retryAfter>0
+        val remaining=when {
+            !pending->0L
+            value.retryAfter>0 || value.retryBoot!=boot->DELAY
+            else->(value.retryElapsed-now).coerceIn(0,DELAY)
+        }
+        return value.copy(retryAfter=0,retryElapsed=if(remaining>0)now+remaining else 0,retryBoot=boot)
+    }
+}
 
 internal object PrivatePin {
     private fun derive(pin:CharArray,salt:ByteArray):ByteArray {
@@ -113,10 +126,14 @@ internal object PrivateMedia {
         unavailable=(raw!=null&&value==null)||(marker&&value==null)
         index=PrivateMediaIndex(value?.items.orEmpty())
         state.value=value ?: PrivacyData();lock()
+        if(value!=null) {
+            val normalized=PrivatePinRetry.normalized(value,SystemClock.elapsedRealtime(),bootCount())
+            if(normalized!=value)save(normalized)
+        }
         if(value!=null)app.getSharedPreferences("playerSecurity",Context.MODE_PRIVATE).edit().putBoolean("enabled",value.pin.isNotEmpty()).commit()
     }
     private fun validate(value:PrivacyData) {
-        require(value.items.size<=256 && value.failures in 0..10 && value.retryAfter>=0)
+        require(value.items.size<=256 && value.failures in 0..10 && value.retryAfter>=0 && value.retryElapsed>=0 && value.retryBoot>=-1)
         if(value.pin.isNotEmpty()) {
             require(value.pin.length<=100)
             val fields=value.pin.split(':');require(fields.size==2)
@@ -137,17 +154,19 @@ internal object PrivateMedia {
     @Synchronized fun configure(pin:String) {
         check(!enabled || unlocked.value);check(!unavailable)
         val ticket=session.token()
-        save(state.value.copy(pin=PrivatePin.create(pin),failures=0,retryAfter=0))
+        save(state.value.copy(pin=PrivatePin.create(pin),failures=0,retryAfter=0,retryElapsed=0))
         check(session.unlock(ticket)){"Private session closed. Unlock again."}
     }
-    @Synchronized fun authenticate(pin:String,now:Long=System.currentTimeMillis()):Boolean {
+    private fun bootCount()=runCatching {android.provider.Settings.Global.getInt(app.contentResolver,android.provider.Settings.Global.BOOT_COUNT,-1)}.getOrDefault(-1)
+    @Synchronized fun authenticate(pin:String,now:Long=SystemClock.elapsedRealtime()):Boolean {
         check(!unavailable){"Private storage cannot be unlocked on this device right now."}
         val ticket=session.token()
-        val current=state.value
-        check(current.retryAfter<=now){"Too many attempts. Wait before trying again."}
+        val current=PrivatePinRetry.normalized(state.value,now,bootCount())
+        if(current!=state.value)save(current)
+        check(current.retryElapsed<=now){"Too many attempts. Wait before trying again."}
         val okay=PrivatePin.verify(pin,current.pin)
         val failures=if(okay)0 else (current.failures+1).coerceAtMost(10)
-        save(current.copy(failures=failures,retryAfter=if(failures>=5)now+60000 else 0))
+        save(current.copy(failures=failures,retryAfter=0,retryElapsed=if(failures>=5)now+PrivatePinRetry.DELAY else 0))
         if(okay)check(session.unlock(ticket)){"Private session closed. Unlock again."}
         return okay
     }
@@ -172,7 +191,7 @@ internal object PrivateMedia {
         handler.post {BackgroundAudioService.stopPrivatePlayback()}
     }
     @Synchronized fun remove(uri:String){check(unlocked.value&&!unavailable);save(state.value.copy(items=state.value.items.filterNot {it.uri==uri}))}
-    @Synchronized fun removeProtection(){check(unlocked.value&&!unavailable);save(state.value.copy(pin="",items=emptyList(),failures=0,retryAfter=0));lock()}
+    @Synchronized fun removeProtection(){check(unlocked.value&&!unavailable);save(state.value.copy(pin="",items=emptyList(),failures=0,retryAfter=0,retryElapsed=0));lock()}
     @Synchronized fun recordHistory(value:Boolean){check(!unavailable);save(state.value.copy(history=value));if(!value)clearHistory()}
     fun clearHistory() {
         check(MediaHistory(app).clear())
