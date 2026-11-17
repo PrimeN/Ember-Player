@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -169,7 +170,7 @@ internal val PillFocus:Color
 @Composable
 fun AdvancedControls(s: ControlsState, a: ControlsActions) {
     androidx.compose.runtime.CompositionLocalProvider(LocalPlayerAccent provides s.accent) {
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().safeDrawingPadding()) {
         StatsHud(s)
         // Hidden under a menu, which sits in the same corner.
         if (s.menu == null && s.sheet == null) SkipPill(s, a)

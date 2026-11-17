@@ -14,6 +14,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.annotation.OptIn
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
@@ -378,14 +379,8 @@ class PlayerActivity : ComponentActivity() {
                 return true
             }
         }
-        // A menu is open: Back closes its choices, then the menu; other keys go to the menu.
+        // An open menu keeps its own focus and navigation keys.
         if (controls.menu != null) {
-            if (e.keyCode == KeyEvent.KEYCODE_BACK) {
-                if (up) {
-                    if (controls.menuRow != null) controls.menuRow = null else closeMenu()
-                }
-                return true
-            }
             return super.dispatchKeyEvent(e)
         }
         if (!controls.visible) {
@@ -404,12 +399,6 @@ class PlayerActivity : ComponentActivity() {
                 }
                 else -> null
             }
-        }
-        if (e.keyCode == KeyEvent.KEYCODE_BACK) {
-            if (up) {
-                if (controls.sheet != null) controls.sheet = null else controls.visible = false
-            }
-            return true
         }
         scheduleHide()
         return super.dispatchKeyEvent(e)
@@ -476,6 +465,37 @@ class PlayerActivity : ComponentActivity() {
             }
         }}
         createPlayer(savedInstanceState)
+        installBackHandler()
+    }
+
+    internal fun installBackHandler() {
+        onBackPressedDispatcher.addCallback(object:OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if(consumePlayerBack())return
+                isEnabled=false
+                try {onBackPressedDispatcher.onBackPressed()}finally {isEnabled=true}
+            }
+        })
+    }
+
+    /** System gestures and remote keys dismiss the same playback layer before leaving. */
+    internal fun consumePlayerBack():Boolean {
+        touchControls?.takeIf {it.locked}?.let {it.setLocked(false);return true}
+        if(actionDialog?.dispatch(KeyEvent(KeyEvent.ACTION_UP,KeyEvent.KEYCODE_BACK))==true)return true
+        if(panelVisible){hidePanel();return true}
+        if(advanced&&player!=null) {
+            if(controls.menu!=null) {
+                if(controls.menuRow!=null)controls.menuRow=null else closeMenu()
+                return true
+            }
+            if(controls.visible) {
+                if(controls.sheet!=null)controls.sheet=null else controls.visible=false
+                return true
+            }
+        }
+        if(configInitialized&&config.confirmExit&&player!=null&&!ended){askToLeave();return true}
+        if(!advanced&&viewInitialized&&view.isControllerFullyVisible){view.hideController();return true}
+        return false
     }
 
     internal val panelVisible: Boolean get() = ::panel.isInitialized && panel.isVisible
@@ -486,6 +506,10 @@ class PlayerActivity : ComponentActivity() {
     /** Route physical remote keys to the active player controls or dialog. */
     @android.annotation.SuppressLint("RestrictedApi") // super.dispatchKeyEvent is the normal Activity path
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if(event.keyCode==KeyEvent.KEYCODE_BACK) {
+            if(event.action==KeyEvent.ACTION_UP&&!event.isCanceled)onBackPressedDispatcher.onBackPressed()
+            return true
+        }
         if (touchControls?.dispatchKey(event) == true) return true
         if (actionDialog?.dispatch(event) == true) return true
         if(fileQueue!=null && event.keyCode in setOf(KeyEvent.KEYCODE_MEDIA_NEXT,KeyEvent.KEYCODE_MEDIA_PREVIOUS)){
@@ -506,20 +530,11 @@ class PlayerActivity : ComponentActivity() {
             return true
         }
         if (panelVisible) {
-            if (event.keyCode == KeyEvent.KEYCODE_BACK) {
-                if (event.action == KeyEvent.ACTION_UP) hidePanel()
-                return true
-            }
             handler.removeCallbacks(hideInfo)
             return super.dispatchKeyEvent(event)
         }
 
         if (advanced) advancedKey(event)?.let { return it }
-        // Settings > Player > Leaving the player: Back asks before the video closes.
-        if (event.keyCode == KeyEvent.KEYCODE_BACK && config.confirmExit && player != null && !ended) {
-            if (event.action == KeyEvent.ACTION_UP) askToLeave()
-            return true
-        }
         if (skipTarget != null && !(if (advanced) controls.visible else view.isControllerFullyVisible) &&
             (event.keyCode == KeyEvent.KEYCODE_DPAD_CENTER || event.keyCode == KeyEvent.KEYCODE_ENTER)
         ) {

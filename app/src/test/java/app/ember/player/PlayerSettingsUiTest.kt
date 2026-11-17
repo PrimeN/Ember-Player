@@ -14,7 +14,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk=[35],application=Application::class,qualifiers="w960dp-h540dp-land-mdpi")
+@Config(sdk=[35,36],application=Application::class,qualifiers="w960dp-h540dp-land-mdpi")
 class PlayerSettingsUiTest {
     @get:Rule val compose=createAndroidComposeRule<PlayerSettingsActivity>()
     private fun category(label:String){compose.onNodeWithTag("settingsCategories").performScrollToNode(hasText(label));compose.onNodeWithText(label).performSemanticsAction(SemanticsActions.OnClick){it()}}

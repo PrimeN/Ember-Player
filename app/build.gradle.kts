@@ -227,7 +227,7 @@ android {
     defaultConfig {
         applicationId = "app.ember.player"
         minSdk = 29
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 705
         versionName = "0.7.5"
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
