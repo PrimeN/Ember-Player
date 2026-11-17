@@ -148,7 +148,7 @@ class ControlsState(private val navigationChanged:()->Unit={}) {
     /** The accent colour (Settings > Appearance), for the progress bar and the menus. */
     var accent by mutableStateOf(Color(0xFFFF7A2F))
     /** Settings > Player > Player interface (PlayerInterfaces), for the layouts sharing these controls. */
-    var design by mutableStateOf(PlayerInterfaces.MODERN)
+    var design by mutableStateOf(PlayerInterfaces.GLASS)
     /** Seek thumbnails from Plex or Jellyfin, when the server has them. */
 }
 
@@ -200,7 +200,7 @@ internal val LocalPlayerAccent = androidx.compose.runtime.staticCompositionLocal
 private fun SkipPill(s: ControlsState, a: ControlsActions) {
     val label = s.skipLabel ?: return
     var focused by remember { mutableStateOf(false) }
-    val bottom = if (!s.visible)56.dp else if(s.design in listOf(PlayerInterfaces.MODERN,PlayerInterfaces.BASIC))s.overlayHeightDp.dp+30.dp else 190.dp
+    val bottom = if (!s.visible)56.dp else if(s.design in listOf(PlayerInterfaces.GLASS,PlayerInterfaces.EMBER))s.overlayHeightDp.dp+30.dp else 190.dp
     Box(Modifier.fillMaxSize().padding(end = 56.dp, bottom = bottom), contentAlignment = Alignment.BottomEnd) {
         Box(
             Modifier.clip(RoundedCornerShape(50))

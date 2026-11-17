@@ -243,7 +243,7 @@ class PlayerActivity : ComponentActivity() {
     // ---- advanced controls (Settings > Player > Player look) ----
     internal val controls = ControlsState {updateBackHandler()}
     internal var advanced = false
-    internal var playerInterface = PlayerInterfaces.MODERN
+    internal var playerInterface = PlayerInterfaces.GLASS
     internal val playerLayoutStyle: String
         get() = PlayerInterfaces.layoutStyle(playerInterface)
     internal val hideControls = Runnable {

@@ -34,8 +34,8 @@ internal val playerSettingsCategories=listOf(
     PlayerSettingsCategory("audio",PlayerUiLabels.AUDIO,"Output, tracks, sound effects",Icons.AutoMirrored.Outlined.VolumeUp),
     PlayerSettingsCategory("subtitles",PlayerUiLabels.SUBTITLES,"Language, style, timing",Icons.Outlined.Subtitles),
     PlayerSettingsCategory("network","Network & cache","Streaming, buffering, cached data",Icons.Outlined.Wifi),
-    PlayerSettingsCategory("appearance","Appearance","Theme, performance, layout",Icons.Outlined.Palette),
-    PlayerSettingsCategory("privacy",PlayerUiLabels.PRIVATE_MEDIA,"History and backups",Icons.Outlined.Lock),
+    PlayerSettingsCategory("appearance","Appearance","Colors, display mode, performance",Icons.Outlined.Palette),
+    PlayerSettingsCategory("privacy",PlayerUiLabels.PRIVATE_MEDIA,"PIN, history and backups",Icons.Outlined.Lock),
     PlayerSettingsCategory("about","About","App version, credits, licenses",Icons.Outlined.Info),
 )
 

@@ -60,7 +60,7 @@ private val ControlIds=listOf("back","rewind","play","forward","next","audio","s
 /** Saved Basic/Modern choices share transport behavior; only their presentation differs. */
 @Composable
 internal fun PlaybackOverlay(s:ControlsState,a:ControlsActions) {
-    val glass=s.design!=PlayerInterfaces.BASIC
+    val glass=s.design!=PlayerInterfaces.EMBER
     val render=LocalRenderOptions.current
     val motion=render.animationMillis(TvTokens.Motion.Panel,LocalReduceMotion.current)
     AnimatedVisibility(s.visible,enter=fadeIn(tween(motion)),exit=fadeOut(tween(motion))) {

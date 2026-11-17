@@ -33,7 +33,7 @@ class PlaybackOverlayTest {
     private var plays=0
     private var pickedAudio=-1
     private var pickedSubtitle=-1
-    private fun state(design:String=PlayerInterfaces.MODERN)=ControlsState().apply {
+    private fun state(design:String=PlayerInterfaces.GLASS)=ControlsState().apply {
         visible=true;this.design=design;title="The Last Light";seasonEpisode="S1 · E4"
         details=PlayerDetails(title,episodeTitle="Beyond the Ridge",synopsis="An explorer follows the last light into the mountains.")
         position=38*60_000L+24_000;duration=101*60_000L+8_000;buffered=duration/2
@@ -84,7 +84,7 @@ class PlaybackOverlayTest {
         save("ember-glass")
     }
     @Test fun cinemaReusesTransportAndHidesUnavailableActions() {
-        val s=state(PlayerInterfaces.BASIC).apply {audioTracks=emptyList();subtitleOptions=emptyList();details=null}
+        val s=state(PlayerInterfaces.EMBER).apply {audioTracks=emptyList();subtitleOptions=emptyList();details=null}
         show(s)
         compose.onNodeWithTag("player_cinema").assertExists()
         compose.onNodeWithTag("player_audio").assertDoesNotExist()
@@ -113,7 +113,7 @@ class PlaybackOverlayTest {
         compose.onNodeWithTag("player_audio").assertIsFocused()
     }
     @Test fun pickingSubtitlesFromCinemaRestoresItsButtonFocus() {
-        val s=state(PlayerInterfaces.BASIC);show(s)
+        val s=state(PlayerInterfaces.EMBER);show(s)
         click("player_subtitles")
         compose.onNodeWithText("English",substring=false).performSemanticsAction(SemanticsActions.OnClick){it()}
         assertEquals(1,pickedSubtitle)

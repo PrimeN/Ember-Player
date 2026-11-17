@@ -19,19 +19,20 @@ import app.ember.tv.ui.*
 import kotlinx.coroutines.*
 
 @Composable
-internal fun PrivatePinPrompt(close:()->Unit,success:()->Unit) {
+internal fun PrivatePinPrompt(close:()->Unit,success:()->Unit,createNew:Boolean=false) {
     val scope=rememberCoroutineScope()
-    val create=!PrivateMedia.enabled
+    val create=createNew||!PrivateMedia.enabled
+    val changing=createNew&&PrivateMedia.enabled
     var pin by remember {mutableStateOf("")};var confirm by remember {mutableStateOf("")}
     var notice by remember {mutableStateOf<String?>(null)};var busy by remember {mutableStateOf(false)}
     TvDialog({if(!busy)close()},width=460.dp,resizeForKeyboard=true) {
-        DialogHeading(if(create)"Create private-media PIN" else "Unlock private media")
+        DialogHeading(if(changing)"Change private-media PIN" else if(create)"Create private-media PIN" else "Unlock private media")
         Text(if(create)"Use 6–12 digits. Keep your PIN safe: it cannot be recovered." else "Enter your private-media PIN.",fontSize=13.sp)
         TvTextField(pin,{pin=it.filter {c->c in '0'..'9'}.take(12)},Modifier.fillMaxWidth(),password=true,keyboardType=KeyboardType.NumberPassword,placeholder="PIN")
         if(create)TvTextField(confirm,{confirm=it.filter {c->c in '0'..'9'}.take(12)},Modifier.fillMaxWidth(),password=true,keyboardType=KeyboardType.NumberPassword,placeholder="Confirm PIN")
         notice?.let {Text(it,color=Mute,fontSize=12.sp)}
         ButtonRow {
-            Chip(if(busy)"Checking…" else if(create)"Create PIN" else "Unlock") {if(!busy){
+            Chip(if(busy)"Checking…" else if(changing)"Save PIN" else if(create)"Create PIN" else "Unlock") {if(!busy){
                 if(!PrivatePin.valid(pin)||create&&pin!=confirm)notice="Use 6–12 digits and matching PINs."
                 else {val value=pin;pin="";confirm="";busy=true;scope.launch {
                     try {
@@ -120,17 +121,49 @@ internal fun PrivateMediaPanel(activity:ComponentActivity) {
         }
         Chip("Remove PIN protection"){removing=true}
     }
-    if(removing&&unlocked)TvDialog({removing=false},width=460.dp) {
+    if(removing&&unlocked)RemovePrivateProtectionPrompt({removing=false}){notice=it}
+    notice?.let {Text(it,color=Mute,fontSize=12.sp)}
+}
+
+@Composable
+private fun RemovePrivateProtectionPrompt(close:()->Unit,error:(String)->Unit) {
+    val scope=rememberCoroutineScope()
+    var busy by remember {mutableStateOf(false)}
+    TvDialog({if(!busy)close()},width=460.dp) {
         DialogHeading("Make private media visible?")
         Text("Removes the PIN and makes all private entries visible in normal browsing. Original files are kept.",fontSize=13.sp)
-        ButtonRow {Chip("Remove protection"){scope.launch {try {withContext(Dispatchers.IO){PrivateMedia.removeProtection()};removing=false} catch(e:Exception){notice="Could not remove protection."}}};Chip("Cancel"){removing=false}}
+        ButtonRow {
+            Chip(if(busy)"Removing…" else "Remove protection") {if(!busy){busy=true;scope.launch {
+                try {withContext(Dispatchers.IO){PrivateMedia.removeProtection()};close()}
+                catch(e:CancellationException){throw e}
+                catch(_:Exception){error("Could not remove protection.")}
+                finally {busy=false}
+            }}}
+            Chip("Cancel"){if(!busy)close()}
+        }
     }
-    notice?.let {Text(it,color=Mute,fontSize=12.sp)}
 }
 
 @Composable internal fun PrivacySettings() {
     val state by PrivateMedia.state.collectAsState();val scope=rememberCoroutineScope()
+    val unlocked by PrivateMedia.unlocked.collectAsState()
     var notice by remember {mutableStateOf<String?>(null)}
+    var editingPin by remember {mutableStateOf(false)}
+    var unlocking by remember {mutableStateOf(false)}
+    var removing by remember {mutableStateOf(false)}
+    Text("Private media PIN",fontSize=16.sp)
+    Text("Protect access inside Ember Player. Add and browse protected files from Private media in the library.",color=Mute,fontSize=12.sp)
+    when {
+        !PrivateMedia.enabled->Chip("Create PIN"){editingPin=true}
+        unlocked->ButtonRow {
+            Chip("Change PIN"){editingPin=true}
+            Chip("Remove PIN protection"){removing=true}
+        }
+        else->Chip("Unlock private media"){unlocking=true}
+    }
+    if(editingPin)PrivatePinPrompt({editingPin=false},{editingPin=false},createNew=true)
+    if(unlocking)PrivatePinPrompt({unlocking=false},{unlocking=false})
+    if(removing&&unlocked)RemovePrivateProtectionPrompt({removing=false}){notice=it}
     SwitchChip("Save recent activity and resume positions",state.history){scope.launch {
         try {withContext(Dispatchers.IO){PrivateMedia.recordHistory(!state.history)}}
         catch(e:Exception){notice="Could not update privacy settings."}

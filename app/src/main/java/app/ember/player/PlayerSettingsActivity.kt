@@ -84,7 +84,7 @@ private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:
             PlayerChoice("Compatibility renderer",RendererPolicy.choices,RendererPolicy.normalized(config.renderer)){v->update {it.copy(renderer=v)}}
             HdrOutputSettings(config.hdrOutput){value->update {it.copy(hdrOutput=value)}}
         }
-        "decoding"->PlayerSection("Picture") {
+        "decoding"->PlayerSection("Video decoding") {
             PlayerChoice("Software video",listOf("fallback" to "When needed","off" to "Device decoders only","always" to "Always software"),config.ffmpegVideo){v->update {it.copy(ffmpegVideo=v)}}
             PlayerChoice("Compatibility decoder profile",NativeDecoderProfile.choices,NativeDecoderProfile.normalized(config.compatibilityDecoder)){v->update {it.copy(compatibilityDecoder=v)}}
             SwitchChip("Automatic Hi10P fallback",config.hi10pFallback){update {it.copy(hi10pFallback=!it.hi10pFallback)}}
