@@ -14,6 +14,7 @@ import java.lang.ref.WeakReference
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.*
 
 internal data class BackgroundNowPlaying(val id:String,val title:String,val playing:Boolean)
@@ -55,6 +56,14 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
     override fun onGetSession(controllerInfo:MediaSession.ControllerInfo):MediaLibrarySession? {if(closing)return null;return session ?: createSession()}
     override fun onCreate() {
         super.onCreate();current=WeakReference(this)
+        artworkScope.launch {
+            combine(app.ember.player.PrivateMedia.state,app.ember.player.PrivateMedia.unlocked){_,_->Unit}.collect {
+                if(!closing) {
+                    if(source?.urls?.any {app.ember.player.PrivateMedia.hidden(it)}==true)stopPlayback()
+                    else sessionPlayer?.refresh()
+                }
+            }
+        }
         sleepWatch=app.ember.tv.data.SleepTimer.listen {stopPlayback()}
         getSharedPreferences("ember",MODE_PRIVATE).registerOnSharedPreferenceChangeListener(preferences)
         getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel(CHANNEL,"Background playback",NotificationManager.IMPORTANCE_LOW))

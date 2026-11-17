@@ -22,6 +22,30 @@ import javax.crypto.spec.GCMParameterSpec
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[35],application=Application::class)
 class PrivateMediaTest {
+    @Test @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    fun protectingAQueuedFileHidesItFromControllersAndProtectingTheCurrentFileStopsAudio() {
+        val first=QueueMedia("https://media.example/first.mp3","First")
+        val second=QueueMedia("https://media.example/second.mp3","Second")
+        val queue=MediaQueues.put(listOf(first,second))
+        val original=BackgroundAudioService.factory
+        val engine=BackgroundAudioServiceTest.FakeEngine()
+        BackgroundAudioService.factory={_,_->engine}
+        val request=BackgroundAudioRequest(EngineSource(listOf(first.uri),first.title,first.key),PlaybackConfig(backgroundAudio=true),android.content.Intent(),queue,"main","shared",0,1f,1f)
+        val id=BackgroundAudioService.stage(context,request)
+        val controller=org.robolectric.Robolectric.buildService(BackgroundAudioService::class.java).create()
+        try {
+            controller.get().onStartCommand(android.content.Intent(context,BackgroundAudioService::class.java).putExtra(BackgroundAudioService.EXTRA_ID,id),0,1)
+            assertTrue(BackgroundAudioService.commit(id,request))
+            val player=controller.get().sessions.single().player
+            assertEquals(2,player.mediaItemCount)
+            PrivateMedia.configure("123456");PrivateMedia.add(PrivateItem(second.uri,second.title))
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+            assertEquals(1,player.mediaItemCount);assertEquals(0,engine.closed)
+            PrivateMedia.add(PrivateItem(first.uri,first.title))
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+            assertEquals(1,engine.closed)
+        }finally {controller.destroy();BackgroundAudioService.factory=original;MediaQueues.release(queue)}
+    }
     @Test fun oldPinRecordsUpgradeOnlyAfterSuccessfulAuthentication() {
         val salt=ByteArray(16){it.toByte()}
         val spec=javax.crypto.spec.PBEKeySpec("123456".toCharArray(),salt,120000,256)

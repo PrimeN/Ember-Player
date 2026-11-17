@@ -150,7 +150,7 @@ class BackgroundAudioServiceTest {
             assertSame(before,notifications.getNotification(4104))
         }finally {controller.destroy()}
     }
-    private class FakeEngine:BackgroundAudioEngine {
+    internal class FakeEngine:BackgroundAudioEngine {
         var position=0L;var wanted=true;var closed=0
         private val listeners=mutableListOf<Player.Listener>()
         override val player=Proxy.newProxyInstance(Player::class.java.classLoader,arrayOf(Player::class.java)) {proxy,method,args->
