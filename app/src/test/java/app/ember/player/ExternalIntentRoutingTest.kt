@@ -21,13 +21,23 @@ class ExternalIntentRoutingTest {
         return app.packageManager.queryIntentActivities(intent,PackageManager.MATCH_DEFAULT_ONLY)
             .any {it.activityInfo.name==OpenMediaActivity::class.java.name}
     }
-    @Test fun supportedStreamsResolveWithAndWithoutMediaTypes() {
-        for(scheme in listOf("http","https","rtsp","rtmp","rtmps","rtp","srtp","udp","tcp")) {
+    @Test fun dedicatedStreamSchemesResolveWithAndWithoutMediaTypes() {
+        for(scheme in listOf("rtsp","rtmp","rtmps","rtp","srtp","udp","tcp")) {
             val url="$scheme://media.example:1234/live"
             assertTrue(url,ExternalMedia.allowed(url))
             assertTrue(url,resolves(url,null))
             assertTrue(url,resolves(url,"video/mp4"))
             assertTrue(url,resolves(url,"audio/mpeg"))
+        }
+    }
+    @Test fun webLinksNeedAMediaTypeAndNeverMatchTheBrowserRole() {
+        for(scheme in listOf("http","https")) {
+            assertFalse(resolves("$scheme://www.example.com/",null))
+            assertFalse(resolves("$scheme://media.example/video.mp4",null))
+            assertFalse(resolves("$scheme://www.example.com/page","text/html"))
+            assertTrue(resolves("$scheme://media.example/live","video/mp4"))
+            assertTrue(resolves("$scheme://media.example/live","audio/mpeg"))
+            assertTrue(resolves("$scheme://media.example/live","application/vnd.apple.mpegurl"))
         }
     }
     @Test fun contentUrisStillNeedAMediaTypeAndLocalFilesAreNotExposed() {
