@@ -143,9 +143,15 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
         }
         "video" -> buildList {
             val engines=listOf("auto","standard","compatibility")
-            add(OptionRow(resources.getString(R.string.ui_playback_engine),if(playbackEngine?.compatibility!=null)resources.getString(R.string.ui_compatibility) else resources.getString(R.string.ui_standard),listOf(resources.getString(R.string.ui_automatic),resources.getString(R.string.ui_standard),resources.getString(R.string.ui_compatibility)),engines.indexOf(config.engine),onPick={i -> config=config.copy(engine=engines[i]);prefs.playbackConfig=config;playbackEngine?.mode(engines[i])}))
+            add(OptionRow(resources.getString(R.string.ui_playback_engine),if(playbackEngine?.compatibility!=null)resources.getString(R.string.ui_compatibility) else resources.getString(R.string.ui_standard),listOf(resources.getString(R.string.ui_automatic),resources.getString(R.string.ui_standard),resources.getString(R.string.ui_compatibility)),engines.indexOf(config.engine),note=playbackEngine?.let {resources.getString(it.selectionReason)},onPick={i -> config=config.copy(engine=engines[i]);prefs.playbackConfig=config;playbackEngine?.mode(engines[i])}))
             addAll(pictureOptionRows())
             playbackEngine?.compatibility?.let { native ->
+                val choices=native.editions()
+                if(choices.size>1)add(OptionRow(resources.getString(R.string.ui_program_quality),choices.firstOrNull {it.selected}?.title.orEmpty(),choices.map {it.title},choices.indexOfFirst {it.selected},
+                    note=resources.getString(R.string.ui_program_quality_note),onPick={index->
+                        if(!native.selectEdition(choices[index].index))Toast.makeText(this@optionRows,resources.getString(R.string.ui_program_quality_failed),Toast.LENGTH_SHORT).show()
+                        changed()
+                    }))
                 val pictureConfig=PictureProfiles.effective(config,resumeKey)
                 add(OptionRow(resources.getString(R.string.ui_compatibility_decoder_profile),native.decoderProfileLabel,NativeDecoderProfile.choices.localized(resources).map {it.second},NativeDecoderProfile.choices.localized(resources).indexOfFirst {it.first==NativeDecoderProfile.normalized(config.compatibilityDecoder)},
                     note=resources.getString(R.string.ui_lighter_software_decoding_skips_some_deblocking_to_reduce_cpu),onPick={index->config=config.copy(compatibilityDecoder=NativeDecoderProfile.choices.localized(resources)[index].first);prefs.playbackConfig=config;native.decoderProfile(config.compatibilityDecoder,config.hi10pFallback);changed()}))

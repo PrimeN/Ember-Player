@@ -36,6 +36,25 @@ class FolderPlaybackHistoryTest {
         assertEquals(destination.toString(),history.get(second)?.uri)
         assertEquals("renamed.mkv",history.get(second)?.title)
     }
+    @Test fun unreadableHistoryRefusesEveryMutationUntilExplicitlyReset() {
+        var raw="{broken";var writes=0
+        val history=FolderPlaybackHistory({raw},{raw=it;writes++;true})
+        val directory=Uri.parse("content://files/tree/a/document/a")
+        assertNull(history.get(directory))
+        assertFalse(history.remember(directory,RecentMedia("content://files/new","New")))
+        assertFalse(history.purgeHidden())
+        assertEquals(0,writes);assertEquals("{broken",raw)
+        assertTrue(history.resetUnreadable())
+        assertTrue(history.remember(directory,RecentMedia("content://files/new","New")))
+        assertEquals("New",history.get(directory)?.title)
+        assertFalse(history.resetUnreadable())
+    }
+    @Test fun encryptionReadFailuresDoNotBecomeEmptyHistoryWrites() {
+        var writes=0
+        val history=FolderPlaybackHistory({throw IllegalStateException("Cannot unlock")},{writes++;true})
+        assertFalse(history.remember(Uri.parse("content://files/folder"),RecentMedia("content://files/new","New")))
+        assertFalse(history.purgeHidden());assertEquals(0,writes)
+    }
     @Test fun changingAFileKeyKeepsResumeTracksAndBookmarks() {
         val context=RuntimeEnvironment.getApplication()
         val scope=LocalActivity.SHARED

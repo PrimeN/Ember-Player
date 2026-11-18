@@ -96,7 +96,7 @@ internal class SavedPlaylists(private val readValue:()->String?,private val writ
                 entry.title.isNotBlank() && entry.title.length<=180 && (entry.identity==null || entry.identity.length<=256) && (entry.directory==null || entry.directory.length<=16384 && entry.directory.startsWith("content://")) &&
                     if(entry.network!=null) {
                         val network=entry.network
-                        entry.uri.isEmpty() && network.accountId.isNotBlank() && network.accountId.length<=80 && network.size>=0 && network.path.length in 1..4096 &&
+                        entry.uri.isEmpty() && network.accountId.isNotBlank() && network.accountId.length<=80 && network.size>=-1 && network.path.length in 1..4096 &&
                             network.path.split('/').all {it.isNotEmpty() && it !in setOf(".","..") && it.none {c->c=='\\' || c.isISOControl()}}
                     } else ExternalMedia.allowed(entry.uri)
             }

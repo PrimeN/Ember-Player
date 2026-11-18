@@ -176,10 +176,12 @@ internal fun PlayerMediaCard(entry:PlayerLibraryMedia,modifier:Modifier,version:
 
     val scheme=MaterialTheme.colorScheme
     val television=LocalPlayerTelevision.current
+    var previewDuration by remember(entry.key,version){mutableLongStateOf(0L)}
+    val duration=entry.duration.takeIf {it>0} ?: previewDuration
     Focusable(play,modifier,container=scheme.surface,focusedContainer=scheme.surface,outline=true,card=true,focusedScale=1.025f) {
         Column(Modifier.fillMaxWidth()) {
             Box(Modifier.fillMaxWidth().aspectRatio(if(portrait){if(television)1f else 2f/3} else 16f/9).clip(RoundedCornerShape(TvTokens.Shape.Card.dp))) {
-                PlayerMediaArtwork(entry.media,version,Modifier.fillMaxSize())
+                PlayerMediaArtwork(entry.media,version,Modifier.fillMaxSize()){previewDuration=it}
                 LibraryPlaylistAction(entry.media,Modifier.align(Alignment.TopStart).background(scheme.surface.copy(alpha=.9f),RoundedCornerShape(TvTokens.Shape.Panel.dp)))
                 if(entry.watched)Icon(Icons.Outlined.CheckCircle,uiResources.getString(R.string.ui_watched),Modifier.align(Alignment.TopEnd).padding(5.dp).size(20.dp).background(scheme.surface.copy(alpha=.85f),RoundedCornerShape(TvTokens.Shape.Card.dp)),tint=scheme.primary)
                 if(!portrait)Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
@@ -193,7 +195,7 @@ internal fun PlayerMediaCard(entry:PlayerLibraryMedia,modifier:Modifier,version:
             }
             if(portrait)Column(Modifier.fillMaxWidth().padding(if(television)6.dp else 8.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
                 Text(entry.media.title,style=if(television)MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodySmall,maxLines=1,overflow=TextOverflow.Ellipsis)
-                Text(if(entry.duration>0)playerMediaTime(entry.duration) else "",style=MaterialTheme.typography.labelSmall.copy(fontFeatureSettings="tnum"),color=scheme.onSurfaceVariant,maxLines=1)
+                Text(if(duration>0)playerMediaTime(duration) else "",style=MaterialTheme.typography.labelSmall.copy(fontFeatureSettings="tnum"),color=scheme.onSurfaceVariant,maxLines=1)
             }
         }
     }
@@ -215,19 +217,22 @@ private fun LibraryFolderCard(folder:DeviceFolder,media:QueueMedia?,modifier:Mod
 }
 
 @Composable
-private fun PlayerMediaArtwork(media:QueueMedia,version:Int,modifier:Modifier) {
+private fun PlayerMediaArtwork(media:QueueMedia,version:Int,modifier:Modifier,duration:(Long)->Unit={}) {
     val context=androidx.compose.ui.platform.LocalContext.current
-    val bitmap by produceState<android.graphics.Bitmap?>(null,media.key,version) {
+    val updateDuration by rememberUpdatedState(duration)
+    val preview by produceState(BrowserPreview(),media.key,version) {
+        value=BrowserPreview()
         if(!PrivateMedia.hidden(media.uri))value=withContext(Dispatchers.IO) {
             val uri=Uri.parse(media.uri)
-            if(uri.scheme !in setOf("content","file"))return@withContext null
+            if(uri.scheme !in setOf("content","file"))return@withContext BrowserPreview()
             var size=-1L;var modified=0L
             runCatching {context.contentResolver.query(uri,arrayOf(android.provider.OpenableColumns.SIZE,android.provider.DocumentsContract.Document.COLUMN_LAST_MODIFIED),null,null,null)?.use {c->if(c.moveToFirst()){size=c.getLong(0);modified=c.getLong(1)}}}
-            DeviceThumbnails.load(context,DeviceFile(uri,uri,media.title,"video/*",size,modified,0),320)
+            DeviceThumbnails.preview(context,DeviceFile(uri,uri,media.title,"video/*",size,modified,0),320)
         }
     }
+    LaunchedEffect(preview.duration){updateDuration(preview.duration)}
     Box(modifier.background(MaterialTheme.colorScheme.surfaceVariant),contentAlignment=Alignment.Center) {
-        bitmap?.let {Image(it.asImageBitmap(),null,Modifier.fillMaxSize(),contentScale=ContentScale.Crop)}
+        preview.bitmap?.let {Image(it.asImageBitmap(),null,Modifier.fillMaxSize(),contentScale=ContentScale.Crop)}
             ?: Icon(Icons.Outlined.Movie,null,Modifier.size(48.dp),tint=MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

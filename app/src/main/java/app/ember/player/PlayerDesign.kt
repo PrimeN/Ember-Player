@@ -73,18 +73,18 @@ internal fun PlayerIconAction(label:String,icon:ImageVector,modifier:Modifier=Mo
     if(LocalPlayerTelevision.current) {
         Focusable(onClick,modifier.size(48.dp).semantics {contentDescription=label},enabled=enabled,radius=TvTokens.Shape.Pill,
             container=Color.Transparent,focusedContainer=MaterialTheme.colorScheme.primary,focusedContent=MaterialTheme.colorScheme.onPrimary,outline=false,focusedScale=1.04f) {
-            Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){Icon(icon,label,Modifier.size(24.dp))}
+            Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){Icon(icon,null,Modifier.size(24.dp))}
         }
     } else IconButton(onClick,modifier.size(48.dp),enabled=enabled){Icon(icon,label)}
 }
 
 @Composable
-internal fun PlayerHeading(title:String,modifier:Modifier=Modifier,back:(()->Unit)?=null,actions:@Composable RowScope.()->Unit={}) {
+internal fun PlayerHeading(title:String,modifier:Modifier=Modifier,back:(()->Unit)?=null,compact:Boolean=false,actions:@Composable RowScope.()->Unit={}) {
     val uiResources=androidx.compose.ui.platform.LocalResources.current
 
-    Row(modifier.fillMaxWidth().heightIn(min=64.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-        if(back!=null)PlayerIconAction(uiResources.getString(R.string.ui_back),Icons.AutoMirrored.Outlined.ArrowBack,onClick=back) else PlayerBrandMark(36.dp)
-        Text(title,Modifier.weight(1f).semantics {heading()},style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.SemiBold,maxLines=1,overflow=TextOverflow.Ellipsis)
+    Row(modifier.fillMaxWidth().heightIn(min=64.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(if(compact)8.dp else 12.dp)) {
+        if(back!=null)PlayerIconAction(uiResources.getString(R.string.ui_back),Icons.AutoMirrored.Outlined.ArrowBack,onClick=back) else if(!compact)PlayerBrandMark(36.dp)
+        Text(title,Modifier.weight(1f).semantics {heading()},style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.SemiBold,maxLines=if(compact)2 else 1,overflow=TextOverflow.Ellipsis)
         actions()
     }
 }

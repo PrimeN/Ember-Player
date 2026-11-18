@@ -59,7 +59,7 @@ open in memory.
 
 Choose **Playback → Playback core** to select Automatic, Media3 or mpv as your
 default. The player menu offers the same choices during playback. Automatic can
-choose between the cores; either manual choice takes priority.
+choose between the cores; either manual choice takes priority. The player menu explains whether the active core was selected by format, a remembered choice, a requested feature or recovery. With mpv active, Video → Program or quality lists source-provided programs, variants or editions. Seekable video retains its position; live playback follows the selected stream.
 
 Start with automatic core and performance selection. For a constrained device,
 try Low performance and turn off picture enhancement before forcing software

@@ -80,6 +80,27 @@ class NativeTransportRequestsTest {
             }finally {suffix.disconnect()}
         }}
     }
+    @Test fun webDavEntriesWithoutAListedLengthCanStreamSeekAndRemainPortable() {
+        Net.init(RuntimeEnvironment.getApplication())
+        val listing=NetworkListing("",0)
+        val base=okhttp3.HttpUrl.Builder().scheme("https").host("example.test").addPathSegment("movies").addPathSegment("").build()
+        WebDavListing.parse(java.io.StringReader("""<d:multistatus xmlns:d="DAV:"><d:response><d:href>/movies/Film.mp4</d:href><d:propstat><d:prop><d:resourcetype/></d:prop></d:propstat></d:response></d:multistatus>"""),base,listing)
+        val entry=listing.result().entries.single()
+        assertEquals(-1L,entry.size);assertTrue(MediaFileTypes.playable(entry))
+        assertFalse(MediaFileTypes.playable(entry.copy(size=0)))
+        val playlist=SavedPlaylist("saved","Saved",listOf(PlaylistEntry("","Film",network=NetworkQueueEntry("account","Film.mp4",-1))))
+        assertTrue(SavedPlaylists.valid(playlist))
+        Origin().use {origin->MediaRelay().use {relay->
+            val resource=NetworkFiles.resource(NetworkAccount(label="DAV",address=origin.url),"Film.mp4",-1)
+            val url=relay.register(resource,"Film.mp4")
+            assertEquals("0123456789",URL(url).readText())
+            val head=connection(url,head=true)
+            try {assertEquals(200,head.responseCode);assertEquals(10,head.contentLength)}finally {head.disconnect()}
+            val partial=connection(url,"bytes=2-4")
+            try {assertEquals(206,partial.responseCode);assertEquals("234",partial.inputStream.bufferedReader().readText())}finally {partial.disconnect()}
+            assertEquals("0123456789",resource.open(0).bufferedReader().use {it.readText()})
+        }}
+    }
     internal class Origin:Closeable {
         private val socket=ServerSocket(0,8,InetAddress.getByName("127.0.0.1"))
         private val workers=Executors.newCachedThreadPool {r->Thread(r,"Origin fixture").apply {isDaemon=true}}

@@ -65,9 +65,25 @@ class PlayerRecoveryAndSubtitleTest {
         assertEquals("captions",String(selected.second))
         assertNull(SubtitleFiles.archive(zip("poster.jpg" to "x".repeat(9*1024*1024))))
     }
+    @Test fun ignoredEntriesAreNotInflatedAndSubtitleReadsRemainCancellable() {
+        val data=zip("poster.jpg" to "image".repeat(1000),"Movie.srt" to "captions")
+        fun ushort(at:Int)=(data[at].toInt() and 255) or ((data[at+1].toInt() and 255) shl 8)
+        val payload=30+ushort(26)+ushort(28)
+        data[payload]=7 // Reserved deflate block type: reading this unrelated entry would fail.
+        assertEquals("captions",String(SubtitleFiles.archive(data)!!.second))
+        var reads=0
+        val canceled=runCatching {SubtitleFiles.archive(zip("Movie.srt" to "captions")){if(++reads>=3)throw kotlinx.coroutines.CancellationException()}}
+        assertTrue(canceled.exceptionOrNull() is kotlinx.coroutines.CancellationException)
+    }
     @Test fun archivesHaveEntryAndExpansionLimits() {
         assertTrue(runCatching { SubtitleFiles.archive(zip(*(0..SubtitleFiles.MAX_ENTRIES).map { "$it.srt" to "a" }.toTypedArray())) }.isFailure)
         assertTrue(runCatching { SubtitleFiles.archive(zip("large.srt" to "a".repeat(SubtitleFiles.MAX_DOWNLOAD+1))) }.isFailure)
+    }
+    @Test fun archiveDirectoryCannotHideAdditionalEntriesBehindASmallerDeclaredCount() {
+        val data=zip("One.srt" to "one","Two.srt" to "two")
+        val end=data.size-22
+        data[end+8]=1;data[end+9]=0;data[end+10]=1;data[end+11]=0
+        assertTrue(runCatching {SubtitleFiles.archive(data)}.isFailure)
     }
     @Test fun unicodeBomIsDecodedBeforeFormatDetection() {
         val bytes=byteArrayOf(0xff.toByte(),0xfe.toByte())+"<tt/>".toByteArray(Charsets.UTF_16LE)

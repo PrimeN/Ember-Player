@@ -15,9 +15,6 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import dev.jdtech.mpv.MPVLib
 import java.io.File
-import java.security.KeyStore
-import javax.net.ssl.TrustManagerFactory
-import javax.net.ssl.X509TrustManager
 
 /** libmpv exposed through Media3's Player contract, so Ember keeps its existing TV controls. */
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -55,7 +52,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     private val hdrSurface=HdrSurfaceBinding()
     private var signaledHdr=false
     private var lastSurfaceCheck=0L
-    private var native=run {NativePlayerFiles.prepare(context);MPVLib.create(context)} ?: error("Compatibility player could not start.")
+    private var native=run {NativePlayerFiles.requirePrepared();MPVLib.create(context)} ?: error("Compatibility player could not start.")
     private var status=Player.STATE_IDLE
     private var wanted=false
     private var focusPaused=false
@@ -89,6 +86,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     private val temporary=mutableListOf<File>()
     private val durations=source.durations.toMutableList()
     var partIndex=0;private set
+    private val editionRestore=NativeEditionRestore()
     private var pendingSeek=initialPosition
     private var waitingSeek=true
     private var secondaryLanguage:String?=null
@@ -97,6 +95,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     private var audioOffset=0L
     private var externalSubtitle:File?=null
     private var externalGlobal=false
+    var onOptionsChanged:(()->Unit)?=null
     var captionText="";private set
     var onCaptionTextChanged:(()->Unit)?=null
     private var subtitleOffset=0L
@@ -133,7 +132,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
             option("hwdec",NativeDecoderProfile.choose(requestedDecoderProfile,null,"inherit",config.ffmpegVideo=="always",deinterlacing,false,false,allowHi10p).hardware)
             option("ao","audiotrack,opensles")
             option("load-unsafe-playlists","no");option("access-references","no")
-            option("tls-verify","yes");option("tls-ca-file",caFile().absolutePath)
+            option("tls-verify","yes");option("tls-ca-file",NativePlayerFiles.requirePrepared().certificates.absolutePath)
             option("keep-open","yes");option("idle","yes");option("cache","yes")
             StreamConfig.plan(context,config).nativeOptions().forEach { (key,value)->option(key,value) }
             option("audio-pitch-correction","yes");option("volume-max","400")
@@ -145,7 +144,8 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
             listOf("time-pos","duration","demuxer-cache-time").forEach {native.observeProperty(it,MPVLib.MpvFormat.MPV_FORMAT_DOUBLE)}
             listOf("pause","paused-for-cache","eof-reached","seekable").forEach {native.observeProperty(it,MPVLib.MpvFormat.MPV_FORMAT_FLAG)}
             native.observeProperty("sub-text",MPVLib.MpvFormat.MPV_FORMAT_STRING)
-            listOf("track-list","video-params","audio-out-params").forEach {native.observeProperty(it,MPVLib.MpvFormat.MPV_FORMAT_NONE)}
+            native.observeProperty("current-edition",MPVLib.MpvFormat.MPV_FORMAT_INT64)
+            listOf("edition-list","track-list","video-params","audio-out-params").forEach {native.observeProperty(it,MPVLib.MpvFormat.MPV_FORMAT_NONE)}
     }
     init {
         try {
@@ -158,14 +158,6 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
             if(Build.VERSION.SDK_INT>=33)context.registerReceiver(noisy,IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),Context.RECEIVER_NOT_EXPORTED)
             else @Suppress("DEPRECATION") context.registerReceiver(noisy,IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
         } catch(e:Throwable) {transport?.close();native.destroy();throw e}
-    }
-    private fun caFile():File {
-        val file=File(context.cacheDir,"player-ca.pem")
-        val factory=TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).apply { init(null as KeyStore?) }
-        val certificates=factory.trustManagers.filterIsInstance<X509TrustManager>().flatMap {it.acceptedIssuers.toList()}
-        check(certificates.isNotEmpty()) {"System certificate store unavailable."}
-        file.writeText(certificates.joinToString("\n") {"-----BEGIN CERTIFICATE-----\n"+java.util.Base64.getMimeEncoder(64,byteArrayOf(10)).encodeToString(it.encoded)+"\n-----END CERTIFICATE-----"})
-        return file
     }
     val partOffset get()=prefix(partIndex)
     private fun prefix(index:Int)=durations.take(index).sumOf {it?:0L}
@@ -209,7 +201,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
             groups+=Tracks.Group(TrackGroup(format.id!!,format),false,intArrayOf(C.FORMAT_HANDLED),booleanArrayOf(native.getPropertyBoolean(path+"selected")==true))
         }
         tracks=Tracks(groups)
-        currentVideoMime=groups.firstOrNull {it.type==C.TRACK_TYPE_VIDEO}?.getTrackFormat(0)?.sampleMimeType
+        currentVideoMime=groups.firstOrNull {it.type==C.TRACK_TYPE_VIDEO&&it.isSelected}?.getTrackFormat(0)?.sampleMimeType
         applyEnhancement();applyHdrOutput()
         applyVideoDecoder(); applyAudioEffects()
         size=VideoSize(native.getPropertyInt("video-params/w")?:0,native.getPropertyInt("video-params/h")?:0)
@@ -244,6 +236,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         externalSubtitle?.let {native.command(arrayOf("sub-add",it.absolutePath,"select"))}
         subtitleDelay(subtitleOffset)
         native.setPropertyBoolean("pause",!wanted||focusPaused);invalidateState()
+        onOptionsChanged?.invoke()
         if(pendingFrameStep!=0){val direction=pendingFrameStep;pendingFrameStep=0;stepFrame(direction>0)}
     }
     private fun eof() {
@@ -281,8 +274,13 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     }
     private fun fail(){status=Player.STATE_IDLE;busy=false;error=PlaybackException("Compatibility playback failed. Try another version or server quality.",null,transport?.failureCode?:PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED);invalidateState()}
     private fun captions(value:String) {if(captionText!=value){captionText=value;onCaptionTextChanged?.invoke()}}
-    override fun eventProperty(property:String)=onMain {if(property=="sub-text")captions("") else {refreshTracks();invalidateState()}}
-    override fun eventProperty(property:String,value:Long) {}
+    override fun eventProperty(property:String)=onMain {if(property=="edition-list")onOptionsChanged?.invoke() else if(property=="sub-text")captions("") else {refreshTracks();invalidateState()}}
+    override fun eventProperty(property:String,value:Long)=onMain {
+        if(property=="current-edition") {
+            if(!loading){editionRestore.selectedInPlace();refreshTracks();applyTracks(parameters);invalidateState()}
+            onOptionsChanged?.invoke()
+        }
+    }
     override fun eventProperty(property:String,value:String)=onMain {if(property=="sub-text")captions(value) else {refreshTracks();invalidateState()}}
     override fun eventProperty(property:String,value:Double)=onMain {
         when(property){"time-pos"->{if(requestedHdr.expand && android.os.SystemClock.elapsedRealtime()-lastSurfaceCheck>1000){lastSurfaceCheck=android.os.SystemClock.elapsedRealtime();applyHdrOutput()};val at=(value*1000).toLong();if(!loading && (!waitingSeek || approximateSeek || kotlin.math.abs(at-(pendingSeek-prefix(partIndex)))<2000)){waitingSeek=false;approximateSeek=false;partPosition=at;position=prefix(partIndex)+partPosition}};"duration"->{if(value>0)durations[partIndex]=(value*1000).toLong()};"demuxer-cache-time"->buffered=prefix(partIndex)+(value*1000).toLong()};invalidateState()
@@ -291,7 +289,13 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         when(property){"paused-for-cache"->{busy=value;if(!loading && status!=Player.STATE_ENDED && status!=Player.STATE_IDLE)status=if(value)Player.STATE_BUFFERING else Player.STATE_READY};"eof-reached"->if(value)eof();"seekable"->seekable=value};invalidateState()
     }
     override fun event(eventId:Int)=onMain {
-        when(eventId){MPVLib.MpvEvent.MPV_EVENT_START_FILE->fileEvents.started();MPVLib.MpvEvent.MPV_EVENT_FILE_LOADED->loaded();MPVLib.MpvEvent.MPV_EVENT_VIDEO_RECONFIG->{refreshTracks();invalidateState()}}
+        when(eventId){MPVLib.MpvEvent.MPV_EVENT_START_FILE->{
+            fileEvents.started()
+            editionRestore.takeOnRestart()?.let {at->
+                pendingSeek=at;position=at;waitingSeek=at>0;loading=true;busy=true;status=Player.STATE_BUFFERING
+                native.setPropertyBoolean("pause",true);invalidateState()
+            }
+        };MPVLib.MpvEvent.MPV_EVENT_FILE_LOADED->loaded();MPVLib.MpvEvent.MPV_EVENT_VIDEO_RECONFIG->{refreshTracks();invalidateState()}}
     }
     override fun eventEndFile(reason:Int,error:Int)=onMain {
         if(!stopping)fileEvents.ended(reason)
@@ -348,7 +352,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         native.detachSurface();ownedSurface?.release();ownedSurface=null;output=null
     }
     override fun handleClearVideoOutput(videoOutput:Any?):ListenableFuture<*> {if(videoOutput==null||videoOutput===output)detachOutput();return done()}
-    override fun handleRelease():ListenableFuture<*> {if(!closed){closed=true;onCaptionTextChanged=null;detachOutput();handler.removeCallbacksAndMessages(null);runCatching {context.unregisterReceiver(noisy)};audioManager.abandonAudioFocusRequest(focus);native.removeObserver(this);transport?.close();native.destroy();ownedSurface?.release();descriptors.forEach {it.close()};temporary.forEach {it.delete()}};return done()}
+    override fun handleRelease():ListenableFuture<*> {if(!closed){closed=true;onCaptionTextChanged=null;onOptionsChanged=null;detachOutput();handler.removeCallbacksAndMessages(null);runCatching {context.unregisterReceiver(noisy)};audioManager.abandonAudioFocusRequest(focus);native.removeObserver(this);transport?.close();native.destroy();ownedSurface?.release();descriptors.forEach {it.close()};temporary.forEach {it.delete()}};return done()}
     fun geometry(zoom:String,ratio:Float) {
         native.setPropertyDouble("video-zoom",0.0)
         native.setPropertyDouble("panscan",if(zoom=="crop")1.0 else 0.0)
@@ -524,6 +528,25 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         native.setPropertyString("vo",renderer);appliedHdr=null;applyHdrOutput()
     }
     fun buffering(value:PlaybackConfig){requestedStream=value.stream;StreamConfig.plan(context,value).nativeOptions().filterKeys {it!="network-timeout"}.forEach {(key,option)->native.setPropertyString(key,option)}}
+    fun editions():List<NativeEdition> = NativeEditions.read(native.getPropertyInt("edition-list/count") ?: 0,
+        native.getPropertyInt("current-edition"),{native.getPropertyString("edition-list/$it/title")}) {context.getString(R.string.ui_program_variant_n,it)}
+    fun selectEdition(index:Int):Boolean {
+        if(closed||loading||editions().none {it.index==index})return false
+        if(native.getPropertyInt("current-edition")==index)return true
+        editionRestore.request(position,seekable,source.live)
+        for((type,property) in listOf(C.TRACK_TYPE_VIDEO to "vid",C.TRACK_TYPE_AUDIO to "aid",C.TRACK_TYPE_TEXT to "sid"))
+            native.setPropertyString(property,if(type in parameters.disabledTrackTypes)"no" else "auto")
+        native.setPropertyInt("edition",index)
+        if(native.getPropertyInt("edition")!=index){editionRestore.selectedInPlace();applyTracks(parameters);return false}
+        // Let mpv choose the tracks belonging to the new program, retaining explicit disabled types.
+        parameters=parameters.buildUpon().clearOverridesOfType(C.TRACK_TYPE_VIDEO).clearOverridesOfType(C.TRACK_TYPE_AUDIO).clearOverridesOfType(C.TRACK_TYPE_TEXT).build()
+        invalidateState();return true
+    }
+    val rendererExplanation:String get()=context.getString(when {
+        rendererFallback->R.string.ui_renderer_recovered_reason
+        RendererPolicy.normalized(requestedRenderer)=="auto"->R.string.ui_renderer_automatic_reason
+        else->R.string.ui_renderer_manual_reason
+    })
     fun diagnostics()=mapOf(R.string.ui_engine to context.getString(R.string.ui_compatibility_libmpv),R.string.ui_video_decoder to native.getPropertyString("hwdec-current").orEmpty(),
         R.string.ui_renderer to (native.getPropertyString("current-vo") ?: renderer),
         R.string.ui_renderer_recovery to if(rendererFallback)context.getString(R.string.ui_stable_fallback_active) else context.getString(R.string.ui_not_needed),

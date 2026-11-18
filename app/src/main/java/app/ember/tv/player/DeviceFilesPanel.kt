@@ -28,12 +28,14 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
 
     val store = remember { DeviceFolders(activity) }
     val scope = rememberCoroutineScope()
+    val history=remember {FolderPlaybackHistory(activity)}
+    var historyError by remember {mutableStateOf(false)}
     var readError by remember {mutableStateOf(false)}
     var folders by remember { mutableStateOf<List<DeviceFolder>>(emptyList()) }
     var root by remember { mutableStateOf<DeviceFolder?>(null) }
     var parents by remember { mutableStateOf<List<Pair<Uri,String>>>(emptyList()) }
-    var offsets by remember {mutableStateOf(listOf(0))}
-    var page by remember { mutableStateOf(DeviceFiles.Page(emptyList(), false)) }
+    var offsets by remember {mutableStateOf(listOf<DeviceFile?>(null))}
+    var page by remember { mutableStateOf(DeviceFiles.BrowsePage()) }
     var query by remember { mutableStateOf("") }
     var sort by remember { mutableStateOf("name") }
     var hidden by remember { mutableStateOf(false) }
@@ -87,19 +89,21 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
     BackHandler(enabled = root != null && !busy) {back()}
     LaunchedEffect(refresh,revision) {
         selected=emptySet()
+        historyError=withContext(Dispatchers.IO){runCatching {history.readForDisplay()}.isFailure}
         val loaded=withContext(Dispatchers.IO) {runCatching {store.readForDisplay()}.getOrNull()}
         readError=loaded==null
         folders=loaded.orEmpty().filterNot {app.ember.player.PrivateMedia.hidden(it.uri)}
         if(root!=null && folders.none {it.uri==root?.uri}){root=null;parents=emptyList()}
     }
-    LaunchedEffect(root,current) {offsets=listOf(0)}
-    LaunchedEffect(root, current, revision, offsets) {
-        selected = emptySet(); page = DeviceFiles.Page(emptyList(), false);lastPlayed=null
+    LaunchedEffect(root,current,query,sort,hidden) {offsets=listOf(null)}
+    LaunchedEffect(root, current, revision, offsets,query,sort,hidden) {
+        selected = emptySet(); page = DeviceFiles.BrowsePage();lastPlayed=null
         val folder = root ?: return@LaunchedEffect
         val directory = current?.first ?: DeviceFiles.root(Uri.parse(folder.uri))
         loading = true
         try {
-            val loaded=withContext(Dispatchers.IO) {DeviceFiles.list(activity,Uri.parse(folder.uri),directory,offsets.last()) {ensureActive()} to FolderPlaybackHistory(activity).get(directory)}
+            delay(if(query.isBlank())0 else 180)
+            val loaded=withContext(Dispatchers.IO) {DeviceFiles.browse(activity,Uri.parse(folder.uri),directory,query,sort,hidden,offsets.last()) {ensureActive()} to history.get(directory)}
             page=loaded.first.copy(entries=loaded.first.entries.filterNot {app.ember.player.PrivateMedia.hidden(it.uri.toString())});lastPlayed=loaded.second
         }
         catch (e: CancellationException) {throw e}
@@ -143,6 +147,10 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
         }
         notice?.let {app.ember.player.PlayerErrorText(it)}
         status?.let {app.ember.player.PlayerStatusText(it)}
+        if(historyError) {
+            app.ember.player.PlayerErrorText(uiResources.getString(R.string.ui_folder_history_unreadable))
+            app.ember.player.SavedListRecoveryControls(R.string.ui_reset_folder_history,R.string.ui_reset_folder_history_warning,history::resetUnreadable){revision++}
+        }
         if (root == null) {
             PlayerAction(uiResources.getString(R.string.ui_add_a_media_folder)) {if (!busy) runCatching {addFolder.launch(null)}.onFailure {notice = uiResources.getString(R.string.ui_no_document_picker_is_installed_on_this_device)}}
             folders.forEach {folder -> ButtonRow {
@@ -185,10 +193,10 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
                 }
             }
             ButtonRow {
-                if(offsets.size>1)PlayerAction(uiResources.getString(R.string.ui_previous_page)){offsets=offsets.dropLast(1)}
-                if(page.limited)PlayerAction(uiResources.getString(R.string.ui_next_page)){offsets=offsets+page.nextOffset}
+                if(offsets.size>1)PlayerAction(uiResources.getString(R.string.ui_previous_page),enabled=!loading&&!busy){offsets=offsets.dropLast(1)}
+                page.next?.let {next->PlayerAction(uiResources.getString(R.string.ui_next_page),enabled=!loading&&!busy){offsets=offsets+listOf(next)}}
             }
-            Text(uiResources.getString(R.string.ui_search_and_sorting_apply_to_this_page_use_library),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+            Text(uiResources.getString(R.string.ui_folder_search_scope),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
             if (entries.any {!it.directory}) PlayerAction(uiResources.getString(R.string.ui_play_this_page)) {open(entries.filterNot {it.directory})}
         }
         menu?.takeUnless {app.ember.player.PrivateMedia.hidden(it.uri.toString())}?.let {file -> OptionMenu(file.name, listOf(

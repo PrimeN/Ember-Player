@@ -9,6 +9,7 @@ import app.ember.tv.data.list
 import app.ember.tv.data.long
 import app.ember.tv.data.obj
 import app.ember.tv.data.str
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.ensureActive
@@ -428,7 +429,7 @@ object Subtitles {
                 if (!response.isSuccessful) return@coroutineScope null
                 withContext(Dispatchers.IO) { response.body.byteStream().use { SubtitleFiles.read(it) } }
             }
-            val (name, raw) = if (s.zipped || SubtitleFiles.isZip(bytes)) SubtitleFiles.archive(bytes, SubtitleFiles.Target(target?.release ?: s.release,target?.season,target?.episode,s.lang)) ?: return@coroutineScope null else url.substringAfterLast('/') to bytes
+            val (name, raw) = if (s.zipped || SubtitleFiles.isZip(bytes)) withContext(Dispatchers.IO) {val owner=currentCoroutineContext();SubtitleFiles.archive(bytes, SubtitleFiles.Target(target?.release ?: s.release,target?.season,target?.episode,s.lang)){owner.ensureActive()}} ?: return@coroutineScope null else url.substringAfterLast('/') to bytes
             val text = SubtitleEncodings.decode(raw,s.lang,encoding)
             text to SubtitleFiles.format(name,text.toByteArray(Charsets.UTF_8))
         } catch (e: kotlinx.coroutines.CancellationException) { throw e }

@@ -75,9 +75,9 @@ class PictureEnhancementTest {
         val original=context.assets.open("shaders/fast-upscale.glsl").use {it.readBytes()}
         assertEquals("4c53ec2e287908f7ee7bcb266b0170421626d663576468b7d7dafc62962649a4",java.security.MessageDigest.getInstance("SHA-256").digest(original).joinToString(""){"%02x".format(it)})
         assertTrue(original.decodeToString().contains("Permission is hereby granted"))
-        val file=NativePlayerFiles.upscaleShader(context)
+        val file=kotlinx.coroutines.runBlocking {kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO){NativePlayerFiles.extractShader(context)}}
         file.writeText("old shader")
-        assertArrayEquals(original,NativePlayerFiles.upscaleShader(context).readBytes())
+        assertArrayEquals(original,kotlinx.coroutines.runBlocking {kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO){NativePlayerFiles.extractShader(context).readBytes()}})
         assertTrue(context.assets.open("licenses/Anime4K-MIT.txt").bufferedReader().use {it.readText()}.contains("bloc97"))
     }
 }

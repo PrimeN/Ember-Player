@@ -33,7 +33,7 @@ internal class NetworkListing(private val path: String, private val offset: Int,
 
 internal object MediaFileTypes {
     private val extensions = setOf("mkv","mp4","m4v","avi","mov","wmv","webm","ts","m2ts","mts","mpeg","mpg","vob","ogv","flv","3gp","asf","mxf","divx","rm","rmvb","iso","mp3","flac","aac","m4a","ogg","opus","wav","wma","aiff","aif","ac3","eac3","dts","mka","ape","alac","amr","m3u8","mpd")
-    fun playable(entry: NetworkEntry) = !entry.directory && entry.size > 0 && entry.name.substringAfterLast('.', "").lowercase() in extensions
+    fun playable(entry: NetworkEntry) = !entry.directory && entry.size != 0L && entry.name.substringAfterLast('.', "").lowercase() in extensions
 }
 
 /** Streaming DAV parsing: no directory DOM, external entities, or unbounded XML text. */
@@ -56,14 +56,14 @@ internal object WebDavListing {
         }
         val handler = object : DefaultHandler2() {
             var depth = 0; var responseDepth = 0; var field: String? = null
-            val text = StringBuilder(); var href = ""; var size = 0L; var directory = false
+            val text = StringBuilder(); var href = ""; var size = -1L; var directory = false
             override fun startDTD(name: String?, publicId: String?, systemId: String?) { throw SAXException("DTD disabled") }
             override fun resolveEntity(publicId: String?, systemId: String?): InputSource { throw SAXException("Entities disabled") }
             override fun startElement(uri: String, local: String, q: String, attrs: org.xml.sax.Attributes) {
                 require(++depth <= 64) { "Directory XML nesting is too deep." }
                 if (uri != "DAV:") return
                 when (local) {
-                    "response" -> { responseDepth = depth; href = ""; size = 0; directory = false }
+                    "response" -> { responseDepth = depth; href = ""; size = -1; directory = false }
                     "href", "getcontentlength" -> { field = local; text.clear() }
                     "collection" -> directory = true
                 }
@@ -73,7 +73,7 @@ internal object WebDavListing {
             }
             override fun endElement(uri: String, local: String, q: String) {
                 if (uri == "DAV:" && local == field) {
-                    if (field == "href") href = text.toString().trim() else size = text.toString().trim().toLongOrNull() ?: 0
+                    if (field == "href") href = text.toString().trim() else size = text.toString().trim().toLongOrNull()?.takeIf {it>=0} ?: -1
                     field = null
                 }
                 if (uri == "DAV:" && local == "response" && depth == responseDepth) {

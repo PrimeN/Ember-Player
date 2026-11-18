@@ -12,6 +12,7 @@ class PlayerApplication:Application(),ImageLoaderFactory {
         super.onCreate()
         PrivateMedia.install(this)
         scope.launch {LegacyCrashLog.clear(this@PlayerApplication)}
+        scope.launch {runCatching {app.ember.tv.player.NativePlayerFiles.await(this@PlayerApplication)}}
         Net.init(this)
         CacheManagement.init(this)
         scope.launch {app.ember.tv.player.PlaybackStateRetention.prune(this@PlayerApplication)}

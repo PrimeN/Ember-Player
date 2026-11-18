@@ -212,7 +212,7 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                 }
             }}
             fun play(all:Boolean) {
-                val chosen=entries.filter {!it.directory&&it.size>0&&(if(all)MediaFileTypes.playable(it) else it.name in selected)}
+                val chosen=entries.filter {!it.directory&&it.size!=0L&&(if(all)MediaFileTypes.playable(it) else it.name in selected)}
                 if(chosen.isEmpty())return
                 var cleanup:MediaRelay?=null
                 try {

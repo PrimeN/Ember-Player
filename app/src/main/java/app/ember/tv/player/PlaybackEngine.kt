@@ -30,6 +30,7 @@ internal fun playbackListener(listener: Player.Listener, player: () -> Player): 
 internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer,private val config:()->PlaybackConfig,
     private val compatibilityFactory:((EngineSource,Long,TrackSelectionParameters)->Player)?=null,
     private val changed:(Boolean)->Unit) {
+    internal var selectionReason=if(config().engine=="auto")app.ember.tv.R.string.ui_core_default else app.ember.tv.R.string.ui_core_manual;private set
     private var active:Player=standard
     private val listeners=linkedMapOf<Player.Listener,Player.Listener>()
     private var surfaceMethod:Method?=null
@@ -87,8 +88,8 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
                     val learned=if(config().rememberDecoderChoices)memoryKey()?.let {health?.engine(it)} else null
                     val automatic=current?.urls?.firstOrNull()?.let {PlaybackEnginePolicy.nativeFirst(it,current.filename)}==true
                     if(active===standard && (mode=="compatibility" || mode=="auto" && (learned=="compatibility" || learned==null&&automatic))) {
-                        if(!switch())standard.prepare()
-                    } else active.prepare();null}
+                        if(!switch(if(mode=="compatibility")app.ember.tv.R.string.ui_core_manual else if(learned=="compatibility")app.ember.tv.R.string.ui_core_remembered else app.ember.tv.R.string.ui_core_format))standard.prepare()
+                    } else {if(active===standard)selectionReason=if(mode!="auto")app.ember.tv.R.string.ui_core_manual else if(learned=="standard")app.ember.tv.R.string.ui_core_remembered else app.ember.tv.R.string.ui_core_default;active.prepare()};null}
                 "getVideoFormat" -> compatibility?.currentTracks?.groups?.firstOrNull {it.type==androidx.media3.common.C.TRACK_TYPE_VIDEO&&it.isSelected}?.getTrackFormat(0) ?: if(active===standard)standard.videoFormat else null
                 "getAudioFormat" -> compatibility?.currentTracks?.groups?.firstOrNull {it.type==androidx.media3.common.C.TRACK_TYPE_AUDIO&&it.isSelected}?.getTrackFormat(0) ?: if(active===standard)standard.audioFormat else null
                 else -> {
@@ -116,23 +117,24 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
         val old=active.takeUnless {it===standard}
         if(old!=null){old.removeListener(stabilityListener);listeners.values.forEach(old::removeListener);old.release();active=standard;standard.addListener(stabilityListener);listeners.values.forEach(standard::addListener)
             surfaceMethod?.let {method->surface?.let {method.invoke(standard,it)}};changed(false)}
-        source=value;attempted=false
+        source=value;attempted=false;selectionReason=if(mode=="auto")app.ember.tv.R.string.ui_core_default else app.ember.tv.R.string.ui_core_manual
     }
     fun mode(value:String) {
         mode=value
-        if(value=="compatibility") {attempted=false;switch()}
+        if(value=="auto")selectionReason=app.ember.tv.R.string.ui_core_retained
+        if(value=="compatibility") {attempted=false;switch(app.ember.tv.R.string.ui_core_manual)}
         else if(value=="standard" && active!==standard) {
             val at=navigation.target?:active.currentPosition;val wanted=active.playWhenReady;val current=source?:return
-            configure(current);standard.seekTo(at);standard.prepare();standard.playWhenReady=wanted
+            configure(current);selectionReason=app.ember.tv.R.string.ui_core_manual;standard.seekTo(at);standard.prepare();standard.playWhenReady=wanted
         }
     }
     fun recover(code:Int):Boolean {
         if(!PlaybackEnginePolicy.compatibilityError(code))return false
         if(mode=="auto")memoryKey()?.let {health?.forgetEngine(it)}
         if(mode=="standard" || active!==standard)return false
-        return switch()
+        return switch(app.ember.tv.R.string.ui_core_recovery)
     }
-    fun switch():Boolean {
+    fun switch(reason:Int=app.ember.tv.R.string.ui_core_feature):Boolean {
         if(mode=="standard"||attempted||active!==standard)return false
         val current=source?:return false
         val audio=standard.audioFormat ?: standard.currentTracks.groups.firstOrNull {it.type==androidx.media3.common.C.TRACK_TYPE_AUDIO && it.isSelected}?.let {group->
@@ -156,7 +158,7 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
             native.playWhenReady=desired
             native.playbackParameters=standard.playbackParameters
             native.volume=standard.volume
-            native.prepare();changed(true);return true
+            native.prepare();selectionReason=reason;changed(true);return true
         } catch(e:Throwable) {
             if(e !is Exception && e !is LinkageError)throw e
             stable?.let(handler::removeCallbacks);stable=null

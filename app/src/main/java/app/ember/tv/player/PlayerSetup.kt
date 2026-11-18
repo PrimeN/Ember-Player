@@ -143,6 +143,12 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         if(boostLevel>0)setBoost(boostLevel)
         if(compatible) {
             playbackEngine?.compatibility?.onCaptionTextChanged={subtitleTicker.refresh()}
+            playbackEngine?.compatibility?.onOptionsChanged={
+                metadataLoads.reset();chapters=playbackEngine?.compatibility?.chapters().orEmpty()
+                markerChapterState=null;autoSkipped.clear()
+                if(subsInitialized)subs.reconcileEmbeddedSelection()
+                changed()
+            }
             audioDecoder=null
             applyZoom();applyAspect();applyTouchMagnification()
             playbackEngine?.compatibility?.captionStyle(prefs.subtitleConfig)

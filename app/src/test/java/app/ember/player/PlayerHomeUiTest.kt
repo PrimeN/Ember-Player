@@ -59,6 +59,15 @@ class PlayerHomeUiTest {
         compose.onNodeWithText("Videos").assertIsFocused()
     }
 
+    @Test @Config(qualifiers="w320dp-h800dp-port-mdpi")
+    fun compactHeaderShowsTheFullTitleAndKeepsFileSelectionInTheMenu() {
+        val result=mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        compose.onNodeWithText("Ember Player",useUnmergedTree=true).performSemanticsAction(SemanticsActions.GetTextLayoutResult){it(result)}
+        org.junit.Assert.assertFalse(result.single().hasVisualOverflow)
+        compose.onNodeWithContentDescription("Open file").assertDoesNotExist()
+        compose.onNodeWithContentDescription("More options").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithContentDescription("Open file").assertExists()
+    }
     @Test @Config(qualifiers="w360dp-h800dp-port-mdpi")
     fun phoneTabsAndToolbarKeepNavigationReachableAndBrowseChoicesPersist() {
         listOf("Videos","Folders").forEach {compose.onAllNodesWithText(it).assertCountEquals(1);compose.onNodeWithText(it).assertIsDisplayed()}
