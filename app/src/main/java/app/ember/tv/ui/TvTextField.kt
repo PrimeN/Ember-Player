@@ -130,8 +130,10 @@ fun TvTextField(
         BasicTextField(
             value = current,
             onValueChange = {
-                if(enabled){tfv = it
-                if (it.text != value) onValueChange(it.text)}
+                if (enabled) {
+                    tfv = it
+                    if (it.text != value) onValueChange(it.text)
+                }
             },
             readOnly = !editing,
             enabled = enabled,
@@ -160,7 +162,9 @@ fun TvTextField(
                     }
                 }
                 .onPreviewKeyEvent { e ->
-                    if(!enabled)return@onPreviewKeyEvent false
+                    if (!enabled) {
+                        return@onPreviewKeyEvent false
+                    }
                     if ((e.key == Key.Back || e.key == Key.Escape) && consumedBack) {
                         if (e.type == KeyEventType.KeyUp) consumedBack = false
                         return@onPreviewKeyEvent true
