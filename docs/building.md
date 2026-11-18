@@ -62,17 +62,16 @@ Configure the GitHub Environment **release-signing** before publishing:
 1. Require reviewer approval, and disable bypassing protection rules where available.
 2. Allow deployments only from `main` and version tags matching `v*`. The workflow
    also verifies that the tagged commit belongs to `main` and passed its checks.
-3. Add Environment secrets `RELEASE_KEYSTORE_BASE64` (the original PKCS12 file,
-   Base64 encoded), `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS` and
-   `RELEASE_KEY_PASSWORD`.
-4. Remove the old repository-scoped `EMBER_KEYSTORE_BASE64`,
-   `EMBER_KEYSTORE_PASSWORD`, `EMBER_KEY_ALIAS` and `EMBER_KEY_PASSWORD` secrets
-   after the Environment secrets are configured.
+3. Use secrets `EMBER_KEYSTORE_BASE64` (the original PKCS12 file, Base64
+   encoded), `EMBER_KEYSTORE_PASSWORD`, `EMBER_KEY_ALIAS` and `EMBER_KEY_PASSWORD`.
+   Existing repository secrets with these names are supported. To restrict access
+   through Environment protection rules, configure the same names as Environment secrets.
+4. After moving the secrets into the Environment, remove their repository copies.
 
-The signing job uses only the `RELEASE_*` secret names, so old repository secrets
-cannot silently enable it. The key is decoded only into temporary runner storage
-and removed after the build. It is never uploaded with the APK artifact. The
-signing job stops if any required secret is missing.
+Only the explicit release-signing job references these secrets; ordinary validation
+builds do not use them. The key is decoded only into temporary runner storage and
+removed after the build. It is never uploaded with the APK artifact. The signing
+job stops if any required secret is missing.
 
 Gradle caching is disabled in the signing job; it does not restore or save the
 Gradle caches used by unsigned validation builds.

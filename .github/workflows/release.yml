@@ -61,17 +61,17 @@ jobs:
           cache-disabled: true
       - name: Restore the approved release signing key
         env:
-          EMBER_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
-          EMBER_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-          EMBER_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          EMBER_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          EMBER_KEYSTORE_BASE64: ${{ secrets.EMBER_KEYSTORE_BASE64 }}
+          EMBER_KEYSTORE_PASSWORD: ${{ secrets.EMBER_KEYSTORE_PASSWORD }}
+          EMBER_KEY_ALIAS: ${{ secrets.EMBER_KEY_ALIAS }}
+          EMBER_KEY_PASSWORD: ${{ secrets.EMBER_KEY_PASSWORD }}
         run: |
           python3 - <<'PY'
           import base64, os
           from pathlib import Path
           required = ('EMBER_KEYSTORE_BASE64', 'EMBER_KEYSTORE_PASSWORD', 'EMBER_KEY_ALIAS', 'EMBER_KEY_PASSWORD')
           if any(not os.environ.get(name, '').strip() for name in required):
-              raise SystemExit('Configure all four signing secrets in the protected release-signing environment.')
+              raise SystemExit('Configure EMBER_KEYSTORE_BASE64, EMBER_KEYSTORE_PASSWORD, EMBER_KEY_ALIAS and EMBER_KEY_PASSWORD signing secrets.')
           key = Path(os.environ['RUNNER_TEMP']) / 'ember-player-release.p12'
           key.touch(mode=0o600, exist_ok=False)
           key.write_bytes(base64.b64decode(''.join(os.environ['EMBER_KEYSTORE_BASE64'].split()), validate=True))
@@ -80,9 +80,9 @@ jobs:
           PY
       - name: Build the approved signed release
         env:
-          EMBER_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-          EMBER_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          EMBER_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          EMBER_KEYSTORE_PASSWORD: ${{ secrets.EMBER_KEYSTORE_PASSWORD }}
+          EMBER_KEY_ALIAS: ${{ secrets.EMBER_KEY_ALIAS }}
+          EMBER_KEY_PASSWORD: ${{ secrets.EMBER_KEY_PASSWORD }}
         run: ./gradlew --no-daemon --max-workers=2 assembleRelease
       - name: Verify release identity and prepare the APK
         run: python3 scripts/prepare-release.py --require-signed
