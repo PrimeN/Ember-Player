@@ -1,0 +1,3 @@
+<resources>
+    <string name="ui_playback_core_note">Choose Media3 or mpv as your default core. Automatic can choose a core for each file and recover from supported playback errors. Some protected or specialized formats require Media3.</string>
+</resources>

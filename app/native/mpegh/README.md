@@ -1,6 +1,6 @@
 # MPEG-H software audio decoder
 
-Ember's Standard player includes the AndroidX Media3 MPEG-H extension and
+Ember's Media3 player includes the AndroidX Media3 MPEG-H extension and
 Fraunhofer decoder r3.0.2. This adds actual decoding for supported, unencrypted
 `mhm1`/`mha1` audio; naming a format alone was not sufficient. Fraunhofer documents
 Baseline Profile, Level 4 for this version. The Media3 adapter selects CICP 2 and
@@ -9,7 +9,7 @@ outputs stereo, 16-bit PCM. This does not add immersive MPEG-H HDMI passthrough.
 Device decoding remains first in the default **Software when needed** mode.
 **Prefer software** changes renderer priority without disabling other decoders;
 **TV decoders only** excludes the extension. Explicit runtime decoder recovery
-still uses Nextlib's controller. Compatibility/libmpv does not use this decoder.
+still uses Nextlib's controller. mpv/libmpv does not use this decoder.
 
 ## Source and licenses
 

@@ -4,7 +4,7 @@
 
 Search [existing issues](https://github.com/PrimeN/Ember-Player/issues) first. Note
 the app version, Android version, device model and whether the problem occurs in
-Standard, Compatibility or automatic playback.
+Media3, mpv or automatic playback.
 
 For playback problems, compare the two internal engines if the media permits it.
 For stuttering, try turning off picture enhancement or lowering the performance

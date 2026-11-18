@@ -57,7 +57,11 @@ Glass, Ember, Basic and Streaming are playback-control layouts. They are separat
 from the app's day/night palette. Appearance changes also update screens already
 open in memory.
 
-Start with automatic engine and performance selection. For a constrained device,
+Choose **Playback → Playback core** to select Automatic, Media3 or mpv as your
+default. The player menu offers the same choices during playback. Automatic can
+choose between the cores; either manual choice takes priority.
+
+Start with automatic core and performance selection. For a constrained device,
 try Low performance and turn off picture enhancement before forcing software
 decoding. Hardware, display and receiver capabilities still determine output.
 

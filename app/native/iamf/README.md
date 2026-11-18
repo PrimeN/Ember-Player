@@ -1,9 +1,9 @@
 # IAMF software audio
 
-The Standard engine includes Media3's IAMF renderer and IAMF Tools. Supported
+The Media3 engine includes Media3's IAMF renderer and IAMF Tools. Supported
 IAMF tracks in MP4 use Opus, FLAC or PCM, with output layouts selected for the
 current audio configuration. AAC-based IAMF and encrypted IAMF are unsupported.
-This does not add an IAMF renderer to Compatibility, raw IAMF extraction, or
+This does not add an IAMF renderer to mpv, raw IAMF extraction, or
 Dolby/DTS object rendering. Existing AAC playback outside IAMF is unchanged.
 
 ## Sources and rebuilding

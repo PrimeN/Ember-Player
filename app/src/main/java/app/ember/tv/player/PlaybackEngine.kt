@@ -121,7 +121,7 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
     fun mode(value:String) {
         mode=value
         if(value=="compatibility") {attempted=false;switch()}
-        else if(value=="standard" && compatibility!=null) {
+        else if(value=="standard" && active!==standard) {
             val at=navigation.target?:active.currentPosition;val wanted=active.playWhenReady;val current=source?:return
             configure(current);standard.seekTo(at);standard.prepare();standard.playWhenReady=wanted
         }
