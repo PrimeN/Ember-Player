@@ -218,7 +218,7 @@
     <string name="ui_could_not_discover_receivers_check_the_local_network" formatted="false">"Could not discover receivers. Check the local network."</string>
     <string name="ui_could_not_finish_refreshing_check_folder_access_existing_indexed" formatted="false">"Could not finish refreshing. Check folder access; existing indexed files are kept."</string>
     <string name="ui_could_not_import_this_key_choose_an_openssh_or" formatted="false">"Could not import this key. Choose an OpenSSH or PEM private key smaller than 64 KiB."</string>
-    <string name="ui_could_not_install_this_font_choose_a_valid_ttf" formatted="false">"Could not install this font. Choose a valid TTF or OTF file, up to 12 MB."</string>
+    <string name="ui_could_not_install_this_font_choose_a_valid_ttf" formatted="false">"Could not install this font. Choose a valid TTF, OTF or TTC file, up to 12 MB."</string>
     <string name="ui_could_not_keep_access_to_that_subtitle_folder" formatted="false">"Could not keep access to that subtitle folder."</string>
     <string name="ui_could_not_list_connected_usb_drives" formatted="false">"Could not list connected USB drives."</string>
     <string name="ui_could_not_load_saved_media" formatted="false">"Could not load saved media."</string>

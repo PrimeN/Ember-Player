@@ -187,6 +187,7 @@ class PlayerActivity : ComponentActivity() {
     /** A paused player kept in the background closes after half an hour (the TV may be off by then). */
     internal val closeKept = Runnable { endPlayback() }
 
+    internal var pipActions:PlayerPipActions?=null
     internal var pictureInPictureEntered=false
 
     override fun onResume(){super.onResume();pictureInPictureEntered=false;updatePictureInPicture();captionConfig=null;captionForeground=true;subtitleTicker.refresh()}
@@ -211,6 +212,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        pipActions?.close();pipActions=null
         playbackBackCallback?.remove();playbackBackCallback=null
         clips.close();exports.close();sleepWatch?.close();sleepWatch=null
         closeCaptionAssistance()

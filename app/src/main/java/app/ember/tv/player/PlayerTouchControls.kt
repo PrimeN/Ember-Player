@@ -150,6 +150,7 @@ internal class PlayerTouchControls(
             setMargins(dp(24), dp(24), dp(24), dp(24))
         })
         applyOrientation()
+        SessionBrightness.restore(activity.window)
     }
 
     fun restoreMagnification(value:Float){scale=value.takeIf {it.isFinite()}?.coerceIn(1f,4f) ?: 1f}
@@ -219,7 +220,7 @@ internal class PlayerTouchControls(
                 val fraction = dy / (root.height.coerceAtLeast(1) * .7f)
                 if (TouchActions.brightness(downX < root.width / 2f,settings()) && settings().brightnessSwipe) {
                     val level = TouchPlaybackMath.level(startBrightness, fraction, 100).coerceAtLeast(1)
-                    activity.window.attributes = activity.window.attributes.apply { screenBrightness = level / 100f }
+                    SessionBrightness.set(activity.window,level / 100f)
                     showHint(activity.resources.getString(R.string.ui_brightness ,level.toString()), sticky = true)
                 } else if (!TouchActions.brightness(downX < root.width / 2f,settings()) && settings().volumeSwipe && !audio.isVolumeFixed) {
                     val maximum = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)

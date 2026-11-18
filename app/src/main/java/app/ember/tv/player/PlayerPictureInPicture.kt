@@ -18,6 +18,8 @@ internal fun pictureInPictureRatio(size:VideoSize?):Rational {
 internal fun PlayerActivity.pictureInPictureParams():PictureInPictureParams {
     val builder=PictureInPictureParams.Builder().setAspectRatio(pictureInPictureRatio(player?.videoSize))
     if(Build.VERSION.SDK_INT>=31)builder.setAutoEnterEnabled(pictureInPictureAllowed())
+    val actions=pipActions ?: PlayerPipActions(this).also {pipActions=it}
+    builder.setActions(actions.actions())
     val rect=Rect()
     if(viewInitialized && (view.videoSurfaceView ?: view).getGlobalVisibleRect(rect) && !rect.isEmpty)builder.setSourceRectHint(rect)
     return builder.build()
