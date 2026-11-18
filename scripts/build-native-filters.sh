@@ -7,7 +7,7 @@ build_path="${2:-$(mktemp -d)}"
 ndk_path="$(cd -- "$ndk_path" && pwd)"
 mkdir -p "$build_path"
 build_path="$(cd -- "$build_path" && pwd)"
-source_commit=9047fa1b084f76b1b4d065af2d743df1b40dfb56
+source_commit=946fcce07b6dcd0331c8cc609192aeff5e1924f8
 ndk_version=29.0.14206865
 python3 - "$ndk_path/source.properties" "$ndk_version" <<'PY'
 import pathlib,sys
@@ -43,15 +43,15 @@ for abi in ${NATIVE_FILTER_ABIS:-arm64-v8a armeabi-v7a}; do
         make -j"${NATIVE_FILTER_JOBS:-4}" libavfilter/libavfilter.so
     )
     mkdir -p "$task_root/app/native/ffmpeg-filters/$abi"
-    cp "$build_path/$abi/libavfilter/libavfilter.so.11" "$task_root/app/native/ffmpeg-filters/$abi/libavfilter.so"
+    cp "$build_path/$abi/libavfilter/libavfilter.so.12" "$task_root/app/native/ffmpeg-filters/$abi/libavfilter.so"
     llvm-strip --strip-unneeded "$task_root/app/native/ffmpeg-filters/$abi/libavfilter.so"
     chmod 644 "$task_root/app/native/ffmpeg-filters/$abi/libavfilter.so"
 done
 python3 - "$task_root/app/native/ffmpeg-filters" "$source_commit" "$ndk_version" <<'PY'
 import hashlib,pathlib,sys
 root=pathlib.Path(sys.argv[1])
-lines=['# FFmpeg n8.1; libavfilter only; GPL v3; source/build steps in scripts/build-native-filters.sh',
-       'source.commit='+sys.argv[2], 'ndk.version='+sys.argv[3], 'ffmpeg.version=8.1']
+lines=['# FFmpeg n9.0.2; libavfilter only; GPL v3; source/build steps in scripts/build-native-filters.sh',
+       'source.commit='+sys.argv[2], 'ndk.version='+sys.argv[3], 'ffmpeg.version=9.0.2']
 for abi in ['arm64-v8a','armeabi-v7a']:
     lines.append(abi+'.sha256='+hashlib.sha256((root/abi/'libavfilter.so').read_bytes()).hexdigest())
 (root/'checksums.properties').write_text('\n'.join(lines)+'\n')
