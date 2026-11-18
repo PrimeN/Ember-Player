@@ -87,7 +87,9 @@ internal fun saveDeviceFolder(context:Context,tree:Uri,store:DeviceFolders=Devic
         return value
     } finally {
         if(!saved) {
-            val added=flags() and previous.inv()
+            val current=flags()
+            val added=(if(current and Intent.FLAG_GRANT_READ_URI_PERMISSION!=0 && previous and Intent.FLAG_GRANT_READ_URI_PERMISSION==0)Intent.FLAG_GRANT_READ_URI_PERMISSION else 0) or
+                (if(current and Intent.FLAG_GRANT_WRITE_URI_PERMISSION!=0 && previous and Intent.FLAG_GRANT_WRITE_URI_PERMISSION==0)Intent.FLAG_GRANT_WRITE_URI_PERMISSION else 0)
             if(added!=0)resolver.releasePersistableUriPermission(tree,added)
         }
     }
