@@ -18,15 +18,17 @@ object SleepTimer {
     internal val state:StateFlow<SleepTimerState> = mutable
     private val expire=Runnable {fire()}
     private val listeners=java.util.concurrent.CopyOnWriteArraySet<()->Unit>()
+    private val changed=java.util.concurrent.CopyOnWriteArraySet<()->Unit>()
+    internal fun changes(action:()->Unit):java.io.Closeable {changed+=action;return java.io.Closeable {changed-=action}}
     internal fun listen(expired:()->Unit):java.io.Closeable {listeners+=expired;return java.io.Closeable {listeners-=expired}}
     @Synchronized fun after(minutes:Int) {
         require(minutes in 1..1440)
         handler.removeCallbacks(expire)
         mutable.value=SleepTimerState(SystemClock.elapsedRealtime()+minutes*60000L)
-        handler.postDelayed(expire,minutes*60000L)
+        handler.postDelayed(expire,minutes*60000L);changed.forEach {it()}
     }
-    @Synchronized fun atEnd(){handler.removeCallbacks(expire);mutable.value=SleepTimerState(endOfItem=true)}
-    @Synchronized fun cancel(){handler.removeCallbacks(expire);mutable.value=SleepTimerState()}
+    @Synchronized fun atEnd(){handler.removeCallbacks(expire);mutable.value=SleepTimerState(endOfItem=true);changed.forEach {it()}}
+    @Synchronized fun cancel(){handler.removeCallbacks(expire);mutable.value=SleepTimerState();changed.forEach {it()}}
     @Synchronized fun itemEnded():Boolean {if(!mutable.value.endOfItem)return false;fire();return true}
-    @Synchronized fun fire(){handler.removeCallbacks(expire);mutable.value=SleepTimerState();fired++;listeners.forEach {it()}}
+    @Synchronized fun fire(){handler.removeCallbacks(expire);mutable.value=SleepTimerState();fired++;listeners.forEach {it()};changed.forEach {it()}}
 }

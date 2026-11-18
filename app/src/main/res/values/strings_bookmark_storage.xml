@@ -1,0 +1,4 @@
+<resources>
+    <string name="ui_clear_saved_bookmarks">Clear saved bookmarks for this profile</string>
+    <string name="ui_clear_saved_bookmarks_warning">Delete all saved bookmarks in this activity profile to free bookmark space? Media files, recent activity and track choices will be kept. Other activity profiles are unchanged.</string>
+</resources>

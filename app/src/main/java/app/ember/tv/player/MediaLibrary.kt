@@ -26,12 +26,22 @@ internal class MediaLibrary(context:Context,
         db.execSQL("CREATE VIRTUAL TABLE IF NOT EXISTS names USING fts4(title, tokenize=unicode61)")
         db.execSQL("CREATE TRIGGER IF NOT EXISTS media_insert AFTER INSERT ON media BEGIN INSERT INTO names(docid,title) VALUES(new.rowid,new.title); END")
         db.execSQL("CREATE TRIGGER IF NOT EXISTS media_delete BEFORE DELETE ON media BEGIN DELETE FROM names WHERE docid=old.rowid; END")
+        db.execSQL("CREATE TABLE IF NOT EXISTS scan_session (id INTEGER PRIMARY KEY, signature TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS scan_roots (root TEXT PRIMARY KEY, generation TEXT NOT NULL, complete INTEGER NOT NULL DEFAULT 0)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS scan_queue (id INTEGER PRIMARY KEY AUTOINCREMENT, root TEXT NOT NULL, path TEXT NOT NULL, offset INTEGER NOT NULL DEFAULT 0, done INTEGER NOT NULL DEFAULT 0, UNIQUE(root,path))")
+        db.execSQL("CREATE INDEX IF NOT EXISTS scan_remaining ON scan_queue(root,done,id)")
         db.query("PRAGMA secure_delete=ON").use {it.moveToFirst()}
         db.query("PRAGMA busy_timeout=5000").use {it.moveToFirst()}
     }
     fun refresh(folders:List<DeviceFolder>,check:()->Unit,progress:(Int)->Unit) {
         try {
             val roots=folders.filterNot {hidden(it.uri)}
+            val signature=digest(roots.map {it.uri}.sorted().joinToString("\n")+PrivateMedia.libraryVisibility.toString())
+            val previous=db.query("SELECT signature FROM scan_session WHERE id=1").use {if(it.moveToFirst())it.getString(0) else null}
+            if(previous!=signature)transaction {
+                db.execSQL("DELETE FROM scan_queue");db.execSQL("DELETE FROM scan_roots")
+                db.execSQL("INSERT OR REPLACE INTO scan_session VALUES(1,?)",arrayOf(signature))
+            }
             val known=roots.map {digest(it.uri)}.toSet()
             val removed=mutableListOf<String>()
             db.query("SELECT DISTINCT root FROM media").use {while(it.moveToNext())if(it.getString(0) !in known)removed+=it.getString(0)}
@@ -39,35 +49,60 @@ internal class MediaLibrary(context:Context,
             var count=0
             for(folder in roots) {
                 check()
-                val generation=java.util.UUID.randomUUID().toString();val root=digest(folder.uri);val tree=Uri.parse(folder.uri)
-                val pending=java.util.ArrayDeque<Uri>();pending.add(DeviceFiles.root(tree));val visited=hashSetOf<String>()
-                while(pending.isNotEmpty()) {
-                    check();val directory=pending.removeFirst()
-                    if(!visited.add(directory.toString()))continue
-                    require(visited.size<=100000) {"This folder has too many subdirectories. Add a smaller root."}
-                    var offset=0
-                    do {
-                        val page=DeviceFiles.list(app,tree,directory,offset,check)
-                        db.beginTransaction()
-                        try {
-                            for(file in page.entries) {
-                                check();if(hidden(file.uri.toString()))continue
-                                if(file.directory)pending.add(file.uri)
-                                else {
-                                    // DELETE first keeps the FTS index correct when a file is replaced.
-                                    db.execSQL("DELETE FROM media WHERE id=?",arrayOf(digest(file.uri.toString())))
-                                    db.execSQL("INSERT INTO media VALUES(?,?,?,?,?,?,?,?)",arrayOf<Any>(digest(file.uri.toString()),root,file.uri.toString(),file.name,file.mime,file.size,file.modified,generation))
-                                    count++
+                val root=digest(folder.uri);val tree=Uri.parse(folder.uri)
+                var complete=false
+                val generation=db.query("SELECT generation,complete FROM scan_roots WHERE root=?",arrayOf(root)).use {
+                    if(it.moveToFirst()){complete=it.getInt(1)!=0;it.getString(0)}else null
+                } ?: java.util.UUID.randomUUID().toString().also {value->transaction {
+                    db.execSQL("INSERT INTO scan_roots VALUES(?,?,0)",arrayOf(root,value))
+                    db.execSQL("INSERT INTO scan_queue(root,path) VALUES(?,?)",arrayOf(root,DeviceFiles.root(tree).toString()))
+                }}
+                count+=db.query("SELECT COUNT(*) FROM media WHERE root=? AND generation=?",arrayOf(root,generation)).use {it.moveToFirst();it.getInt(0)}
+                if(complete){progress(count);continue}
+                var directories=db.query("SELECT COUNT(*) FROM scan_queue WHERE root=?",arrayOf(root)).use {it.moveToFirst();it.getInt(0)}
+                while(true) {
+                    check()
+                    val pending=db.query("SELECT id,path,offset FROM scan_queue WHERE root=? AND done=0 ORDER BY id LIMIT 1",arrayOf(root)).use {
+                        if(it.moveToFirst())Triple(it.getLong(0),it.getString(1),it.getInt(2)) else null
+                    } ?: break
+                    val page=DeviceFiles.list(app,tree,Uri.parse(pending.second),pending.third,check)
+                    transaction {
+                        for(file in page.entries) {
+                            check();if(hidden(file.uri.toString()))continue
+                            if(file.directory) {
+                                val path=file.uri.toString()
+                                val exists=db.query("SELECT 1 FROM scan_queue WHERE root=? AND path=?",arrayOf(root,path)).use {it.moveToFirst()}
+                                if(!exists) {
+                                    require(++directories<=100000) {"This folder has too many subdirectories. Add a smaller root."}
+                                    db.execSQL("INSERT INTO scan_queue(root,path) VALUES(?,?)",arrayOf(root,path))
                                 }
+                            } else {
+                                db.execSQL("DELETE FROM media WHERE id=?",arrayOf(digest(file.uri.toString())))
+                                db.execSQL("INSERT INTO media VALUES(?,?,?,?,?,?,?,?)",arrayOf<Any>(digest(file.uri.toString()),root,file.uri.toString(),file.name,file.mime,file.size,file.modified,generation))
+                                count++
                             }
-                            db.setTransactionSuccessful()
-                        } finally {db.endTransaction()}
-                        progress(count);offset=if(page.limited)page.nextOffset else -1
-                    } while(offset>=0)
+                        }
+                        // Cursor and indexed rows commit together. A cancelled page is retried safely.
+                        if(page.limited) {
+                            require(page.nextOffset>pending.third)
+                            db.execSQL("UPDATE scan_queue SET offset=? WHERE id=?",arrayOf<Any>(page.nextOffset,pending.first))
+                        } else db.execSQL("UPDATE scan_queue SET done=1 WHERE id=?",arrayOf(pending.first))
+                    }
+                    progress(count)
                 }
-                check();db.execSQL("DELETE FROM media WHERE root=? AND generation<>?",arrayOf(root,generation))
+                check()
+                transaction {
+                    db.execSQL("DELETE FROM media WHERE root=? AND generation<>?",arrayOf(root,generation))
+                    db.execSQL("UPDATE scan_roots SET complete=1 WHERE root=?",arrayOf(root))
+                }
             }
+            check()
+            transaction {db.execSQL("DELETE FROM scan_queue");db.execSQL("DELETE FROM scan_roots");db.execSQL("DELETE FROM scan_session")}
         } finally {revision.incrementAndGet()}
+    }
+    private inline fun transaction(block:()->Unit) {
+        db.beginTransaction()
+        try {block();db.setTransactionSuccessful()}finally {db.endTransaction()}
     }
     data class Result(val entries:List<QueueMedia>,val nextOffset:Int?,val modified:Map<String,Long> = emptyMap())
     private fun updateNameOrder() {

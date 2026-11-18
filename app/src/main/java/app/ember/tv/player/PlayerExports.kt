@@ -47,18 +47,24 @@ internal class PlayerExports(private val activity:PlayerActivity):java.io.Closea
     fun screenshot() {
         if(closed||job?.isActive==true||image!=null)return
         if(!permitted()){message(activity.getString(R.string.ui_screenshots_are_unavailable_for_protected_playback));return}
+        if(hdr(activity.player?.videoFormat)){message(activity.getString(R.string.ui_hdr_capture_unavailable));return}
         val currentVisit=activity.playbackVisit
         activity.closeMenu()
         job=activity.lifecycleScope.launch {
             var frame:Bitmap?=null
             try {
                 frame=capture(activity.view.videoSurfaceView) ?: error("No readable video frame")
+                if(activity.playbackEngine?.compatibility==null) {
+                    val surface=activity.view.videoSurfaceView
+                    if(surface!=null)listOfNotNull(activity.view.subtitleView,activity.captionOverlay).distinct().forEach {caption->composite(frame,surface,caption)}
+                } else activity.captionOverlay?.let {caption->activity.view.videoSurfaceView?.let {surface->composite(frame,surface,caption)}}
                 val bytes=withContext(Dispatchers.Default){ByteArrayOutputStream().use {out->check(frame.compress(Bitmap.CompressFormat.PNG,100,out));out.toByteArray()}}
                 if(closed||currentVisit!=activity.playbackVisit||!permitted())return@launch
                 image=bytes;source=activity.currentUrl;visit=currentVisit
                 activity.pickingSidecar=true
                 destination.launch("Ember-${System.currentTimeMillis()}.png")
             } catch(e:CancellationException){throw e}
+              catch(_:OutOfMemoryError){image=null;source=null;activity.pickingSidecar=false;message(activity.getString(R.string.ui_this_video_surface_cannot_be_captured))}
               catch(_:Exception){image=null;source=null;activity.pickingSidecar=false;message(activity.getString(R.string.ui_this_video_surface_cannot_be_captured))}
             finally {frame?.recycle()}
         }
@@ -82,9 +88,18 @@ internal class PlayerExports(private val activity:PlayerActivity):java.io.Closea
     private fun remove(uri:Uri){runCatching {android.provider.DocumentsContract.deleteDocument(activity.contentResolver,uri)}}
     override fun close(){closed=true;job?.cancel();image=null;source=null}
     companion object {
+        fun hdr(format:androidx.media3.common.Format?):Boolean = format?.colorInfo?.colorTransfer in setOf(androidx.media3.common.C.COLOR_TRANSFER_ST2084,androidx.media3.common.C.COLOR_TRANSFER_HLG) || format?.sampleMimeType==androidx.media3.common.MimeTypes.VIDEO_DOLBY_VISION
+        fun composite(bitmap:Bitmap,surface:android.view.View,caption:android.view.View) {
+            if(caption.visibility!=android.view.View.VISIBLE || surface.width<=0 || surface.height<=0)return
+            val origin=IntArray(2);val overlay=IntArray(2);surface.getLocationOnScreen(origin);caption.getLocationOnScreen(overlay)
+            val canvas=android.graphics.Canvas(bitmap)
+            canvas.scale(bitmap.width.toFloat()/surface.width,bitmap.height.toFloat()/surface.height)
+            canvas.translate((overlay[0]-origin[0]).toFloat(),(overlay[1]-origin[1]).toFloat())
+            caption.draw(canvas)
+        }
         fun boundedSize(width:Int,height:Int):Pair<Int,Int> {
             if(width<=0||height<=0)return 0 to 0
-            val scale=minOf(1.0,1920.0/width,1080.0/height)
+            val scale=minOf(1.0,3840.0/maxOf(width,height),kotlin.math.sqrt(3840.0*2160/(width.toDouble()*height)))
             return maxOf(1,(width*scale).toInt()) to maxOf(1,(height*scale).toInt())
         }
     }

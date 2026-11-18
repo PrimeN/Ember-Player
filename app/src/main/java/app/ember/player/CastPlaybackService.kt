@@ -29,6 +29,7 @@ class CastPlaybackService:Service() {
     private var polling:Job?=null
     private var privacy:Job?=null
     private var sleep:java.io.Closeable?=null
+    private var receiverFade=app.ember.tv.data.SleepVolume()
     private var session:MediaSession?=null
     private var generation=0L
     private var stopping=false
@@ -65,7 +66,7 @@ class CastPlaybackService:Service() {
         startForeground(740,notification(resources.getString(R.string.ui_preparing_receiver),false))
         val next=CastRequests.take(intent?.getStringExtra("request")) ?: run {stopSelf();return START_NOT_STICKY}
         val before=loading;before?.cancel();polling?.cancel();saveReceiverPosition();releaseSource()
-        receiverStatus=null;lastNotification=""
+        receiverStatus=null;lastNotification="";receiverFade=app.ember.tv.data.SleepVolume()
         request=next;stopping=false;session?.isActive=true
         val visit=++generation
         state.value=CastingState(next.title,next.dlna?.name ?: CastRuntime.context?.sessionManager?.currentCastSession?.castDevice?.friendlyName ?: resources.getString(R.string.ui_cast_receiver),next.key)
@@ -125,6 +126,7 @@ class CastPlaybackService:Service() {
                         ReceiverStatus(remote.approximateStreamPosition,remote.mediaInfo?.streamDuration?.coerceAtLeast(0) ?: active.duration,remote.isPlaying,
                             remote.mediaStatus?.idleReason==MediaStatus.IDLE_REASON_FINISHED,cast.volume.coerceIn(0.0,1.0))
                     }
+                    fadeReceiver(active)
                     failures=0;receiverStatus=castProgressReport(active,status,receiverStatus);state.value=state.value?.copy(status=status)
                     val platform=if(status.playing)PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED
                     session?.setPlaybackState(PlaybackState.Builder().setState(platform,status.position,if(status.playing)1f else 0f,SystemClock.elapsedRealtime()).setActions(PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PLAY_FROM_SEARCH or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_STOP or PlaybackState.ACTION_SEEK_TO).build())
@@ -134,6 +136,17 @@ class CastPlaybackService:Service() {
                 }catch(e:CancellationException){throw e}catch(_:Exception){if(++failures>=3){fail(resources.getString(R.string.ui_receiver_disconnected));break}}
                 delay(2000)
             }
+        }
+    }
+    private fun fadeReceiver(active:CastRequest) {
+        // DLNA exposes device-wide volume, not stream gain; leave the receiver's level alone.
+        if(active.dlna!=null)return
+        runCatching {
+            val remote=CastRuntime.context?.sessionManager?.currentCastSession?.remoteMediaClient ?: return
+            val current=remote.mediaStatus?.streamVolume ?: return
+            val gain=app.ember.tv.data.SleepVolume.gain(SleepTimer.state.value,SystemClock.elapsedRealtime())
+            val desired=receiverFade.apply(current.toFloat(),gain).toDouble()
+            if(kotlin.math.abs(current-desired)>=.0001)remote.setStreamVolume(desired)
         }
     }
     internal fun control(action:String,value:Double=0.0) {

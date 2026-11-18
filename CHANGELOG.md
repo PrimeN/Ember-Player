@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Resume interrupted library scans from committed folder cursors.
+- Export keyframe-aligned clips without re-encoding, using the selected audio track.
+- Include captions in screenshots from both engines, up to 4K, and explain unavailable HDR capture.
+- Read MP4 chapter metadata and handle caption, audio, stop, percentage-seek and frame-step keys.
+- Offer confirmed bookmark cleanup and fade timed playback during its final minute.
 - Update Android 16 navigation, edge-to-edge layouts and phone/TV controls.
 - Add system-following themes, natural sorting, playlist queue imports and reordering,
   richer file browsers and translatable interface resources.

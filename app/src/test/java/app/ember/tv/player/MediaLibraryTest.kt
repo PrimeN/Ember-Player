@@ -29,7 +29,7 @@ class MediaLibraryTest {
         }
     }
     private val app:Context get()=RuntimeEnvironment.getApplication()
-    private fun database():SupportSQLiteDatabase=FrameworkSQLiteOpenHelperFactory().create(SupportSQLiteOpenHelper.Configuration.builder(app)
+    private fun database(name:String?=null):SupportSQLiteDatabase=FrameworkSQLiteOpenHelperFactory().create(SupportSQLiteOpenHelper.Configuration.builder(app).name(name)
         .callback(object:SupportSQLiteOpenHelper.Callback(1){override fun onCreate(db:SupportSQLiteDatabase){};override fun onUpgrade(db:SupportSQLiteDatabase,oldVersion:Int,newVersion:Int){}}).build()).writableDatabase
     @Test fun refreshSearchPrivacyAndRemovedFilesUseTheSameIndex() {
         val provider=DeviceTestProvider();provider.attachInfo(app,ProviderInfo().apply {authority="device.files";exported=true;grantUriPermissions=true;readPermission="android.permission.MANAGE_DOCUMENTS";writePermission="android.permission.MANAGE_DOCUMENTS"})
@@ -103,6 +103,32 @@ class MediaLibraryTest {
             db.execSQL("INSERT INTO media VALUES(?,?,?,?,?,?,?,?)",arrayOf<Any>("id-0",root,"content://device.files/tree/root/document/0","Episode 1000","video/mp4",100L,0L,"generation"))
             assertEquals("Episode 1",index.search("Episode").entries.first().title)
         }
+    }
+
+    @Test fun cancelledScanCommitsItsCursorAndResumesAfterTheDatabaseIsReopened() {
+        val provider=DeviceTestProvider();provider.attachInfo(app,ProviderInfo().apply {authority="device.files";exported=true;grantUriPermissions=true;readPermission="android.permission.MANAGE_DOCUMENTS";writePermission="android.permission.MANAGE_DOCUMENTS"})
+        ShadowContentResolver.registerProviderInternal("device.files",provider)
+        provider.children=List(451){"video"}
+        val roots=listOf(DeviceFolder("content://device.files/tree/root","Root"))
+        val name="checkpoint-${java.util.UUID.randomUUID()}.db"
+        var generation=""
+        val first=database(name)
+        MediaLibrary(app,{first},{roots},{false}).use {index->
+            try {index.refresh(roots,{}, {throw kotlinx.coroutines.CancellationException()});fail("Expected interruption")}catch(_:kotlinx.coroutines.CancellationException){}
+            generation=first.query("SELECT generation FROM scan_roots").use {assertTrue(it.moveToFirst());it.getString(0)}
+            first.query("SELECT offset,done FROM scan_queue").use {assertTrue(it.moveToFirst());assertEquals(200,it.getInt(0));assertEquals(0,it.getInt(1))}
+        }
+        val reopened=database(name)
+        MediaLibrary(app,{reopened},{roots},{false}).use {index->
+            var checked=false
+            index.refresh(roots,{}, {
+                reopened.query("SELECT generation FROM scan_roots").use {row->assertTrue(row.moveToFirst());assertEquals(generation,row.getString(0))};checked=true
+            })
+            assertTrue(checked)
+            reopened.query("SELECT COUNT(*) FROM scan_queue").use {it.moveToFirst();assertEquals(0,it.getInt(0))}
+            assertEquals(1,index.search("video").entries.size)
+        }
+        app.deleteDatabase(name)
     }
 
 }

@@ -4,9 +4,9 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class MediaExportTest {
-    @Test fun screenshotSizesStayWithinHdWithoutUpscalingOrChangingAspect() {
-        assertEquals(1920 to 1080,PlayerExports.boundedSize(7680,4320))
-        assertEquals(540 to 1080,PlayerExports.boundedSize(1000,2000))
+    @Test fun screenshotSizesStayWithinFourKWithoutUpscalingOrChangingAspect() {
+        assertEquals(3840 to 2160,PlayerExports.boundedSize(7680,4320))
+        assertEquals(1000 to 2000,PlayerExports.boundedSize(1000,2000))
         assertEquals(640 to 480,PlayerExports.boundedSize(640,480))
         assertEquals(0 to 0,PlayerExports.boundedSize(0,1080))
     }

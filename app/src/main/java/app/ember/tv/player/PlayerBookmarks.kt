@@ -24,6 +24,15 @@ internal fun PlayerActivity.showBookmarks() {
             if(visit==playbackVisit && resumeKey==key)player?.currentPosition?.let {at->bookmarkName(resources.getString(R.string.ui_bookmark_name),clock(at)) {label->
                 lifecycleScope.launch {val saved=withContext(Dispatchers.IO){store.add(key,at,label)};if(!saved)android.widget.Toast.makeText(this@showBookmarks,resources.getString(R.string.ui_could_not_save_bookmark_limit_50_per_title_512),android.widget.Toast.LENGTH_LONG).show();if(visit==playbackVisit)showBookmarks()}
             }}
+        },PlayerDialogAction(resources.getString(R.string.ui_clear_saved_bookmarks),destructive=true) {
+            showPlayerActions(resources.getString(R.string.ui_clear_saved_bookmarks),listOf(
+                PlayerDialogAction(resources.getString(R.string.ui_clear_saved_bookmarks),destructive=true) {
+                    lifecycleScope.launch {
+                        val saved=withContext(Dispatchers.IO){store.clearScope()}
+                        if(!saved)bookmarkWriteFailed()
+                        if(visit==playbackVisit && resumeKey==key)showBookmarks()
+                    }
+                }),message=resources.getString(R.string.ui_clear_saved_bookmarks_warning))
         })+list.map {bookmark->PlayerDialogAction("${clock(bookmark.positionMs)} · ${bookmark.name}") {
             showPlayerActions(bookmark.name,listOf(
                 PlayerDialogAction(resources.getString(R.string.ui_play_from ,clock(bookmark.positionMs))) {if(visit==playbackVisit)player?.seekTo(bookmark.positionMs)},

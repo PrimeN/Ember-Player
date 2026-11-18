@@ -39,6 +39,7 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
     private var artworkJob:Job?=null
     private var artwork:ByteArray?=null
     private var source:EngineSource?=null
+    private var sleepFade:app.ember.tv.data.SleepFade?=null
     private var sleepWatch:java.io.Closeable?=null
     private var usbWatch:java.io.Closeable?=null
     private var pickedAudio=false
@@ -69,6 +70,7 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
                 }
             }
         }
+        sleepFade=app.ember.tv.data.SleepFade {audio?.player}
         sleepWatch=app.ember.tv.data.SleepTimer.listen {stopPlayback()}
         getSharedPreferences("ember",MODE_PRIVATE).registerOnSharedPreferenceChangeListener(preferences)
         getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel(CHANNEL,resources.getString(R.string.ui_background_playback),NotificationManager.IMPORTANCE_LOW))
@@ -114,6 +116,7 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
             source=request.source
             audio=factory(applicationContext,request)
             audio!!.player.addListener(this)
+            sleepFade?.refresh()
             audio!!.load(request.source,request.position)
             audio!!.player.playWhenReady=wanted
             loadArtwork()
@@ -271,12 +274,13 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
         val request=handoff!!.value
         val now=source ?: request.source
         val updated=request.copy(source=now,position=audio?.player?.currentPosition ?: request.position,
-            speed=audio?.player?.playbackParameters?.speed ?: request.speed,volume=audio?.player?.volume ?: request.volume,
+            speed=audio?.player?.playbackParameters?.speed ?: request.speed,volume=audio?.player?.volume?.let {sleepFade?.original(it) ?: it} ?: request.volume,
             audioTrack=audio?.player?.currentTracks?.let(BackgroundAudioTrack::selected) ?: request.audioTrack)
         releaseSession(false);stopForeground(STOP_FOREGROUND_REMOVE);stopSelf()
         return updated
     }
     override fun onDestroy(){
+        sleepFade?.close();sleepFade=null
         sleepWatch?.close();sleepWatch=null
         getSharedPreferences("ember",MODE_PRIVATE).unregisterOnSharedPreferenceChangeListener(preferences)
         releaseSession(true);artworkScope.cancel();if(current?.get()===this)current=null;super.onDestroy()
