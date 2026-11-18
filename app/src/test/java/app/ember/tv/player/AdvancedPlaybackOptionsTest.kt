@@ -26,11 +26,34 @@ class AdvancedPlaybackOptionsTest {
         assertEquals("no",p.nativeOptions()["cache-pause"]);assertEquals("300",p.nativeOptions()["network-timeout"])
     }
     @Test fun rendererRecoveryRetriesOnceAndRecreatesBeforeStableInitialization() {
-        val state=RendererSession("gpu-next");val calls=mutableListOf<String>()
+        val state=RendererSession(RendererPolicy.initial("auto"));val calls=mutableListOf<String>()
         state.initialize({mode->calls+=mode;if(mode=="gpu-next")throw IllegalStateException("Unavailable")},{calls+="recreate"})
         assertEquals(listOf("gpu-next","recreate","gpu"),calls);assertTrue(state.recovered);assertFalse(state.fallback())
         state.select("gpu-next");assertFalse(state.recovered);assertTrue(state.fallback())
         try {RendererSession("gpu").initialize({throw IllegalStateException("Unavailable")},{fail("No retry for stable")});fail("Expected failure")}catch(_:IllegalStateException){}
+    }
+    @Test fun automaticAndUnknownChoicesPreferGpuNextWhileStableRemainsExplicit() {
+        assertEquals("gpu-next",RendererPolicy.initial("auto"))
+        assertEquals("gpu-next",RendererPolicy.initial("gpu-next"))
+        assertEquals("gpu-next",RendererPolicy.initial("future-or-invalid"))
+        assertEquals("gpu",RendererPolicy.initial("gpu"))
+    }
+    @Test fun playbackRecoveryStaysStableUntilTheUserExplicitlyRetries() {
+        val state=RendererSession(RendererPolicy.initial("auto"))
+        state.initialize({assertEquals("gpu-next",it)},{fail("A working renderer needs no retry")})
+        assertTrue(state.fallback());assertEquals("gpu",state.active)
+        repeat(3){assertFalse(state.fallback());assertEquals("gpu",state.active)}
+        state.select(RendererPolicy.initial("auto"))
+        assertEquals("gpu-next",state.active);assertFalse(state.recovered)
+    }
+    @Test fun nativeInitializationFailureCanRecoverButAudioOnlySessionsNeverStartVideoRecovery() {
+        val calls=mutableListOf<String>();val state=RendererSession(RendererPolicy.initial("auto"))
+        state.initialize({renderer->calls+=renderer;if(renderer=="gpu-next")throw UnsatisfiedLinkError("Driver unavailable")},{calls+="recreate"})
+        assertEquals(listOf("gpu-next","recreate","gpu"),calls)
+        val audio=RendererSession(RendererPolicy.initial("auto"),videoEnabled=false)
+        try {audio.initialize({throw IllegalStateException("Audio output unavailable")},{fail("Audio cannot recreate a video renderer")});fail("Expected audio error")}
+        catch(_:IllegalStateException){}
+        assertFalse(audio.fallback());assertFalse(audio.recovered)
     }
     @Test fun expansionRequiresAdvancedOutputAndConfirmedSurfaceMetadata() {
         val hdr=HdrOutput(expand=true,hdrPeak=800)
@@ -41,8 +64,6 @@ class AdvancedPlaybackOptionsTest {
         assertEquals("yes",active["inverse-tone-mapping"]);assertEquals("no",active["target-colorspace-hint-strict"])
         assertFalse(HdrOutput(sdr=true,expand=true).normalized().expand)
         assertEquals(1500,HdrOutput(hdrPeak=99999).normalized().hdrPeak)
-        assertEquals("gpu",RendererPolicy.initial("auto",true,false));assertEquals("gpu-next",RendererPolicy.initial("auto",true,true))
-        assertEquals("gpu",RendererPolicy.initial("gpu",true,true))
     }
     @Test fun subtitlePresetsChangeAppearanceWithoutEnablingServicesOrChangingLanguage() {
         val saved=app.ember.tv.data.SubtitleConfig(font="mono",color="yellow",stremioOpenSubs=true,autoSelect="always",languages=listOf("fr"))

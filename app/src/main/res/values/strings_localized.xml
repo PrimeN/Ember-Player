@@ -43,7 +43,6 @@
     <string name="ui_address" formatted="false">"Address"</string>
     <string name="ui_adjust_equalizer_bands" formatted="false">"Adjust equalizer bands"</string>
     <string name="ui_adjust_separately" formatted="false">"Adjust separately"</string>
-    <string name="ui_advanced_enables_inverse_tone_mapping_renderer_failures_retry_stable" formatted="false">"Advanced enables inverse tone mapping. Renderer failures retry stable GPU output."</string>
     <string name="ui_advanced_gpu" formatted="false">"Advanced GPU"</string>
     <string name="ui_advanced_renderer_required" formatted="false">"Advanced renderer required"</string>
     <string name="ui_advanced_renderer_unavailable_trying_stable_gpu_output" formatted="false">"Advanced renderer unavailable. Trying stable GPU output."</string>

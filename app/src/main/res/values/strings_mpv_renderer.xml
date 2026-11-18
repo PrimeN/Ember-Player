@@ -1,0 +1,3 @@
+<resources>
+    <string name="ui_mpv_renderer_auto_note">Automatic uses Advanced GPU (gpu-next). Renderer initialization or playback failures retry Stable GPU once. You can also choose Stable GPU manually.</string>
+</resources>

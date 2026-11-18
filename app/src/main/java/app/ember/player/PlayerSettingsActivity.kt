@@ -88,6 +88,7 @@ private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:
         }
         "hdr"->PlayerSection(uiResources.getString(R.string.ui_hdr_output)) {
             PlayerChoice(uiResources.getString(R.string.ui_compatibility_renderer),RendererPolicy.choices,RendererPolicy.normalized(config.renderer)){v->update {it.copy(renderer=v)}}
+            Text(uiResources.getString(R.string.ui_mpv_renderer_auto_note),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
             HdrOutputSettings(config.hdrOutput){value->update {it.copy(hdrOutput=value)}}
         }
         "decoding"->PlayerSection(uiResources.getString(R.string.ui_video_decoding)) {
