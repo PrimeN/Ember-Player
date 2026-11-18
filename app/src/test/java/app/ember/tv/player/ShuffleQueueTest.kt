@@ -14,6 +14,16 @@ class ShuffleQueueTest {
         queue.select(0)
         return queue to order
     }
+    @Test fun queueOccurrencesSurviveEditsWithoutConfusingRepeatedFiles() {
+        val same=media("same");val queue=MediaQueue(listOf(same,same,media("other")))
+        val second=queue.occurrence(1)!!
+        queue.move(1,2)
+        assertEquals(2,queue.indexOfOccurrence(second))
+        queue.select(queue.indexOfOccurrence(second));assertEquals(1,queue.originalIndex())
+        queue.select(0);assertTrue(queue.remove(queue.indexOfOccurrence(second)))
+        assertEquals(-1,queue.indexOfOccurrence(second));assertEquals(same,queue.items.first())
+        queue.add(listOf(same));queue.select(2);assertNull(queue.originalIndex())
+    }
     @Test fun addingKeepsPlayedHistoryAndUpcomingOrder() {
         val (queue,order)=shuffled()
         queue.next();queue.next()

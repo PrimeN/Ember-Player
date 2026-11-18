@@ -9,6 +9,12 @@ internal data class QueueMedia(val uri:String,val title:String,val identity:Stri
 internal class MediaQueue(items:List<QueueMedia>,val resources:List<java.io.Closeable> = emptyList()) {
     val items=items.toMutableList()
     init {require(items.size<=MAX_ITEMS) {"A queue can hold up to $MAX_ITEMS items."}}
+    private val initialCount=items.size
+    private var nextOccurrence=0L
+    private val occurrences=MutableList(items.size){nextOccurrence++}
+    fun occurrence(at:Int):Long?=occurrences.getOrNull(at)
+    fun indexOfOccurrence(id:Long)=occurrences.indexOf(id)
+    fun originalIndex():Int?=occurrence(index)?.takeIf {it<initialCount}?.toInt()
     var index=0;private set
     var repeat="off"
     var playlistId:String?=null
@@ -34,7 +40,7 @@ internal class MediaQueue(items:List<QueueMedia>,val resources:List<java.io.Clos
     fun add(values:List<QueueMedia>){
         require(values.size<=MAX_ITEMS-items.size) {"The queue is full. Create a separate playlist."}
         val previous=traversal();val first=items.size
-        items.addAll(values)
+        items.addAll(values);occurrences.addAll(List(values.size){nextOccurrence++})
         order=if(shuffle)previous+(first until items.size).shuffled() else items.indices.toList()
     }
     companion object {const val MAX_ITEMS=10000}
@@ -42,13 +48,13 @@ internal class MediaQueue(items:List<QueueMedia>,val resources:List<java.io.Clos
         if(from !in items.indices||to !in items.indices)return
         val previous=traversal()
         fun moved(at:Int)=when {at==from->to;from<at&&to>=at->at-1;from>at&&to<=at->at+1;else->at}
-        items.add(to,items.removeAt(from));index=moved(index)
+        items.add(to,items.removeAt(from));occurrences.add(to,occurrences.removeAt(from));index=moved(index)
         order=if(shuffle)previous.map(::moved) else items.indices.toList()
     }
     fun remove(at:Int):Boolean {
         if(at !in items.indices||at==index)return false
         val previous=traversal()
-        items.removeAt(at);if(at<index)index--
+        items.removeAt(at);occurrences.removeAt(at);if(at<index)index--
         order=if(shuffle)previous.filter {it!=at}.map {if(it>at)it-1 else it} else items.indices.toList()
         return true
     }
