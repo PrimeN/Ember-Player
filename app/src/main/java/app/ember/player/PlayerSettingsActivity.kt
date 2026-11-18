@@ -57,7 +57,6 @@ private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:
             SwitchChip(uiResources.getString(R.string.ui_background_audio),config.backgroundAudio){update {it.copy(backgroundAudio=!it.backgroundAudio)}}
             Text(uiResources.getString(R.string.ui_keep_sound_playing_when_the_screen_is_off_or),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
             SwitchChip(uiResources.getString(R.string.ui_ask_before_leaving_playback),config.confirmExit){update {it.copy(confirmExit=!it.confirmExit)}}
-            SwitchChip(uiResources.getString(R.string.ui_introdb_markers),config.introDb){update {it.copy(introDb=!it.introDb)}}
             PlayerChoice(uiResources.getString(R.string.ui_skip_markers),listOf("button" to uiResources.getString(R.string.ui_show_skip_button),"auto" to uiResources.getString(R.string.ui_skip_automatically),"off" to uiResources.getString(R.string.ui_off)),config.skipIntro){v->update {it.copy(skipIntro=v)}}
         }
         "network"->PlayerSection(uiResources.getString(R.string.ui_network_and_buffering)) {

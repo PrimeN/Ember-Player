@@ -31,6 +31,13 @@ internal fun PlayerActivity.pictureInPictureAllowed()=configInitialized && confi
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal fun PlayerActivity.updatePictureInPicture() {
-    if(packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE))
-        runCatching {setPictureInPictureParams(pictureInPictureParams())}
+    if(isDestroyed || isFinishing || !packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE))return
+    val p=player
+    val rect=Rect()
+    if(viewInitialized)(view.videoSurfaceView ?: view).getGlobalVisibleRect(rect)
+    val state=listOf(p?.videoSize,pictureInPictureAllowed(),p?.playWhenReady,
+        p?.isCommandAvailable(androidx.media3.common.Player.COMMAND_PLAY_PAUSE),p?.isCommandAvailable(androidx.media3.common.Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM),
+        rect,playbackVisit,privatePlayback,if(configInitialized)config.touch.seekSeconds else 0)
+    if(lastPipState==state)return
+    runCatching {setPictureInPictureParams(pictureInPictureParams())}.onSuccess {lastPipState=state}
 }

@@ -25,12 +25,13 @@ internal object NetworkFiles {
         override fun close(){closers.asReversed().forEach {runCatching(it)};closers.clear()}
     }
     private fun <T> owned(block:(Owner)->T):T {val owner=Owner();try{return block(owner)} catch(e:Throwable){owner.close();throw e}}
+    internal fun smbConfig(a:NetworkAccount):SmbConfig = SmbConfig.builder().withTimeout(20,TimeUnit.SECONDS).withSoTimeout(30_000).withSigningRequired(!a.allowUnsignedSmb).withEncryptData(!a.allowUnencryptedSmb).withAuthenticators(com.hierynomus.smbj.auth.NtlmAuthenticator.Factory()).build()
     private fun smbSession(a:NetworkAccount,o:Owner):com.hierynomus.smbj.session.Session {
         val l=NetworkLocation.parse(a.address,allowSmbRoot=true)
         require(l.scheme=="smb")
-        val client=SMBClient(SmbConfig.builder().withTimeout(20,TimeUnit.SECONDS).withSoTimeout(30_000).withSigningRequired(true).withEncryptData(!a.allowUnencryptedSmb).withAuthenticators(com.hierynomus.smbj.auth.NtlmAuthenticator.Factory()).build());o.add {client.close()}
+        val client=SMBClient(smbConfig(a));o.add {client.close()}
         val connection=client.connect(l.host,l.port);o.add {connection.close()}
-        val session=connection.authenticate(AuthenticationContext(a.username,a.password.toCharArray(),a.domain));o.add {session.close()}
+        val session=connection.authenticate(if(a.allowUnsignedSmb&&a.username.isBlank())AuthenticationContext.anonymous() else AuthenticationContext(a.username,a.password.toCharArray(),a.domain));o.add {session.close()}
         return session
     }
     private fun smb(a:NetworkAccount,o:Owner):DiskShare {

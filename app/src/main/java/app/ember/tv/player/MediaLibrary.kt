@@ -123,7 +123,7 @@ internal class MediaLibrary(context:Context,
         return SQLiteDatabase.openOrCreateDatabase(file,secret,null,null,null)
         }
         private val keyLock=Any()
-        fun terms(query:String)=Regex("[\\p{L}\\p{N}]+").findAll(query.take(120)).take(12).joinToString(" "){"\"${it.value}\"*"}
+        fun terms(query:String)=MediaSearch.fts(query)
         private fun digest(value:String)=MessageDigest.getInstance("SHA-256").digest(value.toByteArray()).joinToString(""){"%02x".format(it)}
     }
 }

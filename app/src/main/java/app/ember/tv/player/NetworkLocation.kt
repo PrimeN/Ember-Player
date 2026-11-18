@@ -8,8 +8,9 @@ import java.net.URI
 internal data class NetworkAccount(
     val id:String=java.util.UUID.randomUUID().toString(),val label:String,val address:String,
     val username:String="",val password:String="",val domain:String="",val fingerprint:String="",
-    /** SMB only: allow shares that cannot encrypt (older SMB2 NAS devices). Signing stays required. */
+    /** SMB only: allow shares that cannot encrypt (older SMB2 NAS devices). Signing is controlled separately. */
     val allowUnencryptedSmb:Boolean=false,
+    val allowUnsignedSmb:Boolean=false,
     val authentication:String="password",val privateKey:String="",val keyPassphrase:String="",
 ) {
     override fun toString()="NetworkAccount(<redacted>)"

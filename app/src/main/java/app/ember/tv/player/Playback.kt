@@ -68,9 +68,9 @@ data class PlaybackConfig(
     val dolbyVision: String = "auto",
     /** Sound timing (lip sync) in ms: positive plays the sound later than the picture, negative earlier. */
     val audioDelayMs: Int = 0,
-    /** Server intro and recap markers: "button" (show Skip), "auto" (skip by itself) or "off". */
+    /** Chapter-derived intro and recap markers: "button" (show Skip), "auto" (skip by itself) or "off". */
     val skipIntro: String = "button",
-    /** Public IntroDB lookup only when server markers are absent; opt-in, and disabled together with Skip intro. */
+    /** Retained only to read existing backup/configuration records; no network lookup is performed. */
     val introDb: Boolean = false,
     /** With a resume point: "ask" (Resume or Start over), "resume" or "start" (always from the beginning). */
     val resume: String = "ask",

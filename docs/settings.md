@@ -25,11 +25,12 @@ Sort by **Date modified** or **Name A–Z**. Modification dates come from the sa
 folder index; files opened individually may not have a known date. Your filter,
 sort and grid/list choices are saved and included in encrypted settings backups.
 
-Library results are paged. Playback-state filters apply to the loaded page; use
-Next page to check more indexed media. Search matches filenames across saved
-folders once their index has been refreshed. Open **Files → Saved folder library**
-to refresh the encrypted index after adding or changing files. Refresh is
-explicit; opening the app does not start a full storage scan.
+Library results are filtered and sorted before pagination, with duplicate items
+removed. Search matches filenames across saved
+folders through an encrypted index. Adding a folder schedules a background scan,
+and startup refreshes an index older than 15 minutes or changed saved roots.
+Use **Folders → Saved folder library → Refresh library** for an immediate scan.
+**Reload displayed media** reloads the visible catalog without scanning folders.
 
 Thumbnails come from local video frames. The app does not automatically download
 movie posters or create an online catalog for local files. The screenshot gallery
@@ -43,7 +44,7 @@ the relevant category and section. Back returns to your search results.
 
 | Category | Main controls |
 | --- | --- |
-| Playback | Engine and control layout, resume, seeking, gestures, rotation, sleep timer, background audio and IntroDB |
+| Playback | Engine and control layout, resume, seeking, gestures, rotation, sleep timer, background audio and chapter-based skip markers |
 | Picture & HDR | Picture adjustments, upscaling, profiles, renderer, tone mapping, decoding and deinterlacing |
 | Audio | Languages, tracks, output, passthrough, delay, equalizer and night listening |
 | Subtitles | Languages, timing, fonts, appearance, saved styles and optional assistance |

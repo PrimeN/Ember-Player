@@ -76,7 +76,6 @@ internal fun PlayerActivity.updateStats() {
     if (full) out += getString(R.string.pl_container) to containerName(p)
     out += getString(R.string.pl_video) to videoLine(p.videoFormat)
     out += getString(R.string.pl_audio) to audioLine(p.audioFormat)
-    if (markersFromIntroDb && markers.isNotEmpty()) out += resources.getString(R.string.ui_skip_markers) to resources.getString(R.string.ui_introdb_community_timings)
     if (full) {
         @Suppress("DEPRECATION") val types = runCatching { windowManager.defaultDisplay.hdrCapabilities?.supportedHdrTypes }.getOrNull() ?: intArrayOf()
         val supported = types.toList().mapNotNull { when(it) {1->resources.getString(R.string.ui_dolby_vision);2->"HDR10";3->"HLG";4->"HDR10+";else->null} }

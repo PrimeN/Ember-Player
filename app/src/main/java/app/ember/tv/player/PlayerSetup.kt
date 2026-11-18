@@ -74,6 +74,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         setShowPreviousButton(false)
         controllerShowTimeoutMs = 4000
     }
+    view.addOnLayoutChangeListener {_,_,_,_,_,_,_,_,_->updatePictureInPicture()}
     config = prefs.playbackConfig
     if(config.rememberDecoderChoices)lifecycleScope.launch {
         val health=kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO){DecoderHealth.load(this@createPlayer)}
@@ -216,7 +217,10 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
     })
 
     p.addListener(object : Player.Listener {
-        override fun onEvents(player:Player,events:Player.Events){subtitleTicker.refresh();updatePictureInPicture()}
+        override fun onEvents(player:Player,events:Player.Events){
+            subtitleTicker.refresh()
+            if(events.containsAny(Player.EVENT_PLAY_WHEN_READY_CHANGED,Player.EVENT_IS_PLAYING_CHANGED,Player.EVENT_PLAYBACK_STATE_CHANGED,Player.EVENT_AVAILABLE_COMMANDS_CHANGED,Player.EVENT_VIDEO_SIZE_CHANGED))updatePictureInPicture()
+        }
         override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
             updatePictureInPicture()
             // PlayerView sets the video's own shape; a forced one goes back on top.

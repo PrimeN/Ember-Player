@@ -10,29 +10,22 @@ import java.util.Locale
 import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleDelayMilliseconds
 
 // PlayerActivity's skip-intro markers, sound timing, info panel and subtitle panel.
-/** Fetch optional intro timings for a title with an exact IMDb identity. */
-@androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
+/** Reset per-title chapter markers and pending metadata. */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal fun PlayerActivity.loadMarkers() {
-    if(privatePlayback)return
-    metadataLoads.reset()
-    markers = emptyList()
-    markersFromIntroDb = false
-    autoSkipped.clear()
-    showSkip(null)
-    chapters = emptyList()
-    if (config.skipIntro == "off") return
-    val query = if (config.introDb) IntroDbQuery.from(item) else null
-    if(query==null)return
-    metadataLoads.load({introDbClient.markers(query)}) {markers=it;markersFromIntroDb=true}
+    metadataLoads.reset();markers=emptyList();markerChapterState=null
+    autoSkipped.clear();showSkip(null);chapters=emptyList()
 }
 
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.checkMarkers() {
     val p = player ?: return
     if (subsInitialized && p.playbackState==Player.STATE_READY) subs.onReady()
-    if (markers.isEmpty() || ended || config.skipIntro == "off" || markersFromIntroDb && !config.introDb) return showSkip(null)
+    val state=chapters to p.duration
+    if(markerChapterState!=state){markers=ChapterMarkers.from(chapters,p.duration);markerChapterState=state}
+    if (markers.isEmpty() || ended || config.skipIntro == "off") return showSkip(null)
     val pos = p.currentPosition
-    val eligible = if (markersFromIntroDb) IntroDbSegments.forRuntime(markers, p.duration) else markers
+    val eligible = markers
     val m = eligible.firstOrNull { pos >= it.startMs && pos < it.endMs - 1_000 }
     if (m != null && m.kind != "credits" && config.skipIntro == "auto" && m !in autoSkipped) {
         autoSkipped += m
@@ -76,13 +69,7 @@ internal fun PlayerActivity.showSkip(m: app.ember.tv.player.Marker?) {
 internal fun PlayerActivity.doSkip() {
     val p = player ?: return
     val m = skipTarget ?: return
-    if (m.kind == "credits") {
-        // Reaching the end advances the file queue or closes playback.
-        val d = p.duration
-        if (d > 0) p.seekTo(d) else p.seekTo(m.endMs)
-    } else {
-        p.seekTo(m.endMs)
-    }
+    p.seekTo(m.endMs)
     showSkip(null)
 }
 
