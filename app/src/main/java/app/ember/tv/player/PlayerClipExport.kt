@@ -36,17 +36,17 @@ internal class PlayerClipExport(private val activity:PlayerActivity,
     fun markStart(){if(active)return;resetForSource();startMs=activity.player?.currentPosition;endMs=null}
     fun markEnd():Boolean {if(active)return false;resetForSource();val end=activity.player?.currentPosition ?: return false;if(!validRange(startMs,end))return false;endMs=end;return true}
     private fun resetForSource(){if(visit!=activity.playbackVisit&&!active){startMs=null;endMs=null;visit=activity.playbackVisit}}
-    fun chooseDestination() {
+    fun chooseDestination(withoutAudio:Boolean=false) {
         resetForSource()
         if(closed||activity.pickingSidecar)return
         if(active||!activity.exports.permitted()||!validRange(startMs,endMs)){message(activity.getString(R.string.ui_mark_a_clip_start_and_end_at_least_one));return}
-        if(activity.audioUrl!=null){message(activity.getString(R.string.ui_lossless_clip_unsupported));return}
+        if(activity.audioUrl!=null&&!withoutAudio){offerVideoOnly();return}
         source=activity.currentUrl;visit=activity.playbackVisit
         audio=activity.player?.audioFormat
-        audioDisabled=activity.player?.trackSelectionParameters?.disabledTrackTypes?.contains(C.TRACK_TYPE_AUDIO)==true
+        audioDisabled=withoutAudio||activity.player?.trackSelectionParameters?.disabledTrackTypes?.contains(C.TRACK_TYPE_AUDIO)==true
         activity.closeMenu();activity.pickingSidecar=true;activity.player?.pause()
-        message(activity.getString(R.string.ui_lossless_clip_boundaries))
-        try {picker.launch("Ember-clip-${System.currentTimeMillis()}.mp4")}
+        message(activity.getString(if(audioDisabled)R.string.ui_video_only_clip_boundaries else R.string.ui_lossless_clip_boundaries))
+        try {picker.launch("Ember-clip${if(audioDisabled)"-video-only" else ""}-${System.currentTimeMillis()}.mp4")}
         catch(_:Exception){activity.pickingSidecar=false;source=null;message(activity.getString(R.string.ui_no_file_picker_is_available))}
     }
     private fun validSource()=!closed&&source!=null&&visit==activity.playbackVisit&&source==activity.currentUrl&&activity.exports.permitted()
@@ -56,7 +56,7 @@ internal class PlayerClipExport(private val activity:PlayerActivity,
         val run=++generation
         keepAwake=activity.window.decorView.keepScreenOn;activity.window.decorView.keepScreenOn=true;progress=0
         job=activity.lifecycleScope.launch {
-            var completed=false
+            var completed=false;var offerVideoOnly=false
             try {
                 withContext(Dispatchers.IO) {
                     val owner=currentCoroutineContext()
@@ -68,12 +68,22 @@ internal class PlayerClipExport(private val activity:PlayerActivity,
                 if(run==generation&&validSource()){completed=true;message(activity.getString(R.string.ui_clip_saved))}
                 else if(run==generation)message(activity.getString(R.string.ui_export_canceled_because_playback_changed))
             }catch(e:CancellationException){throw e}
+             catch(_:LosslessClip.AudioUnavailable){offerVideoOnly=!request.audioDisabled}
              catch(_:Exception){if(run==generation)message(activity.getString(R.string.ui_lossless_clip_unsupported))}
             finally {
                 if(!completed)remove(request.destination)
-                if(run==generation){source=null;progress=null;restoreAwake()}
+                if(run==generation){
+                    source=null;progress=null;restoreAwake()
+                    if(offerVideoOnly)activity.handler.post {
+                        if(run==generation&&!closed&&!activity.isFinishing)offerVideoOnly()
+                    }
+                }
             }
         }
+    }
+    private fun offerVideoOnly() {
+        activity.showPlayerActions(activity.getString(R.string.ui_export_clip),listOf(
+            PlayerDialogAction(activity.getString(R.string.ui_export_without_audio)) {chooseDestination(withoutAudio=true)}),message=activity.getString(R.string.ui_clip_audio_unavailable))
     }
     fun cancel(){generation++;job?.cancel();job=null;source=null;progress=null;restoreAwake()}
     private fun restoreAwake(){keepAwake?.let {activity.window.decorView.keepScreenOn=it};keepAwake=null}
