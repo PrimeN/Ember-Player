@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Update SQLite, Commons IO, JSON serialization and the JVM test framework.
+- Refuse incomplete encrypted backups and preserve the local library index key on restore.
+- Validate restored privacy settings, require the current PIN and keep protection markers consistent.
+- Keep repeated queue entries distinct when editing and remembering playlist progress.
+- Snapshot clip-export inputs on the player thread and clean up cancelled exports safely.
+- Prevent duplicate download submissions and disable pending form controls.
+- Accept subtitle language script tags and align non-Latin indexed searches with voice search.
+
 - Resume interrupted library scans from committed folder cursors.
 - Export keyframe-aligned clips without re-encoding, using the selected audio track.
 - Include captions in screenshots from both engines, up to 4K, and warn when HDR screenshot colours may be inaccurate.
