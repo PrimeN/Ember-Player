@@ -114,8 +114,8 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
                 }
                 if(!television)PhoneLibraryNavigation(destination.takeUnless {search}){folderUri=null;go(it)}
                 if(narrow&&destination==PlayerLibraryDestination.VIDEOS)Row(Modifier.fillMaxWidth().padding(bottom=8.dp),horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically) {
-                    LibraryUtility(uiResources.getString(filter.label),Icons.Outlined.FilterList,Modifier.weight(1f)){filterMenu=true}
-                    LibraryUtility(uiResources.getString(sort.label),Icons.AutoMirrored.Outlined.Sort,Modifier.weight(1f)){sortMenu=true}
+                    LibraryUtility(uiResources.getString(filter.label),Icons.Outlined.FilterList,Modifier.weight(1f),expanded=true){filterMenu=true}
+                    LibraryUtility(uiResources.getString(sort.label),Icons.AutoMirrored.Outlined.Sort,Modifier.weight(1f),expanded=true){sortMenu=true}
                     PlayerIconAction(if(grid)uiResources.getString(R.string.ui_list_view) else uiResources.getString(R.string.ui_grid_view),if(grid)Icons.AutoMirrored.Outlined.ViewList else Icons.Outlined.GridView){grid=!grid;prefs.playerLibraryGrid=grid}
                 }
                 if(search) {
@@ -176,13 +176,13 @@ internal fun PhoneLibraryNavigation(destination:PlayerLibraryDestination?,go:(Pl
 }
 
 @Composable
-private fun LibraryUtility(label:String,icon:ImageVector,modifier:Modifier=Modifier,click:()->Unit) {
+internal fun LibraryUtility(label:String,icon:ImageVector,modifier:Modifier=Modifier,expanded:Boolean=false,click:()->Unit) {
     val scheme=MaterialTheme.colorScheme
-    Focusable(click,modifier.heightIn(min=48.dp).semantics {contentDescription=label},radius=24,container=scheme.surfaceVariant.copy(alpha=.65f),
+    Focusable(click,modifier.heightIn(min=48.dp),radius=TvTokens.Shape.Control,container=scheme.surfaceVariant.copy(alpha=.65f),
         focusedContainer=scheme.primary,focusedContent=scheme.onPrimary,outline=false,focusedScale=1f) {
-        Row(Modifier.padding(horizontal=12.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+        Row((if(expanded)Modifier.fillMaxWidth() else Modifier).padding(horizontal=12.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
             if(LocalPlayerTelevision.current)Icon(icon,null,Modifier.size(18.dp))
-            Text(label,Modifier.weight(1f,fill=false),style=MaterialTheme.typography.labelLarge,maxLines=1,overflow=TextOverflow.Ellipsis)
+            Text(label,Modifier.weight(1f,fill=expanded),style=MaterialTheme.typography.labelLarge,maxLines=1,overflow=TextOverflow.Ellipsis)
             Icon(Icons.Outlined.ExpandMore,null,Modifier.size(16.dp))
         }
     }
@@ -191,7 +191,7 @@ private fun LibraryUtility(label:String,icon:ImageVector,modifier:Modifier=Modif
 @Composable
 private fun LibraryNavigation(label:String,icon:ImageVector,modifier:Modifier=Modifier,isSelected:Boolean,click:()->Unit) {
     val scheme=MaterialTheme.colorScheme
-    Focusable(click,modifier.heightIn(min=48.dp).semantics {selected=isSelected},radius=14,
+    Focusable(click,modifier.heightIn(min=48.dp).semantics {selected=isSelected},radius=TvTokens.Shape.Control,
         container=if(isSelected)scheme.primaryContainer else Color.Transparent,focusedContainer=scheme.primary,focusedContent=scheme.onPrimary,outline=false,focusedScale=1f) {
         Row(Modifier.padding(horizontal=10.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             Icon(icon,null,Modifier.size(18.dp));Text(label,style=if(LocalPlayerTelevision.current)MaterialTheme.typography.bodyLarge else MaterialTheme.typography.labelLarge,maxLines=if(LocalPlayerTelevision.current)2 else 1,overflow=TextOverflow.Ellipsis)

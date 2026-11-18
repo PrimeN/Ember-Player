@@ -26,9 +26,9 @@ internal fun SleepTimerSettings() {
     Text(when {state.endOfItem->uiResources.getString(R.string.ui_stops_after_the_current_item);state.deadline>0->uiResources.getString(R.string.ui_remaining_min ,(((state.remaining(now)+59999)/60000)).toString());else->uiResources.getString(R.string.ui_sleep_timer_is_off)},style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
     ButtonRow {listOf(15,30,60,90).forEach {minutes->Chip(uiResources.getString(R.string.ui_min ,minutes.toString())){SleepTimer.after(minutes)}}}
     ButtonRow {
-        Chip(uiResources.getString(R.string.ui_custom_duration)){custom=true}
+        PlayerAction(uiResources.getString(R.string.ui_custom_duration)){custom=true}
         Chip(uiResources.getString(R.string.ui_end_of_item),selected=state.endOfItem){SleepTimer.atEnd()}
-        Chip(uiResources.getString(R.string.ui_cancel_timer)){SleepTimer.cancel()}
+        PlayerAction(uiResources.getString(R.string.ui_cancel_timer)){SleepTimer.cancel()}
     }
     if(custom) {
         var text by remember {mutableStateOf("45")}

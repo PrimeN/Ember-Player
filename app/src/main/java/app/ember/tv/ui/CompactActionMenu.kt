@@ -17,7 +17,6 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
@@ -27,16 +26,18 @@ import androidx.tv.material3.Text
 
 /** Wraps its contents in both directions, with a scroll cap for large fonts and long custom lists. */
 @Composable
-internal fun CompactActionMenu(title: String, labels: List<String>, close: () -> Unit, content: @Composable ColumnScope.(FocusRequester) -> Unit) {
+internal fun CompactActionMenu(title: String, labels: List<String>, close: () -> Unit, message: String? = null, content: @Composable ColumnScope.(FocusRequester) -> Unit) {
     val closeLabel=androidx.compose.ui.res.stringResource(R.string.ui_close)
     val density=LocalDensity.current
     val window=LocalWindowInfo.current.containerSize
     val measure=rememberTextMeasurer()
     val labelStyle=actionMenuTextStyle()
+    val messageStyle=androidx.tv.material3.MaterialTheme.typography.bodySmall
     val titleStyle=androidx.tv.material3.MaterialTheme.typography.titleMedium.copy(fontWeight=FontWeight.SemiBold)
-    val width=remember(title,labels,density,window,measure,labelStyle,titleStyle) {with(density) {
+    val width=remember(title,labels,message,density,window,measure,labelStyle,titleStyle,messageStyle) {with(density) {
         MenuSizing.actionMenuWidth((labels.maxOfOrNull {measure.measure(MenuSizing.actionLabel(it),labelStyle,softWrap=false,maxLines=1).size.width.toDp()} ?: 0.dp),
-            measure.measure(title,titleStyle,softWrap=false,maxLines=1).size.width.toDp(),(window.width.toDp()-48.dp).coerceAtLeast(0.dp))
+            measure.measure(title,titleStyle,softWrap=false,maxLines=1).size.width.toDp(),(window.width.toDp()-48.dp).coerceAtLeast(0.dp),
+            message?.let {measure.measure(MenuSizing.actionLabel(it),messageStyle,softWrap=false,maxLines=1).size.width.toDp()} ?: 0.dp)
     }}
     val first=remember {FocusRequester()}
     val closeFocus=remember {FocusRequester()}

@@ -33,7 +33,6 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
@@ -83,11 +82,11 @@ fun TvTextField(
         fun submit(){if(onSubmit!=null)onSubmit() else {keyboard?.hide();focus.clearFocus()}}
         androidx.compose.material3.OutlinedTextField(value,onValueChange,
             modifier.fillMaxWidth().heightIn(min=maxOf(56.dp,minHeight)).then(if(focusRequester!=null)Modifier.focusRequester(focusRequester) else Modifier),
-            placeholder={androidx.compose.material3.Text(placeholder)},singleLine=singleLine,enabled=enabled,
+            placeholder={androidx.compose.material3.Text(placeholder,style=MaterialTheme.typography.bodyLarge)},singleLine=singleLine,enabled=enabled,
             visualTransformation=if(password)PasswordVisualTransformation() else VisualTransformation.None,
             keyboardOptions=androidx.compose.foundation.text.KeyboardOptions(keyboardType=if(password&&keyboardType==androidx.compose.ui.text.input.KeyboardType.Text)androidx.compose.ui.text.input.KeyboardType.Password else keyboardType,imeAction=imeAction),
             keyboardActions=androidx.compose.foundation.text.KeyboardActions(onDone={submit()},onSearch={submit()},onGo={submit()},onSend={submit()}),
-            shape=androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+            textStyle=MaterialTheme.typography.bodyLarge,shape=androidx.compose.foundation.shape.RoundedCornerShape(TvTokens.Shape.Control.dp))
         return
     }
     val focus = LocalFocusManager.current
@@ -123,9 +122,9 @@ fun TvTextField(
         modifier = modifier
             .bringIntoViewRequester(bring)
             .then(if (glass) Modifier.glassSurface(RoundedCornerShape(TvTokens.Shape.Pill.dp))
-                else Modifier.background(PanelHi, RoundedCornerShape(10.dp)))
-            .focusCue(focused,if (glass) TvTokens.Shape.Pill else 10,ControlStateCue.edge(PanelHi))
-            .padding(14.dp),
+                else Modifier.background(PanelHi, RoundedCornerShape(TvTokens.Shape.Control.dp)))
+            .focusCue(focused,if (glass) TvTokens.Shape.Pill else TvTokens.Shape.Control,ControlStateCue.edge(PanelHi))
+            .heightIn(min=maxOf(56.dp,minHeight)).padding(14.dp),
     ) {
         BasicTextField(
             value = current,
@@ -139,7 +138,7 @@ fun TvTextField(
             enabled = enabled,
             singleLine = singleLine,
             visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
-            textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = fontSize, lineHeight = lineHeight),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = fontSize, lineHeight = lineHeight),
             cursorBrush = SolidColor(if (editing) accent else androidx.compose.ui.graphics.Color.Transparent),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = if (singleLine) imeAction else ImeAction.Default),
             keyboardActions = KeyboardActions(onAny = {
@@ -205,12 +204,12 @@ fun TvTextField(
                 androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                     horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
                     if (glass) MaterialGlyph(androidx.compose.material.icons.Icons.Outlined.Search, Mute, 20.dp)
-                    Box(Modifier.weight(1f)) {
+                    Box(Modifier.weight(1f),contentAlignment=androidx.compose.ui.Alignment.CenterStart) {
                         if (value.isEmpty()) {
                             Text(
                                 if (focused && !editing && placeholder.isNotEmpty()) uiResources.getString(R.string.ui_ok_to_type ,placeholder) else placeholder,
                                 color = Mute,
-                                fontSize = fontSize,
+                                style = MaterialTheme.typography.bodyLarge.copy(fontSize=fontSize,lineHeight=lineHeight),
                                 maxLines = if (glass) 1 else Int.MAX_VALUE,
                                 overflow = if (glass) androidx.compose.ui.text.style.TextOverflow.Ellipsis else androidx.compose.ui.text.style.TextOverflow.Clip,
                             )

@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.player.PlayerAction
+
 import app.ember.tv.R
 
 import android.content.Intent
@@ -142,28 +144,28 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
         notice?.let {app.ember.player.PlayerErrorText(it)}
         status?.let {app.ember.player.PlayerStatusText(it)}
         if (root == null) {
-            Chip(uiResources.getString(R.string.ui_add_a_media_folder)) {if (!busy) runCatching {addFolder.launch(null)}.onFailure {notice = uiResources.getString(R.string.ui_no_document_picker_is_installed_on_this_device)}}
+            PlayerAction(uiResources.getString(R.string.ui_add_a_media_folder)) {if (!busy) runCatching {addFolder.launch(null)}.onFailure {notice = uiResources.getString(R.string.ui_no_document_picker_is_installed_on_this_device)}}
             folders.forEach {folder -> ButtonRow {
-                Chip(folder.name, maxLines = 1) {root = folder; parents = emptyList(); query = ""}
-                Chip(uiResources.getString(R.string.ui_forget_folder)) {operation {withContext(Dispatchers.IO) {check(store.remove(folder.uri)) {"Could not update saved folders."};MediaLibraryScanner.request(activity,true)}; folders = withContext(Dispatchers.IO) {store.read().filterNot {app.ember.player.PrivateMedia.hidden(it.uri)}}}}
+                PlayerAction(folder.name, maxLines = 1) {root = folder; parents = emptyList(); query = ""}
+                PlayerAction(uiResources.getString(R.string.ui_forget_folder)) {operation {withContext(Dispatchers.IO) {check(store.remove(folder.uri)) {"Could not update saved folders."};MediaLibraryScanner.request(activity,true)}; folders = withContext(Dispatchers.IO) {store.read().filterNot {app.ember.player.PrivateMedia.hidden(it.uri)}}}}
             }}
         } else {
             Text(current?.second ?: root!!.name, style=androidx.tv.material3.MaterialTheme.typography.bodyLarge, maxLines = 1)
             TvTextField(query, {query = it.take(120)}, Modifier.fillMaxWidth(), placeholder = uiResources.getString(R.string.ui_search_this_folder))
             ButtonRow {
-                Chip(uiResources.getString(R.string.ui_back)) {if (!busy) back()}
-                Chip(uiResources.getString(R.string.ui_refresh)) {if (!busy) {DeviceThumbnails.clear();revision++}}
-                Chip(when(sort) {"date" -> uiResources.getString(R.string.ui_newest_first); "size" -> uiResources.getString(R.string.ui_largest_first); else -> uiResources.getString(R.string.ui_name_a_z)}) {sort = when(sort) {"name" -> "date"; "date" -> "size"; else -> "name"}}
+                PlayerAction(uiResources.getString(R.string.ui_back)) {if (!busy) back()}
+                PlayerAction(uiResources.getString(R.string.ui_refresh)) {if (!busy) {DeviceThumbnails.clear();revision++}}
+                PlayerAction(when(sort) {"date" -> uiResources.getString(R.string.ui_newest_first); "size" -> uiResources.getString(R.string.ui_largest_first); else -> uiResources.getString(R.string.ui_name_a_z)}) {sort = when(sort) {"name" -> "date"; "date" -> "size"; else -> "name"}}
                 Chip(uiResources.getString(R.string.ui_hidden_files), selected = hidden) {hidden = !hidden}
                 Chip(if (select) uiResources.getString(R.string.ui_done_selecting) else uiResources.getString(R.string.ui_select_files), selected = select) {select = !select; selected = emptySet()}
             }
             val entries = DeviceFiles.sorted(page.entries.filterNot {app.ember.player.PrivateMedia.hidden(it.uri.toString())}, query, sort, hidden)
-            lastPlayed?.let {last->page.entries.firstOrNull {it.uri.toString()==last.uri && !app.ember.player.PrivateMedia.hidden(it.uri.toString()) && (hidden || !it.name.startsWith('.'))}?.let {file->Chip(uiResources.getString(R.string.ui_resume_c596cf ,last.title),maxLines=1) {open(listOf(file))}}}
+            lastPlayed?.let {last->page.entries.firstOrNull {it.uri.toString()==last.uri && !app.ember.player.PrivateMedia.hidden(it.uri.toString()) && (hidden || !it.name.startsWith('.'))}?.let {file->PlayerAction(uiResources.getString(R.string.ui_resume_c596cf ,last.title),maxLines=1) {open(listOf(file))}}}
             val chosen = page.entries.filter {it.uri in selected && !it.directory && !app.ember.player.PrivateMedia.hidden(it.uri.toString())}
             if (chosen.isNotEmpty()) ButtonRow {
-                Chip(uiResources.getString(R.string.ui_play_9507b9 ,chosen.size.toString())) {open(chosen)}
-                Chip(uiResources.getString(R.string.ui_share)) {share(chosen)}
-                Chip(uiResources.getString(R.string.ui_move)) {if (!busy) {moving = chosen; runCatching {destination.launch(null)}.onFailure {moving = emptyList(); notice = uiResources.getString(R.string.ui_no_document_picker_is_installed)}}}
+                PlayerAction(uiResources.getString(R.string.ui_play_9507b9 ,chosen.size.toString())) {open(chosen)}
+                PlayerAction(uiResources.getString(R.string.ui_share)) {share(chosen)}
+                PlayerAction(uiResources.getString(R.string.ui_move)) {if (!busy) {moving = chosen; runCatching {destination.launch(null)}.onFailure {moving = emptyList(); notice = uiResources.getString(R.string.ui_no_document_picker_is_installed)}}}
                 app.ember.player.PlayerAction(uiResources.getString(R.string.ui_delete_f6fdbe),destructive=true) {deleting = chosen}
             }
             if (loading || busy) Text(if (busy) uiResources.getString(R.string.ui_working) else uiResources.getString(R.string.ui_loading_folder), color = Mute, style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
@@ -183,11 +185,11 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
                 }
             }
             ButtonRow {
-                if(offsets.size>1)Chip(uiResources.getString(R.string.ui_previous_page)){offsets=offsets.dropLast(1)}
-                if(page.limited)Chip(uiResources.getString(R.string.ui_next_page)){offsets=offsets+page.nextOffset}
+                if(offsets.size>1)PlayerAction(uiResources.getString(R.string.ui_previous_page)){offsets=offsets.dropLast(1)}
+                if(page.limited)PlayerAction(uiResources.getString(R.string.ui_next_page)){offsets=offsets+page.nextOffset}
             }
             Text(uiResources.getString(R.string.ui_search_and_sorting_apply_to_this_page_use_library),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
-            if (entries.any {!it.directory}) Chip(uiResources.getString(R.string.ui_play_this_page)) {open(entries.filterNot {it.directory})}
+            if (entries.any {!it.directory}) PlayerAction(uiResources.getString(R.string.ui_play_this_page)) {open(entries.filterNot {it.directory})}
         }
         menu?.takeUnless {app.ember.player.PrivateMedia.hidden(it.uri.toString())}?.let {file -> OptionMenu(file.name, listOf(
             MenuOption(uiResources.getString(R.string.ui_play)) {open(listOf(file))},

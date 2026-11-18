@@ -21,14 +21,14 @@ internal fun PictureProfileSettings(config:PlaybackConfig,save:(PlaybackConfig)-
     val profiles=PictureProfiles.normalized(config).pictureProfiles
     Text(uiResources.getString(R.string.ui_save_upscaling_shader_color_debanding_smoothing_and_hdr_choices),style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
     TvTextField(name,{name=it.take(32);notice=null},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_profile_name),startEditing=!PlayerTouchControls.isTelevision(androidx.compose.ui.platform.LocalContext.current))
-    Chip(uiResources.getString(R.string.ui_save_current_picture_settings)) {
+    PlayerAction(uiResources.getString(R.string.ui_save_current_picture_settings)) {
         runCatching {PictureProfiles.save(config,name,PictureState.from(config))}.onSuccess {save(it);notice=PlayerFeedback(uiResources.getString(R.string.ui_profile_saved),false)}.onFailure {notice=PlayerFeedback(uiResources.getString(PresetValidationException.resource(it)))}
     }
     if(profiles.isNotEmpty()) {
         val selected=profiles.firstOrNull {it.id==chosen} ?: profiles.first()
         PlayerChoice(uiResources.getString(R.string.ui_saved_profile),profiles.map {it.id to it.name},selected.id){chosen=it}
         ButtonRow {
-            Chip(uiResources.getString(R.string.ui_use_as_default)){save(selected.state.applyTo(config));notice=PlayerFeedback(uiResources.getString(R.string.ui_default_picture_settings_updated),false)}
+            PlayerAction(uiResources.getString(R.string.ui_use_as_default)){save(selected.state.applyTo(config));notice=PlayerFeedback(uiResources.getString(R.string.ui_default_picture_settings_updated),false)}
             PlayerAction(uiResources.getString(R.string.ui_delete_profile),destructive=true){deleting=selected.id}
         }
     }

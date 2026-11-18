@@ -52,8 +52,8 @@ internal fun PlayerBackupSettings(restored:()->Unit) {
     val select=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {uri->PrivateMedia.endPicker();if(uri!=null){source=uri;mode="restore"}}
     Text(uiResources.getString(R.string.ui_settings_saved_positions_bookmarks_playlists_and_connection_details_are),style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
     ButtonRow {
-        Chip(if(busy)uiResources.getString(R.string.ui_working) else uiResources.getString(R.string.ui_export_encrypted_backup)) {if(!busy){notice=null;mode="export"}}
-        Chip(uiResources.getString(R.string.ui_restore_backup)) {if(!busy)runCatching {if(PrivateMedia.enabled)PrivateMedia.beginPicker();select.launch(arrayOf("application/octet-stream","*/*"))}.onFailure {PrivateMedia.endPicker();notice=PlayerFeedback(uiResources.getString(R.string.ui_no_document_picker_is_installed_on_this_device))}}
+        PlayerAction(if(busy)uiResources.getString(R.string.ui_working) else uiResources.getString(R.string.ui_export_encrypted_backup)) {if(!busy){notice=null;mode="export"}}
+        PlayerAction(uiResources.getString(R.string.ui_restore_backup)) {if(!busy)runCatching {if(PrivateMedia.enabled)PrivateMedia.beginPicker();select.launch(arrayOf("application/octet-stream","*/*"))}.onFailure {PrivateMedia.endPicker();notice=PlayerFeedback(uiResources.getString(R.string.ui_no_document_picker_is_installed_on_this_device))}}
     }
     notice?.let {PlayerFeedbackText(it)}
     mode?.let {operation->

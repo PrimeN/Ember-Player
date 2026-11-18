@@ -1,19 +1,20 @@
 package app.ember.player
 
 import androidx.compose.material3.Typography
+import app.ember.tv.ui.TvTokens
 import androidx.compose.ui.unit.sp
 
 private val phoneType=Typography()
 private val televisionType=phoneType.copy(
-    bodyLarge=phoneType.bodyLarge.copy(fontSize=20.sp,lineHeight=28.sp),
-    bodyMedium=phoneType.bodyMedium.copy(fontSize=18.sp,lineHeight=26.sp),
-    bodySmall=phoneType.bodySmall.copy(fontSize=16.sp,lineHeight=24.sp),
-    labelLarge=phoneType.labelLarge.copy(fontSize=18.sp,lineHeight=26.sp),
-    labelMedium=phoneType.labelMedium.copy(fontSize=16.sp,lineHeight=24.sp),
-    labelSmall=phoneType.labelSmall.copy(fontSize=14.sp,lineHeight=22.sp),
-    titleLarge=phoneType.titleLarge.copy(fontSize=26.sp,lineHeight=34.sp),
-    titleMedium=phoneType.titleMedium.copy(fontSize=22.sp,lineHeight=30.sp),
-    titleSmall=phoneType.titleSmall.copy(fontSize=20.sp,lineHeight=28.sp),
+    bodyLarge=phoneType.bodyLarge.copy(fontSize=TvTokens.Type.Player.BodyLarge.sp,lineHeight=TvTokens.Type.Player.BodyLargeLine.sp),
+    bodyMedium=phoneType.bodyMedium.copy(fontSize=TvTokens.Type.Player.BodyMedium.sp,lineHeight=TvTokens.Type.Player.BodyMediumLine.sp),
+    bodySmall=phoneType.bodySmall.copy(fontSize=TvTokens.Type.Player.BodySmall.sp,lineHeight=TvTokens.Type.Player.BodySmallLine.sp),
+    labelLarge=phoneType.labelLarge.copy(fontSize=TvTokens.Type.Player.LabelLarge.sp,lineHeight=TvTokens.Type.Player.LabelLargeLine.sp),
+    labelMedium=phoneType.labelMedium.copy(fontSize=TvTokens.Type.Player.LabelMedium.sp,lineHeight=TvTokens.Type.Player.LabelMediumLine.sp),
+    labelSmall=phoneType.labelSmall.copy(fontSize=TvTokens.Type.Player.LabelSmall.sp,lineHeight=TvTokens.Type.Player.LabelSmallLine.sp),
+    titleLarge=phoneType.titleLarge.copy(fontSize=TvTokens.Type.Player.TitleLarge.sp,lineHeight=TvTokens.Type.Player.TitleLargeLine.sp),
+    titleMedium=phoneType.titleMedium.copy(fontSize=TvTokens.Type.Player.TitleMedium.sp,lineHeight=TvTokens.Type.Player.TitleMediumLine.sp),
+    titleSmall=phoneType.titleSmall.copy(fontSize=TvTokens.Type.Player.TitleSmall.sp,lineHeight=TvTokens.Type.Player.TitleSmallLine.sp),
 )
 internal fun playerMaterialTypography(television:Boolean)=if(television)televisionType else phoneType
 

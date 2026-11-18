@@ -52,7 +52,7 @@ private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:
             PlayerChoice(uiResources.getString(R.string.ui_seeking),listOf("precise" to uiResources.getString(R.string.ui_precise),"fast" to uiResources.getString(R.string.ui_fast_keyframes)),config.seekMode){v->update {it.copy(seekMode=v)}}
             PlayerChoice(uiResources.getString(R.string.ui_buffer),listOf("normal" to uiResources.getString(R.string.ui_normal),"large" to uiResources.getString(R.string.ui_large),"huge" to uiResources.getString(R.string.ui_huge)),config.buffer){v->update {it.copy(buffer=v,stream=it.stream.copy(custom=false))}}
             SwitchChip(uiResources.getString(R.string.ui_remember_working_decoders),config.rememberDecoderChoices){update {it.copy(rememberDecoderChoices=!it.rememberDecoderChoices)}}
-            Chip(uiResources.getString(R.string.ui_reset_decoder_memory)){DecoderHealth.clear(this@SettingsContent)}
+            PlayerAction(uiResources.getString(R.string.ui_reset_decoder_memory)){DecoderHealth.clear(this@SettingsContent)}
             SwitchChip(uiResources.getString(R.string.ui_picture_in_picture),config.pip){update {it.copy(pip=!it.pip)}}
             SwitchChip(uiResources.getString(R.string.ui_background_audio),config.backgroundAudio){update {it.copy(backgroundAudio=!it.backgroundAudio)}}
             Text(uiResources.getString(R.string.ui_keep_sound_playing_when_the_screen_is_off_or),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
@@ -80,7 +80,7 @@ private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:
                     update {it.copy(picture=adjustment.write(it.picture,v.toInt()).normalized())}
                 }
             }
-            Chip(uiResources.getString(R.string.ui_reset_picture_adjustments)){update {it.copy(picture=it.picture.copy(brightness=0,contrast=0,saturation=0,gamma=0,hue=0,sharpness=0))}}
+            PlayerAction(uiResources.getString(R.string.ui_reset_picture_adjustments)){update {it.copy(picture=it.picture.copy(brightness=0,contrast=0,saturation=0,gamma=0,hue=0,sharpness=0))}}
         }
         "profiles"->PlayerSection(uiResources.getString(R.string.ui_saved_picture_shader_profiles)) {
             PictureProfileSettings(config){value->update {value}}
@@ -129,9 +129,9 @@ private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:
             PlayerChoice(uiResources.getString(R.string.ui_audio_decoding),listOf("on" to uiResources.getString(R.string.ui_software_when_needed),"prefer" to uiResources.getString(R.string.ui_prefer_software),"off" to uiResources.getString(R.string.ui_device_decoders_only)),config.ffmpeg){v->update {it.copy(ffmpeg=v)}}
             PlayerChoice(uiResources.getString(R.string.ui_audio_track),listOf("quality" to uiResources.getString(R.string.ui_best_quality),"language" to uiResources.getString(R.string.ui_preferred_language),"default" to uiResources.getString(R.string.ui_file_default)),config.audioPick){v->update {it.copy(audioPick=v)}}
             Text(uiResources.getString(R.string.ui_sound_delay_ms ,config.audioDelayMs.toString()),style=androidx.tv.material3.MaterialTheme.typography.bodyMedium)
-            ButtonRow {Chip(uiResources.getString(R.string.ui_25_ms)){update {it.copy(audioDelayMs=(it.audioDelayMs-25).coerceAtLeast(-2000))}};Chip(uiResources.getString(R.string.ui_25_ms_ca896a)){update {it.copy(audioDelayMs=(it.audioDelayMs+25).coerceAtMost(2000))}}}
+            ButtonRow {PlayerAction(uiResources.getString(R.string.ui_25_ms)){update {it.copy(audioDelayMs=(it.audioDelayMs-25).coerceAtLeast(-2000))}};PlayerAction(uiResources.getString(R.string.ui_25_ms_ca896a)){update {it.copy(audioDelayMs=(it.audioDelayMs+25).coerceAtMost(2000))}}}
             Text(uiResources.getString(R.string.ui_bluetooth_delay ,config.bluetoothDelayMs?.let {uiResources.getString(R.string.ui_ms ,it.toString())} ?: uiResources.getString(R.string.ui_use_sound_delay)),style=androidx.tv.material3.MaterialTheme.typography.bodyMedium)
-            ButtonRow {Chip(uiResources.getString(R.string.ui_25_ms)){update {it.copy(bluetoothDelayMs=((it.bluetoothDelayMs ?: it.audioDelayMs)-25).coerceAtLeast(-2000))}};Chip(uiResources.getString(R.string.ui_25_ms_ca896a)){update {it.copy(bluetoothDelayMs=((it.bluetoothDelayMs ?: it.audioDelayMs)+25).coerceAtMost(2000))}};Chip(uiResources.getString(R.string.ui_use_sound_delay)){update {it.copy(bluetoothDelayMs=null)}}}
+            ButtonRow {PlayerAction(uiResources.getString(R.string.ui_25_ms)){update {it.copy(bluetoothDelayMs=((it.bluetoothDelayMs ?: it.audioDelayMs)-25).coerceAtLeast(-2000))}};PlayerAction(uiResources.getString(R.string.ui_25_ms_ca896a)){update {it.copy(bluetoothDelayMs=((it.bluetoothDelayMs ?: it.audioDelayMs)+25).coerceAtMost(2000))}};PlayerAction(uiResources.getString(R.string.ui_use_sound_delay)){update {it.copy(bluetoothDelayMs=null)}}}
             PlayerChoice(uiResources.getString(R.string.ui_audio_preset),AudioEffects.presets,config.audioEffects.preset){v->update {it.copy(audioEffects=it.audioEffects.copy(preset=v))}}
             EqualizerSettings(prefs,config.audioEffects){v->update {it.copy(audioEffects=v)}}
             PlayerChoice(uiResources.getString(R.string.ui_bass),(0..6).map {it.toString() to uiResources.getString(R.string.ui_db_024cae ,it.toString())},config.audioEffects.bass.toString()){v->update {it.copy(audioEffects=it.audioEffects.copy(bass=v.toInt()))}}
@@ -176,7 +176,7 @@ private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:
         }
         "cache"->PlayerSection(uiResources.getString(R.string.ui_cache)) {
             Text(uiResources.getString(R.string.ui_disposable_artwork_thumbnails_and_temporary_data_can_be_recreated),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
-            Chip(uiResources.getString(R.string.ui_clear_disposable_caches)){scope.launch {val result=withContext(Dispatchers.IO){runCatching {CacheManagement.clear()}};android.widget.Toast.makeText(this@SettingsContent,if(result.isSuccess)uiResources.getString(R.string.ui_cache_cleared) else uiResources.getString(R.string.ui_some_cached_data_could_not_be_cleared),android.widget.Toast.LENGTH_LONG).show()}}
+            PlayerAction(uiResources.getString(R.string.ui_clear_disposable_caches)){scope.launch {val result=withContext(Dispatchers.IO){runCatching {CacheManagement.clear()}};android.widget.Toast.makeText(this@SettingsContent,if(result.isSuccess)uiResources.getString(R.string.ui_cache_cleared) else uiResources.getString(R.string.ui_some_cached_data_could_not_be_cleared),android.widget.Toast.LENGTH_LONG).show()}}
         }
     }
 }
@@ -184,7 +184,7 @@ private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:
 internal fun PlayerChoice(label:String,options:List<Pair<String,String>>,value:String,pick:(String)->Unit) {
     val uiResources=androidx.compose.ui.platform.LocalResources.current
     var open by remember {mutableStateOf(false)}
-    Chip(uiResources.getString(R.string.ui_label_value ,label,options.firstOrNull {it.first==value}?.second ?: value),maxLines=1){open=true}
+    Chip(uiResources.getString(R.string.ui_label_value ,label,options.firstOrNull {it.first==value}?.second ?: value),maxLines=1,dropdown=true){open=true}
     if(open)OptionMenu(label,options.map {(id,name)->MenuOption(name,id==value){pick(id)}},{open=false})
 }
 @Composable
@@ -198,13 +198,13 @@ private fun PlayerLegal() {
         uiResources.getString(R.string.ui_iamf_decoder_notices) to "IAMF-NOTICES.txt",
         uiResources.getString(R.string.ui_libaums_usb_notices) to "libaums-NOTICE.txt","SQLCipher" to "SQLCipher-LICENSE.txt","SMBJ-RPC" to "SMBJ-RPC-BSD.txt","JSch" to "JSch-BSD.txt",uiResources.getString(R.string.ui_apache_commons_notices) to "Commons-IO-Lang-NOTICE.txt",uiResources.getString(R.string.ui_apache_commons_net_notices) to "Commons-Net-NOTICE.txt",
         uiResources.getString(R.string.ui_fast_upscaling_shader_mit) to "Anime4K-MIT.txt",uiResources.getString(R.string.ui_jsch_compression_notices) to "JSch-JZlib-BSD.txt",uiResources.getString(R.string.ui_jsch_password_hashing_notices) to "JSch-jBCrypt-ISC.txt",uiResources.getString(R.string.ui_android_ndk_notices) to "Android-NDK-29-LLVM-NOTICE.txt")
-    licenses.forEach {entry->Chip(entry.first){chosen=entry}}
-    Chip(uiResources.getString(R.string.ui_google_cast_sdk_terms)) {runCatching {context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse("https://developers.google.com/cast/docs/terms")))}}
-    Chip(uiResources.getString(R.string.ui_android_sdk_terms)) {runCatching {context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse("https://developer.android.com/studio/terms.html")))}}
+    licenses.forEach {entry->PlayerAction(entry.first){chosen=entry}}
+    PlayerAction(uiResources.getString(R.string.ui_google_cast_sdk_terms)) {runCatching {context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse("https://developers.google.com/cast/docs/terms")))}}
+    PlayerAction(uiResources.getString(R.string.ui_android_sdk_terms)) {runCatching {context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse("https://developer.android.com/studio/terms.html")))}}
     chosen?.let {(title,file)->
         var text by remember(file){mutableStateOf(uiResources.getString(R.string.ui_loading_license))}
         LaunchedEffect(file){text=withContext(Dispatchers.IO){runCatching {context.assets.open("licenses/$file").bufferedReader().use {it.readText()}}.getOrDefault(uiResources.getString(R.string.ui_license_unavailable_see_the_source_repository))}}
-        TvDialog({chosen=null},width=680.dp,scrollContent=true){DialogHeading(title);Text(text,style=androidx.tv.material3.MaterialTheme.typography.bodySmall);PlayerAction(uiResources.getString(R.string.ui_close)){chosen=null}}
+        PlayerLicenseDialog(title,text){chosen=null}
     }
 }
 

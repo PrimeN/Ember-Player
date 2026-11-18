@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ember.tv.ui.Focusable
+import app.ember.tv.ui.TvTokens
 
 internal val LocalPlayerDesign=staticCompositionLocalOf {false}
 internal val LocalPlayerTelevision=staticCompositionLocalOf {true}
@@ -46,7 +47,7 @@ internal fun PlayerTouchSurface(onClick:()->Unit,onLongClick:(()->Unit)?,modifie
 }
 
 @Composable
-internal fun PlayerAction(label:String,icon:ImageVector?=null,modifier:Modifier=Modifier,primary:Boolean=false,enabled:Boolean=true,destructive:Boolean=false,onClick:()->Unit) {
+internal fun PlayerAction(label:String,icon:ImageVector?=null,modifier:Modifier=Modifier,primary:Boolean=false,enabled:Boolean=true,destructive:Boolean=false,maxLines:Int=2,onClick:()->Unit) {
     val scheme=androidx.tv.material3.MaterialTheme.colorScheme
     if(LocalPlayerTelevision.current) {
         Focusable(onClick,modifier.heightIn(min=48.dp),enabled=enabled,
@@ -55,22 +56,22 @@ internal fun PlayerAction(label:String,icon:ImageVector?=null,modifier:Modifier=
             focusedContainer=if(destructive)scheme.error else scheme.primary,focusedContent=if(destructive)scheme.onError else scheme.onPrimary,outline=false,focusedScale=1.02f) {
             CompositionLocalProvider(LocalContentColor provides androidx.tv.material3.LocalContentColor.current) {
                 Row(Modifier.padding(horizontal=18.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
-                    icon?.let {Icon(it,null,Modifier.size(20.dp))};Text(label,style=androidx.tv.material3.MaterialTheme.typography.labelLarge,maxLines=2,overflow=TextOverflow.Ellipsis)
+                    icon?.let {Icon(it,null,Modifier.size(20.dp))};Text(label,style=androidx.tv.material3.MaterialTheme.typography.labelLarge,maxLines=maxLines,overflow=TextOverflow.Ellipsis)
                 }
             }
         }
     } else {
-        val body:@Composable RowScope.()->Unit={icon?.let {Icon(it,null,Modifier.size(20.dp));Spacer(Modifier.width(8.dp))};Text(label,style=androidx.tv.material3.MaterialTheme.typography.labelLarge,maxLines=2,overflow=TextOverflow.Ellipsis)}
+        val body:@Composable RowScope.()->Unit={icon?.let {Icon(it,null,Modifier.size(20.dp));Spacer(Modifier.width(8.dp))};Text(label,style=androidx.tv.material3.MaterialTheme.typography.labelLarge,maxLines=maxLines,overflow=TextOverflow.Ellipsis)}
         if(primary||destructive)FilledTonalButton(onClick,modifier.heightIn(min=48.dp),enabled=enabled,
-            colors=if(destructive)ButtonDefaults.filledTonalButtonColors(containerColor=scheme.errorContainer,contentColor=scheme.onErrorContainer) else ButtonDefaults.filledTonalButtonColors(containerColor=scheme.primaryContainer,contentColor=scheme.onPrimaryContainer),shape=RoundedCornerShape(14.dp),content=body)
-        else TextButton(onClick,modifier.heightIn(min=48.dp),enabled=enabled,colors=ButtonDefaults.textButtonColors(contentColor=scheme.primary),shape=RoundedCornerShape(14.dp),content=body)
+            colors=if(destructive)ButtonDefaults.filledTonalButtonColors(containerColor=scheme.errorContainer,contentColor=scheme.onErrorContainer) else ButtonDefaults.filledTonalButtonColors(containerColor=scheme.primaryContainer,contentColor=scheme.onPrimaryContainer),shape=RoundedCornerShape(TvTokens.Shape.Control.dp),content=body)
+        else TextButton(onClick,modifier.heightIn(min=48.dp),enabled=enabled,colors=ButtonDefaults.textButtonColors(contentColor=scheme.primary),shape=RoundedCornerShape(TvTokens.Shape.Control.dp),content=body)
     }
 }
 
 @Composable
 internal fun PlayerIconAction(label:String,icon:ImageVector,modifier:Modifier=Modifier,enabled:Boolean=true,onClick:()->Unit) {
     if(LocalPlayerTelevision.current) {
-        Focusable(onClick,modifier.size(48.dp).semantics {contentDescription=label},enabled=enabled,radius=50,
+        Focusable(onClick,modifier.size(48.dp).semantics {contentDescription=label},enabled=enabled,radius=TvTokens.Shape.Pill,
             container=Color.Transparent,focusedContainer=MaterialTheme.colorScheme.primary,focusedContent=MaterialTheme.colorScheme.onPrimary,outline=false,focusedScale=1.04f) {
             Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){Icon(icon,label,Modifier.size(24.dp))}
         }
@@ -92,7 +93,7 @@ internal fun PlayerHeading(title:String,modifier:Modifier=Modifier,back:(()->Uni
 internal fun PlayerSection(title:String,modifier:Modifier=Modifier,content:@Composable ColumnScope.()->Unit) {
     Column(modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         PlayerSectionTitle(title)
-        Surface(color=MaterialTheme.colorScheme.surfaceContainer,shape=RoundedCornerShape(20.dp)) {
+        Surface(color=MaterialTheme.colorScheme.surfaceContainer,shape=RoundedCornerShape(TvTokens.Shape.Panel.dp)) {
             Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp),content=content)
         }
     }
@@ -112,7 +113,7 @@ internal fun PlayerSearchField(value:String,change:(String)->Unit,placeholder:St
         TextField(value,change,Modifier.fillMaxWidth().then(if(focus!=null)Modifier.focusRequester(focus) else Modifier),
             placeholder={Text(placeholder)},leadingIcon={Icon(Icons.Outlined.Search,null)},singleLine=true,
             keyboardOptions=KeyboardOptions(imeAction=androidx.compose.ui.text.input.ImeAction.Search),keyboardActions=KeyboardActions(onSearch={manager.clearFocus()}),
-            shape=RoundedCornerShape(28.dp),colors=TextFieldDefaults.colors(
+            shape=RoundedCornerShape(TvTokens.Shape.Control.dp),colors=TextFieldDefaults.colors(
                 focusedContainerColor=MaterialTheme.colorScheme.surfaceVariant,unfocusedContainerColor=MaterialTheme.colorScheme.surfaceVariant,
                 focusedIndicatorColor=Color.Transparent,unfocusedIndicatorColor=Color.Transparent))
     }

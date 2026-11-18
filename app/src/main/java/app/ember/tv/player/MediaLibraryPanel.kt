@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.player.PlayerAction
+
 import app.ember.tv.R
 
 import androidx.activity.ComponentActivity
@@ -38,10 +40,10 @@ internal fun MediaLibraryPanel(activity:ComponentActivity,refresh:Int,showTitle:
     Text(uiResources.getString(R.string.ui_refresh_indexes_the_folders_you_chose_including_subfolders_the),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
     TvTextField(query,{query=it.take(120);offsets=listOf(0)},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_search_media_library))
     ButtonRow {
-        if(!scan.active)Chip(uiResources.getString(R.string.ui_refresh_library)){MediaLibraryScanner.request(activity,true)}
-        else Chip(uiResources.getQuantityString(R.plurals.ui_cancel_refresh_files,scan.scanned,scan.scanned)){MediaLibraryScanner.cancel(activity)}
-        if(offsets.size>1)Chip(uiResources.getString(R.string.ui_previous_page)){offsets=offsets.dropLast(1)}
-        page.nextOffset?.let {next->Chip(uiResources.getString(R.string.ui_next_page)){offsets=offsets+next}}
+        if(!scan.active)PlayerAction(uiResources.getString(R.string.ui_refresh_library)){MediaLibraryScanner.request(activity,true)}
+        else PlayerAction(uiResources.getQuantityString(R.plurals.ui_cancel_refresh_files,scan.scanned,scan.scanned)){MediaLibraryScanner.cancel(activity)}
+        if(offsets.size>1)PlayerAction(uiResources.getString(R.string.ui_previous_page)){offsets=offsets.dropLast(1)}
+        page.nextOffset?.let {next->PlayerAction(uiResources.getString(R.string.ui_next_page)){offsets=offsets+next}}
     }
     LaunchedEffect(query,offsets,revision,refresh) {
         delay(200)
@@ -54,7 +56,7 @@ internal fun MediaLibraryPanel(activity:ComponentActivity,refresh:Int,showTitle:
         catch(_:LinkageError){page=MediaLibrary.Result(emptyList(),null);notice=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_the_saved_folder_index_is_unavailable_on_this_device))}
     }
     LazyColumn(Modifier.fillMaxWidth().heightIn(max=440.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
-        items(page.entries,key={it.key}) {media->Chip(media.title,maxLines=1,modifier=Modifier.fillMaxWidth()) {
+        items(page.entries,key={it.key}) {media->PlayerAction(media.title,maxLines=1,modifier=Modifier.fillMaxWidth()) {
             if(!app.ember.player.PrivateMedia.hidden(media.uri))runCatching {MediaFiles.launch(activity,listOf(media))}.onFailure {notice=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_this_file_is_unavailable_refresh_the_library_or_renew))}
         }}
     }

@@ -39,12 +39,12 @@ internal fun SubtitlePresetSettings(prefs:Prefs,config:SubtitleConfig,apply:(Sub
     var deleting by remember {mutableStateOf<String?>(null)}
     var notice by remember {mutableStateOf<PlayerFeedback?>(null)}
     val styles=remember(tick){prefs.subtitlePresets.take(12)}
-    Chip(if(open)uiResources.getString(R.string.ui_hide_saved_subtitle_styles) else uiResources.getString(R.string.ui_saved_subtitle_styles)){open=!open}
+    PlayerAction(if(open)uiResources.getString(R.string.ui_hide_saved_subtitle_styles) else uiResources.getString(R.string.ui_saved_subtitle_styles)){open=!open}
     if(!open)return
     TvTextField(name,{name=it.take(32)},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_style_name),startEditing=!PlayerTouchControls.isTelevision(LocalContext.current))
-    Chip(uiResources.getString(R.string.ui_save_subtitle_style)) {runCatching {SubtitlePresets.save(prefs.subtitlePresets,name,config)}.onSuccess {prefs.subtitlePresets=it;tick++;notice=PlayerFeedback(uiResources.getString(R.string.ui_style_saved),false)}.onFailure {notice=PlayerFeedback(uiResources.getString(PresetValidationException.resource(it)))}}
+    PlayerAction(uiResources.getString(R.string.ui_save_subtitle_style)) {runCatching {SubtitlePresets.save(prefs.subtitlePresets,name,config)}.onSuccess {prefs.subtitlePresets=it;tick++;notice=PlayerFeedback(uiResources.getString(R.string.ui_style_saved),false)}.onFailure {notice=PlayerFeedback(uiResources.getString(PresetValidationException.resource(it)))}}
     styles.forEach {style->ButtonRow {
-        Chip(uiResources.getString(R.string.ui_apply ,style.name)){apply(style.style.applyTo(config));notice=PlayerFeedback(uiResources.getString(R.string.ui_style_applied),false)}
+        PlayerAction(uiResources.getString(R.string.ui_apply ,style.name)){apply(style.style.applyTo(config));notice=PlayerFeedback(uiResources.getString(R.string.ui_style_applied),false)}
         PlayerAction(uiResources.getString(R.string.ui_delete ,style.name),destructive=true){deleting=style.name}
     }}
     Text(uiResources.getString(R.string.ui_appearance_only_languages_subtitle_providers_and_speech_services_stay),style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
