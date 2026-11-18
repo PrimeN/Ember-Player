@@ -30,6 +30,13 @@ internal class MediaLibrary(context:Context,
         db.execSQL("CREATE TABLE IF NOT EXISTS scan_roots (root TEXT PRIMARY KEY, generation TEXT NOT NULL, complete INTEGER NOT NULL DEFAULT 0)")
         db.execSQL("CREATE TABLE IF NOT EXISTS scan_queue (id INTEGER PRIMARY KEY AUTOINCREMENT, root TEXT NOT NULL, path TEXT NOT NULL, offset INTEGER NOT NULL DEFAULT 0, done INTEGER NOT NULL DEFAULT 0, UNIQUE(root,path))")
         db.execSQL("CREATE INDEX IF NOT EXISTS scan_remaining ON scan_queue(root,done,id)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS search_schema (id INTEGER PRIMARY KEY, version INTEGER NOT NULL)")
+        val searchVersion=db.query("SELECT version FROM search_schema WHERE id=1").use {if(it.moveToFirst())it.getInt(0) else 0}
+        if(searchVersion!=1)transaction {
+            // Existing display names are retained; missing order rows rebuild their normalized FTS terms in batches.
+            db.execSQL("DELETE FROM media_order")
+            db.execSQL("INSERT OR REPLACE INTO search_schema VALUES(1,1)")
+        }
         db.query("PRAGMA secure_delete=ON").use {it.moveToFirst()}
         db.query("PRAGMA busy_timeout=5000").use {it.moveToFirst()}
     }
@@ -109,12 +116,15 @@ internal class MediaLibrary(context:Context,
         while(true) {
             val pending=mutableListOf<Pair<String,String>>()
             db.query("SELECT media.id,title FROM media LEFT JOIN media_order ON media.id=media_order.id WHERE media_order.id IS NULL LIMIT 500").use {cursor->
-                while(cursor.moveToNext())pending+=cursor.getString(0) to NaturalOrder.key(cursor.getString(1))
+                while(cursor.moveToNext())pending+=cursor.getString(0) to cursor.getString(1)
             }
             if(pending.isEmpty())return
             db.beginTransaction()
             try {
-                pending.forEach {(id,key)->db.execSQL("INSERT OR REPLACE INTO media_order VALUES(?,?)",arrayOf(id,key))}
+                pending.forEach {(id,title)->
+                    db.execSQL("INSERT OR REPLACE INTO media_order VALUES(?,?)",arrayOf(id,NaturalOrder.key(title)))
+                    db.execSQL("UPDATE names SET title=? WHERE docid=(SELECT rowid FROM media WHERE id=?)",arrayOf(MediaSearch.tokens(title).joinToString(" "),id))
+                }
                 db.setTransactionSuccessful()
             } finally {db.endTransaction()}
         }
