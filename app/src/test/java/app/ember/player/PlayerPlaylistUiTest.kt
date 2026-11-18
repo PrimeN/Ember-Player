@@ -60,11 +60,13 @@ class PlayerPlaylistUiTest {
             if(blocking.get()){entered.countDown();check(release.await(10,java.util.concurrent.TimeUnit.SECONDS))}
             raw.set(value);true
         })
-        assertTrue(store.save("Focus",(1..4).map {QueueMedia("content://videos/$it",listOf("One","Two","Three","Four")[it-1])},2))
+        assertTrue(store.save("Focus",(1..20).map {QueueMedia("content://videos/$it",listOf("One","Two","Three","Four").getOrNull(it-1) ?: "Clip $it")},2))
         val initial=store.read().single()
         compose.setContent {PlayerTheme(Prefs(context)){PlaylistEditor(context,initial,store=store){}}}
         val earlier=compose.onNodeWithContentDescription("Move Three earlier")
         earlier.performSemanticsAction(SemanticsActions.RequestFocus){it()};earlier.assertIsFocused()
+        fun scroll()=compose.onNode(hasScrollToNodeAction()).fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange].value()
+        val before=scroll()
         blocking.set(true)
         try {
             earlier.performSemanticsAction(SemanticsActions.OnClick){it()}
@@ -73,6 +75,7 @@ class PlayerPlaylistUiTest {
         }finally {blocking.set(false);release.countDown()}
         compose.waitUntil(10_000){compose.onAllNodesWithText("2. Three").fetchSemanticsNodes().isNotEmpty()}
         earlier.assertIsFocused()
+        assertEquals(before,scroll(),0.01f)
         earlier.performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.waitUntil(10_000){compose.onAllNodesWithText("1. Three").fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithContentDescription("Move Three later").assertIsFocused()

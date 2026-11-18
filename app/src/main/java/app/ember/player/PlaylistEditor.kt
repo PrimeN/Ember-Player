@@ -38,8 +38,14 @@ internal fun PlaylistEditor(context:Context,initial:SavedPlaylist,store:SavedPla
     val listState=rememberLazyListState()
     LaunchedEffect(pendingFocus) {
         pendingFocus?.let {target->
+            withFrameNanos {}
             val index=ids.indexOf(target.first)
-            if(index>=0){listState.scrollToItem(index%100);withFrameNanos {};runCatching {targets[target]?.requestFocus()}}
+            if(index>=0) {
+                if(listState.layoutInfo.visibleItemsInfo.none {it.key==target.first}) {
+                    listState.scrollToItem(index%100);withFrameNanos {}
+                }
+                runCatching {targets[target]?.requestFocus()}
+            }
             pendingFocus=null
         }
     }
