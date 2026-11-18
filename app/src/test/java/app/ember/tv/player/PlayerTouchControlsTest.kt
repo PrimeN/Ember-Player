@@ -211,6 +211,25 @@ class PlayerTouchControlsTest {
         event(touch,MotionEvent.ACTION_UP,100f,300f,now+100,30)
         assertFalse(host.playing);assertTrue(host.seeks.isEmpty())
     }
+    @Test fun swipeBrightnessFollowsTheNextVideoWithoutChangingSystemBrightness() {
+        var adjusted=0f
+        var systemBefore=0
+        fixture {activity,_,touch->
+            systemBefore=android.provider.Settings.System.getInt(activity.contentResolver,android.provider.Settings.System.SCREEN_BRIGHTNESS,128)
+            val now=SystemClock.uptimeMillis()
+            event(touch,MotionEvent.ACTION_DOWN,100f,400f,now)
+            event(touch,MotionEvent.ACTION_MOVE,100f,300f,now,80)
+            event(touch,MotionEvent.ACTION_UP,100f,300f,now,100)
+            adjusted=activity.window.attributes.screenBrightness
+            assertTrue(adjusted>0)
+        }
+        fixture {activity,_,_->
+            assertEquals(adjusted,activity.window.attributes.screenBrightness,.001f)
+            assertEquals(systemBefore,android.provider.Settings.System.getInt(activity.contentResolver,android.provider.Settings.System.SCREEN_BRIGHTNESS,128))
+            val plain=Robolectric.buildActivity(Activity::class.java).setup()
+            try {assertEquals(-1f,plain.get().window.attributes.screenBrightness,.001f)}finally {plain.pause().stop().destroy()}
+        }
+    }
     @Test fun swappedBrightnessSwipeUsesTheRightSide() = fixture(TouchControlsConfig(swapBrightnessVolume=true)) {activity,host,touch->
         val now=SystemClock.uptimeMillis()
         event(touch,MotionEvent.ACTION_DOWN,800f,400f,now)

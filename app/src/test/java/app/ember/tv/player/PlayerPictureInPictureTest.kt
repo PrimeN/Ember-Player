@@ -1,6 +1,10 @@
 package app.ember.tv.player
 
 import android.app.Application
+import android.content.Intent
+import android.os.Looper
+import app.ember.tv.data.Prefs
+import androidx.media3.common.Player
 import android.content.res.Configuration
 import androidx.media3.common.VideoSize
 import androidx.media3.exoplayer.ExoPlayer
@@ -27,8 +31,8 @@ class PlayerPictureInPictureTest {
             val activity=Robolectric.buildActivity(PlayerActivity::class.java).get()
             val fake=FakeVideo()
             activity.config=PlaybackConfig(pip=true,backgroundAudio=true,rememberTracks=false)
-            activity.player=fake.player;activity.positions=PositionStore(activity)
-            try {test(activity,fake)}finally {activity.handler.removeCallbacksAndMessages(null)}
+            activity.player=fake.player;activity.positions=PositionStore(activity);activity.prefs=Prefs(activity)
+            try {test(activity,fake)}finally {activity.pipActions?.close();activity.handler.removeCallbacksAndMessages(null)}
         }
     }
     @Test fun gestureAutoEntryTracksPlaybackPrivacyAndSidecarPicking()=fixture {activity,fake->
@@ -63,13 +67,52 @@ class PlayerPictureInPictureTest {
         activity.onPictureInPictureModeChanged(false,Configuration())
         assertNull(activity.player);assertEquals(1,fake.released)
     }
+    @Test fun pipActionsTogglePlaybackAndSeekWithoutOpeningTheActivity()=fixture {activity,fake->
+        activity.pictureInPictureEntered=true
+        val actions=activity.pictureInPictureParams().actions
+        assertEquals(3,actions.size);assertEquals("Pause",actions[1].title.toString())
+        actions[1].actionIntent.send();shadowOf(Looper.getMainLooper()).idle()
+        assertFalse(fake.playing)
+        val paused=activity.pictureInPictureParams().actions
+        assertEquals("Play",paused[1].title.toString())
+        paused[1].actionIntent.send();shadowOf(Looper.getMainLooper()).idle()
+        assertTrue(fake.playing)
+        paused[0].actionIntent.send();shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(110_000L,fake.position)
+        paused[2].actionIntent.send();shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(120_000L,fake.position)
+    }
+    @Test fun unsupportedSeekingIsDisabledAndOldOrForgedActionsCannotAffectPlayback()=fixture {activity,fake->
+        activity.pictureInPictureEntered=true;fake.seekable=false
+        val actions=activity.pictureInPictureParams().actions
+        assertFalse(actions[0].isEnabled);assertFalse(actions[2].isEnabled)
+        val valid=Intent(shadowOf(actions[1].actionIntent).savedIntent)
+        activity.sendBroadcast(Intent(valid).putExtra("token","wrong"));shadowOf(Looper.getMainLooper()).idle()
+        assertTrue(fake.playing)
+        activity.playbackVisit++
+        activity.sendBroadcast(valid);shadowOf(Looper.getMainLooper()).idle()
+        assertTrue(fake.playing)
+        activity.pictureInPictureParams()
+        try {actions[1].actionIntent.send();fail("Old action should be cancelled")}catch(_:android.app.PendingIntent.CanceledException){}
+        val newAction=activity.pictureInPictureParams().actions[1].actionIntent
+        activity.pictureInPictureEntered=false
+        newAction.send();shadowOf(Looper.getMainLooper()).idle();assertTrue(fake.playing)
+        activity.pictureInPictureEntered=true;activity.privatePlayback=true
+        newAction.send();shadowOf(Looper.getMainLooper()).idle();assertTrue(fake.playing)
+        assertTrue(activity.pictureInPictureParams().actions.isEmpty())
+    }
     private class FakeVideo {
-        var playing=true;var size=VideoSize(1920,1080);var released=0
-        val player=Proxy.newProxyInstance(ExoPlayer::class.java.classLoader,arrayOf(ExoPlayer::class.java)){_,method,_->when(method.name) {
+        var playing=true;var size=VideoSize(1920,1080);var released=0;var position=120_000L;var seekable=true
+        val player=Proxy.newProxyInstance(ExoPlayer::class.java.classLoader,arrayOf(ExoPlayer::class.java)){_,method,args->when(method.name) {
             "isPlaying","getPlayWhenReady"->playing
             "getVideoSize"->size
             "getDuration"->600_000L
-            "getCurrentPosition"->120_000L
+            "getCurrentPosition"->position
+            "isCommandAvailable"->args?.firstOrNull()!=Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM || seekable
+            "pause"->{playing=false;null}
+            "play"->{playing=true;null}
+            "seekTo"->{position=args!!.last() as Long;null}
+            "getSeekParameters"->androidx.media3.exoplayer.SeekParameters.EXACT
             "release"->{released++;null}
             "hashCode"->System.identityHashCode(this)
             else->when(method.returnType){java.lang.Boolean.TYPE->false;java.lang.Integer.TYPE->0;java.lang.Long.TYPE->0L;java.lang.Float.TYPE->1f;else->null}

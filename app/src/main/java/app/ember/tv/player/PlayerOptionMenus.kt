@@ -31,13 +31,15 @@ internal fun PlayerActivity.loadFileChapters(p: ExoPlayer) {
     playbackEngine?.compatibility?.chapters()?.takeIf {it.isNotEmpty()}?.let {chapters=it;return}
     if (!advanced || chapters.isNotEmpty()) return
     val url = currentUrl ?: return
-    if (!url.startsWith("http")) return
     val mkv = p.videoFormat?.containerMimeType == MimeTypes.VIDEO_MATROSKA ||
         p.audioFormat?.containerMimeType == MimeTypes.VIDEO_MATROSKA ||
         url.substringBefore('?').endsWith(".mkv", ignoreCase = true)
-    if (!mkv) return
+    // Document IDs need not contain a filename, and an extractor may omit its container MIME.
+    val local=android.net.Uri.parse(url).scheme in setOf(null,"content","file")
+    if (!mkv && !local) return
     val forUrl = url
-    metadataLoads.load({ MkvChapters.read(forUrl) }) { found ->
+    val headers=sourceHeaders.toMap()
+    metadataLoads.load({ MkvChapters.read(applicationContext,forUrl,headers) }) { found ->
         if (found.size > 1 && currentUrl == forUrl && chapters.isEmpty()) {
             chapters = found
             changed()

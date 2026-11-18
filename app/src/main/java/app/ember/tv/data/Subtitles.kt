@@ -160,6 +160,8 @@ object Subtitles {
         LANGS.keys.firstOrNull { it.equals(c, true) }?.let { return it }
         LANGS.entries.firstOrNull { it.value.equals(c, true) || java.util.Locale.forLanguageTag(it.key).getDisplayName(java.util.Locale.ENGLISH).equals(c,true) }?.let { return it.key }
         alias[c.lowercase()]?.let { return it }
+        val locale=java.util.Locale.forLanguageTag(c.replace('_','-'))
+        if(locale.language=="zh" && (locale.script=="Hant" || locale.country=="TW"))return "zh-TW"
         val two = c.lowercase().take(2)
         return LANGS.keys.firstOrNull { it == two } ?: c.lowercase()
     }
@@ -452,7 +454,8 @@ object Subtitles {
                 .onUnmappableCharacter(CodingErrorAction.REPORT)
             return d.decode(ByteBuffer.wrap(raw)).toString().removePrefix("\uFEFF")
         }.exceptionOrNull()?.let { if (it !is CharacterCodingException) throw it }
-        val cp = when (lang.substringBefore('-')) {
+        val locale=java.util.Locale.forLanguageTag(lang.replace('_','-'))
+        val cp = when (locale.language) {
             "ru", "uk", "bg", "sr" -> "windows-1251"
             "ar", "fa" -> "windows-1256"
             "he" -> "windows-1255"
@@ -462,7 +465,7 @@ object Subtitles {
             "et", "lv", "lt" -> "windows-1257"
             "vi" -> "windows-1258"
             "th" -> "windows-874"
-            "zh" -> "GBK"
+            "zh" -> if(locale.script.equals("Hant",true) || locale.country.equals("TW",true))"Big5" else "GBK"
             "ja" -> "Shift_JIS"
             "ko" -> "EUC-KR"
             else -> "windows-1252"
