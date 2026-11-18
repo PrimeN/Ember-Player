@@ -101,6 +101,33 @@ class PlayerPictureInPictureTest {
         newAction.send();shadowOf(Looper.getMainLooper()).idle();assertTrue(fake.playing)
         assertTrue(activity.pictureInPictureParams().actions.isEmpty())
     }
+    @Test fun screenOffPipCommitsBackgroundAudioButPausedPipStillStops()=fixture {activity,fake->
+        val actual=ExoPlayer.Builder(activity).build()
+        val engine=PlaybackEngine(activity,actual,{activity.config.copy(rememberDecoderChoices=false)}) {}
+        engine.configure(EngineSource(listOf("https://example.test/video.mp4"),"Video","video"))
+        activity.playbackEngine=engine
+        ReflectionHelpers.setField(shadowOf(activity),"isInPictureInPictureMode",true)
+        activity.pictureInPictureEntered=true
+        val power=shadowOf(activity.getSystemService(android.os.PowerManager::class.java))
+        power.setIsInteractive(false)
+        try {
+            assertNull(activity.backgroundRequest())
+            assertNotNull(activity.backgroundRequest(true))
+            ReflectionHelpers.callInstanceMethod<Unit>(activity,"onStop")
+            assertTrue(activity.backgroundQueueTransferred)
+            assertNull(activity.player);assertEquals(1,fake.released)
+            val pending=ReflectionHelpers.getStaticField<java.util.concurrent.ConcurrentHashMap<String,BackgroundHandoff<BackgroundAudioRequest>>>(BackgroundAudioService::class.java,"pending")
+            pending.values.forEach {it.close()};pending.clear()
+        }finally{power.setIsInteractive(true);engine.player.release();activity.playbackEngine=null}
+    }
+    @Test fun unchangedPipStateDoesNotRebuildWindowParameters()=fixture {activity,fake->
+        activity.updatePictureInPicture()
+        val before=activity.lastPipState
+        repeat(20){activity.updatePictureInPicture()}
+        assertSame(before,activity.lastPipState)
+        fake.playing=false;activity.updatePictureInPicture()
+        assertNotSame(before,activity.lastPipState)
+    }
     private class FakeVideo {
         var playing=true;var size=VideoSize(1920,1080);var released=0;var position=120_000L;var seekable=true
         val player=Proxy.newProxyInstance(ExoPlayer::class.java.classLoader,arrayOf(ExoPlayer::class.java)){_,method,args->when(method.name) {
@@ -112,6 +139,8 @@ class PlayerPictureInPictureTest {
             "pause"->{playing=false;null}
             "play"->{playing=true;null}
             "seekTo"->{position=args!!.last() as Long;null}
+            "getMediaMetadata"->androidx.media3.common.MediaMetadata.EMPTY
+            "getPlaybackParameters"->androidx.media3.common.PlaybackParameters.DEFAULT
             "getSeekParameters"->androidx.media3.exoplayer.SeekParameters.EXACT
             "release"->{released++;null}
             "hashCode"->System.identityHashCode(this)

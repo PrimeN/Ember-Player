@@ -71,7 +71,7 @@ class MediaLibraryTest {
         assertFalse(last.limited)
     }
     @Test fun searchTermsCannotInjectFtsSyntax() {
-        assertEquals("\"hello\"* \"OR\"* \"世界\"*",MediaLibrary.terms("hello OR (世界*)\""))
+        assertEquals("\"hello\"* \"or\"* \"世界\"*",MediaLibrary.terms("hello OR (世界*)\""))
         assertEquals("",MediaLibrary.terms("* - \""))
     }
     @Test fun sortingUsesTheWholeIndexAndKeepsStablePages() {

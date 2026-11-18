@@ -57,6 +57,7 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
             var user by remember {mutableStateOf("")};var password by remember {mutableStateOf("")}
             var domain by remember {mutableStateOf("")};var fingerprint by remember {mutableStateOf("")}
             var unencryptedSmb by remember {mutableStateOf(false)}
+            var unsignedSmb by remember {mutableStateOf(false)}
             var saving by remember {mutableStateOf(false)};var note by remember {mutableStateOf<app.ember.player.PlayerFeedback?>(null)}
             var authentication by remember {mutableStateOf("password")}
             var privateKey by remember {mutableStateOf("")};var keyPassphrase by remember {mutableStateOf("")}
@@ -85,7 +86,7 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                 }
             }
             DisposableEffect(Unit) {onDispose {shareJob?.cancel()}}
-            LaunchedEffect(address,user,password,domain,unencryptedSmb) {shareJob?.cancel();shares=emptyList();note=null}
+            LaunchedEffect(address,user,password,domain,unencryptedSmb,unsignedSmb) {shareJob?.cancel();shares=emptyList();note=null}
             TvDialog({if(!saving)edit=false},width=540.dp,resizeForKeyboard=true) {
                 LazyColumn(Modifier.fillMaxWidth().weight(1f,false),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                     item {DialogHeading(uiResources.getString(R.string.ui_add_network_folder))}
@@ -100,7 +101,7 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                                 val endpoint=runCatching {NetworkLocation.parse(address,allowSmbRoot=true).also {require(it.scheme=="smb")}}.getOrNull()
                                 if(endpoint==null)note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_enter_an_smb_server_address_first_for_example_smb))
                                 else {
-                                    val account=NetworkAccount(label="",address=address,username=user,password=password,domain=domain,allowUnencryptedSmb=unencryptedSmb)
+                                    val account=NetworkAccount(label="",address=address,username=user,password=password,domain=domain,allowUnencryptedSmb=unencryptedSmb,allowUnsignedSmb=unsignedSmb)
                                     shareJob=editScope.launch {
                                         note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_opening_shares),false);shares=emptyList()
                                         try {
@@ -137,6 +138,8 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                     if(sftp)item {Text(uiResources.getString(R.string.ui_leave_the_fingerprint_empty_to_verify_and_confirm_the),style=androidx.tv.material3.MaterialTheme.typography.bodySmall)}
                     if(address.trim().startsWith("smb://",ignoreCase=true))item {
                         Column(verticalArrangement=Arrangement.spacedBy(6.dp)) {
+                            Chip(uiResources.getString(R.string.ui_smb_guest_older),selected=unsignedSmb){unsignedSmb=!unsignedSmb}
+                            if(unsignedSmb)Text(uiResources.getString(R.string.ui_smb_unsigned_help),style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
                             Chip(if(unencryptedSmb)uiResources.getString(R.string.ui_smb_encryption_not_required) else uiResources.getString(R.string.ui_smb_encryption_required),selected=unencryptedSmb) {unencryptedSmb=!unencryptedSmb}
                             if(unencryptedSmb)Text(stringResource(R.string.tx_for_older_nas_devices_without_smb3),style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
                         }
@@ -147,7 +150,7 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                             note=null
                             val pin=NetworkLocation.normalizeFingerprint(fingerprint)
                             if(sftp&&fingerprint.isNotBlank()&&pin==null){note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_enter_a_valid_sha256_host_key_fingerprint_verified_with));return@launch}
-                            val valid=runCatching {val l=NetworkLocation.parse(address);require(label.isNotBlank());require(user.none {it.isISOControl()});NetworkAccount(label=label.trim().take(80),address=address.trim(),username=user,password=if(sftp&&authentication=="key")"" else password,domain=domain,fingerprint=pin ?: "",allowUnencryptedSmb=unencryptedSmb&&l.scheme=="smb",authentication=if(sftp)authentication else "password",privateKey=if(sftp&&authentication=="key")privateKey else "",keyPassphrase=if(sftp&&authentication=="key")keyPassphrase else "")}.getOrNull()
+                            val valid=runCatching {val l=NetworkLocation.parse(address);require(label.isNotBlank());require(user.none {it.isISOControl()});NetworkAccount(label=label.trim().take(80),address=address.trim(),username=user,password=if(sftp&&authentication=="key")"" else password,domain=domain,fingerprint=pin ?: "",allowUnencryptedSmb=unencryptedSmb&&l.scheme=="smb",allowUnsignedSmb=unsignedSmb&&l.scheme=="smb",authentication=if(sftp)authentication else "password",privateKey=if(sftp&&authentication=="key")privateKey else "",keyPassphrase=if(sftp&&authentication=="key")keyPassphrase else "")}.getOrNull()
                             if(valid==null){note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_check_the_name_address_and_sftp_host_fingerprint));return@launch}
                             saving=true
                             if(sftp&&authentication=="key") {

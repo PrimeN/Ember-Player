@@ -7,9 +7,9 @@ import android.widget.Toast
 import androidx.media3.common.util.UnstableApi
 
 @androidx.annotation.OptIn(UnstableApi::class)
-internal fun PlayerActivity.backgroundRequest():BackgroundAudioRequest? {
+internal fun PlayerActivity.backgroundRequest(allowPip:Boolean=false):BackgroundAudioRequest? {
     if(privatePlayback||app.ember.player.PrivateMedia.hidden(currentUrl.orEmpty()))return null
-    if(!config.backgroundAudio || pickingSidecar || isFinishing || isInPictureInPictureMode)return null
+    if(!config.backgroundAudio || pickingSidecar || isFinishing || isInPictureInPictureMode&&!allowPip)return null
     val p=player ?: return null
     if(!p.playWhenReady || ended)return null
     val source=playbackEngine?.snapshot()?.takeIf {it.urls.size==1} ?: return null
@@ -32,8 +32,8 @@ internal fun PlayerActivity.stageBackgroundAudio() {
 }
 
 @androidx.annotation.OptIn(UnstableApi::class)
-internal fun PlayerActivity.commitBackgroundAudio():Boolean {
-    val request=if(configInitialized)backgroundRequest() else null
+internal fun PlayerActivity.commitBackgroundAudio(allowPip:Boolean=false):Boolean {
+    val request=if(configInitialized)backgroundRequest(allowPip) else null
     var stage=backgroundStage
     if(request==null){stage?.let(BackgroundAudioService::cancelStage);backgroundStage=null;return false}
     if(stage==null) {

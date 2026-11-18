@@ -21,7 +21,7 @@ internal class PlayerLibraryRepository(
     constructor(context:Context):this(
         {sourceStamp(context)},
         {query,check->loadPlayerLibraryCatalog(context,query,check)},
-        {query->MediaHistory(context).read().filter {it.title.contains(query,true)}.map {QueueMedia(it.uri,it.title)}},
+        {query->MediaHistory(context).read().filter {MediaSearch.matches(it.title,query)}.map {QueueMedia(it.uri,it.title)}},
         {PositionStore(context,LocalActivity.scope(context)).savedAll()},
         {DeviceFolders(context).read()},
     )

@@ -10,8 +10,8 @@ mounted-drive browsing can request media-library access when you open that tool.
   Android Keystore-backed encrypted storage. Sensitive values are not saved
   through a plaintext fallback if that storage is unavailable.
 - The filename search index uses SQLCipher and can be rebuilt from your selected
-  folders. Indexing is started explicitly, rather than scanning everything at
-  launch.
+  folders. Adding a saved folder schedules a background scan, and startup
+  refreshes stale indexes. Other storage is not scanned automatically.
 - Playback positions, bookmarks, playlists and preferences stay in the app's
   private storage. Device-video thumbnails use a bounded memory cache.
 - **Clear disposable caches** preserves settings, positions and credentials.
@@ -19,7 +19,8 @@ mounted-drive browsing can request media-library access when you open that tool.
 ## Connections you choose
 
 Opening a stream or a network folder connects to its specified server. Receiver
-discovery, Google Cast, online subtitle search and IntroDB are optional tools.
+discovery, Google Cast and online subtitle search are optional tools.
+Skip markers are derived locally from chapter names; no title lookup is sent to a marker service.
 Google Cast initializes when enabled from the receiver screen and requires
 compatible Google Play services. DLNA works independently.
 

@@ -1,0 +1,4 @@
+<resources>
+    <string name="ui_smb_guest_older">Guest or older server (signing optional)</string>
+    <string name="ui_smb_unsigned_help">Allows unsigned SMB connections on a trusted local network. A blank username uses anonymous access. Encryption is controlled separately; guest shares may also require allowing unencrypted connections.</string>
+</resources>

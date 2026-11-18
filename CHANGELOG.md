@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+- Update Android 16 navigation, edge-to-edge layouts and phone/TV controls.
+- Add system-following themes, natural sorting, playlist queue imports and reordering,
+  richer file browsers and translatable interface resources.
+- Refresh saved-folder indexes automatically in background jobs and preserve library
+  pages and scroll positions when returning from playback.
+- Preserve receiver progress, provide PiP playback actions and retain session brightness.
+- Load local and authenticated-stream chapters, decode Traditional Chinese subtitles
+  with Big5, and improve imported font names and Compatibility settings.
+- Derive skip markers from named chapters and keep enabled background audio playing
+  when PiP is stopped by screen-off.
+- Offer separate SMB signing and encryption choices for guest and older servers.
+- Use consistent word matching for indexed media, recent items and voice searches.
+- Protect unreadable saved lists, provide confirmed recovery, improve folder permission
+  cleanup and require the current PIN to change private-media protection.
+- Strengthen backup/PIN key derivation, SFTP host verification and key authentication,
+  and keep sensitive playback details out of retained crash logs.
+- Verify Gradle builds, isolate signing from ordinary CI and remove unused integrations.
+
 ## [0.7.5]
 
 The first public Ember Player release for Android phones, tablets and TVs.

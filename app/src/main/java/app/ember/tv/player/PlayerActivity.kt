@@ -187,6 +187,7 @@ class PlayerActivity : ComponentActivity() {
     /** A paused player kept in the background closes after half an hour (the TV may be off by then). */
     internal val closeKept = Runnable { endPlayback() }
 
+    internal var lastPipState:Any?=null
     internal var pipActions:PlayerPipActions?=null
     internal var pictureInPictureEntered=false
 
@@ -236,7 +237,8 @@ class PlayerActivity : ComponentActivity() {
             pictureInPictureEntered=true;userLeft=false
             backgroundStage?.let(BackgroundAudioService::cancelStage);backgroundStage=null
         } else if(pictureInPictureEntered && !lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) {
-            endPlayback();return
+            if(getSystemService(android.os.PowerManager::class.java).isInteractive)endPlayback()
+            return
         }
         if (!::view.isInitialized) return
         view.useController = !isInPictureInPictureMode && !advanced
@@ -433,8 +435,7 @@ class PlayerActivity : ComponentActivity() {
     internal lateinit var soundLabel: TextView
     internal lateinit var skipButton: TextView
     internal var markers: List<app.ember.tv.player.Marker> = emptyList()
-    internal var markersFromIntroDb = false
-    internal val introDbClient = IntroDbClient()
+    internal var markerChapterState:Pair<List<Chapter>,Long>?=null
     /** Markers already skipped automatically, so seeking back into one does not skip it again. */
     internal val autoSkipped = HashSet<app.ember.tv.player.Marker>()
     internal var skipTarget: app.ember.tv.player.Marker? = null
@@ -579,7 +580,10 @@ class PlayerActivity : ComponentActivity() {
         handler.removeCallbacks(controlsTicker)
         handler.removeCallbacks(hideControls)
         handler.removeCallbacks(statsTicker)
-        if(pictureInPictureEntered && !isChangingConfigurations){endPlayback();return}
+        if(pictureInPictureEntered && !isChangingConfigurations){
+            if(!getSystemService(android.os.PowerManager::class.java).isInteractive && commitBackgroundAudio(true))return
+            endPlayback();return
+        }
         if(commitBackgroundAudio())return
         val p = player
         // Paused and still on screen when the screensaver (or another overlay) took over: keep the

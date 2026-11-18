@@ -51,7 +51,7 @@ Format support depends on the engine, device decoders, audio output and display.
 
 ### Library and media tools
 
-- Search across saved media folders using an encrypted local index. Refresh it after changing files; no full scan runs at startup. Private files and forgotten roots are excluded from results.
+- Search across saved media folders using an encrypted local index. Newly added folders are scanned automatically in a background job. Startup refreshes a stale index; a manual refresh remains available. Private files and forgotten roots are excluded from results.
 - Set a sleep timer for a preset or custom duration, or stop at the end of the current item. It applies to video and background audio.
 - Save a screenshot to a destination you choose. Captures are limited to 1080p and are unavailable for private playback and protected video surfaces.
 - Mark a clip start and end from Playback options, then export an MP4 without changing the source. Export uses the device’s H.264/AAC codecs, so supported input formats and speed depend on the device. Keep playback open during export; progress and cancellation are available in Playback options.
