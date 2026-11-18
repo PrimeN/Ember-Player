@@ -13,7 +13,7 @@ native binary is required for an ordinary Gradle build.
 | `dev.jdtech.mpv:libmpv` | 1.0.0 | Internal compatibility engine and native libass captions |
 | `com.hierynomus:smbj` | 0.15.0 | Encrypted/signed SMB3 file access |
 | `com.rapid7.client:dcerpc` | 0.12.13 | Authenticated SMB share enumeration |
-| `commons-io:commons-io` / `org.apache.commons:commons-lang3` | 2.21.0 / 3.22.0 | RPC I/O and value helpers |
+| `commons-io:commons-io` / `org.apache.commons:commons-lang3` | 2.22.0 / 3.22.0 | RPC I/O and value helpers |
 | `com.github.mwiede:jsch` | 2.28.8 | SFTP with a pinned host key |
 | `commons-net:commons-net` | 3.13.0 | FTP and certificate-verified FTPS |
 
@@ -22,7 +22,7 @@ Existing Media3 core/UI/HLS/DASH stay at **1.11.1** and existing Nextlib stays a
 engine provides another route for variants the normal pipeline cannot handle.
 
 SMBJ's runtime dependencies include SLF4J API 2.0.9, Bouncy Castle 1.79, mbassador
-1.3.0 and asn-one 0.6.0. Commons IO is pinned to 2.21.0. SMBJ-RPC uses the existing SMBJ 0.15.0 transport; its older transitive dependencies are not imported. Gradle resolves these;
+1.3.0 and asn-one 0.6.0. Commons IO is pinned to 2.22.0. SMBJ-RPC uses the existing SMBJ 0.15.0 transport; its older transitive dependencies are not imported. Gradle resolves these;
 no logging backend that records private requests was added.
 
 ### Android SMB RPC adaptation and rebuild
