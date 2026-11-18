@@ -36,7 +36,7 @@ For the optimized build and static checks:
 
 ```sh
 ./gradlew testDebugUnitTest assembleRelease lintRelease
-python3 scripts/verify-player-native.py app/build/isolated-mpv/libmpv-1.0.0.aar
+python3 scripts/verify-player-native.py app/build/isolated-mpv/libmpv-1.1.0.aar
 ```
 
 Release builds use a PKCS12 signing keystore when `EMBER_KEYSTORE_FILE`,

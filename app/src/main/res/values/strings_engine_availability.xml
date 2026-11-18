@@ -1,6 +1,6 @@
 <resources>
-    <string name="ui_software_video_engine_note">Device decoders only applies to Standard. Compatibility uses its decoder profile.</string>
-    <string name="ui_dolby_engine_note">Standard only. Compatibility uses its own Dolby Vision decoding.</string>
-    <string name="ui_deinterlace_engine_note">Compatibility only.</string>
-    <string name="ui_bitmap_subtitles_require_compatibility">Image-based subtitles require Compatibility. Choose Automatic or Compatibility in playback settings to load this subtitle.</string>
+    <string name="ui_software_video_engine_note">Device decoders only applies to Media3. mpv uses its decoder profile.</string>
+    <string name="ui_dolby_engine_note">Media3 only. mpv uses its own Dolby Vision decoding.</string>
+    <string name="ui_deinterlace_engine_note">mpv only.</string>
+    <string name="ui_bitmap_subtitles_require_compatibility">Image-based subtitles require mpv. Choose Automatic or mpv in playback settings to load this subtitle.</string>
 </resources>

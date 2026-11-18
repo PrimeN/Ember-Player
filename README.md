@@ -44,11 +44,11 @@ are enabled when you choose to use them. See [privacy and local data](docs/priva
 
 | | What is included |
 | --- | --- |
-| **Playback** | Standard Media3/Nextlib and Compatibility libmpv engines, automatic routing and remembered working decoder choices |
+| **Playback** | Media3 Media3/Nextlib and mpv libmpv engines, automatic routing and remembered working decoder choices |
 | **Your library** | Continue watching, compact media shelves, saved folders, filename search, playlists, watched-state filters and grid/list views |
 | **Files and servers** | Android file picker, mounted USB, read-only FAT32 USB browsing, SMB, SFTP, WebDAV, FTP and FTPS |
 | **Sound and picture** | Track selection, passthrough, delay controls, equalizer, night listening, picture profiles, optional upscaling and tone mapping |
-| **Subtitles** | Embedded and external captions, custom fonts and styles, timing controls, dual subtitles in Compatibility and optional on-device assistance |
+| **Subtitles** | Embedded and external captions, custom fonts and styles, timing controls, dual subtitles in mpv and optional on-device assistance |
 | **Playback tools** | Exact seeking, custom speed, gestures, chapters, bookmarks, A–B repeat, queues, sleep timer, picture-in-picture and optional background audio |
 | **Beyond the screen** | Optional Google Cast and DLNA, resumable direct-file downloads, screenshots and MP4 clip export |
 | **Privacy** | PIN-protected private area, encrypted sensitive storage and library index, password-encrypted settings backups |
@@ -113,7 +113,7 @@ cd Ember-Player
 
 Ember combines Android's decoders with bundled software playback. Common
 containers include MP4, MKV, WebM, AVI, MOV and MPEG-TS. Software audio includes
-AC-3, E-AC-3, DTS and TrueHD. Standard also supports selected MPEG-H streams as
+AC-3, E-AC-3, DTS and TrueHD. Media3 also supports selected MPEG-H streams as
 stereo PCM and unencrypted IAMF in MP4 using Opus, FLAC or PCM.
 
 HDR10+, Dolby Vision, encoded surround output and device-only codecs depend on

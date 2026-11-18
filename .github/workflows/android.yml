@@ -25,7 +25,7 @@ jobs:
       - name: Unit tests and optimized release checks
         run: ./gradlew --no-daemon --max-workers=2 testDebugUnitTest assembleRelease lintRelease
       - name: Verify native dependency isolation and ARM alignment
-        run: python3 scripts/verify-player-native.py app/build/isolated-mpv/libmpv-1.0.0.aar
+        run: python3 scripts/verify-player-native.py app/build/isolated-mpv/libmpv-1.1.0.aar --apk app/build/outputs/apk/release/app-release-unsigned.apk
       - name: Check release integrity rules
         run: python3 -m unittest discover -s tests -p 'test_release.py' -v
       - name: Prepare unsigned validation APK

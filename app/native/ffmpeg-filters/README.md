@@ -1,13 +1,13 @@
 # Ember libavfilter override
 
-These two ARM libraries replace only `libavfilter.so` in the pinned libmpv 1.0.0
+These two ARM libraries replace only `libavfilter.so` in the pinned libmpv 1.1.0
 artifact before Ember's existing ELF/JNI namespace isolation runs. Codec, demux,
 scaling and utility libraries remain those of the pinned artifact. In particular,
 the two player engines retain their separate FFmpeg ABI namespaces.
 
 The upstream filter library registered only the buffer source/sink filters. This
 build adds BWDIF, YADIF, scale and format filters, keeping that public API and its
-`LIBAVFILTER_11` symbol version. Automatic mpv deinterlacing can now instantiate
+`LIBAVFILTER_12` symbol version. Automatic mpv deinterlacing can now instantiate
 BWDIF for flagged interlaced frames. Off remains the default in Ember.
 
 The shipped ARM builds also enable equalizer, pan, volume, aformat and aresample
@@ -15,10 +15,10 @@ for optional decoded-audio effects. Boosts reserve headroom and audio channel
 mapping retains channel order. The filters link the existing libswresample ABI;
 the locally built resampler is not substituted. Passthrough remains untouched.
 
-Source: FFmpeg n8.1, commit
-`9047fa1b084f76b1b4d065af2d743df1b40dfb56`.
+Source: FFmpeg n9.0.2, commit
+`946fcce07b6dcd0331c8cc609192aeff5e1924f8`.
 
-- Source archive: <https://codeload.github.com/FFmpeg/FFmpeg/tar.gz/9047fa1b084f76b1b4d065af2d743df1b40dfb56>
+- Source archive: <https://codeload.github.com/FFmpeg/FFmpeg/tar.gz/946fcce07b6dcd0331c8cc609192aeff5e1924f8>
 - Compiler: Android NDK 29.0.14206865, API 26 targets. Current APKs ship only arm64-v8a and armeabi-v7a.
 - ARM builds retain their applicable architecture assembly.
 - Licence: built with `--enable-gpl --enable-version3`; GNU GPL v3.
@@ -49,10 +49,10 @@ For the same-source host field-handling and audio checks, set `NATIVE_FILTER_HOS
 ## Verify
 
 ```sh
-python3 scripts/verify-native-filters.py /path/to/upstream-libmpv-1.0.0.aar
-python3 scripts/verify-player-native.py app/build/isolated-mpv/libmpv-1.0.0.aar
-python3 scripts/test-deinterlacing.py /path/to/host-ffmpeg-8.1
-python3 scripts/test-audio-filters.py /path/to/host-ffmpeg-8.1
+python3 scripts/verify-native-filters.py /path/to/upstream-libmpv-1.1.0.aar
+python3 scripts/verify-player-native.py app/build/isolated-mpv/libmpv-1.1.0.aar
+python3 scripts/test-deinterlacing.py /path/to/host-ffmpeg-9.0.2
+python3 scripts/test-audio-filters.py /path/to/host-ffmpeg-9.0.2
 ```
 
 Checks cover hashes, ELF machines, public API compatibility, dependency symbols,

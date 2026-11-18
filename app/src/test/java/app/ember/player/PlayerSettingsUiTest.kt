@@ -25,6 +25,17 @@ class PlayerSettingsUiTest {
         compose.runOnIdle {assertEquals("streaming",Prefs(RuntimeEnvironment.getApplication()).playbackConfig.playerInterface)}
         compose.onNodeWithText("Controls · Streaming").assertExists()
     }
+    @Test fun playbackCorePickerOffersManualMpvAndMedia3AndPreservesSavedIds() {
+        category("Playback")
+        compose.onNodeWithTag("settingsContent").performScrollToNode(hasText("Playback core · Automatic"))
+        compose.onNodeWithText("Playback core · Automatic").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithContentDescription("mpv").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.runOnIdle {assertEquals("compatibility",Prefs(RuntimeEnvironment.getApplication()).playbackConfig.engine)}
+        compose.onNodeWithText("Playback core · mpv").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithContentDescription("Media3").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.runOnIdle {assertEquals("standard",Prefs(RuntimeEnvironment.getApplication()).playbackConfig.engine)}
+        compose.onNodeWithText("Playback core · Media3").assertExists()
+    }
     @Test fun pictureEnhancementHasAPersistentMasterOffSwitch() {
         category("Picture & HDR")
         compose.onNodeWithTag("settingsContent").performScrollToNode(hasText("Picture enhancement") and hasClickAction())
@@ -62,8 +73,8 @@ class PlayerSettingsUiTest {
         compose.runOnIdle {assertEquals(true,Prefs(RuntimeEnvironment.getApplication()).playbackConfig.stream.custom)}
         compose.onNodeWithContentDescription("Back").performSemanticsAction(SemanticsActions.OnClick){it()}
         category("Picture & HDR")
-        compose.onNodeWithTag("settingsContent").performScrollToNode(hasText("Compatibility renderer · Automatic"))
-        compose.onNodeWithText("Compatibility renderer · Automatic").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithTag("settingsContent").performScrollToNode(hasText("mpv renderer · Automatic"))
+        compose.onNodeWithText("mpv renderer · Automatic").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithContentDescription("Advanced GPU").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.runOnIdle {assertEquals("gpu-next",Prefs(RuntimeEnvironment.getApplication()).playbackConfig.renderer)}
     }

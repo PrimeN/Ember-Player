@@ -48,7 +48,7 @@
     <string name="ui_advanced_renderer_required" formatted="false">"Advanced renderer required"</string>
     <string name="ui_advanced_renderer_unavailable_trying_stable_gpu_output" formatted="false">"Advanced renderer unavailable. Trying stable GPU output."</string>
     <string name="ui_alignment" formatted="false">"Alignment"</string>
-    <string name="ui_alignment_spacing_and_custom_outline_width_use_compatibility_playback" formatted="false">"Alignment, spacing and custom outline width use Compatibility playback. System caption settings take priority. Turn off authored styling to override a subtitle file’s fonts and colors."</string>
+    <string name="ui_alignment_spacing_and_custom_outline_width_use_compatibility_playback" formatted="false">"Alignment, spacing and custom outline width use mpv playback. System caption settings take priority. Turn off authored styling to override a subtitle file’s fonts and colors."</string>
     <string name="ui_all_media" formatted="false">"All media"</string>
     <string name="ui_all_player_options" formatted="false">"All player options"</string>
     <string name="ui_always" formatted="false">"Always"</string>
@@ -192,15 +192,15 @@
     <string name="ui_compare_original_and_saved_processing_closing_the_comparison_restores" formatted="false">"Compare original and saved processing; closing the comparison restores saved settings."</string>
     <string name="ui_compare_picture" formatted="false">"Compare picture"</string>
     <string name="ui_compare_picture_processing" formatted="false">"Compare picture processing"</string>
-    <string name="ui_compatibility" formatted="false">"Compatibility"</string>
-    <string name="ui_compatibility_decoder_profile" formatted="false">"Compatibility decoder profile"</string>
-    <string name="ui_compatibility_engine" formatted="false">"Compatibility engine"</string>
-    <string name="ui_compatibility_libmpv" formatted="false">"Compatibility (libmpv)"</string>
-    <string name="ui_compatibility_only_automatic_detects_nvidia_shield_10_bit_h" formatted="false">"Compatibility only. Automatic detects NVIDIA Shield 10-bit H.264 and uses full-quality software decoding. Lighter software skips some deblocking for lower CPU load; explicit track rules and manual choices take priority."</string>
-    <string name="ui_compatibility_only_normal_hdr_output_stays_automatic_when_off" formatted="false">"Compatibility only. Normal HDR output stays automatic when off. Separate from SDR picture enhancement."</string>
-    <string name="ui_compatibility_playback_only_active_above_1_2_in_both" formatted="false">"Compatibility playback only; active above 1.2× in both dimensions."</string>
-    <string name="ui_compatibility_playback_unavailable" formatted="false">"Compatibility playback unavailable"</string>
-    <string name="ui_compatibility_renderer" formatted="false">"Compatibility renderer"</string>
+    <string name="ui_compatibility" formatted="false">"mpv"</string>
+    <string name="ui_compatibility_decoder_profile" formatted="false">"mpv decoder profile"</string>
+    <string name="ui_compatibility_engine" formatted="false">"mpv engine"</string>
+    <string name="ui_compatibility_libmpv" formatted="false">"mpv"</string>
+    <string name="ui_compatibility_only_automatic_detects_nvidia_shield_10_bit_h" formatted="false">"mpv only. Automatic detects NVIDIA Shield 10-bit H.264 and uses full-quality software decoding. Lighter software skips some deblocking for lower CPU load; explicit track rules and manual choices take priority."</string>
+    <string name="ui_compatibility_only_normal_hdr_output_stays_automatic_when_off" formatted="false">"mpv only. Normal HDR output stays automatic when off. Separate from SDR picture enhancement."</string>
+    <string name="ui_compatibility_playback_only_active_above_1_2_in_both" formatted="false">"mpv playback only; active above 1.2× in both dimensions."</string>
+    <string name="ui_compatibility_playback_unavailable" formatted="false">"mpv playback unavailable"</string>
+    <string name="ui_compatibility_renderer" formatted="false">"mpv renderer"</string>
     <string name="ui_condensed" formatted="false">"Condensed"</string>
     <string name="ui_confirm_password" formatted="false">"Confirm password"</string>
     <string name="ui_confirm_pin" formatted="false">"Confirm PIN"</string>
@@ -300,10 +300,10 @@
     <string name="ui_delete_style" formatted="false">"Delete style"</string>
     <string name="ui_delete_subtitle_style" formatted="false">"Delete subtitle style?"</string>
     <string name="ui_details" formatted="false">"Details"</string>
-    <string name="ui_device_cap_mib_timeouts_apply_on_reopen_standard_buffers">"Device cap: %1$s+%2$s MiB. Timeouts apply on reopen; Standard buffers update on prepare. Rewind memory is Compatibility-only."</string>
+    <string name="ui_device_cap_mib_timeouts_apply_on_reopen_standard_buffers">"Device cap: %1$s+%2$s MiB. Timeouts apply on reopen; Media3 buffers update on prepare. Rewind memory is mpv-only."</string>
     <string name="ui_device_decoders_only" formatted="false">"Device decoders only"</string>
     <string name="ui_device_folders" formatted="false">"Device folders"</string>
-    <string name="ui_device_limit_mib_forward_mib_rewind_standard_uses_the">"Device limit: %1$s MiB forward + %2$s MiB rewind. Standard uses the forward cap; byte-limited rewind is Compatibility-only. Standard applies buffer changes on prepare; Compatibility applies them while playing. Larger buffers cannot fix a persistently slow connection."</string>
+    <string name="ui_device_limit_mib_forward_mib_rewind_standard_uses_the">"Device limit: %1$s MiB forward + %2$s MiB rewind. Media3 uses the forward cap; byte-limited rewind is mpv-only. Media3 applies buffer changes on prepare; mpv applies them while playing. Larger buffers cannot fix a persistently slow connection."</string>
     <string name="ui_device_renderer_active_hdr_signal_not_independently_verified" formatted="false">"Device renderer; active HDR signal not independently verified"</string>
     <string name="ui_direct_hardware" formatted="false">"Direct hardware"</string>
     <string name="ui_direct_media_files_download_one_at_a_time_additional" formatted="false">"Direct media files download one at a time; additional requests wait in the queue. Adaptive playlists and protected streams are not downloaded. Pause stops the active download and clears the waiting queue. If Android stops the task, choose Resume to continue."</string>
@@ -398,7 +398,7 @@
     <string name="ui_forward_buffer" formatted="false">"Forward buffer"</string>
     <string name="ui_fps" formatted="false">" fps"</string>
     <string name="ui_frame_inspection" formatted="false">"Frame inspection"</string>
-    <string name="ui_frame_inspection_requires_compatibility_playback_and_a_supported_audio" formatted="false">"Frame inspection requires Compatibility playback and a supported audio track."</string>
+    <string name="ui_frame_inspection_requires_compatibility_playback_and_a_supported_audio" formatted="false">"Frame inspection requires mpv playback and a supported audio track."</string>
     <string name="ui_frame_rate_matching" formatted="false">"Frame rate matching"</string>
     <string name="ui_frame_smoothing" formatted="false">"Frame smoothing"</string>
     <string name="ui_framing_and_playback_position_stay_the_same_closing_restores" formatted="false">"Framing and playback position stay the same. Closing restores your saved processing."</string>
@@ -418,7 +418,7 @@
     <string name="ui_google_cast_is_unavailable_on_this_device_dlna_discovery" formatted="false">"Google Cast is unavailable on this device. DLNA discovery can still be used."</string>
     <string name="ui_google_cast_sdk_terms" formatted="false">"Google Cast SDK terms"</string>
     <string name="ui_gpl_v3_mpv_ffmpeg_and_nextlib" formatted="false">"GPL v3 — mpv, FFmpeg and Nextlib"</string>
-    <string name="ui_gpu_effects_use_more_power_hdr_dolby_vision_protected" formatted="false">"GPU effects use more power. HDR, Dolby Vision, protected and tunneled video keep their supported output path. Standard uses Lanczos; Compatibility can also use the bundled shader when enlarging video."</string>
+    <string name="ui_gpu_effects_use_more_power_hdr_dolby_vision_protected" formatted="false">"GPU effects use more power. HDR, Dolby Vision, protected and tunneled video keep their supported output path. Media3 uses Lanczos; mpv can also use the bundled shader when enlarging video."</string>
     <string name="ui_gpu_upscaling" formatted="false">"GPU upscaling"</string>
     <string name="ui_gpu_upscaling_fast_shader_brightness_contrast_saturation_gamma_hue" formatted="false">"GPU upscaling fast shader brightness contrast saturation gamma hue sharpness preset reset"</string>
     <string name="ui_greek" formatted="false">"Greek"</string>
@@ -611,7 +611,7 @@
     <string name="ui_open_stream_url" formatted="false">"Open stream URL"</string>
     <string name="ui_opening" formatted="false">"Opening…"</string>
     <string name="ui_opening_shares" formatted="false">"Opening shares…"</string>
-    <string name="ui_optional_compatibility_output_for_sdr_screens_automatic_engine_selection" formatted="false">"Optional Compatibility output for SDR screens. Automatic engine selection can switch supported HDR video; explicit Standard, protected video and unsupported Compatibility audio keep their current path. The SDR picture-enhancement switch is separate."</string>
+    <string name="ui_optional_compatibility_output_for_sdr_screens_automatic_engine_selection" formatted="false">"Optional mpv output for SDR screens. Automatic engine selection can switch supported HDR video; explicit Media3, protected video and unsupported mpv audio keep their current path. The SDR picture-enhancement switch is separate."</string>
     <string name="ui_options" formatted="false">"Options"</string>
     <string name="ui_orientation" formatted="false">"Orientation"</string>
     <string name="ui_original" formatted="false">"Original"</string>
@@ -660,13 +660,13 @@
     <string name="ui_play_selected_media_on_this_receiver" formatted="false">"Play selected media on this receiver"</string>
     <string name="ui_play_this_page" formatted="false">"Play this page"</string>
     <string name="ui_playback" formatted="false">"Playback"</string>
-    <string name="ui_playback_engine" formatted="false">"Playback engine"</string>
+    <string name="ui_playback_engine" formatted="false">"Playback core"</string>
     <string name="ui_playback_error">"Playback error %1$s"</string>
     <string name="ui_playback_error_trying_the_link_as_hls">"Playback error %1$s · trying the link as HLS"</string>
     <string name="ui_playback_locked_back_also_unlocks" formatted="false">"Playback locked · Back also unlocks"</string>
     <string name="ui_playback_speed" formatted="false">"Playback speed"</string>
     <string name="ui_playback_stays_paused_backward_steps_may_take_longer_while" formatted="false">"Playback stays paused. Backward steps may take longer while the previous keyframe is decoded."</string>
-    <string name="ui_player_interface_glass_ember_basic_streaming_controls_engine_resume" formatted="false">"player interface glass ember basic streaming controls engine resume seeking buffer decoder memory picture in picture background audio exit chapters intro opening credits skip markers"</string>
+    <string name="ui_player_interface_glass_ember_basic_streaming_controls_engine_resume" formatted="false">"player interface glass ember basic streaming controls engine core mpv media3 resume seeking buffer decoder memory picture in picture background audio exit chapters intro opening credits skip markers"</string>
     <string name="ui_player_settings" formatted="false">"Player settings"</string>
     <string name="ui_player_shortcuts" formatted="false">"Player shortcuts"</string>
     <string name="ui_playing" formatted="false">"Playing"</string>
@@ -786,7 +786,7 @@
     <string name="ui_resume_positions_and_chapter_intro_jumps_stay_precise" formatted="false">"Resume positions and chapter/intro jumps stay precise."</string>
     <string name="ui_retrying_with_automatic_hdr_output" formatted="false">"Retrying with automatic HDR output"</string>
     <string name="ui_retrying_without_picture_enhancement" formatted="false">"Retrying without picture enhancement"</string>
-    <string name="ui_rewind_buffer_compatibility" formatted="false">"Rewind buffer · Compatibility"</string>
+    <string name="ui_rewind_buffer_compatibility" formatted="false">"Rewind buffer · mpv"</string>
     <string name="ui_right" formatted="false">"Right"</string>
     <string name="ui_right_double_tap" formatted="false">"Right double-tap"</string>
     <string name="ui_root_folder" formatted="false">"Root folder"</string>
@@ -897,8 +897,8 @@
     <string name="ui_srt_vtt_ass_ttml_sup_or_idx_sub" formatted="false">"SRT, VTT, ASS, TTML, SUP or IDX + SUB"</string>
     <string name="ui_stable_fallback_active" formatted="false">"Stable fallback active"</string>
     <string name="ui_stable_gpu" formatted="false">"Stable GPU"</string>
-    <string name="ui_standard" formatted="false">"Standard"</string>
-    <string name="ui_standard_uses_lanczos_when_enlarging_video_compatibility_can_also" formatted="false">"Standard uses Lanczos when enlarging video. Compatibility can also use a bundled lightweight shader above 1.2× in both dimensions. No downloads are needed."</string>
+    <string name="ui_standard" formatted="false">"Media3"</string>
+    <string name="ui_standard_uses_lanczos_when_enlarging_video_compatibility_can_also" formatted="false">"Media3 uses Lanczos when enlarging video. mpv can also use a bundled lightweight shader above 1.2× in both dimensions. No downloads are needed."</string>
     <string name="ui_start" formatted="false">"Start"</string>
     <string name="ui_start_over" formatted="false">"Start over"</string>
     <string name="ui_startup_focus_target_changed_during_navigation" formatted="false">"Startup focus target changed during navigation"</string>
@@ -1029,7 +1029,7 @@
     <string name="ui_use_the_unlock_button_or_back_to_restore_controls" formatted="false">"Use the unlock button or Back to restore controls."</string>
     <string name="ui_username" formatted="false">"Username"</string>
     <string name="ui_uses_an_installed_offline_voice_only" formatted="false">"Uses an installed offline voice only."</string>
-    <string name="ui_uses_compatibility_playback_and_leaves_the_video_paused" formatted="false">"Uses Compatibility playback and leaves the video paused."</string>
+    <string name="ui_uses_compatibility_playback_and_leaves_the_video_paused" formatted="false">"Uses mpv playback and leaves the video paused."</string>
     <string name="ui_uses_full_quality_software_decoding_for_detected_10_bit" formatted="false">"Uses full-quality software decoding for detected 10-bit H.264 on NVIDIA Shield in Automatic mode."</string>
     <string name="ui_uses_more_graphics_processing_turn_off_if_playback_slows" formatted="false">"Uses more graphics processing. Turn off if playback slows."</string>
     <string name="ui_uses_only_installed_on_device_language_models_and_offline" formatted="false">"Uses only installed on-device language models and offline speech voices. No cloud translation, API keys or automatic model downloads. Bitmap subtitles have no text to translate or read."</string>

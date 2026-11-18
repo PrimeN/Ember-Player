@@ -40,6 +40,25 @@ class PlaybackEngineTransitionTest {
         }finally{engine.player.release();if(created==0)candidate.release()}
     }
 
+    @Test fun explicitlyChosenMpvStartsForAnOrdinaryFileWithoutWaitingForFailure() {
+        val context=RuntimeEnvironment.getApplication()
+        val original=ExoPlayer.Builder(context).build();val native=ExoPlayer.Builder(context).build()
+        var returnedToMedia3=false
+        val candidate=intercept(native){method->if(method=="release")returnedToMedia3=true;Unit}
+        var created=0
+        val engine=PlaybackEngine(context,original,{PlaybackConfig(engine="compatibility",rememberDecoderChoices=false)},compatibilityFactory={_,_,_->created++;candidate}) {}
+        try {
+            engine.configure(EngineSource(listOf("content://media/123"),"Film.mp4","key",filename="Film.mp4"))
+            engine.player.setMediaItem(MediaItem.fromUri("content://media/123"))
+            engine.player.prepare()
+            assertEquals(1,created)
+            engine.mode("standard")
+            assertTrue(returnedToMedia3)
+            engine.player.prepare()
+            assertEquals(1,created)
+        } finally {engine.player.release();if(created==0)candidate.release()}
+    }
+
     @Test fun failedPrepareReleasesCandidateAndRestoresOriginalPositionAndPause() {
         val context=RuntimeEnvironment.getApplication()
         val original=ExoPlayer.Builder(context).build()

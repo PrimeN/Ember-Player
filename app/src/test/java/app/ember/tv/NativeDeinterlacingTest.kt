@@ -39,7 +39,7 @@ class NativeDeinterlacingTest {
             assertEquals(machine, ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN).getShort(18).toInt())
             assertEquals(properties.getProperty("$abi.sha256"), MessageDigest.getInstance("SHA-256").digest(data).joinToString("") { "%02x".format(it) })
             val strings = data.toString(Charsets.ISO_8859_1)
-            for (name in listOf("bwdif\u0000", "yadif\u0000", "LIBAVFILTER_11\u0000")) assertTrue("$abi: $name", name in strings)
+            for (name in listOf("bwdif\u0000", "yadif\u0000", "LIBAVFILTER_12\u0000")) assertTrue("$abi: $name", name in strings)
         }
     }
 }
