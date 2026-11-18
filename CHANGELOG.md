@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Keep action-menu warnings readable and align shared TV controls and text fields.
+- Stabilize file artwork slots and library card heights, improve accessible labels and use tabular time digits.
+- Make license text scrollable with a remote and use consistent command buttons and settings selectors.
+- Apply the configured seek interval to every player dock and add an extension to unnamed download suggestions.
+
 - Offer video-only lossless clips when audio cannot be copied, recognize Compatibility track ordinals and support more document providers.
 - Retain the prepared background handoff during PiP and release it on return to full screen.
 - Restore the unfaded Cast stream level after stopping playback.
