@@ -20,7 +20,7 @@ internal fun PlayerActivity.backgroundRequest(allowPip:Boolean=false):Background
         bluetoothDelayMs=if(bluetoothOutput)(audioDelay.us/1000).toInt() else config.bluetoothDelayMs,
     )
     return BackgroundAudioRequest(source.copy(audioLanguages=(listOfNotNull(p.audioFormat?.language)+source.audioLanguages).distinct()),effective,
-        Intent(intent),queueId,watchProfileId,localActivityScope,p.currentPosition.coerceAtLeast(0),p.playbackParameters.speed,p.volume,
+        Intent(intent),queueId,watchProfileId,localActivityScope,p.currentPosition.coerceAtLeast(0),p.playbackParameters.speed,sleepFade?.original(p.volume) ?: p.volume,
         boosts.getOrElse(boostLevel){0},BackgroundAudioTrack.from(p.audioFormat),p.mediaMetadata.artworkData?.takeIf {it.size<=512*1024})
 }
 

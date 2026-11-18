@@ -82,6 +82,7 @@ class PlayerActivity : ComponentActivity() {
         set(value){field=value;updatePictureInPicture()}
     internal val clips=PlayerClipExport(this)
     internal val exports=PlayerExports(this)
+    internal var sleepFade:app.ember.tv.data.SleepFade?=null
     internal var sleepWatch:java.io.Closeable?=null
     internal var usbWatch:java.io.Closeable?=null
     internal var manualSubtitleJob:Job?=null
@@ -215,7 +216,7 @@ class PlayerActivity : ComponentActivity() {
     override fun onDestroy() {
         pipActions?.close();pipActions=null
         playbackBackCallback?.remove();playbackBackCallback=null
-        clips.close();exports.close();sleepWatch?.close();sleepWatch=null
+        sleepFade?.close();sleepFade=null;clips.close();exports.close();sleepWatch?.close();sleepWatch=null
         closeCaptionAssistance()
         backgroundStage?.let(BackgroundAudioService::cancelStage);backgroundStage=null
         touchControls?.close(); touchControls = null
@@ -468,6 +469,7 @@ class PlayerActivity : ComponentActivity() {
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        sleepFade=app.ember.tv.data.SleepFade {player}
         sleepWatch=app.ember.tv.data.SleepTimer.listen {if(player!=null)endPlayback()}
         lifecycleScope.launch {kotlinx.coroutines.flow.combine(app.ember.player.PrivateMedia.unlocked,app.ember.player.PrivateMedia.state){allowed,_->allowed}.collect {allowed->
             if(!privatePlayback&&fileQueue?.items?.any {app.ember.player.PrivateMedia.hidden(it.uri)}==true){
@@ -534,6 +536,7 @@ class PlayerActivity : ComponentActivity() {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (touchControls?.dispatchKey(event) == true) return true
         if (actionDialog?.dispatch(event) == true) return true
+        if(playbackKey(event))return true
         if(fileQueue!=null && event.keyCode in setOf(KeyEvent.KEYCODE_MEDIA_NEXT,KeyEvent.KEYCODE_MEDIA_PREVIOUS)){
             if(event.action==KeyEvent.ACTION_UP)(if(event.keyCode==KeyEvent.KEYCODE_MEDIA_NEXT)fileQueue?.next(accept=::queueItemAllowed) else fileQueue?.previous(::queueItemAllowed))?.let { playFile(it) }
             return true

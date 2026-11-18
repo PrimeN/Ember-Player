@@ -53,7 +53,7 @@ object MkvChapters {
             }
             try {
                 val head=fetch(0,128*1024) ?: return@withContext emptyList()
-                parseFile(head,::fetch).also {owner.ensureActive()}
+                (if(Mp4Chapters.recognizes(head))Mp4Chapters.read(head,::fetch) else parseFile(head,::fetch)).also {owner.ensureActive()}
             }catch(e:CancellationException){throw e}catch(_:Exception){emptyList()}
         }}finally {closer.cancel()}
     }

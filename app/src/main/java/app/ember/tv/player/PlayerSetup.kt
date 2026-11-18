@@ -333,6 +333,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
 
     view.player = p
     player = p
+    sleepFade?.refresh()
     view.addOnLayoutChangeListener {_,left,top,right,bottom,oldLeft,oldTop,oldRight,oldBottom->
         if(player===p && right>left && bottom>top &&
             (right-left!=oldRight-oldLeft || bottom-top!=oldBottom-oldTop))applyPictureEnhancement()

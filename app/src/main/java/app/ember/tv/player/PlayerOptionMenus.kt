@@ -25,7 +25,7 @@ internal fun PlayerActivity.openMenu(which: String, tab: String?) {
     controls.optionsTick++
 }
 
-/** Read chapters from an MKV source when the playback engine has not supplied them. */
+/** Read chapters from a Matroska or MP4 source when the playback engine has not supplied them. */
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.loadFileChapters(p: ExoPlayer) {
     playbackEngine?.compatibility?.chapters()?.takeIf {it.isNotEmpty()}?.let {chapters=it;return}
@@ -36,7 +36,8 @@ internal fun PlayerActivity.loadFileChapters(p: ExoPlayer) {
         url.substringBefore('?').endsWith(".mkv", ignoreCase = true)
     // Document IDs need not contain a filename, and an extractor may omit its container MIME.
     val local=android.net.Uri.parse(url).scheme in setOf(null,"content","file")
-    if (!mkv && !local) return
+    val mp4=p.videoFormat?.containerMimeType==MimeTypes.VIDEO_MP4 || p.audioFormat?.containerMimeType==MimeTypes.AUDIO_MP4 || listOf(".mp4",".m4v",".mov").any {url.substringBefore('?').endsWith(it,true)}
+    if (!mkv && !mp4 && !local) return
     val forUrl = url
     val headers=sourceHeaders.toMap()
     metadataLoads.load({ MkvChapters.read(applicationContext,forUrl,headers) }) { found ->

@@ -41,4 +41,23 @@ class SleepTimerTest {
         for(value in listOf(0,-1,1441,Int.MAX_VALUE))try {SleepTimer.after(value);fail("Expected duration rejection")}catch(_:IllegalArgumentException){}
         assertEquals(0L,SleepTimer.state.value.deadline)
     }
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    @Test fun fadeBindingsRestoreOnCancelAndCarryTheUnfadedLevelBetweenOwners() {
+        var level=.8f
+        val player=java.lang.reflect.Proxy.newProxyInstance(javaClass.classLoader,arrayOf(androidx.media3.common.Player::class.java)) {_,method,args->
+            when(method.name){"getVolume"->level;"setVolume"->{level=args!![0] as Float;null};"equals"->false;"hashCode"->1;else->null}
+        } as androidx.media3.common.Player
+        val fade=app.ember.tv.data.SleepFade {player}
+        SleepTimer.after(1)
+        shadowOf(Looper.getMainLooper()).idleFor(30,TimeUnit.SECONDS)
+        assertEquals(.4f,level,.02f);assertEquals(.8f,fade.original(level),.001f)
+        SleepTimer.cancel();assertEquals(.8f,level,.001f)
+        SleepTimer.after(1);shadowOf(Looper.getMainLooper()).idleFor(30,TimeUnit.SECONDS)
+        fade.close();assertEquals(.8f,level,.001f)
+        val next=app.ember.tv.data.SleepFade {player}
+        assertEquals(.4f,level,.02f)
+        SleepTimer.fire();assertEquals(.4f,level,.02f) // Expiry must not unmute before Stop.
+        next.close()
+    }
+
 }

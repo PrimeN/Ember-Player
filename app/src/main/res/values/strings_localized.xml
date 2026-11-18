@@ -181,7 +181,7 @@
     <string name="ui_clear_recent_media" formatted="false">"Clear recent media"</string>
     <string name="ui_clear_recent_media_6abe06" formatted="false">"Clear recent media?"</string>
     <string name="ui_clear_repeat_range" formatted="false">"Clear repeat range"</string>
-    <string name="ui_clear_the_recent_media_list_resume_positions_playlists_and" formatted="false">"Clear the recent-media list? Resume positions, playlists and bookmarks will be kept."</string>
+    <string name="ui_clear_the_recent_media_list_resume_positions_playlists_and" formatted="false">"Clear the recent-media list? Resume positions, playlists, bookmarks and per-video audio/subtitle choices will be kept."</string>
     <string name="ui_clip_highlights" formatted="false">"Clip highlights"</string>
     <string name="ui_clip_out_of_range_colors" formatted="false">"Clip out-of-range colors"</string>
     <string name="ui_clip_saved" formatted="false">"Clip saved"</string>
@@ -728,7 +728,7 @@
     <string name="ui_receiver_a3878e">"Receiver · %1$s"</string>
     <string name="ui_receiver_disconnected" formatted="false">"Receiver disconnected"</string>
     <string name="ui_receiver_playback" formatted="false">"Receiver playback"</string>
-    <string name="ui_recent_activity_and_resume_positions_will_be_cleared_playlists" formatted="false">"Recent activity and resume positions will be cleared. Playlists and bookmarks will be kept."</string>
+    <string name="ui_recent_activity_and_resume_positions_will_be_cleared_playlists" formatted="false">"Recent activity and resume positions will be cleared. Playlists, bookmarks and per-video audio/subtitle choices will be kept."</string>
     <string name="ui_recent_activity_cleared" formatted="false">"Recent activity cleared"</string>
     <string name="ui_recently_modified" formatted="false">"Recently modified"</string>
     <string name="ui_red" formatted="false">"Red"</string>

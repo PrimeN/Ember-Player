@@ -12,7 +12,7 @@ Ember Player runs on Android phones, tablets and TVs. See the [library and setti
 - **Device folders:** remember chosen folders, browse video/audio files, search and sort, select multiple files, share, rename, move or delete where the storage provider permits it. Each folder remembers its last-played file; rename/move preserves playback positions, track choices and scene bookmarks.
 - **Network folders:** SMB, SFTP, WebDAV, FTP and FTPS, with on-demand SMB discovery and authenticated share browsing.
 - **Stream URLs and Open with:** play supported network URLs or open media supplied by another application.
-- **Resume and bookmarks:** saved positions, named scene bookmarks, queue ordering, repeat modes and chapter navigation.
+- **Resume and bookmarks:** saved positions, named scene bookmarks with confirmed profile-scoped cleanup, queue ordering, repeat modes and chapter navigation, including Matroska and MP4 chapter metadata.
 - **Saved playlists:** keep reusable file, stream and network-folder queues, with shuffle and repeat. Saved network items reconnect through their account and file references when reopened.
 - **Encrypted backups:** export and restore player settings, positions, bookmarks, playlists and connection details using a password. Backups include no video files; Android storage permissions may need to be renewed on another device.
 - **Subtitles:** embedded tracks and manual text/bitmap subtitles, including SRT, VTT, ASS/SSA, TTML, SAMI and paired VobSub files. Timing, speed, custom fonts, colours, outlines, spacing and encoding controls are available. Find matching subtitle files beside a video or in a chosen folder; manual file choices are remembered privately for each video. Advanced layout and dual subtitles use Compatibility playback. Imported font files need to be installed again after restoring a backup on another device.
@@ -52,9 +52,9 @@ Format support depends on the engine, device decoders, audio output and display.
 ### Library and media tools
 
 - Search across saved media folders using an encrypted local index. Newly added folders are scanned automatically in a background job. Startup refreshes a stale index; a manual refresh remains available. Private files and forgotten roots are excluded from results.
-- Set a sleep timer for a preset or custom duration, or stop at the end of the current item. It applies to video and background audio.
-- Save a screenshot to a destination you choose. Captures are limited to 1080p and are unavailable for private playback and protected video surfaces.
-- Mark a clip start and end from Playback options, then export an MP4 without changing the source. Export uses the device’s H.264/AAC codecs, so supported input formats and speed depend on the device. Keep playback open during export; progress and cancellation are available in Playback options.
+- Set a sleep timer for a preset or custom duration, or stop at the end of the current item. It applies to video and background audio, with a fade during the final minute of a timed countdown. Google Cast uses stream volume for fading; DLNA receivers stop at the deadline without changing their device-wide volume.
+- Save a screenshot to a destination you choose. Captures include captions in both engines, up to 4K without upscaling. They are unavailable for private playback and protected video surfaces. HDR captures remain available with a warning that colours may differ from playback.
+- Mark a clip start and end from Playback options, then export an MP4 without changing the source. Export copies encoded samples directly to a seekable destination, retaining the source codec and selected audio track. Boundaries expand to video keyframes. Unsupported MP4 track combinations and external audio are reported rather than re-encoded. Keep playback open during export; progress and cancellation are available in Playback options.
 - Download direct HTTP/HTTPS media files for offline use. Downloads are explicitly started, run with a foreground notification, and can be paused or resumed when the server supports byte ranges and validators. Saved URLs and download metadata are encrypted. Adaptive playlists and DRM streams are excluded; downloads interrupted by Android can be resumed manually.
 
 
