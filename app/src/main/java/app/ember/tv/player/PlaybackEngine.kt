@@ -88,7 +88,9 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
                     val learned=if(config().rememberDecoderChoices)memoryKey()?.let {health?.engine(it)} else null
                     val automatic=current?.urls?.firstOrNull()?.let {PlaybackEnginePolicy.nativeFirst(it,current.filename)}==true
                     if(active===standard && (mode=="compatibility" || mode=="auto" && (learned=="compatibility" || learned==null&&automatic))) {
-                        if(!switch(if(mode=="compatibility")app.ember.tv.R.string.ui_core_manual else if(learned=="compatibility")app.ember.tv.R.string.ui_core_remembered else app.ember.tv.R.string.ui_core_format))standard.prepare()
+                        if(!switch(if(mode=="compatibility")app.ember.tv.R.string.ui_core_manual else if(learned=="compatibility")app.ember.tv.R.string.ui_core_remembered else app.ember.tv.R.string.ui_core_format)) {
+                            selectionReason=app.ember.tv.R.string.ui_core_unavailable;standard.prepare()
+                        }
                     } else {if(active===standard)selectionReason=if(mode!="auto")app.ember.tv.R.string.ui_core_manual else if(learned=="standard")app.ember.tv.R.string.ui_core_remembered else app.ember.tv.R.string.ui_core_default;active.prepare()};null}
                 "getVideoFormat" -> compatibility?.currentTracks?.groups?.firstOrNull {it.type==androidx.media3.common.C.TRACK_TYPE_VIDEO&&it.isSelected}?.getTrackFormat(0) ?: if(active===standard)standard.videoFormat else null
                 "getAudioFormat" -> compatibility?.currentTracks?.groups?.firstOrNull {it.type==androidx.media3.common.C.TRACK_TYPE_AUDIO&&it.isSelected}?.getTrackFormat(0) ?: if(active===standard)standard.audioFormat else null
@@ -122,7 +124,8 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
     fun mode(value:String) {
         mode=value
         if(value=="auto")selectionReason=app.ember.tv.R.string.ui_core_retained
-        if(value=="compatibility") {attempted=false;switch(app.ember.tv.R.string.ui_core_manual)}
+        else if(value=="standard"&&active===standard || value=="compatibility"&&active!==standard)selectionReason=app.ember.tv.R.string.ui_core_manual
+        if(value=="compatibility"&&active===standard) {attempted=false;if(!switch(app.ember.tv.R.string.ui_core_manual))selectionReason=app.ember.tv.R.string.ui_core_unavailable}
         else if(value=="standard" && active!==standard) {
             val at=navigation.target?:active.currentPosition;val wanted=active.playWhenReady;val current=source?:return
             configure(current);selectionReason=app.ember.tv.R.string.ui_core_manual;standard.seekTo(at);standard.prepare();standard.playWhenReady=wanted

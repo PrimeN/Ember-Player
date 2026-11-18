@@ -77,6 +77,21 @@ class PlaybackEngineTransitionTest {
             }finally {engine.player.release();if(!created)candidate.release()}
         }
     }
+    @Test fun choosingTheAlreadyActiveCoreReplacesItsAutomaticExplanation() {
+        val context=RuntimeEnvironment.getApplication()
+        val original=ExoPlayer.Builder(context).build();val candidate=ExoPlayer.Builder(context).build()
+        var created=0
+        val engine=PlaybackEngine(context,original,{PlaybackConfig(rememberDecoderChoices=false)},compatibilityFactory={_,_,_->created++;candidate}) {}
+        try {
+            engine.configure(EngineSource(listOf("content://media/123"),"Film.mp4","key"))
+            engine.player.setMediaItem(MediaItem.fromUri("content://media/123"))
+            engine.mode("standard");assertEquals(app.ember.tv.R.string.ui_core_manual,engine.selectionReason);assertEquals(0,created)
+            engine.mode("auto");assertEquals(app.ember.tv.R.string.ui_core_retained,engine.selectionReason)
+            engine.mode("compatibility");assertEquals(1,created)
+            engine.mode("auto");assertEquals(app.ember.tv.R.string.ui_core_retained,engine.selectionReason)
+            engine.mode("compatibility");assertEquals(app.ember.tv.R.string.ui_core_manual,engine.selectionReason);assertEquals(1,created)
+        }finally {engine.player.release();if(created==0)candidate.release()}
+    }
     @Test fun failedPrepareReleasesCandidateAndRestoresOriginalPositionAndPause() {
         val context=RuntimeEnvironment.getApplication()
         val original=ExoPlayer.Builder(context).build()

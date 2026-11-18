@@ -7,6 +7,7 @@
     <string name="ui_program_quality">Program or quality</string>
     <string name="ui_program_quality_note">Choose a program, quality variant or edition supplied by this source. Seekable videos keep their playback position; live sources follow the selected stream.</string>
     <string name="ui_program_quality_failed">This source could not switch program or quality. Wait for playback to finish loading and try again.</string>
+    <string name="ui_core_unavailable">mpv could not start. Media3 remains active.</string>
     <string name="ui_core_default">Automatic is using the default playback core.</string>
     <string name="ui_core_manual">This playback core was selected manually.</string>
     <string name="ui_core_remembered">Automatic is using the remembered working core for this media.</string>

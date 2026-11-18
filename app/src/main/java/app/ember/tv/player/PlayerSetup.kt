@@ -241,7 +241,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
                 tracks.groups.any {it.type==C.TRACK_TYPE_TEXT && it.isSelected} && playbackEngine?.switch()==true)return
             if (config.engine == "auto" && playbackEngine?.compatibility == null && tracks.groups.any { group ->
                 group.type == C.TRACK_TYPE_VIDEO && (0 until group.length).any { group.isTrackSelected(it) && PlaybackFormats.nativeFirst(group.getTrackFormat(it).sampleMimeType, group.isTrackSupported(it, false)) }
-            } && playbackEngine?.switch() == true) return
+            } && playbackEngine?.switch(R.string.ui_core_format) == true) return
             if(config.engine=="auto" && prefs.subtitleConfig.authoredStyles && !prefs.subtitleConfig.systemStyle && playbackEngine?.compatibility==null && tracks.groups.any {it.type==C.TRACK_TYPE_TEXT && (0 until it.length).any { index -> it.isTrackSelected(index) && it.getTrackFormat(index).sampleMimeType==MimeTypes.TEXT_SSA }}) {
                 if(playbackEngine?.switch()==true)return
             }
