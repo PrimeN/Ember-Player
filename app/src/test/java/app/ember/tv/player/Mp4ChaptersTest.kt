@@ -8,7 +8,7 @@ class Mp4ChaptersTest {
     private fun int(n:Int)=ByteBuffer.allocate(4).putInt(n).array()
     private fun long(n:Long)=ByteBuffer.allocate(8).putLong(n).array()
     private fun box(name:String,vararg body:ByteArray):ByteArray {val b=body.fold(byteArrayOf()){a,v->a+v};return int(b.size+8)+name.toByteArray()+b}
-    private fun source(file:ByteArray):List<Chapter> = Mp4Chapters.read(file.copyOfRange(0,minOf(24,file.size))) {at,size->if(at>=file.size)null else file.copyOfRange(at.toInt(),minOf(file.size,at.toInt()+size))}
+    private fun source(file:ByteArray,reads:MutableList<Pair<Long,Int>>?=null):List<Chapter> = Mp4Chapters.read(file.copyOfRange(0,minOf(24,file.size))) {at,size->reads?.add(at to size);if(at>=file.size)null else file.copyOfRange(at.toInt(),minOf(file.size,at.toInt()+size))}
     @Test fun chapterListEntriesAreFoundAfterMediaWithoutReadingTheMediaPayload() {
         val entries=listOf(0L to "Intro",60000L to "Film").map {(time,name)->long(time*10000)+byteArrayOf(name.length.toByte())+name.toByteArray()}.fold(byteArrayOf()){a,b->a+b}
         val movie=box("moov",box("udta",box("chpl",byteArrayOf(1,0,0,0),int(0),byteArrayOf(2),entries)))
@@ -29,7 +29,10 @@ class Mp4ChaptersTest {
         fun tkhd(id:Int)=box("tkhd",int(0),int(0),int(0),int(id))
         val video=box("trak",tkhd(1),box("tref",box("chap",int(2))))
         val text=box("trak",tkhd(2),box("mdia",box("mdhd",int(0),int(0),int(0),int(1000)),box("hdlr",int(0),int(0),"text".toByteArray()),box("minf",tables)))
-        assertEquals(listOf(Chapter("Opening",0),Chapter("Main feature",30000)),source(ftyp+media+box("moov",video,text)))
+        val reads=mutableListOf<Pair<Long,Int>>()
+        assertEquals(listOf(Chapter("Opening",0),Chapter("Main feature",30000)),source(ftyp+media+box("moov",video,text),reads))
+        assertEquals(1,reads.count {it.first>=offset&&it.first<offset+labels.sumOf(ByteArray::size)})
+        assertTrue(reads.size<=4)
         // A text track without a chapter reference must not become a chapter list.
         assertTrue(source(ftyp+media+box("moov",text)).isEmpty())
     }
