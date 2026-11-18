@@ -34,7 +34,7 @@ class RemainingPlaybackRegressionTest {
         for(digit in 0..9){assertEquals(digit,PlaybackKeys.digit(KeyEvent.KEYCODE_NUMPAD_0+digit));assertEquals(digit*1000L,PlaybackKeys.position(10000,digit))}
         assertNull(PlaybackKeys.position(C.TIME_UNSET,3));assertNull(PlaybackKeys.position(1000,10));assertNull(PlaybackKeys.action(KeyEvent.KEYCODE_A))
     }
-    @Test fun screenshotPolicyRejectsHdrAndCompositesOnlyTheCaptionOverlay() {
+    @Test fun screenshotDetectsHdrAndCompositesOnlyTheCaptionOverlay() {
         assertTrue(PlayerExports.hdr(Format.Builder().setSampleMimeType("video/dolby-vision").build()))
         assertFalse(PlayerExports.hdr(Format.Builder().setSampleMimeType("video/avc").build()))
         val app=RuntimeEnvironment.getApplication()
@@ -43,6 +43,23 @@ class RemainingPlaybackRegressionTest {
         val bitmap=android.graphics.Bitmap.createBitmap(100,50,android.graphics.Bitmap.Config.ARGB_8888)
         PlayerExports.composite(bitmap,surface,caption)
         assertEquals(android.graphics.Color.RED,bitmap.getPixel(50,25));bitmap.recycle()
+    }
+    @Test fun hdrWarningDoesNotBlockTheCaptureAttempt() {
+        val activity=org.robolectric.Robolectric.buildActivity(PlayerActivity::class.java).get()
+        val hdr=Format.Builder().setSampleMimeType("video/dolby-vision").build()
+        activity.player=java.lang.reflect.Proxy.newProxyInstance(javaClass.classLoader,arrayOf(androidx.media3.exoplayer.ExoPlayer::class.java)) {_,method,_->
+            when(method.name){"getVideoFormat"->hdr;else->null}
+        } as androidx.media3.exoplayer.ExoPlayer
+        activity.view=androidx.media3.ui.PlayerView(activity)
+        org.robolectric.shadows.ShadowToast.reset()
+        try {
+            activity.exports.screenshot()
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+            // The JVM has no readable video surface. Both the HDR warning and the
+            // capture error must appear: returning after the warning would skip capture.
+            assertEquals(2,org.robolectric.shadows.ShadowToast.shownToastCount())
+            assertEquals(activity.getString(app.ember.tv.R.string.ui_this_video_surface_cannot_be_captured),org.robolectric.shadows.ShadowToast.getTextOfLatestToast())
+        } finally {activity.exports.close();activity.handler.removeCallbacksAndMessages(null)}
     }
     @Test fun bookmarkLimitHasAnExplicitRecoveryThatKeepsOtherProfiles() {
         val app=RuntimeEnvironment.getApplication();app.getSharedPreferences("bookmarks",0).edit().clear().commit()

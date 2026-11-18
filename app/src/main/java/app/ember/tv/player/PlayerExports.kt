@@ -47,7 +47,7 @@ internal class PlayerExports(private val activity:PlayerActivity):java.io.Closea
     fun screenshot() {
         if(closed||job?.isActive==true||image!=null)return
         if(!permitted()){message(activity.getString(R.string.ui_screenshots_are_unavailable_for_protected_playback));return}
-        if(hdr(activity.player?.videoFormat)){message(activity.getString(R.string.ui_hdr_capture_unavailable));return}
+        if(hdr(activity.player?.videoFormat))message(activity.getString(R.string.ui_hdr_capture_warning))
         val currentVisit=activity.playbackVisit
         activity.closeMenu()
         job=activity.lifecycleScope.launch {

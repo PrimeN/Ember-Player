@@ -4,7 +4,7 @@
 
 - Resume interrupted library scans from committed folder cursors.
 - Export keyframe-aligned clips without re-encoding, using the selected audio track.
-- Include captions in screenshots from both engines, up to 4K, and explain unavailable HDR capture.
+- Include captions in screenshots from both engines, up to 4K, and warn when HDR screenshot colours may be inaccurate.
 - Read MP4 chapter metadata and handle caption, audio, stop, percentage-seek and frame-step keys.
 - Offer confirmed bookmark cleanup and fade timed playback during its final minute.
 - Update Android 16 navigation, edge-to-edge layouts and phone/TV controls.
