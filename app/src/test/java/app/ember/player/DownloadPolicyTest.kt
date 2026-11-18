@@ -9,7 +9,8 @@ class DownloadPolicyTest {
         assertEquals("clip.webm",DownloadStore.suggestedName("https://example.test/clip.webm#ignored"))
         assertEquals("AB.webm",DownloadStore.suggestedName("https://example.test/A%2BB.webm"))
         assertEquals("video.mkv",DownloadStore.suggestedName("https://example.test/a%2Fvideo.mkv"))
-        for(url in listOf("https://example.test/","https://example.test/?name=video.mp4","not a URL"))assertEquals("media",DownloadStore.suggestedName(url))
+        assertEquals("watch.mp4",DownloadStore.suggestedName("https://example.test/watch?name=clip"))
+        for(url in listOf("https://example.test/","https://example.test/?name=video.mp4","not a URL"))assertEquals("media.mp4",DownloadStore.suggestedName(url))
     }
     @Test fun downloadAcceptsDirectFilesAndRejectsManifestsOrLocalSchemes() {
         assertTrue(DownloadStore.supported("https://example.test/movie.mp4?token=value"))
