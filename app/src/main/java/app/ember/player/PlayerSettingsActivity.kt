@@ -92,13 +92,16 @@ private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:
         }
         "decoding"->PlayerSection(uiResources.getString(R.string.ui_video_decoding)) {
             PlayerChoice(uiResources.getString(R.string.ui_software_video),listOf("fallback" to uiResources.getString(R.string.ui_when_needed),"off" to uiResources.getString(R.string.ui_device_decoders_only),"always" to uiResources.getString(R.string.ui_always_software)),config.ffmpegVideo){v->update {it.copy(ffmpegVideo=v)}}
+            Text(uiResources.getString(R.string.ui_software_video_engine_note),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
             PlayerChoice(uiResources.getString(R.string.ui_compatibility_decoder_profile),NativeDecoderProfile.choices,NativeDecoderProfile.normalized(config.compatibilityDecoder)){v->update {it.copy(compatibilityDecoder=v)}}
             SwitchChip(uiResources.getString(R.string.ui_automatic_hi10p_fallback),config.hi10pFallback){update {it.copy(hi10pFallback=!it.hi10pFallback)}}
             Text(uiResources.getString(R.string.ui_compatibility_only_automatic_detects_nvidia_shield_10_bit_h),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
             PlayerChoice(uiResources.getString(R.string.ui_frame_rate_matching),listOf("off" to uiResources.getString(R.string.ui_off),"seamless" to uiResources.getString(R.string.ui_seamless_only),"always" to uiResources.getString(R.string.ui_match_video)),config.frameRate){v->update {it.copy(frameRate=v)}}
             SwitchChip(uiResources.getString(R.string.ui_match_video_resolution),config.matchResolution){update {it.copy(matchResolution=!it.matchResolution)}}
             PlayerChoice(uiResources.getString(R.string.ui_dolby_vision),listOf("auto" to uiResources.getString(R.string.ui_automatic),"always" to uiResources.getString(R.string.ui_use_dolby_vision),"hdr10" to uiResources.getString(R.string.ui_hdr10_base_layer_when_available)),config.dolbyVision){v->update {it.copy(dolbyVision=v)}}
+            Text(uiResources.getString(R.string.ui_dolby_engine_note),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
             PlayerChoice(uiResources.getString(R.string.ui_deinterlacing),listOf("off" to uiResources.getString(R.string.ui_off),"auto" to uiResources.getString(R.string.ui_automatic),"always" to uiResources.getString(R.string.ui_always)),config.deinterlacing){v->update {it.copy(deinterlacing=v)}}
+            Text(uiResources.getString(R.string.ui_deinterlace_engine_note),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
         }
         "touch"->PlayerSection(uiResources.getString(R.string.ui_touch_and_rotation)) {
             Text(uiResources.getString(R.string.ui_touch_gestures_apply_on_phones_and_tablets_remote_navigation),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)

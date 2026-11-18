@@ -28,6 +28,7 @@ internal class AndroidBackgroundAudioEngine(context:Context,private val request:
     private val manager=DecoderManager()
     private val choice=Playback.CodecChoice().apply {pcm=!config.passthrough}
     private val delay=Playback.AudioDelay()
+    private val timing=AudioTiming(delay,::engineDelay)
     private val effects=AudioEffectState().apply {value=config.audioEffects}
     private val http=DefaultHttpDataSource.Factory().setConnectTimeoutMs(config.stream.normalized().connectSeconds*1000).setReadTimeoutMs(config.stream.normalized().readSeconds*1000)
         .setAllowCrossProtocolRedirects(true).setUserAgent(HttpIdentity.userAgent).setDefaultRequestProperties(request.source.headers)
@@ -40,8 +41,9 @@ internal class AndroidBackgroundAudioEngine(context:Context,private val request:
     private var boost:android.media.audiofx.LoudnessEnhancer?=null
     private var boostSession=0
     private val engine=PlaybackEngine(app,standard,{config.copy(passthrough=config.passthrough&&!choice.pcm)}) {native->
-        if(native){boost?.release();boost=null;boostSession=0}
+        if(native){boost?.release();boost=null;boostSession=0;timing.backendChanged()}
     }
+    private fun engineDelay(milliseconds:Long){engine.compatibility?.audioDelay(milliseconds)}
     override val player:Player get()=engine.player
     private val listener=object:Player.Listener {override fun onEvents(player:Player,events:Player.Events) {
         if(request.boostMillibels<=0)return
@@ -53,8 +55,7 @@ internal class AndroidBackgroundAudioEngine(context:Context,private val request:
         }
     }}
     private val route=OutputRouteMonitor(app) {bluetooth->
-        delay.us=config.outputDelay(bluetooth)*1000L
-        engine.compatibility?.audioDelay(delay.us/1000)
+        timing.set(config.outputDelay(bluetooth).toLong())
     }
     init {
         try {

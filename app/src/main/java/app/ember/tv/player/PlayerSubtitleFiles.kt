@@ -53,6 +53,10 @@ internal suspend fun PlayerActivity.loadManualSubtitle(choice:ManualSubtitleFile
         if(visit!=playbackVisit)return
         val bitmap=temporary
         if(bitmap!=null) {
+            if(config.engine=="standard") {
+                Toast.makeText(this,resources.getString(R.string.ui_bitmap_subtitles_require_compatibility),Toast.LENGTH_LONG).show()
+                return
+            }
             val native=playbackEngine?.compatibility ?: if(playbackEngine?.switch()==true)playbackEngine?.compatibility else null
             checkNotNull(native){resources.getString(R.string.ui_compatibility_playback_unavailable)}
             native.externalFile(bitmap.first,bitmap.second)

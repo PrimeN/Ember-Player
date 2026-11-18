@@ -446,22 +446,9 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
                 else -> app.ember.tv.data.SubtitleFonts.systemFamily(c.font)?.let {native.setPropertyString("sub-font",it)}
             }
         }
-        if(c.systemStyle) {
-            val manager=context.getSystemService(Context.CAPTIONING_SERVICE) as? android.view.accessibility.CaptioningManager
-            manager?.let {
-                val style=it.userStyle
-                fun color(value:Int)="#%08X".format(java.util.Locale.ROOT,value)
-                native.setPropertyString("sub-color",color(style.foregroundColor))
-                native.setPropertyString("sub-back-color",color(style.backgroundColor))
-                native.setPropertyString("sub-border-style",if(android.graphics.Color.alpha(style.backgroundColor)>0)"background-box" else "outline-and-shadow")
-                native.setPropertyString("sub-border-color",color(style.edgeColor))
-                native.setPropertyDouble("sub-border-size",if(style.edgeType==android.view.accessibility.CaptioningManager.CaptionStyle.EDGE_TYPE_OUTLINE)2.5 else 0.0)
-                native.setPropertyDouble("sub-shadow-offset",if(style.edgeType==android.view.accessibility.CaptioningManager.CaptionStyle.EDGE_TYPE_DROP_SHADOW)2.5 else 0.0)
-                native.setPropertyDouble("sub-font-size",38.0*it.fontScale*c.layout.scale*when(c.size){"small"->0.8;"large"->1.25;"xlarge"->1.5;else->1.0})
-                native.setPropertyBoolean("sub-bold",style.typeface?.isBold==true);native.setPropertyBoolean("sub-italic",style.typeface?.isItalic==true)
-            }
-        }
+        if(c.systemStyle)SystemCaptionStyle.apply(context,c,native::setPropertyString,native::setPropertyDouble,native::setPropertyBoolean)
     }
+
     fun chapters():List<app.ember.tv.player.Chapter> =(0 until (native.getPropertyInt("chapter-list/count")?:0).coerceAtMost(2000)).mapNotNull {i->
         val time=native.getPropertyDouble("chapter-list/$i/time")?:return@mapNotNull null
         app.ember.tv.player.Chapter(native.getPropertyString("chapter-list/$i/title")?:"Chapter ${i+1}",(time*1000).toLong()+prefix(partIndex))

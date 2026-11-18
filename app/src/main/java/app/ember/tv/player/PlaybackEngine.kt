@@ -133,7 +133,7 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
         return switch()
     }
     fun switch():Boolean {
-        if(attempted||active!==standard)return false
+        if(mode=="standard"||attempted||active!==standard)return false
         val current=source?:return false
         val audio=standard.audioFormat ?: standard.currentTracks.groups.firstOrNull {it.type==androidx.media3.common.C.TRACK_TYPE_AUDIO && it.isSelected}?.let {group->
             (0 until group.length).firstOrNull(group::isTrackSelected)?.let(group::getTrackFormat)
