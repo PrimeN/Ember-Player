@@ -28,6 +28,9 @@ internal class SavedPlaylists(private val readValue:()->String?,private val writ
         require(values.size<=50&&values.all(::valid)&&values.distinctBy {it.id}.size==values.size)
         return values
     }
+    fun resetUnreadable():Boolean=synchronized(lock) {
+        app.ember.player.storage.resetUnreadableList(::load){writeValue("[]")}
+    }
     fun readForDisplay():List<SavedPlaylist> = load()
     fun read():List<SavedPlaylist> = runCatching {load()}.getOrDefault(emptyList())
     fun save(name:String,items:List<QueueMedia>,index:Int=0,repeat:String="off",shuffle:Boolean=false,id:String?=null):Boolean=synchronized(lock) {

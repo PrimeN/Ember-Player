@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ui_saved_folders_unreadable">Saved folders could not be read. Existing data has been kept. Refresh to try again, or reset the saved list.</string>
+    <plurals name="ui_saved_folder_limit">
+        <item quantity="one">You can save up to %1$d folder.</item>
+        <item quantity="other">You can save up to %1$d folders.</item>
+    </plurals>
+    <string name="ui_reset_saved_folders">Reset saved folders</string>
+    <string name="ui_reset_saved_folders_warning">Clear the entire saved folder list? Media files and other saved data will be kept. You will need to add your folders again.</string>
+    <string name="ui_reset_saved_playlists">Reset saved playlists</string>
+    <string name="ui_reset_saved_playlists_warning">Clear all saved playlists for this profile? Media files, playback history and other saved data will be kept.</string>
+    <string name="ui_reset_saved_downloads">Reset saved downloads</string>
+    <string name="ui_reset_saved_downloads_warning">Stop downloads and clear the saved download list? Existing downloaded files will be kept, but will no longer appear in Downloads. Other saved data will be kept.</string>
+    <string name="ui_reset_saved_network_folders">Reset saved network folders</string>
+    <string name="ui_reset_saved_network_folders_warning">Clear all saved network folders for this profile, including their passwords and private keys? Media files and other saved data will be kept.</string>
+    <string name="ui_reset_list">Reset list</string>
+    <string name="ui_saved_list_reset_failed">Could not reset saved data. Refresh or unlock storage and try again.</string>
+</resources>

@@ -29,13 +29,26 @@ internal class DeviceFolders(private val readValue: () -> String?, private val w
         val raw=readValue() ?: return emptyList()
         require(raw.length<=65536)
         val values=Json.decodeFromString<List<DeviceFolder>>(raw)
-        require(values.size<=16 && values.all(::valid) && values.distinctBy {it.uri}.size==values.size)
+        require(values.size<=MAX_FOLDERS && values.all(::valid) && values.distinctBy {it.uri}.size==values.size)
         return values
     }
+    fun readForDisplay():List<DeviceFolder> = load()
     fun read(): List<DeviceFolder> = runCatching {load()}.getOrDefault(emptyList())
-    fun add(value: DeviceFolder): Boolean = update {values->
+    fun checkCapacity(uri:String)=synchronized(lock) {
+        val values=load()
+        if(values.none {it.uri==uri}&&values.size>=MAX_FOLDERS)throw SavedFolderLimitException()
+    }
+    fun addOrThrow(value:DeviceFolder)=synchronized(lock) {
+        val values=load()
         require(valid(value))
-        (values.filterNot {it.uri==value.uri}+value).also {require(it.size<=16)}
+        val updated=values.filterNot {it.uri==value.uri}+value
+        if(updated.size>MAX_FOLDERS)throw SavedFolderLimitException()
+        val encoded=Json.encodeToString(updated)
+        check(encoded.length<=65536&&writeValue(encoded)) {"Could not save encrypted folders."}
+    }
+    fun add(value: DeviceFolder): Boolean = runCatching {addOrThrow(value);true}.getOrDefault(false)
+    fun resetUnreadable():Boolean=synchronized(lock) {
+        app.ember.player.storage.resetUnreadableList(::load){writeValue("[]")}
     }
     fun remove(uri: String): Boolean = update {values->values.filterNot {it.uri==uri}}
     private fun update(change:(List<DeviceFolder>)->List<DeviceFolder>):Boolean=synchronized(lock) {
@@ -45,11 +58,38 @@ internal class DeviceFolders(private val readValue: () -> String?, private val w
         }.getOrDefault(false)
     }
     companion object {
+        const val MAX_FOLDERS=16
         private val lock=Any()
         private fun valid(f:DeviceFolder)=f.name.isNotBlank() && f.name.length<=180 && f.uri.length<=4096 && runCatching {
             val uri=Uri.parse(f.uri)
             uri.scheme=="content" && !uri.authority.isNullOrBlank() && DocumentsContract.isTreeUri(uri)
         }.getOrDefault(false)
+    }
+}
+
+internal class SavedFolderLimitException:IllegalStateException()
+
+/** Failed imports relinquish only newly acquired access, including a newly added write grant. */
+internal fun saveDeviceFolder(context:Context,tree:Uri,store:DeviceFolders=DeviceFolders(context),check:()->Unit={}):DeviceFolder {
+    check();store.checkCapacity(tree.toString())
+    val resolver=context.contentResolver
+    fun flags()=resolver.persistedUriPermissions.filter {it.uri==tree}.fold(0) {value,permission->
+        value or (if(permission.isReadPermission)Intent.FLAG_GRANT_READ_URI_PERMISSION else 0) or
+            (if(permission.isWritePermission)Intent.FLAG_GRANT_WRITE_URI_PERMISSION else 0)
+    }
+    val previous=flags()
+    var saved=false
+    try {
+        DeviceFiles.retain(context,tree)
+        check()
+        val value=DeviceFolder(tree.toString(),DeviceFiles.name(context,DeviceFiles.root(tree)))
+        check();store.addOrThrow(value);saved=true
+        return value
+    } finally {
+        if(!saved) {
+            val added=flags() and previous.inv()
+            if(added!=0)resolver.releasePersistableUriPermission(tree,added)
+        }
     }
 }
 

@@ -111,6 +111,57 @@ class PlayerDestructiveActionsUiTest {
         compose.onNodeWithText(downloadError).assertDoesNotExist()
         compose.runOnIdle {assertEquals(playlistCopy,encrypted.getString(playlistKey,null));assertEquals(downloadCopy,encrypted.getString(downloadKey,null))}
     }
+    @Test fun unreadableSavedListsCanBeResetWithConfirmationWithoutTouchingOtherDataOrFiles() {
+        compose.waitUntil(10_000){compose.onAllNodesWithTag("library-loading").fetchSemanticsNodes().isEmpty()}
+        val folders=DeviceFolders(context);val playlists=SavedPlaylists(context);val network=SavedNetworkFolders(context);val downloads=DownloadStore(context)
+        assertTrue(folders.add(DeviceFolder("content://docs/tree/root","Keep folder")))
+        assertTrue(playlists.save("Keep playlist",listOf(QueueMedia("content://videos/1","One"))))
+        assertNotNull(network.add(NetworkAccount(label="Keep server",address="sftp://server/media",password="keep-password",privateKey="keep-private-key")))
+        val download=downloads.add("https://example.test/keep.mkv","Keep.mkv")
+        val file=DownloadStore.file(context,download).apply {parentFile!!.mkdirs();writeText("keep media")}
+        assertTrue(TokenStore(context).putEncrypted("unrelated","keep unrelated data"))
+        val encrypted=context.getSharedPreferences(app.ember.player.storage.SecretVault.FILE,Context.MODE_PRIVATE)
+        val profile=Prefs(context).currentProfile
+        val cases=listOf(
+            Triple("Folders","player.folders","Reset saved folders"),
+            Triple("Playlists","player.playlists."+profile,"Reset saved playlists"),
+            Triple("Network","media.network."+profile,"Reset saved network folders"),
+            Triple("Downloads","player.downloads","Reset saved downloads"),
+        )
+        for((destination,key,label) in cases) {
+            encrypted.edit().putString(key,"%unreadable%").commit()
+            val before=encrypted.all
+            click(destination)
+            compose.waitUntil(10_000){compose.onAllNodesWithText(label).fetchSemanticsNodes().isNotEmpty()}
+            click(label);click("Cancel")
+            compose.runOnIdle {assertEquals(before,encrypted.all)}
+            click(label)
+            compose.onNodeWithText("Reset list").performSemanticsAction(SemanticsActions.OnClick){it()}
+            compose.waitUntil(10_000){compose.onAllNodesWithText(label).fetchSemanticsNodes().isEmpty()}
+            compose.runOnIdle {
+                assertEquals("[]",TokenStore(context).get(key))
+                assertEquals(before-key,encrypted.all-key)
+                assertEquals("keep media",file.readText())
+            }
+        }
+    }
+    @Test fun aFolderListThatRecoversWhileConfirmationIsOpenIsNotCleared() {
+        compose.waitUntil(10_000){compose.onAllNodesWithTag("library-loading").fetchSemanticsNodes().isEmpty()}
+        val store=DeviceFolders(context)
+        assertTrue(store.add(DeviceFolder("content://docs/tree/root","Recovered folder")))
+        val encrypted=context.getSharedPreferences(app.ember.player.storage.SecretVault.FILE,Context.MODE_PRIVATE)
+        val original=encrypted.getString("player.folders",null)!!
+        encrypted.edit().putString("player.folders","%unreadable%").commit()
+        click("Folders")
+        val error=context.getString(app.ember.tv.R.string.ui_saved_folders_unreadable)
+        compose.waitUntil(10_000){compose.onAllNodesWithText(error).fetchSemanticsNodes().isNotEmpty()}
+        click("Reset saved folders")
+        compose.runOnIdle {encrypted.edit().putString("player.folders",original).commit()}
+        click("Reset list")
+        compose.waitUntil(10_000){compose.onAllNodesWithText("Recovered folder").fetchSemanticsNodes().isNotEmpty()}
+        compose.onNodeWithText(error).assertDoesNotExist()
+        compose.runOnIdle {assertEquals(original,encrypted.getString("player.folders",null))}
+    }
     @Test fun playlistOptionsHaveASpokenNameAndDeletionCanBeCanceled() {
         val store=SavedPlaylists(context)
         assertTrue(store.save("Test playlist",listOf(QueueMedia("https://example.test/clip.mkv","Clip"))))

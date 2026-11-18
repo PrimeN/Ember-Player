@@ -45,7 +45,7 @@ class PlayerPlaylistUiTest {
         val initial=store.read().single()
         compose.setContent {PlayerTheme(Prefs(context)){if(shown)PlaylistEditor(context,initial){shown=false}}}
         compose.onNodeWithContentDescription("Move Two earlier").performSemanticsAction(SemanticsActions.OnClick){it()}
-        compose.waitUntil(10_000){store.read().single().entries.first().title=="Two"}
+        compose.waitUntil(10_000){compose.onAllNodesWithText("1. Two").fetchSemanticsNodes().isNotEmpty()}
         compose.runOnIdle {assertEquals(0,store.read().single().index)}
         compose.onNodeWithText("1. Two").assertExists()
         compose.onNodeWithText("Done").performSemanticsAction(SemanticsActions.OnClick){it()}

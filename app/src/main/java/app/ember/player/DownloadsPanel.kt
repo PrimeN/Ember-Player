@@ -44,7 +44,10 @@ internal fun DownloadsPanel(activity:ComponentActivity) {
                 {runCatching {start(entry.id)}.onFailure {notice=uiResources.getString(R.string.ui_android_could_not_start_this_download)}},
                 {removing=entry})
         }
-        if(readError)PlayerErrorText(uiResources.getString(R.string.ui_downloads_unreadable))
+        if(readError) {
+            PlayerErrorText(uiResources.getString(R.string.ui_downloads_unreadable))
+            SavedListRecoveryControls(R.string.ui_reset_saved_downloads,R.string.ui_reset_saved_downloads_warning,{DownloadStore(activity).resetUnreadable()}){version++}
+        }
         notice?.let {PlayerErrorText(it)}
         removing?.let {entry->PlayerConfirmationDialog(uiResources.getString(R.string.ui_delete_download),uiResources.getString(R.string.ui_and_its_downloaded_file_will_be_removed_from_this ,entry.name),uiResources.getString(R.string.ui_delete_download_d41b50),{removing=null}) {
             removing=null
