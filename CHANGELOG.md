@@ -1,48 +1,17 @@
 # Changelog
 
-## Unreleased
+## [0.8.5]
 
-- Keep action-menu warnings readable and align shared TV controls and text fields.
-- Stabilize file artwork slots and library card heights, improve accessible labels and use tabular time digits.
-- Make license text scrollable with a remote and use consistent command buttons and settings selectors.
-- Apply the configured seek interval to every player dock and add an extension to unnamed download suggestions.
+A broad update to playback, the media library and the phone and TV interfaces.
 
-- Offer video-only lossless clips when audio cannot be copied, recognize Compatibility track ordinals and support more document providers.
-- Retain the prepared background handoff during PiP and release it on return to full screen.
-- Restore the unfaded Cast stream level after stopping playback.
-- Remove the shared bookmark title cap and include bookmarks and track choices in confirmed activity clearing.
-- Find partial Chinese and Japanese titles, remove obsolete marker labels and batch MP4 chapter reads.
-
-- Update SQLite, Commons IO, JSON serialization and the JVM test framework.
-- Refuse incomplete encrypted backups and preserve the local library index key on restore.
-- Validate restored privacy settings, require the current PIN and keep protection markers consistent.
-- Keep repeated queue entries distinct when editing and remembering playlist progress.
-- Snapshot clip-export inputs on the player thread and clean up cancelled exports safely.
-- Prevent duplicate download submissions and disable pending form controls.
-- Accept subtitle language script tags and align non-Latin indexed searches with voice search.
-
-- Resume interrupted library scans from committed folder cursors.
-- Export keyframe-aligned clips without re-encoding, using the selected audio track.
-- Include captions in screenshots from both engines, up to 4K, and warn when HDR screenshot colours may be inaccurate.
-- Read MP4 chapter metadata and handle caption, audio, stop, percentage-seek and frame-step keys.
-- Offer confirmed bookmark cleanup and fade timed playback during its final minute.
-- Update Android 16 navigation, edge-to-edge layouts and phone/TV controls.
-- Add system-following themes, natural sorting, playlist queue imports and reordering,
-  richer file browsers and translatable interface resources.
-- Refresh saved-folder indexes automatically in background jobs and preserve library
-  pages and scroll positions when returning from playback.
-- Preserve receiver progress, provide PiP playback actions and retain session brightness.
-- Load local and authenticated-stream chapters, decode Traditional Chinese subtitles
-  with Big5, and improve imported font names and Compatibility settings.
-- Derive skip markers from named chapters and keep enabled background audio playing
-  when PiP is stopped by screen-off.
-- Offer separate SMB signing and encryption choices for guest and older servers.
-- Use consistent word matching for indexed media, recent items and voice searches.
-- Protect unreadable saved lists, provide confirmed recovery, improve folder permission
-  cleanup and require the current PIN to change private-media protection.
-- Strengthen backup/PIN key derivation, SFTP host verification and key authentication,
-  and keep sensitive playback details out of retained crash logs.
-- Verify Gradle builds, isolate signing from ordinary CI and remove unused integrations.
+- **Library and playlists:** automatic background folder scans that resume after interruptions, natural sorting, better recent and Continue watching shelves, improved search including partial Chinese and Japanese titles, and playlist imports from the queue with entry reordering.
+- **Phone and TV controls:** clearer navigation, consistent buttons and settings, stable artwork and card layouts, readable warnings, better accessibility, remote-scrollable licenses and seek buttons that follow your chosen interval.
+- **Background playback and PiP:** Media3 system media controls, Android Auto support, PiP playback buttons and sizing, smoother transitions and improved screen-off handoff.
+- **Playback and subtitles:** local and authenticated-stream chapters, MP4 chapter support, chapter-based intro and credits skipping, improved Compatibility audio timing and captions, Traditional Chinese decoding and better imported-font names.
+- **Cast and network files:** saved receiver progress, restored volume after sleep-timer fading, more reliable TV discovery, SFTP fingerprint confirmation and key sign-in, and separate SMB options for guest and older servers.
+- **Clips and screenshots:** lossless, keyframe-aligned MP4 clips using the selected audio track, an explicit video-only fallback, broader document-provider support, and screenshots with subtitles up to 4K with an HDR colour warning.
+- **Privacy and saved data:** stronger PIN and backup protection, current-PIN checks for protection changes, safeguards and recovery for unreadable lists, safer backup restores, and activity clearing that includes bookmarks and remembered tracks. Saved bookmarks no longer share a title limit across profiles.
+- **Maintenance:** Android 16 compatibility, refreshed dependencies, a verified Gradle wrapper, isolated release signing and removal of unused integrations.
 
 ## [0.7.5]
 

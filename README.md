@@ -91,7 +91,7 @@ Ember Player supports **Android 10 or newer** on **ARM64 and ARM32**. Phones and
 tablets use touch controls; TVs support remotes and controllers.
 
 Download the APK from the [latest release](https://github.com/PrimeN/Ember-Player/releases/latest)
-and install it on your device. The current release is **0.7.5**;
+and install it on your device. The current release is **0.8.5**;
 [the changelog](CHANGELOG.md) describes its features and requirements.
 
 Development happens on [`beta`](https://github.com/PrimeN/Ember-Player/tree/beta).
