@@ -32,7 +32,7 @@ class PlayerLibraryReturnUiTest {
             val reads=java.util.concurrent.atomic.AtomicInteger()
             val progressReads=java.util.concurrent.atomic.AtomicInteger()
             val positions=java.util.concurrent.atomic.AtomicReference(emptyMap<String,PositionStore.SavedPosition>())
-            val repository=PlayerLibraryRepository({0},{_,_->reads.incrementAndGet();PlayerLibraryCatalog(values)},{emptyList()},{progressReads.incrementAndGet();positions.get()},{emptyList()})
+            val repository=PlayerLibraryRepository({MediaLibrary.revision.get()},{_,_->reads.incrementAndGet();PlayerLibraryCatalog(values)},{emptyList()},{progressReads.incrementAndGet();positions.get()},{emptyList()})
             val revision=mutableIntStateOf(0);val shown=mutableStateOf(true)
             val restoration=StateRestorationTester(compose)
             restoration.setContent {PlayerTheme(Prefs(LocalContext.current)) {
@@ -67,7 +67,21 @@ class PlayerLibraryReturnUiTest {
             restoration.emulateSavedInstanceStateRestore()
             compose.onNodeWithText("Clip 150").assertIsDisplayed()
             assertEquals(before,scroll(),0.01f)
-            compose.runOnIdle {assertEquals(1,reads.get())}
+            compose.runOnIdle {
+                assertEquals(1,reads.get())
+                MediaLibraryScanner.state.value=MediaLibraryScanner.state.value.copy(active=true,scanned=50)
+            }
+            compose.onNodeWithText("Clip 150").assertIsDisplayed()
+            assertEquals(before,scroll(),0.01f)
+            compose.runOnIdle {
+                assertEquals(1,reads.get())
+                MediaLibrary.revision.incrementAndGet()
+                MediaLibraryScanner.state.value=MediaLibraryScanner.state.value.let {it.copy(active=false,revision=it.revision+1,result=ScanResult.COMPLETE)}
+            }
+            compose.waitUntil(10_000){reads.get()==2}
+            compose.onNodeWithText("Clip 150").assertIsDisplayed()
+            assertEquals(before,scroll(),0.01f)
+            compose.onNodeWithTag("library-loading").assertDoesNotExist()
         }
     }
 }

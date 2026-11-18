@@ -58,6 +58,13 @@ class PlayerRecoveryAndSubtitleTest {
         assertEquals(4,SubtitleFiles.read(ByteArrayInputStream(ByteArray(4)),4).size)
         assertTrue(runCatching { SubtitleFiles.read(ByteArrayInputStream(ByteArray(5)),4) }.isFailure)
     }
+    @Test fun nonSubtitleFilesLargerThanThePerSubtitleLimitDoNotBreakAnArchive() {
+        val data=zip("poster.jpg" to "x".repeat(9*1024*1024),"Movie.en.SRT" to "captions","sample.mp4" to "x".repeat(9*1024*1024))
+        val selected=SubtitleFiles.archive(data)!!
+        assertEquals("Movie.en.SRT",selected.first)
+        assertEquals("captions",String(selected.second))
+        assertNull(SubtitleFiles.archive(zip("poster.jpg" to "x".repeat(9*1024*1024))))
+    }
     @Test fun archivesHaveEntryAndExpansionLimits() {
         assertTrue(runCatching { SubtitleFiles.archive(zip(*(0..SubtitleFiles.MAX_ENTRIES).map { "$it.srt" to "a" }.toTypedArray())) }.isFailure)
         assertTrue(runCatching { SubtitleFiles.archive(zip("large.srt" to "a".repeat(SubtitleFiles.MAX_DOWNLOAD+1))) }.isFailure)

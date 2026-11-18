@@ -60,7 +60,8 @@ internal fun RowScope.PlayerVideos(activity:MediaFilesActivity,version:Int,query
     val actualFilter=expanded?.let(PlayerLibraryFilter::from) ?: filter
     var offsets by rememberSaveable(query,sort.id,actualFilter.id) {mutableStateOf(listOf(0))}
     val listState=rememberSaveable(query,sort.id,actualFilter.id,saver=androidx.compose.foundation.lazy.LazyListState.Saver) {androidx.compose.foundation.lazy.LazyListState()}
-    LaunchedEffect(query,version,catalogRevision) {
+    val scan by MediaLibraryScanner.state.collectAsState()
+    LaunchedEffect(query,version,catalogRevision,scan.revision) {
         error=null
         try {
             delay(if(query.isBlank())0 else 180)

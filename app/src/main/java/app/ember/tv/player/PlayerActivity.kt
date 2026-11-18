@@ -70,6 +70,7 @@ class PlayerActivity : ComponentActivity() {
     internal var fileQueue:MediaQueue?=null
     internal val repeatRange=RepeatRange()
     internal var pickingSidecar=false
+        set(value){field=value;updatePictureInPicture()}
     internal var pickerWasPlaying=false
     internal var captionForeground=false
     internal var captionAssistant:CaptionAssistant?=null
@@ -78,6 +79,7 @@ class PlayerActivity : ComponentActivity() {
     internal var captionOverlay:androidx.media3.ui.SubtitleView?=null
     internal var embeddedCaptionText=""
     internal var privatePlayback=false
+        set(value){field=value;updatePictureInPicture()}
     internal val clips=PlayerClipExport(this)
     internal val exports=PlayerExports(this)
     internal var sleepWatch:java.io.Closeable?=null
@@ -174,12 +176,9 @@ class PlayerActivity : ComponentActivity() {
         if(pickingSidecar)return
         // Home (or another app) chosen by the user: the player closes when it stops (unless picture-in-picture).
         userLeft = true
-        val p = player ?: return
-        if (privatePlayback || !config.pip || !p.isPlaying || !packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
-        val size = p.videoSize
-        val ratio = if (size.width > 0 && size.height > 0) android.util.Rational(size.width, size.height) else android.util.Rational(16, 9)
-        val safe = if (ratio.toFloat() in 0.42f..2.38f) ratio else android.util.Rational(16, 9)
-        runCatching { enterPictureInPictureMode(android.app.PictureInPictureParams.Builder().setAspectRatio(safe).build()) }.onSuccess { userLeft = false }
+        if(android.os.Build.VERSION.SDK_INT>=31)return
+        if(!pictureInPictureAllowed())return
+        runCatching { enterPictureInPictureMode(pictureInPictureParams()) }.onSuccess {if(it)userLeft=false}
     }
 
     // ---- paused when the screensaver starts: stay open, so the video is still there afterwards ----
@@ -188,7 +187,9 @@ class PlayerActivity : ComponentActivity() {
     /** A paused player kept in the background closes after half an hour (the TV may be off by then). */
     internal val closeKept = Runnable { endPlayback() }
 
-    override fun onResume(){super.onResume();captionConfig=null;captionForeground=true;subtitleTicker.refresh()}
+    internal var pictureInPictureEntered=false
+
+    override fun onResume(){super.onResume();pictureInPictureEntered=false;updatePictureInPicture();captionConfig=null;captionForeground=true;subtitleTicker.refresh()}
 
     override fun onStart() {
         super.onStart()
@@ -229,6 +230,12 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) {
+            pictureInPictureEntered=true;userLeft=false
+            backgroundStage?.let(BackgroundAudioService::cancelStage);backgroundStage=null
+        } else if(pictureInPictureEntered && !lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) {
+            endPlayback();return
+        }
         if (!::view.isInitialized) return
         view.useController = !isInPictureInPictureMode && !advanced
         if (isInPictureInPictureMode) {
@@ -569,6 +576,7 @@ class PlayerActivity : ComponentActivity() {
         handler.removeCallbacks(controlsTicker)
         handler.removeCallbacks(hideControls)
         handler.removeCallbacks(statsTicker)
+        if(pictureInPictureEntered && !isChangingConfigurations){endPlayback();return}
         if(commitBackgroundAudio())return
         val p = player
         // Paused and still on screen when the screensaver (or another overlay) took over: keep the

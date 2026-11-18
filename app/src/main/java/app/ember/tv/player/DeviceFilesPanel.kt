@@ -106,7 +106,7 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
     }
     val addFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree ->
         if (tree != null) operation {
-            val folder = withContext(Dispatchers.IO) {saveDeviceFolder(activity,tree,store){ensureActive()}}
+            val folder = withContext(Dispatchers.IO) {saveDeviceFolder(activity,tree,store){ensureActive()}.also {MediaLibraryScanner.request(activity,true)}}
             folders = withContext(Dispatchers.IO) {store.read().filterNot {app.ember.player.PrivateMedia.hidden(it.uri)}}
             root = folder; parents = emptyList(); query = ""
         }
@@ -145,7 +145,7 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
             Chip(uiResources.getString(R.string.ui_add_a_media_folder)) {if (!busy) runCatching {addFolder.launch(null)}.onFailure {notice = uiResources.getString(R.string.ui_no_document_picker_is_installed_on_this_device)}}
             folders.forEach {folder -> ButtonRow {
                 Chip(folder.name, maxLines = 1) {root = folder; parents = emptyList(); query = ""}
-                Chip(uiResources.getString(R.string.ui_forget_folder)) {operation {withContext(Dispatchers.IO) {check(store.remove(folder.uri)) {"Could not update saved folders."}}; folders = withContext(Dispatchers.IO) {store.read().filterNot {app.ember.player.PrivateMedia.hidden(it.uri)}}}}
+                Chip(uiResources.getString(R.string.ui_forget_folder)) {operation {withContext(Dispatchers.IO) {check(store.remove(folder.uri)) {"Could not update saved folders."};MediaLibraryScanner.request(activity,true)}; folders = withContext(Dispatchers.IO) {store.read().filterNot {app.ember.player.PrivateMedia.hidden(it.uri)}}}}
             }}
         } else {
             Text(current?.second ?: root!!.name, style=androidx.tv.material3.MaterialTheme.typography.bodyLarge, maxLines = 1)

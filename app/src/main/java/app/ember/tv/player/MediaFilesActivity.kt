@@ -41,6 +41,7 @@ class MediaFilesActivity:ComponentActivity() {
     override fun onResume() {
         super.onResume()
         refresh++
+        MediaLibraryScanner.request(this)
         if(::openedProfile.isInitialized && Prefs(this).currentProfile!=openedProfile)finish()
     }
     override fun onCreate(savedInstanceState:Bundle?) {

@@ -100,7 +100,7 @@ class PlayerDestructiveActionsUiTest {
         compose.waitUntil(10_000){compose.onAllNodesWithText(playlistError).fetchSemanticsNodes().isNotEmpty()}
         compose.runOnIdle {assertEquals("%unreadable%",encrypted.getString(playlistKey,null));encrypted.edit().putString(playlistKey,playlistCopy).commit()}
         compose.onNodeWithContentDescription("More options").performSemanticsAction(SemanticsActions.OnClick){it()}
-        compose.onNodeWithContentDescription("Refresh library view").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithContentDescription("Reload displayed media").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.waitUntil(10_000){compose.onAllNodesWithText("Recovered playlist",substring=true).fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithText(playlistError).assertDoesNotExist()
         click("Downloads")

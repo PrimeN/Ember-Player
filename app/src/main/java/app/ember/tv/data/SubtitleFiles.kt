@@ -44,9 +44,9 @@ object SubtitleFiles {
             while (true) {
                 val entry = zip.nextEntry ?: break
                 check(++count <= MAX_ENTRIES) { "Too many subtitle archive entries." }
-                if (!entry.isDirectory) {
+                if (!entry.isDirectory && entry.name.substringAfterLast('.').lowercase() in setOf("srt","vtt","ass","ssa","ttml","xml","sub","smi","sami")) {
                     val data = read(zip, minOf(MAX_DOWNLOAD, MAX_EXPANDED - total)); total += data.size
-                    if (entry.name.substringAfterLast('.').lowercase() in setOf("srt","vtt","ass","ssa","ttml","xml","sub","smi","sami")) files += entry.name to data
+                    files += entry.name to data
                 }
                 zip.closeEntry()
             }

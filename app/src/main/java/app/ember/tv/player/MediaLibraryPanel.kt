@@ -18,30 +18,28 @@ import kotlinx.coroutines.*
 internal fun MediaLibraryPanel(activity:ComponentActivity,refresh:Int,showTitle:Boolean=true) {
     val uiResources=androidx.compose.ui.platform.LocalResources.current
 
-    val scope=rememberCoroutineScope()
+    val scan by MediaLibraryScanner.state.collectAsState()
     var query by remember {mutableStateOf("")}
     var offsets by remember {mutableStateOf(listOf(0))}
     var revision by remember {mutableIntStateOf(0)}
     var page by remember {mutableStateOf(MediaLibrary.Result(emptyList(),null))}
     var notice by remember {mutableStateOf<app.ember.player.PlayerFeedback?>(null)}
-    var job by remember {mutableStateOf<Job?>(null)}
-    var scanned by remember {mutableIntStateOf(0)}
+    LaunchedEffect(scan.revision,scan.result) {
+        revision=scan.revision
+        notice=when(scan.result) {
+            ScanResult.COMPLETE->app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_library_refreshed),false)
+            ScanResult.EMPTY->app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_add_a_media_folder_before_refreshing),false)
+            ScanResult.FAILED->app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_could_not_finish_refreshing_check_folder_access_existing_indexed))
+            ScanResult.UNAVAILABLE->app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_the_saved_folder_index_is_unavailable_on_this_device))
+            null->null
+        }
+    }
     if(showTitle)app.ember.player.PlayerSectionTitle(uiResources.getString(R.string.ui_saved_folder_library))
     Text(uiResources.getString(R.string.ui_refresh_indexes_the_folders_you_chose_including_subfolders_the),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
     TvTextField(query,{query=it.take(120);offsets=listOf(0)},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_search_media_library))
     ButtonRow {
-        if(job?.isActive!=true)Chip(uiResources.getString(R.string.ui_refresh_library)){job=scope.launch {
-            notice=null;scanned=0
-            try {
-                val folders=withContext(Dispatchers.IO){DeviceFolders(activity).read()}
-                if(folders.isEmpty())notice=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_add_a_media_folder_before_refreshing),false)
-                else {withContext(Dispatchers.IO) {MediaLibrary(activity).use {index->index.refresh(folders,{ensureActive()},{scanned=it})}};notice=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_library_refreshed),false)}
-            }
-            catch(e:CancellationException){throw e}
-            catch(_:Exception){notice=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_could_not_finish_refreshing_check_folder_access_existing_indexed))}
-            catch(_:LinkageError){notice=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_the_saved_folder_index_is_unavailable_on_this_device))}
-            finally {revision++}
-        }} else Chip(uiResources.getQuantityString(R.plurals.ui_cancel_refresh_files,scanned,scanned)){job?.cancel()}
+        if(!scan.active)Chip(uiResources.getString(R.string.ui_refresh_library)){MediaLibraryScanner.request(activity,true)}
+        else Chip(uiResources.getQuantityString(R.plurals.ui_cancel_refresh_files,scan.scanned,scan.scanned)){MediaLibraryScanner.cancel(activity)}
         if(offsets.size>1)Chip(uiResources.getString(R.string.ui_previous_page)){offsets=offsets.dropLast(1)}
         page.nextOffset?.let {next->Chip(uiResources.getString(R.string.ui_next_page)){offsets=offsets+next}}
     }

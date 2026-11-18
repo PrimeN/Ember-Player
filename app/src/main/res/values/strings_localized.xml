@@ -737,7 +737,7 @@
     <string name="ui_refresh_drives" formatted="false">"Refresh drives"</string>
     <string name="ui_refresh_indexes_the_folders_you_chose_including_subfolders_the" formatted="false">"Refresh indexes the folders you chose, including subfolders. The encrypted index stays on this device; nothing is scanned at startup."</string>
     <string name="ui_refresh_library" formatted="false">"Refresh library"</string>
-    <string name="ui_refresh_library_view" formatted="false">"Refresh library view"</string>
+    <string name="ui_refresh_library_view" formatted="false">"Reload displayed media"</string>
     <string name="ui_refresh_usb_drives" formatted="false">"Refresh USB drives"</string>
     <string name="ui_reinhard" formatted="false">"Reinhard"</string>
     <string name="ui_release_to_return">"%1$s× · release to return"</string>
