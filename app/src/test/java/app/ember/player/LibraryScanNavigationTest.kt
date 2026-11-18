@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import app.ember.tv.data.Prefs
 import app.ember.tv.player.*
 import org.junit.Assert.*
+import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,12 +22,15 @@ import org.robolectric.annotation.Config
 @Config(sdk=[35,36],application=Application::class)
 class LibraryScanNavigationTest {
     @get:Rule val compose=createComposeRule()
+    @After fun cancelPendingScan(){MediaLibraryScanner.cancel(RuntimeEnvironment.getApplication())}
     @Test fun leavingTheScanPanelKeepsItsBackgroundJobScheduled() {
         val app:Application=RuntimeEnvironment.getApplication()
         PlayerUiStoreFixture(app).use {
             val activity=Robolectric.buildActivity(ComponentActivity::class.java).get()
+            MediaLibraryScanner.cancel(app)
             val visible=mutableStateOf(true)
             compose.setContent {PlayerTheme(Prefs(app)) {if(visible.value)MediaLibraryPanel(activity,0)}}
+            compose.waitUntil(10_000){compose.onAllNodesWithText("Refresh library").fetchSemanticsNodes().size==1}
             compose.onNodeWithText("Refresh library").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick){it()}
             val scheduler=app.getSystemService(JobScheduler::class.java)
             compose.waitUntil(10_000){scheduler.getPendingJob(MediaLibraryScanner.JOB_ID)!=null}
@@ -37,6 +41,7 @@ class LibraryScanNavigationTest {
             compose.onNode(hasText("Cancel refresh",substring=true)).assertExists()
             compose.onNode(hasText("Cancel refresh",substring=true)).performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick){it()}
             compose.waitUntil(10_000){scheduler.getPendingJob(MediaLibraryScanner.JOB_ID)==null}
+            MediaLibraryScanner.cancel(app)
         }
     }
 }
