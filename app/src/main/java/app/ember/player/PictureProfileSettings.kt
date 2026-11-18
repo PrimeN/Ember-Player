@@ -22,7 +22,7 @@ internal fun PictureProfileSettings(config:PlaybackConfig,save:(PlaybackConfig)-
     Text(uiResources.getString(R.string.ui_save_upscaling_shader_color_debanding_smoothing_and_hdr_choices),style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
     TvTextField(name,{name=it.take(32);notice=null},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_profile_name),startEditing=!PlayerTouchControls.isTelevision(androidx.compose.ui.platform.LocalContext.current))
     Chip(uiResources.getString(R.string.ui_save_current_picture_settings)) {
-        runCatching {PictureProfiles.save(config,name,PictureState.from(config))}.onSuccess {save(it);notice=PlayerFeedback(uiResources.getString(R.string.ui_profile_saved),false)}.onFailure {notice=PlayerFeedback(uiResources.getString(R.string.ui_enter_a_profile_name_you_can_save_up_to,PictureProfiles.MAX_PROFILES.toString()))}
+        runCatching {PictureProfiles.save(config,name,PictureState.from(config))}.onSuccess {save(it);notice=PlayerFeedback(uiResources.getString(R.string.ui_profile_saved),false)}.onFailure {notice=PlayerFeedback(uiResources.getString(PresetValidationException.resource(it)))}
     }
     if(profiles.isNotEmpty()) {
         val selected=profiles.firstOrNull {it.id==chosen} ?: profiles.first()

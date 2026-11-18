@@ -61,6 +61,8 @@ private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:
             PlayerChoice(uiResources.getString(R.string.ui_skip_markers),listOf("button" to uiResources.getString(R.string.ui_show_skip_button),"auto" to uiResources.getString(R.string.ui_skip_automatically),"off" to uiResources.getString(R.string.ui_off)),config.skipIntro){v->update {it.copy(skipIntro=v)}}
         }
         "network"->PlayerSection(uiResources.getString(R.string.ui_network_and_buffering)) {
+            SwitchChip(uiResources.getString(R.string.ui_network_media_previews),prefs.networkMediaPreviews){prefs.networkMediaPreviews=!prefs.networkMediaPreviews;refresh()}
+            Text(uiResources.getString(R.string.ui_network_media_previews_help),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
             StreamSettings(config){value->update {value}}
         }
         "sleep"->PlayerSection(uiResources.getString(R.string.ui_sleep_timer)) {

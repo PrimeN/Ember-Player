@@ -28,6 +28,7 @@ internal class SavedPlaylists(private val readValue:()->String?,private val writ
         require(values.size<=50&&values.all(::valid)&&values.distinctBy {it.id}.size==values.size)
         return values
     }
+    fun readForDisplay():List<SavedPlaylist> = load()
     fun read():List<SavedPlaylist> = runCatching {load()}.getOrDefault(emptyList())
     fun save(name:String,items:List<QueueMedia>,index:Int=0,repeat:String="off",shuffle:Boolean=false,id:String?=null):Boolean=synchronized(lock) {
         if(items.any {app.ember.player.PrivateMedia.hidden(it.uri)||it.identity?.startsWith(DirectUsbIdentity.PREFIX)==true})return@synchronized false
@@ -53,13 +54,24 @@ internal class SavedPlaylists(private val readValue:()->String?,private val writ
         val existing=value.entries.map {QueueMedia(it.uri,it.title,it.identity,it.network,it.directory)}
         save(value.name,existing+items,value.index,value.repeat,value.shuffle,value.id)
     }
-    fun move(id:String,from:Int,to:Int):Boolean=synchronized(lock) {
+    fun move(id:String,from:Int,to:Int,expectedEntries:List<PlaylistEntry>?=null):Boolean=synchronized(lock) {
         val values=runCatching {load()}.getOrNull() ?: return@synchronized false
         val value=values.firstOrNull {it.id==id} ?: return@synchronized false
+        if(expectedEntries!=null&&value.entries!=expectedEntries)return@synchronized false
         if(from !in value.entries.indices||to !in value.entries.indices)return@synchronized false
         val entries=value.entries.toMutableList().apply {add(to,removeAt(from))}
         val index=when {value.index==from->to;from<value.index&&to>=value.index->value.index-1;from>value.index&&to<=value.index->value.index+1;else->value.index}
         writeValue(json.encodeToString(values.map {if(it.id==id)it.copy(entries=entries,index=index) else it}))
+    }
+    fun removeEntry(id:String,at:Int,expectedEntries:List<PlaylistEntry>?=null):Boolean=synchronized(lock) {
+        val values=runCatching {load()}.getOrNull() ?: return@synchronized false
+        val value=values.firstOrNull {it.id==id} ?: return@synchronized false
+        if(at !in value.entries.indices || expectedEntries!=null&&value.entries!=expectedEntries)return@synchronized false
+        val entries=value.entries.filterIndexed {index,_->index!=at}
+        val index=(if(at<value.index)value.index-1 else value.index).coerceAtMost(entries.lastIndex)
+        val updated=if(entries.isEmpty())values.filterNot {it.id==id}
+            else values.map {if(it.id==id)it.copy(entries=entries,index=index) else it}
+        writeValue(json.encodeToString(updated))
     }
     fun remove(id:String):Boolean=synchronized(lock) {
         val values=runCatching {load()}.getOrNull() ?: return@synchronized false

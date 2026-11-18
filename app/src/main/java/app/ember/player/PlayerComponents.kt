@@ -44,14 +44,15 @@ internal fun PlayerStatusText(message:String) {
 }
 
 @Composable
-internal fun PlayerConfirmationDialog(title:String,message:String,confirmLabel:String,close:()->Unit,busy:Boolean=false,confirm:()->Unit) {
+internal fun PlayerConfirmationDialog(title:String,message:String,confirmLabel:String,close:()->Unit,busy:Boolean=false,content:@Composable ()->Unit={},confirm:()->Unit) {
     val uiResources=androidx.compose.ui.platform.LocalResources.current
 
     val cancelFocus=remember {FocusRequester()}
     val television=LocalPlayerTelevision.current
-    TvDialog({if(!busy)close()},width=520.dp,scrollContent=true) {
+    TvDialog({if(!busy)close()},width=520.dp,resizeForKeyboard=true,scrollContent=true) {
         DialogHeading(title)
         Text(message,style=androidx.tv.material3.MaterialTheme.typography.bodyMedium)
+        content()
         ButtonRow {
             PlayerAction(if(busy)uiResources.getString(R.string.ui_working) else confirmLabel,destructive=true,enabled=!busy,onClick=confirm)
             PlayerAction(uiResources.getString(R.string.ui_cancel),modifier=Modifier.focusRequester(cancelFocus),enabled=!busy,onClick=close)

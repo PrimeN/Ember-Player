@@ -29,7 +29,7 @@ internal fun PlayerActivity.managePictureProfiles() {
     }}.toMutableList()
     actions+=PlayerDialogAction(resources.getString(R.string.ui_save_current_settings)) {
         playbackValueDialog(resources.getString(R.string.ui_save_picture_shader_profile),"",resources.getString(R.string.ui_name_this_profile_an_existing_name_replaces_that_profile),resources.getString(R.string.ui_save)) {name->
-            runCatching {store(PictureProfiles.save(config,name,PictureState.from(PictureProfiles.effective(config,resumeKey))))}.exceptionOrNull()?.message
+            runCatching {store(PictureProfiles.save(config,name,PictureState.from(PictureProfiles.effective(config,resumeKey))))}.exceptionOrNull()?.let {resources.getString(PresetValidationException.resource(it))}
         }
     }
     if(bound!=null)actions+=PlayerDialogAction(resources.getString(R.string.ui_use_global_picture_settings)) {store(PictureProfiles.bind(config,resumeKey,null))}

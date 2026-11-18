@@ -22,6 +22,7 @@ internal fun PlaylistsPanel(activity:ComponentActivity,refresh:Int) {
     val scope=rememberCoroutineScope()
     val store=remember {SavedPlaylists(activity)}
     var values by remember {mutableStateOf<List<SavedPlaylist>>(emptyList())}
+    var readError by remember {mutableStateOf(false)}
     var selected by remember {mutableStateOf<SavedPlaylist?>(null)}
     var editing by remember {mutableStateOf<SavedPlaylist?>(null)}
     var rename by remember {mutableStateOf<SavedPlaylist?>(null)}
@@ -30,7 +31,11 @@ internal fun PlaylistsPanel(activity:ComponentActivity,refresh:Int) {
     var busy by remember {mutableStateOf(false)}
     var notice by remember {mutableStateOf<String?>(null)}
     var revision by remember {mutableIntStateOf(0)}
-    LaunchedEffect(refresh,revision) {values=withContext(Dispatchers.IO) {store.read().filter {value->value.entries.none {app.ember.player.PrivateMedia.hidden(it.uri)}}}}
+    LaunchedEffect(refresh,revision) {
+        val loaded=withContext(Dispatchers.IO) {runCatching {store.readForDisplay()}.getOrNull()}
+        readError=loaded==null
+        values=loaded.orEmpty().filter {value->value.entries.none {app.ember.player.PrivateMedia.hidden(it.uri)}}
+    }
     fun play(value:SavedPlaylist,index:Int) {
         if(busy)return
         busy=true;notice=null
@@ -63,11 +68,12 @@ internal fun PlaylistsPanel(activity:ComponentActivity,refresh:Int) {
             Chip(uiResources.getString(R.string.ui_playlist_summary ,value.name,value.entries.size),maxLines=1) {if(!busy)play(value,value.index)}
             app.ember.player.PlayerIconAction(uiResources.getString(R.string.ui_more_options_for ,value.name),androidx.compose.material.icons.Icons.Outlined.MoreHoriz) {if(!busy)selected=value}
         }}
+        if(readError)app.ember.player.PlayerErrorText(uiResources.getString(R.string.ui_playlists_unreadable))
         notice?.let {app.ember.player.PlayerErrorText(it)}
         selected?.let {value->OptionMenu(value.name,listOf(
             MenuOption(uiResources.getString(R.string.ui_resume_playlist)) {play(value,value.index)},
             MenuOption(uiResources.getString(R.string.ui_play_from_beginning)) {play(value,0)},
-            MenuOption(uiResources.getString(R.string.ui_reorder_entries)) {editing=value},
+            MenuOption(uiResources.getString(R.string.ui_edit_playlist_entries)) {editing=value},
             MenuOption(uiResources.getString(R.string.ui_rename)) {rename=value},
             MenuOption(uiResources.getString(R.string.ui_delete_playlist)) {deleting=value},
         ),{selected=null})}

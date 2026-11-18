@@ -32,12 +32,19 @@ internal fun PlaylistPickerContent(context:Context,items:List<QueueMedia>,index:
     val scope=rememberCoroutineScope()
     var playlists by remember {mutableStateOf<List<SavedPlaylist>>(emptyList())}
     var name by remember {mutableStateOf("")}
+    var readError by remember {mutableStateOf(false)}
+    var revision by remember {mutableIntStateOf(0)}
     var loading by remember {mutableStateOf(true)}
     var busy by remember {mutableStateOf(false)}
     var error by remember {mutableStateOf<String?>(null)}
-    LaunchedEffect(store){playlists=withContext(Dispatchers.IO){store.read().filter {p->p.entries.none {PrivateMedia.hidden(it.uri)}}};loading=false}
+    LaunchedEffect(store,revision){
+        loading=true
+        val loaded=withContext(Dispatchers.IO){runCatching {store.readForDisplay()}.getOrNull()}
+        playlists=loaded.orEmpty().filter {p->p.entries.none {PrivateMedia.hidden(it.uri)}}
+        readError=loaded==null;loading=false
+    }
     fun save(id:String?) {
-        if(busy)return
+        if(busy||loading||readError)return
         busy=true;error=null
         scope.launch {
             try {
@@ -55,9 +62,11 @@ internal fun PlaylistPickerContent(context:Context,items:List<QueueMedia>,index:
         items(playlists,key={it.id}) {playlist->PlayerAction(playlist.name,enabled=!busy){save(playlist.id)}}
     }
     TvTextField(name,{name=it.take(80)},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_new_playlist_name))
+    if(readError)PlayerErrorText(uiResources.getString(R.string.ui_playlists_unreadable))
     error?.let {PlayerErrorText(it)}
     ButtonRow {
-        PlayerAction(if(busy)uiResources.getString(R.string.ui_saving) else uiResources.getString(R.string.ui_create_playlist),primary=true,enabled=!busy&&name.isNotBlank()){save(null)}
+        if(readError)PlayerAction(uiResources.getString(R.string.ui_refresh),enabled=!busy&&!loading){revision++}
+        PlayerAction(if(busy)uiResources.getString(R.string.ui_saving) else uiResources.getString(R.string.ui_create_playlist),primary=true,enabled=!busy&&!loading&&!readError&&name.isNotBlank()){save(null)}
         PlayerAction(uiResources.getString(R.string.ui_cancel),enabled=!busy,onClick=close)
     }
 }

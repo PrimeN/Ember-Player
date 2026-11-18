@@ -16,9 +16,13 @@ internal fun DeviceMediaRow(file:DeviceFile,modifier:Modifier=Modifier,selected:
 
 @Composable
 internal fun NetworkMediaRow(account:NetworkAccount,path:String,entry:NetworkEntry,selected:Boolean,click:()->Unit) {
-    val preview by produceState(BrowserPreview(),account, path,entry) {
-        if(!entry.directory&&entry.size>0)value=DeviceThumbnails.remote("${account.id}|${account.address}|${account.fingerprint}|$path|${entry.name}|${entry.size}",entry.name,
-            NetworkFiles.resource(account,NetworkLocation.child(path,entry.name),entry.size))
+    val context=LocalContext.current
+    val prefs=remember(context){app.ember.tv.data.Prefs(context)}
+    val enabled=LocalNetworkMediaPreviews.current
+    val preview by produceState(BrowserPreview(),account,path,entry,enabled) {
+        value=BrowserPreview()
+        if(enabled&&prefs.networkMediaPreviews&&!entry.directory&&entry.size>0)value=DeviceThumbnails.remote("${account.id}|${account.address}|${account.fingerprint}|$path|${entry.name}|${entry.size}",entry.name,
+            NetworkFiles.resource(account,NetworkLocation.child(path,entry.name),entry.size),enabled={prefs.networkMediaPreviews})
     }
-    PlayerFileRow(entry.name,entry.directory,selected=selected,preview=preview,audio=DeviceThumbnails.audio(entry.name),click=click)
+    PlayerFileRow(entry.name,entry.directory,selected=selected,preview=if(enabled)preview else BrowserPreview(),audio=DeviceThumbnails.audio(entry.name),click=click)
 }

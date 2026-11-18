@@ -31,10 +31,11 @@ internal fun DownloadsPanel(activity:ComponentActivity) {
     var adding by remember {mutableStateOf(false)}
     var removing by remember {mutableStateOf<MediaDownload?>(null)}
     var notice by remember {mutableStateOf<String?>(null)}
+    var readError by remember {mutableStateOf(false)}
     var entries by remember {mutableStateOf<List<MediaDownload>>(emptyList())}
     var version by remember {mutableIntStateOf(0)}
     app.ember.player.PlayerSection(uiResources.getString(R.string.ui_downloads)) {
-        LaunchedEffect(version) {activity.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED){while(true){entries=withContext(Dispatchers.IO){DownloadStore(activity).read()};delay(1500)}}}
+        LaunchedEffect(version) {activity.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED){while(true){val loaded=withContext(Dispatchers.IO){runCatching {DownloadStore(activity).readForDisplay()}.getOrNull()};readError=loaded==null;entries=loaded.orEmpty();delay(1500)}}}
         ButtonRow {Chip(uiResources.getString(R.string.ui_download_media_url)){adding=true};Chip(uiResources.getString(R.string.ui_pause_downloads)){MediaDownloadService.pause(activity)}}
         Text(uiResources.getString(R.string.ui_direct_media_files_download_one_at_a_time_additional),style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
         entries.filterNot {PrivateMedia.hidden(it.url)||PrivateMedia.hidden(DownloadStore.uri(activity,it).toString())}.forEach {entry->
@@ -43,6 +44,7 @@ internal fun DownloadsPanel(activity:ComponentActivity) {
                 {runCatching {start(entry.id)}.onFailure {notice=uiResources.getString(R.string.ui_android_could_not_start_this_download)}},
                 {removing=entry})
         }
+        if(readError)PlayerErrorText(uiResources.getString(R.string.ui_downloads_unreadable))
         notice?.let {PlayerErrorText(it)}
         removing?.let {entry->PlayerConfirmationDialog(uiResources.getString(R.string.ui_delete_download),uiResources.getString(R.string.ui_and_its_downloaded_file_will_be_removed_from_this ,entry.name),uiResources.getString(R.string.ui_delete_download_d41b50),{removing=null}) {
             removing=null

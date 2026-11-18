@@ -69,6 +69,9 @@ internal class PrivateSession {
     fun token():Long=synchronized(guard){epoch}
     fun unlock(token:Long):Boolean=synchronized(guard){if(token!=epoch)false else {unlocked.value=true;true}}
     fun lock()=synchronized(guard){epoch++;unlocked.value=false}
+    fun change(token:Long,requireUnlocked:Boolean,action:()->Unit):Boolean=synchronized(guard) {
+        if(token!=epoch || requireUnlocked&&!unlocked.value)false else {action();true}
+    }
 }
 
 /** Document IDs stay stable across tree and single-document URI forms. */
@@ -159,11 +162,17 @@ internal object PrivateMedia {
     internal val libraryVisibility get()=unavailable to state.value.items
     fun hidden(uri:String)=unavailable || index.hidden(uri)
     fun historyAllowed(uri:String)=state.value.history&&!hidden(uri)
-    @Synchronized fun configure(pin:String) {
-        check(!enabled || unlocked.value);check(!unavailable)
+    @Synchronized fun configure(pin:String,currentPin:String?=null):Boolean {
+        val changing=enabled
+        check(!changing || unlocked.value);check(!unavailable)
         val ticket=session.token()
-        save(state.value.copy(pin=PrivatePin.create(pin),failures=0,retryAfter=0,retryElapsed=0))
-        check(session.unlock(ticket)){"Private session closed. Unlock again."}
+        if(changing && (currentPin==null || !authenticate(currentPin)))return false
+        val record=PrivatePin.create(pin)
+        check(session.change(ticket,changing) {
+            save(state.value.copy(pin=record,failures=0,retryAfter=0,retryElapsed=0))
+            check(session.unlock(ticket))
+        }) {"Private session closed. Unlock again."}
+        return true
     }
     private fun bootCount()=runCatching {android.provider.Settings.Global.getInt(app.contentResolver,android.provider.Settings.Global.BOOT_COUNT,-1)}.getOrDefault(-1)
     @Synchronized fun authenticate(pin:String,now:Long=SystemClock.elapsedRealtime()):Boolean {
@@ -200,7 +209,15 @@ internal object PrivateMedia {
         handler.post {BackgroundAudioService.stopPrivatePlayback()}
     }
     @Synchronized fun remove(uri:String){check(unlocked.value&&!unavailable);save(state.value.copy(items=state.value.items.filterNot {it.uri==uri}))}
-    @Synchronized fun removeProtection(){check(unlocked.value&&!unavailable);save(state.value.copy(pin="",items=emptyList(),failures=0,retryAfter=0,retryElapsed=0));lock()}
+    @Synchronized fun removeProtection(currentPin:String):Boolean {
+        check(enabled&&unlocked.value&&!unavailable)
+        val ticket=session.token()
+        if(!authenticate(currentPin))return false
+        check(session.change(ticket,true) {
+            save(state.value.copy(pin="",items=emptyList(),failures=0,retryAfter=0,retryElapsed=0));lock()
+        }) {"Private session closed. Unlock again."}
+        return true
+    }
     @Synchronized fun recordHistory(value:Boolean){check(!unavailable);save(state.value.copy(history=value));if(!value)clearHistory()}
     fun clearHistory() {
         check(MediaHistory(app).clear())

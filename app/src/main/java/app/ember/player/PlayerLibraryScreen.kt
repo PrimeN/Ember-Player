@@ -138,7 +138,7 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
                             when(destination) {
                                 PlayerLibraryDestination.FOLDERS->{DeviceFilesPanel(activity,version,folderUri);UsbFilesPanel(activity,version);DirectUsbPanel(activity,version);PlayerSection(uiResources.getString(R.string.ui_saved_folder_library)){MediaLibraryPanel(activity,version,showTitle=false)}}
                                 PlayerLibraryDestination.NETWORK->NetworkFilesPanel(activity,version)
-                                PlayerLibraryDestination.PLAYLISTS->PlaylistsPanel(activity,version)
+                                PlayerLibraryDestination.PLAYLISTS->PlaylistsPanel(activity,version+localRevision)
                                 PlayerLibraryDestination.DOWNLOADS->DownloadsPanel(activity)
                                 PlayerLibraryDestination.PRIVATE->PrivateMediaPanel(activity)
                                 else->Unit

@@ -126,4 +126,14 @@ class PlayerSettingsUiTest {
         compose.runOnIdle {assertEquals(listOf("fr"),Prefs(RuntimeEnvironment.getApplication()).subtitleConfig.languages)}
     }
 
+    @Test fun networkPreviewsCanBeDisabledAndTheChoicePersists() {
+        category(RuntimeEnvironment.getApplication().getString(app.ember.tv.R.string.ui_network_cache))
+        compose.onNodeWithTag("settingsContent").performScrollToNode(hasText("Network media previews"))
+        compose.onNodeWithText("Network media previews").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.runOnIdle {assertEquals(false,Prefs(RuntimeEnvironment.getApplication()).networkMediaPreviews)}
+        category("Playback");category(RuntimeEnvironment.getApplication().getString(app.ember.tv.R.string.ui_network_cache))
+        compose.onNodeWithTag("settingsContent").performScrollToNode(hasText("Network media previews"))
+        compose.runOnIdle {assertEquals(false,Prefs(RuntimeEnvironment.getApplication()).networkMediaPreviews)}
+    }
+
 }

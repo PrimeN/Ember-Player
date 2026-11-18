@@ -28,14 +28,15 @@ internal object DeviceThumbnails {
         val frame=if(audio)null else runCatching {retriever.getScaledFrameAtTime(0,MediaMetadataRetriever.OPTION_CLOSEST_SYNC,width,width*9/16)}.getOrNull()
         return BrowserPreview(frame,duration)
     }
-    private suspend fun cached(key:String,load:()->BrowserPreview):BrowserPreview {
+    private suspend fun cached(key:String,allowed:()->Boolean={true},load:()->BrowserPreview):BrowserPreview {
+        if(!allowed())return BrowserPreview()
         val visit=generation.get()
         memory.get(key)?.let {return it}
         return gate.withPermit {withContext(Dispatchers.IO) {
             ensureActive()
             val result=memory.get(key) ?: runCatching(load).getOrDefault(BrowserPreview())
             ensureActive()
-            synchronized(lock){if(visit==generation.get()){memory.put(key,result);result}else BrowserPreview()}
+            synchronized(lock){if(visit==generation.get()&&allowed()){memory.put(key,result);result}else BrowserPreview()}
         }}
     }
     suspend fun preview(context:Context,file:DeviceFile,requestedWidth:Int=160):BrowserPreview {
@@ -50,30 +51,33 @@ internal object DeviceThumbnails {
         }
     }
     suspend fun load(context:Context,file:DeviceFile,requestedWidth:Int=160)=preview(context,file,requestedWidth).bitmap
-    suspend fun remote(key:String,name:String,source:RemoteMedia):BrowserPreview= cached("remote:$key") {
-        val budget=AtomicLong(8L*1024*1024)
-        val deadline=android.os.SystemClock.elapsedRealtime()+8000
-        val visit=generation.get()
-        fun check(){check(visit==generation.get()&&budget.get()>0&&android.os.SystemClock.elapsedRealtime()<deadline){"Preview read limit reached"}}
-        val bounded=object:RemoteMedia {
-            override val length=source.length
-            override fun open(offset:Long):InputStream {
-                check()
-                return object:FilterInputStream(source.open(offset)) {
-                    override fun read():Int {val one=ByteArray(1);return if(read(one,0,1)<0)-1 else one[0].toInt() and 255}
-                    override fun read(bytes:ByteArray,offset:Int,length:Int):Int {
-                        if(length==0)return 0
-                        check()
-                        val read=`in`.read(bytes,offset,minOf(length.toLong(),budget.get()).toInt())
-                        if(read>0)budget.addAndGet(-read.toLong())
-                        return read
+    suspend fun remote(key:String,name:String,source:RemoteMedia,enabled:()->Boolean={true}):BrowserPreview {
+        if(!enabled())return BrowserPreview()
+        return cached("remote:$key",enabled) {
+            val budget=AtomicLong(8L*1024*1024)
+            val deadline=android.os.SystemClock.elapsedRealtime()+8000
+            val visit=generation.get()
+            fun check(){check(enabled()&&visit==generation.get()&&budget.get()>0&&android.os.SystemClock.elapsedRealtime()<deadline){"Preview read limit reached"}}
+            val bounded=object:RemoteMedia {
+                override val length=source.length
+                override fun open(offset:Long):InputStream {
+                    check()
+                    return object:FilterInputStream(source.open(offset)) {
+                        override fun read():Int {val one=ByteArray(1);return if(read(one,0,1)<0)-1 else one[0].toInt() and 255}
+                        override fun read(bytes:ByteArray,offset:Int,length:Int):Int {
+                            if(length==0)return 0
+                            check()
+                            val read=`in`.read(bytes,offset,minOf(length.toLong(),budget.get()).toInt())
+                            if(read>0)budget.addAndGet(-read.toLong())
+                            return read
+                        }
                     }
                 }
             }
+            MediaRelay().use {relay->MediaMetadataRetriever().use {retriever->
+                retriever.setDataSource(relay.register(bounded,name),emptyMap())
+                read(retriever,audio(name),160)
+            }}
         }
-        MediaRelay().use {relay->MediaMetadataRetriever().use {retriever->
-            retriever.setDataSource(relay.register(bounded,name),emptyMap())
-            read(retriever,audio(name),160)
-        }}
     }
 }

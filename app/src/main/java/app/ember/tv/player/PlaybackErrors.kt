@@ -27,6 +27,20 @@ internal object PlaybackErrors {
         PlaybackException.ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES,
     )
 
+    @androidx.annotation.StringRes fun message(code:Int):Int=when {
+        code==PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT->R.string.ui_playback_network_timeout
+        connection(code)->R.string.ui_playback_network_failure
+        code==PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS->R.string.ui_playback_server_failure
+        code==PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND->R.string.ui_playback_file_missing
+        code==PlaybackException.ERROR_CODE_IO_NO_PERMISSION->R.string.ui_playback_permission_failure
+        code==PlaybackException.ERROR_CODE_IO_CLEARTEXT_NOT_PERMITTED->R.string.ui_playback_cleartext_failure
+        decoding(code)->R.string.ui_playback_decoding_failure
+        audioOutput(code)->R.string.ui_playback_audio_failure
+        malformedContainer(code)||code==PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED||code==PlaybackException.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED->R.string.ui_playback_format_failure
+        code in PlaybackException.ERROR_CODE_DRM_UNSPECIFIED..PlaybackException.ERROR_CODE_DRM_LICENSE_EXPIRED->R.string.ui_playback_protection_failure
+        else->R.string.ui_playback_failure
+    }
+
     /** A dropped connection or a stalled link: retried from the same position. */
     fun connection(code: Int) = code in connection
 
