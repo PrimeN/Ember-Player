@@ -193,12 +193,14 @@ processing failure retries the current video without effects, keeping the saved
 preference and playback position.
 
 
-Advanced decoder profiles and HDR-to-SDR output use the existing mpv 0.42.0
-`gpu` renderer and decoder options. No additional native library, external shader
-pack, model download or service is required. Tone curves and gamut choices are
-limited to supported modes. mpv playback also offers the bundled
-`gpu-next` renderer explicitly, with one automatic fallback to `gpu` after failure. HDR conversion uses the renderer's colour pipeline, with automatic
-output settings restored when conversion is disabled, bypassed or not applicable.
+mpv Automatic rendering starts with the bundled `gpu-next` renderer. Stable GPU
+explicitly selects `gpu`. Renderer initialization or playback failure can trigger
+one recovery to `gpu`; only a user renderer selection resets that recovery.
+Audio-only sessions do not perform video renderer recovery. This policy applies
+to the mpv core. Picture-processing preferences and HDR conversion controls keep
+their existing settings. HDR conversion uses the selected renderer's colour
+pipeline, with automatic output settings restored when conversion is disabled,
+bypassed or not applicable.
 SDR colour/detail effects remain separate from HDR output conversion.
 
 

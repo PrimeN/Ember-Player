@@ -49,7 +49,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     private var deinterlacing=config.deinterlacing
     private var displayInfo=HdrDisplayInfo.read(context)
     private var requestedRenderer=config.renderer
-    private val rendererSession=RendererSession(RendererPolicy.initial(config.renderer,config.hdrOutput.expand,displayInfo.pq))
+    private val rendererSession=RendererSession(RendererPolicy.initial(config.renderer),C.TRACK_TYPE_VIDEO !in initialParameters.disabledTrackTypes)
     private val renderer get()=rendererSession.active
     private val rendererFallback get()=rendererSession.recovered
     private val hdrSurface=HdrSurfaceBinding()
@@ -494,7 +494,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         val normalized=value.normalized()
         if(normalized!=requestedHdr)hdrBypassed=false
         requestedHdr=normalized
-        val desired=RendererPolicy.initial(requestedRenderer,normalized.expand,displayInfo.pq)
+        val desired=RendererPolicy.initial(requestedRenderer)
         if(desired=="gpu-next"&&desired!=renderer&&!rendererFallback)renderer(requestedRenderer) else applyHdrOutput()
     }
     private fun applyHdrOutput() {
@@ -520,7 +520,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     fun renderer(value:String) {
         requestedRenderer=RendererPolicy.normalized(value)
         hdrSurface.restore();signaledHdr=false
-        rendererSession.select(RendererPolicy.initial(value,requestedHdr.expand,displayInfo.pq))
+        rendererSession.select(RendererPolicy.initial(value))
         native.setPropertyString("vo",renderer);appliedHdr=null;applyHdrOutput()
     }
     fun buffering(value:PlaybackConfig){requestedStream=value.stream;StreamConfig.plan(context,value).nativeOptions().filterKeys {it!="network-timeout"}.forEach {(key,option)->native.setPropertyString(key,option)}}

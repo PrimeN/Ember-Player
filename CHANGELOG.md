@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Prefer gpu-next for automatic mpv rendering, with one Stable GPU fallback and an explicit manual renderer choice.
+
 - Offer explicit Media3 and mpv playback-core choices in settings and the player menu.
 - Update to mpv 0.42.0 and the Android wrapper 1.1.0, with matching FFmpeg 9.0.2 filters and rebuilt custom native components.
 
