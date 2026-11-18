@@ -35,4 +35,16 @@ class TokenMigrationTest {
         val recovered=vault();TokenMigration.run(context,recovered)
         assertEquals("keep",recovered.get("saved"));assertTrue(plain().all.isEmpty())
     }
+    @Test fun incompleteSecretSnapshotsRefuseToDropUnreadableRecords() {
+        val vault=vault();vault.write(mapOf("good" to "keep", "bad" to "saved"))
+        val prefs=context.getSharedPreferences(SecretVault.FILE,Context.MODE_PRIVATE)
+        prefs.edit().putString("bad","not valid base64!").commit()
+        val before=prefs.all.toMap()
+        assertEquals(mapOf("good" to "keep"),vault.all())
+        try {vault.allForUpdate();fail("A partial backup must be refused")}catch(_:IllegalStateException){}
+        assertEquals(before,prefs.all)
+        prefs.edit().putInt("wrongType",42).commit()
+        try {vault.allForUpdate();fail("Unexpected sealed values must not be omitted")}catch(_:IllegalStateException){}
+    }
+
 }

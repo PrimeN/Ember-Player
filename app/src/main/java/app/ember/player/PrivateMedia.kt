@@ -115,6 +115,23 @@ internal class PrivateMediaIndex(items:List<PrivateItem>) {
     }
 }
 
+internal object PrivacyRecords {
+    private val json=Json {ignoreUnknownKeys=true}
+    fun decode(raw:String):PrivacyData {
+        require(raw.length<=1024*1024)
+        return json.decodeFromString<PrivacyData>(raw).also(::validate)
+    }
+    fun validate(value:PrivacyData) {
+        require(value.items.size<=256 && value.failures in 0..10 && value.retryAfter>=0 && value.retryElapsed>=0 && value.retryBoot>=-1)
+        if(value.pin.isNotEmpty()) {
+            require(value.pin.length<=100)
+            require(PrivatePin.validRecord(value.pin))
+        } else require(value.items.isEmpty())
+        require(value.items.all {item->item.name.isNotBlank()&&item.name.length<=180&&item.uri.length<=16384&&ExternalMedia.allowed(item.uri)&&
+            (!item.folder || item.uri.startsWith("content://"))&&item.aliases.size<=8&&item.aliases.all {it.length<=16384&&it.startsWith("content://")&&ExternalMedia.allowed(it)}})
+    }
+}
+
 internal object PrivateMedia {
     const val KEY="player.privacy"
     private val json=Json {ignoreUnknownKeys=true}
@@ -144,15 +161,7 @@ internal object PrivateMedia {
         }
         if(value!=null)app.getSharedPreferences("playerSecurity",Context.MODE_PRIVATE).edit().putBoolean("enabled",value.pin.isNotEmpty()).commit()
     }
-    private fun validate(value:PrivacyData) {
-        require(value.items.size<=256 && value.failures in 0..10 && value.retryAfter>=0 && value.retryElapsed>=0 && value.retryBoot>=-1)
-        if(value.pin.isNotEmpty()) {
-            require(value.pin.length<=100)
-            require(PrivatePin.validRecord(value.pin))
-        } else require(value.items.isEmpty())
-        require(value.items.all {item->item.name.isNotBlank()&&item.name.length<=180&&item.uri.length<=16384&&ExternalMedia.allowed(item.uri)&&
-            (!item.folder || item.uri.startsWith("content://"))&&item.aliases.size<=8&&item.aliases.all {it.length<=16384&&it.startsWith("content://")&&ExternalMedia.allowed(it)}})
-    }
+    private fun validate(value:PrivacyData)=PrivacyRecords.validate(value)
     @Synchronized private fun save(value:PrivacyData) {
         validate(value)
         check(TokenStore(app).putEncrypted(KEY,json.encodeToString(value))){"Private storage is unavailable. No privacy change was saved."}

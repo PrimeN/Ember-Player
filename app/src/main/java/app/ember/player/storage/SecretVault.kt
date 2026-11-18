@@ -82,6 +82,12 @@ internal class SecretVault(private val prefs: SharedPreferences, private val cip
         (stored as? String)?.let { cached(name, it) }?.let { name to it }
     }.toMap()
 
+    /** Portable backups and replacement writes must never silently omit a sealed record. */
+    fun allForUpdate():Map<String,String> = prefs.all.mapValues {(name,stored)->
+        check(stored is String) {"Saved encrypted data could not be read."}
+        checkNotNull(cached(name,stored)) {"Saved encrypted data could not be read."}
+    }
+
     private fun cached(name: String, stored: String): String? {
         opened[name]?.takeIf { it.first == stored }?.let { return it.second }
         // A temporary unlock failure must remain retryable without changing the saved record.
