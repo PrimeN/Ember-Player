@@ -121,7 +121,14 @@ internal object DeviceFiles {
             putStringArray(android.content.ContentResolver.QUERY_ARG_SORT_COLUMNS,arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID))
             putInt(android.content.ContentResolver.QUERY_ARG_SORT_DIRECTION,android.content.ContentResolver.QUERY_SORT_DIRECTION_ASCENDING)
         }
-        context.contentResolver.query(children, columns, args, null)?.use { cursor ->
+        var response=context.contentResolver.query(children,columns,args,null)
+        val advertised=response?.extras?.getStringArray(android.content.ContentResolver.EXTRA_HONORED_ARGS).orEmpty().toSet()
+        if(offset>0&&android.content.ContentResolver.QUERY_ARG_LIMIT in advertised&&android.content.ContentResolver.QUERY_ARG_OFFSET !in advertised) {
+            response?.close()
+            args.putInt(android.content.ContentResolver.QUERY_ARG_LIMIT,(offset.toLong()+LIMIT+1).coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+            response=context.contentResolver.query(children,columns,args,null)
+        }
+        response?.use { cursor ->
             val honored=cursor.extras.getStringArray(android.content.ContentResolver.EXTRA_HONORED_ARGS).orEmpty().toSet()
             if(android.content.ContentResolver.QUERY_ARG_OFFSET !in honored && offset>0) {
                 if(!cursor.moveToPosition(offset-1))return Page(emptyList(),false,offset)
@@ -141,10 +148,36 @@ internal object DeviceFiles {
         } ?: throw IOException("This folder is unavailable. Choose it again to renew access.")
         return Page(entries, false)
     }
-    fun sorted(entries: List<DeviceFile>, query: String, sort: String, hidden: Boolean): List<DeviceFile> {
-        val filtered = entries.filter { (hidden || !it.name.startsWith('.')) && it.name.contains(query, true) }
-        val comparator:Comparator<DeviceFile> = when (sort) { "date" -> compareByDescending { it.modified }; "size" -> compareByDescending { it.size }; else -> compareBy(NaturalOrder) { it.name } }
-        return filtered.sortedWith(compareByDescending<DeviceFile> { it.directory }.then(comparator).thenBy(NaturalOrder) { it.name })
+    internal fun order(sort:String):Comparator<DeviceFile> {
+        val value:Comparator<DeviceFile> = when(sort){"date"->compareByDescending {it.modified};"size"->compareByDescending {it.size};else->compareBy(NaturalOrder){it.name}}
+        return compareByDescending<DeviceFile>{it.directory}.then(value).thenBy(NaturalOrder){it.name}.thenBy {it.uri.toString()}
+    }
+    fun sorted(entries:List<DeviceFile>,query:String,sort:String,hidden:Boolean)=entries
+        .filter {(hidden||!it.name.startsWith('.'))&&MediaSearch.matches(it.name,query)}.sortedWith(order(sort))
+    internal data class BrowsePage(val entries:List<DeviceFile> = emptyList(),val next:DeviceFile?=null)
+    /** Keyset pages keep only one sorted page in RAM, regardless of folder size or page depth. */
+    internal fun browse(context:Context,tree:Uri,directory:Uri,query:String,sort:String,hidden:Boolean,after:DeviceFile?=null,check:()->Unit={}):BrowsePage =
+        browsePages({offset->list(context,tree,directory,offset,check)},query,sort,hidden,after,app.ember.player.PrivateMedia::hidden,check)
+    internal fun browsePages(load:(Int)->Page,query:String,sort:String,hidden:Boolean,after:DeviceFile?=null,hiddenMedia:(String)->Boolean={false},check:()->Unit={}):BrowsePage {
+        val comparator=order(sort)
+        val best=java.util.PriorityQueue(LIMIT+1,comparator.reversed())
+        val retained=hashSetOf<String>()
+        var offset=0
+        do {
+            check()
+            val page=load(offset)
+            for(file in page.entries) {
+                check()
+                if(hiddenMedia(file.uri.toString())||!hidden&&file.name.startsWith('.')||!MediaSearch.matches(file.name,query)||after!=null&&comparator.compare(file,after)<=0)continue
+                if(!retained.add(file.uri.toString()))continue
+                best.add(file)
+                if(best.size>LIMIT+1)retained.remove(best.remove().uri.toString())
+            }
+            if(!page.limited)break
+            require(page.nextOffset>offset);offset=page.nextOffset
+        }while(true)
+        val entries=best.toList().sortedWith(comparator)
+        return BrowsePage(entries.take(LIMIT),entries.getOrNull(LIMIT)?.let {entries[LIMIT-1]})
     }
     fun rename(context: Context, file: DeviceFile, name: String): Uri {
         require(validName(name)) { "Enter a filename without slashes or control characters." }

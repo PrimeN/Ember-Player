@@ -22,6 +22,12 @@ class BackgroundAudioTrackTest {
         assertEquals(choice,BackgroundAudioTrack.from(choice.bundle()))
         assertEquals(choice,BackgroundAudioTrack.selected(tracks))
     }
+    @Test fun identicalAudioTracksKeepTheSelectionFromTheActiveProgram() {
+        val format=Format.Builder().setSampleMimeType(MimeTypes.AUDIO_AAC).setLanguage("en").setChannelCount(2).build()
+        val first=TrackGroup("program-one",format);val second=TrackGroup("program-two",format)
+        val tracks=Tracks(listOf(Tracks.Group(first,false,intArrayOf(C.FORMAT_HANDLED),booleanArrayOf(false)),Tracks.Group(second,false,intArrayOf(C.FORMAT_HANDLED),booleanArrayOf(true))))
+        assertEquals(second,BackgroundAudioTrack.from(format)!!.selection(tracks)?.mediaTrackGroup)
+    }
     @Test fun aMissingSoundtrackFallsBackWithoutSelectingAnUnsupportedTrack() {
         val format=Format.Builder().setSampleMimeType(MimeTypes.AUDIO_AAC).setLanguage("fr").setChannelCount(2).build()
         val tracks=Tracks(listOf(Tracks.Group(TrackGroup("audio",format),false,intArrayOf(C.FORMAT_UNSUPPORTED_TYPE),booleanArrayOf(false))))

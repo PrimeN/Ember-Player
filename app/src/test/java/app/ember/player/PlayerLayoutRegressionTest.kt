@@ -64,6 +64,35 @@ class PlayerLayoutRegressionTest {
         assertEquals(message.length,text.getLineEnd(text.lineCount-1))
         assertTrue(text.size.width in 200..312)
     }
+    @Test fun televisionIconButtonsHaveOneAccessibleName() {
+        compose.setContent {PlayerTheme(Prefs(LocalContext.current)) {
+            PlayerIconAction("Settings",androidx.compose.material.icons.Icons.Outlined.FilterList){}
+        }}
+        assertEquals(listOf("Settings"),compose.onNodeWithContentDescription("Settings").fetchSemanticsNode().config[SemanticsProperties.ContentDescription])
+    }
+    @Test @Config(qualifiers="w320dp-h800dp-port-mdpi")
+    fun compactPhoneHeadingFitsWithEnlargedTextAndKeepsItsActions() {
+        compose.setContent {PlayerTheme(Prefs(LocalContext.current)) {
+            CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(1f,1.5f)) {
+                PlayerHeading("Ember Player",Modifier.padding(horizontal=16.dp),compact=true) {
+                    listOf("Search","Settings","More").forEach {name->PlayerIconAction(name,Icons.Outlined.FilterList){}}
+                }
+            }
+        }}
+        val title=compose.onNodeWithText("Ember Player",useUnmergedTree=true).layout()
+        assertFalse(title.hasVisualOverflow)
+        listOf("Search","Settings","More").forEach {compose.onNodeWithContentDescription(it).assertIsDisplayed()}
+    }
+    @Test fun neverPlayedLibraryCardsShowTheDurationFromTheirPreview() {
+        val context=org.robolectric.RuntimeEnvironment.getApplication()
+        val uri=android.net.Uri.parse("content://test/duration.mp3")
+        app.ember.tv.player.DeviceThumbnails.clear()
+        org.robolectric.shadows.ShadowMediaMetadataRetriever.addMetadata(org.robolectric.shadows.util.DataSource.toDataSource(context,uri),android.media.MediaMetadataRetriever.METADATA_KEY_DURATION,"125000")
+        compose.setContent {PlayerTheme(Prefs(LocalContext.current)) {
+            PlayerMediaCard(PlayerLibraryMedia(QueueMedia(uri.toString(),"Unplayed.mp3")),Modifier.width(180.dp),0,portrait=true){}
+        }}
+        compose.waitUntil(5000){compose.onAllNodesWithText("2:05",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
+    }
     @Test fun chipsAndSwitchesHaveFullTargetsAndMixedRowsCenterTheirItems() {
         compose.setContent {PlayerTheme(Prefs(LocalContext.current)) {
             ButtonRow(Modifier.width(900.dp)) {

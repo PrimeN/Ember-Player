@@ -294,6 +294,7 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
         internal const val FORCE_POSITION="player.backgroundPosition"
         internal const val FORCE_SPEED="player.backgroundSpeed"
         internal const val FORCE_SOUND="player.backgroundSound"
+        internal const val FORCE_EDITION="player.backgroundEdition"
         internal const val FORCE_TRACK="player.backgroundTrack"
         private const val ACTION_TOGGLE="app.ember.player.TOGGLE_AUDIO"
         private const val ACTION_STOP="app.ember.player.STOP_AUDIO"
@@ -350,6 +351,7 @@ class ResumeBackgroundAudioActivity:androidx.activity.ComponentActivity() {
                 .putExtra(PlayRequest.EXTRA_URL,request.source.urls.first()).putExtra(PlayRequest.EXTRA_TITLE,request.source.title)
                 .putExtra(PlayRequest.EXTRA_RESUME_KEY,request.source.key).putExtra(BackgroundAudioService.FORCE_POSITION,request.position)
                 .putExtra(BackgroundAudioService.FORCE_SPEED,request.speed)
+                .putExtra(BackgroundAudioService.FORCE_EDITION,request.source.edition ?: -1)
                 .putExtra(PlayerActivity.EXTRA_AUDIO_URL,request.source.audio)
                 .putExtra(PlayRequest.EXTRA_RELEASE,request.source.filename)
                 .putExtra(PlayRequest.EXTRA_HEADER_NAMES,request.source.headers.keys.toTypedArray())

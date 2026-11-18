@@ -44,6 +44,32 @@ class DeviceFilesTest {
         assertEquals(listOf("Subfolder", "video.mkv"), DeviceFiles.sorted(entries, "", "name", false).map {it.name})
         assertEquals(listOf(".hidden.mp4"), DeviceFiles.sorted(entries, "HIDDEN", "size", true).map {it.name})
     }
+    @Test fun folderSearchAndNaturalSortIncludeFilesBeyondTheProviderPage() {
+        val files=(1..450).reversed().map {n->DeviceFile(Uri.parse("content://files/$n"),tree,"Episode $n.mp4","video/mp4",n.toLong(),n.toLong(),0)}
+        fun load(offset:Int)=DeviceFiles.Page(files.drop(offset).take(200),offset+200<files.size,offset+200)
+        val first=DeviceFiles.browsePages(::load,"","name",false)
+        assertEquals((1..200).map {"Episode $it.mp4"},first.entries.map {it.name})
+        val second=DeviceFiles.browsePages(::load,"","name",false,first.next)
+        assertEquals((201..400).map {"Episode $it.mp4"},second.entries.map {it.name})
+        assertTrue(first.entries.map {it.uri}.intersect(second.entries.map {it.uri}.toSet()).isEmpty())
+        assertEquals(listOf("Episode 2.mp4","Episode 20.mp4","Episode 21.mp4"),DeviceFiles.browsePages(::load,"episode 2","name",false).entries.take(3).map {it.name})
+        assertEquals("Episode 450.mp4",DeviceFiles.browsePages(::load,"","date",false).entries.first().name)
+        assertEquals("Episode 450.mp4",DeviceFiles.browsePages(::load,"","size",false).entries.first().name)
+        val ordered=files.reversed()
+        val overlapping=DeviceFiles.browsePages({at->if(at==0)DeviceFiles.Page(ordered.take(200),true,200) else DeviceFiles.Page(ordered.drop(190),false)},"","name",false)
+        assertEquals((1..200).map {"Episode $it.mp4"},overlapping.entries.map {it.name})
+        assertEquals(200,overlapping.entries.map {it.uri}.distinct().size)
+        assertFalse(DeviceFiles.browsePages(::load,"","name",false,hiddenMedia={it.endsWith("/2")}).entries.any {it.uri.toString().endsWith("/2")})
+        var checked=0
+        assertTrue(runCatching {DeviceFiles.browsePages(::load,"","name",false,check={if(++checked>10)throw kotlinx.coroutines.CancellationException()})}.exceptionOrNull() is kotlinx.coroutines.CancellationException)
+    }
+    @Test fun providersThatHonorLimitsWithoutOffsetsDoNotTruncateLaterPages() {
+        provider.honorsOnlyLimit=true;provider.populateMedia(450)
+        val second=DeviceFiles.list(context,tree,DeviceFiles.root(tree),200)
+        assertEquals(200,second.entries.size);assertEquals("Episode 200.mp4",second.entries.first().name);assertTrue(second.limited)
+        val last=DeviceFiles.list(context,tree,DeviceFiles.root(tree),400)
+        assertEquals(50,last.entries.size);assertFalse(last.limited)
+    }
     @Test fun renameReturnsTheNewAddressAndRejectsTraversal() {
         assertEquals("renamed.mp4", DeviceFiles.name(context, DeviceFiles.rename(context, source(), "renamed.mp4")))
         assertFalse(DeviceFiles.validName("../video.mkv"))
@@ -112,6 +138,8 @@ class DeviceFilesTest {
 class DeviceTestProvider : DocumentsProvider() {
     val files = linkedMapOf<String, File>()
     var failQueries=false
+    var honorsOnlyLimit=false
+    fun populateMedia(count:Int){children=(0 until count).map {n->"item-$n".also {names[it]="Episode $n.mp4"}}}
     var children=listOf("video", "folder", "hidden", "other")
     private val names = mutableMapOf("root" to "Root", "destination" to "Destination", "folder" to "Subfolder", "video" to "video.mkv", "hidden" to ".hidden.mp4", "other" to "notes.txt")
     override fun onCreate(): Boolean {
@@ -141,6 +169,12 @@ class DeviceTestProvider : DocumentsProvider() {
         return cursor(listOf(documentId),projection)
     }
     override fun queryChildDocuments(parentDocumentId: String, projection: Array<out String>?, sortOrder: String?) = cursor(children, projection)
+    override fun queryChildDocuments(parentDocumentId:String,projection:Array<out String>?,queryArgs:android.os.Bundle?):Cursor {
+        if(!honorsOnlyLimit)return cursor(children,projection)
+        return cursor(children.take(queryArgs?.getInt(android.content.ContentResolver.QUERY_ARG_LIMIT,Int.MAX_VALUE) ?: Int.MAX_VALUE),projection).apply {
+            extras=android.os.Bundle().apply {putStringArray(android.content.ContentResolver.EXTRA_HONORED_ARGS,arrayOf(android.content.ContentResolver.QUERY_ARG_LIMIT))}
+        }
+    }
     override fun openDocument(documentId: String, mode: String, signal: CancellationSignal?): ParcelFileDescriptor = ParcelFileDescriptor.open(files.getValue(documentId), ParcelFileDescriptor.parseMode(mode))
     override fun createDocument(parentDocumentId: String, mimeType: String, displayName: String): String {
         val id = "created-${files.size}"

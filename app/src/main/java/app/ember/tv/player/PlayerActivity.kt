@@ -16,6 +16,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.annotation.OptIn
+import androidx.lifecycle.withStarted
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
 import androidx.media3.common.Player
@@ -482,8 +483,14 @@ class PlayerActivity : ComponentActivity() {
                 if(!allowed){player?.pause();endPlayback()}
             }
         }}
-        createPlayer(savedInstanceState)
-        installBackHandler()
+        lifecycleScope.launch {
+            try {NativePlayerFiles.await(applicationContext)}
+            catch(e:kotlinx.coroutines.CancellationException){throw e}
+            catch(_:Exception){ /* Media3 remains available if native assets cannot be prepared. */ }
+            lifecycle.withStarted {
+                if(!isFinishing&&!isDestroyed){createPlayer(savedInstanceState);installBackHandler()}
+            }
+        }
     }
 
     private var playbackBackCallback:OnBackPressedCallback?=null

@@ -57,6 +57,7 @@ class SubtitleController(
     private data class Choice(val language:String,val external:Boolean,val provider:String?=null,val forced:Boolean=false)
     private var choice: Choice? = null
     private var chosenOff = false
+    internal val offChosenByUser get()=chosenOff
     private var manualFile:Pair<String,String>?=null
     private var manualBitmap=false
     val wholeFileTiming:Boolean get()=manualFile!=null || manualBitmap
@@ -110,6 +111,18 @@ class SubtitleController(
     fun onReady() {
         ready = true
         autoSelect()
+    }
+
+    /** A source program can replace embedded track IDs without changing the subtitle controller. */
+    fun reconcileEmbeddedSelection() {
+        if(selection !is Selection.Embedded)return
+        val groups=player()?.currentTracks?.groups ?: return
+        val index=groups.indexOfFirst {it.type==C.TRACK_TYPE_TEXT&&it.isSelected}
+        selection=if(index<0)Selection.Off else {
+            val track=(0 until groups[index].length).firstOrNull {groups[index].isTrackSelected(it)} ?: return
+            Selection.Embedded(index,track)
+        }
+        onChange()
     }
 
     /** Built-in text tracks of the video, as (group index, track index, label). */

@@ -1,9 +1,9 @@
 package app.ember.tv.data
 
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
-import java.util.zip.ZipInputStream
+import java.util.zip.ZipFile
+import java.io.File
 
 /** Untrusted subtitle files have bounded reads and deterministic episode/language matching. */
 object SubtitleFiles {
@@ -11,9 +11,10 @@ object SubtitleFiles {
     const val MAX_EXPANDED = 32 * 1024 * 1024
     const val MAX_ENTRIES = 128
     data class Target(val release: String? = null, val season: Int? = null, val episode: Int? = null, val language: String? = null)
-    fun read(input: InputStream, limit: Int = MAX_DOWNLOAD): ByteArray {
+    fun read(input: InputStream, limit: Int = MAX_DOWNLOAD, check:()->Unit = {}): ByteArray {
         val out = ByteArrayOutputStream(); val buffer = ByteArray(8192)
         while (true) {
+            check()
             val n = input.read(buffer, 0, minOf(buffer.size, limit - out.size() + 1))
             if (n < 0) return out.toByteArray()
             check(out.size().toLong() + n <= limit) { "Subtitle exceeds size limit." }
@@ -37,20 +38,29 @@ object SubtitleFiles {
         val extra=mapOf("fr" to "fre","de" to "ger","nl" to "dut","zh" to "chi","cs" to "cze","el" to "gre","ro" to "rum","sk" to "slo")
         return setOfNotNull(base,runCatching {locale.isO3Language}.getOrNull(),extra[base],locale.getDisplayLanguage(java.util.Locale.ENGLISH).lowercase()).filter {it.isNotEmpty()}.toSet()
     }
-    fun archive(bytes: ByteArray, target: Target = Target()): Pair<String,ByteArray>? {
+    fun archive(bytes: ByteArray, target: Target = Target(), check:()->Unit = {}): Pair<String,ByteArray>? {
         require(bytes.size <= MAX_DOWNLOAD) { "Subtitle archive exceeds size limit." }
         val files = mutableListOf<Pair<String,ByteArray>>(); var total = 0; var count = 0
-        ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
-            while (true) {
-                val entry = zip.nextEntry ?: break
-                check(++count <= MAX_ENTRIES) { "Too many subtitle archive entries." }
-                if (!entry.isDirectory && entry.name.substringAfterLast('.').lowercase() in setOf("srt","vtt","ass","ssa","ttml","xml","sub","smi","sami")) {
-                    val data = read(zip, minOf(MAX_DOWNLOAD, MAX_EXPANDED - total)); total += data.size
-                    files += entry.name to data
+        validateDirectory(bytes,check)
+        val temporary=File.createTempFile("ember-subtitle-", ".zip")
+        try {
+            temporary.writeBytes(bytes)
+            ZipFile(temporary).use { zip ->
+                val entries=zip.entries()
+                while(entries.hasMoreElements()) {
+                    check()
+                    val entry=entries.nextElement()
+                    require(++count<=MAX_ENTRIES) {"Too many subtitle archive entries."}
+                    if(entry.isDirectory || entry.name.substringAfterLast('.').lowercase() !in setOf("srt","vtt","ass","ssa","ttml","dfxp","xml","sub","smi","sami"))continue
+                    val limit=minOf(MAX_DOWNLOAD,MAX_EXPANDED-total)
+                    require(entry.size<=limit) {"Subtitle exceeds size limit."}
+                    val data=zip.getInputStream(entry).use {read(it,limit,check)}
+                    require(entry.crc<0||java.util.zip.CRC32().apply {update(data)}.value==entry.crc) {"Subtitle archive checksum mismatch."}
+                    total+=data.size
+                    files+=entry.name to data
                 }
-                zip.closeEntry()
             }
-        }
+        } finally {temporary.delete()}
         val wanted = if (target.season != null && target.episode != null) target.season to target.episode else episodeOf(target.release.orEmpty())
         val eligible = if (wanted != null && files.any { episodeOf(it.first) != null }) files.filter { episodeOf(it.first) == wanted } else files
         val aliases=languages(target.language)
@@ -59,6 +69,30 @@ object SubtitleFiles {
         val tokens = words(target.release)
         return pool.sortedWith(compareByDescending<Pair<String,ByteArray>> { (words(it.first) intersect tokens).size }
             .thenByDescending { (words(it.first) intersect aliases).isNotEmpty() }.thenBy { it.first.lowercase() }).firstOrNull()
+    }
+    /** Bound central-directory work before ZipFile allocates its entry index. */
+    private fun validateDirectory(bytes:ByteArray,check:()->Unit) {
+        fun number(at:Int,length:Int):Long {
+            require(at>=0&&at<=bytes.size-length) {"Invalid subtitle archive directory."}
+            return (0 until length).fold(0L){value,n->value or ((bytes[at+n].toLong() and 255) shl (n*8))}
+        }
+        val end=(bytes.size-22 downTo maxOf(0,bytes.size-65557)).firstOrNull {at->
+            number(at,4)==0x06054b50L&&number(at+20,2)==(bytes.size-at-22).toLong()
+        } ?: error("Missing subtitle archive directory.")
+        require(number(end+4,2)==0L&&number(end+6,2)==0L) {"Multipart subtitle archives are unsupported."}
+        val count=number(end+10,2).toInt()
+        require(count<=MAX_ENTRIES&&number(end+8,2)==count.toLong()) {"Too many subtitle archive entries."}
+        val start=number(end+16,4);val size=number(end+12,4)
+        require(start+size<=end.toLong()) {"Invalid subtitle archive directory."}
+        var at=start.toInt()
+        repeat(count) {
+            check()
+            require(number(at,4)==0x02014b50L) {"Invalid subtitle archive entry."}
+            val next=at.toLong()+46+number(at+28,2)+number(at+30,2)+number(at+32,2)
+            require(next<=start+size) {"Invalid subtitle archive entry."}
+            at=next.toInt()
+        }
+        require(at.toLong()==start+size) {"Invalid subtitle archive entry count."}
     }
     fun format(name: String, bytes: ByteArray): String {
         val ext = name.substringBefore('?').substringAfterLast('.').lowercase()

@@ -17,7 +17,7 @@ internal object BackgroundArtwork {
         val bounds=BitmapFactory.Options().apply {inJustDecodeBounds=true}
         BitmapFactory.decodeByteArray(bytes,0,bytes.size,bounds)
         if(bounds.outWidth<=0||bounds.outHeight<=0||bounds.outWidth.toLong()*bounds.outHeight>40_000_000)return null
-        val options=BitmapFactory.Options().apply {while(maxOf(bounds.outWidth,bounds.outHeight)/inSampleSize>512)inSampleSize*=2}
+        val options=BitmapFactory.Options().apply {inSampleSize=1;while(maxOf(bounds.outWidth,bounds.outHeight)/inSampleSize>512)inSampleSize*=2}
         val bitmap=BitmapFactory.decodeByteArray(bytes,0,bytes.size,options) ?: return null
         try {ByteArrayOutputStream().use {out->bitmap.compress(Bitmap.CompressFormat.JPEG,80,out);out.toByteArray().takeIf {it.size<=512*1024}}}finally {bitmap.recycle()}
     }.getOrNull()

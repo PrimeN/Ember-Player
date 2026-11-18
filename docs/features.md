@@ -4,7 +4,7 @@ Ember Player runs on Android phones, tablets and TVs. See the [library and setti
 
 ## Playback
 
-- **Two internal engines:** AndroidX Media3/Nextlib and mpv, each available as a manually selected playback core, with automatic recovery where available.
+- **Two internal engines:** AndroidX Media3/Nextlib and mpv, each available as a manually selected playback core, with automatic recovery where available. The player explains automatic core choices and renderer recovery. mpv exposes source-provided programs, HLS quality variants and editions; seekable video keeps its position when switching. The selected program follows background audio handoff and return to the player.
 - **Software audio:** AC-3, E-AC-3, DTS, TrueHD and other common formats are bundled. Media3 also supports supported MPEG-H streams as stereo PCM and IAMF tracks in MP4 using Opus, FLAC or PCM. AAC-based IAMF and encrypted IAMF are excluded. HDR output, immersive passthrough and device-only codecs depend on the device and selected engine.
 - **Automatic engine choices:** known filenames guide opaque file URLs, and successful playback choices are remembered privately for seven days. Reset them in Settings with Reset decoder memory. Explicit engine selections take priority. Supported RTMPS and SRTP streams open directly in mpv.
 - **Player interfaces:** Glass, Ember, Basic and Streaming controls.
@@ -51,7 +51,7 @@ Format support depends on the engine, device decoders, audio output and display.
 
 ### Library and media tools
 
-- Search across saved media folders using an encrypted local index. Newly added folders are scanned automatically in a background job. Startup refreshes a stale index; a manual refresh remains available. Private files and forgotten roots are excluded from results.
+- Search across saved media folders using an encrypted local index. Newly added folders are scanned automatically in a background job. Startup refreshes a stale index; a manual refresh remains available. Private files and forgotten roots are excluded from results. The saved-folder browser also searches and naturally sorts all entries in the current folder before paging, without recursively searching its children. Local card previews share their duration metadata so unplayed videos can show a running time.
 - Set a sleep timer for a preset or custom duration, or stop at the end of the current item. It applies to video and background audio, with a fade during the final minute of a timed countdown. Google Cast uses stream volume for fading; DLNA receivers stop at the deadline without changing their device-wide volume.
 - Save a screenshot to a destination you choose. Captures include captions in both engines, up to 4K without upscaling. They are unavailable for private playback and protected video surfaces. HDR captures remain available with a warning that colours may differ from playback.
 - Mark a clip start and end from Playback options, then export an MP4 without changing the source. Export copies encoded samples directly to a seekable destination, retaining the source codec and selected audio track. Boundaries expand to video keyframes. When the selected audio cannot be copied to MP4 or is external, an explicit video-only export is offered. Unsupported video formats are reported rather than re-encoded. Keep playback open during export; progress and cancellation are available in Playback options.

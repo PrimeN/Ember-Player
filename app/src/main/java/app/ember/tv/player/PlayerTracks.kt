@@ -18,7 +18,7 @@ internal fun PlayerActivity.rememberTracks() {
     if (!subsTouched || !subsInitialized) return
     when (val sel = subs.selection) {
         is SubtitleController.Selection.Manual -> Unit
-        is SubtitleController.Selection.Off -> memory.putSubtitles(key, "off")
+        is SubtitleController.Selection.Off -> if(subs.offChosenByUser)memory.putSubtitles(key, "off")
         is SubtitleController.Selection.External -> memory.putSubtitles(key, sel.candidate.lang)
         is SubtitleController.Selection.Embedded -> p.currentTracks.groups.getOrNull(sel.group)
             ?.getTrackFormat(sel.track)?.language?.let { app.ember.tv.data.Subtitles.normalise(it) }

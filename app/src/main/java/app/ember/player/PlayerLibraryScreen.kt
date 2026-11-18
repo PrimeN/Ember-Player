@@ -101,22 +101,26 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
         val horizontal=if(television)20.dp else 16.dp
         Box(Modifier.fillMaxSize().padding(horizontal=horizontal)) {
             Column(Modifier.fillMaxSize()) {
-                PlayerHeading(uiResources.getString(R.string.ui_ember_player),modifier=if(television)Modifier.height(48.dp) else Modifier) {
+                PlayerHeading(uiResources.getString(R.string.ui_ember_player),modifier=if(television)Modifier.height(48.dp) else Modifier,compact=narrow&&!television) {
                     if(!narrow&&destination==PlayerLibraryDestination.VIDEOS) {
                         LibraryUtility(uiResources.getString(filter.label),Icons.Outlined.FilterList){filterMenu=true}
                         LibraryUtility(uiResources.getString(sort.label),Icons.AutoMirrored.Outlined.Sort){sortMenu=true}
                         PlayerIconAction(if(grid)uiResources.getString(R.string.ui_list_view) else uiResources.getString(R.string.ui_grid_view),if(grid)Icons.AutoMirrored.Outlined.ViewList else Icons.Outlined.GridView){grid=!grid;prefs.playerLibraryGrid=grid}
                     }
-                    PlayerIconAction(if(preparing||opening)uiResources.getString(R.string.ui_preparing_files) else uiResources.getString(R.string.ui_open_file),Icons.AutoMirrored.Outlined.InsertDriveFile,Modifier.focusRequester(openFocus),enabled=!preparing&&!opening,onClick=openFiles)
+                    if(!narrow||television)PlayerIconAction(if(preparing||opening)uiResources.getString(R.string.ui_preparing_files) else uiResources.getString(R.string.ui_open_file),Icons.AutoMirrored.Outlined.InsertDriveFile,Modifier.focusRequester(openFocus),enabled=!preparing&&!opening,onClick=openFiles)
                     PlayerIconAction(uiResources.getString(R.string.ui_search_media),Icons.Outlined.Search,Modifier.semantics {selected=search},onClick=::toggleSearch)
                     PlayerIconAction(uiResources.getString(R.string.ui_settings),Icons.Outlined.Settings,onClick=::settings)
                     PlayerIconAction(uiResources.getString(R.string.ui_more_options),Icons.Outlined.MoreVert){menu=true}
                 }
                 if(!television)PhoneLibraryNavigation(destination.takeUnless {search}){folderUri=null;go(it)}
-                if(narrow&&destination==PlayerLibraryDestination.VIDEOS)Row(Modifier.fillMaxWidth().padding(bottom=8.dp),horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically) {
-                    LibraryUtility(uiResources.getString(filter.label),Icons.Outlined.FilterList,Modifier.weight(1f),expanded=true){filterMenu=true}
-                    LibraryUtility(uiResources.getString(sort.label),Icons.AutoMirrored.Outlined.Sort,Modifier.weight(1f),expanded=true){sortMenu=true}
-                    PlayerIconAction(if(grid)uiResources.getString(R.string.ui_list_view) else uiResources.getString(R.string.ui_grid_view),if(grid)Icons.AutoMirrored.Outlined.ViewList else Icons.Outlined.GridView){grid=!grid;prefs.playerLibraryGrid=grid}
+                if(narrow&&destination==PlayerLibraryDestination.VIDEOS)Column(Modifier.fillMaxWidth().padding(bottom=8.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                    val enlarged=androidx.compose.ui.platform.LocalDensity.current.fontScale>1.2f
+                    if(enlarged)LibraryUtility(uiResources.getString(filter.label),Icons.Outlined.FilterList,Modifier.fillMaxWidth(),expanded=true){filterMenu=true}
+                    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically) {
+                        if(!enlarged)LibraryUtility(uiResources.getString(filter.label),Icons.Outlined.FilterList,Modifier.weight(1f),expanded=true){filterMenu=true}
+                        LibraryUtility(uiResources.getString(sort.label),Icons.AutoMirrored.Outlined.Sort,Modifier.weight(1f),expanded=true){sortMenu=true}
+                        PlayerIconAction(if(grid)uiResources.getString(R.string.ui_list_view) else uiResources.getString(R.string.ui_grid_view),if(grid)Icons.AutoMirrored.Outlined.ViewList else Icons.Outlined.GridView){grid=!grid;prefs.playerLibraryGrid=grid}
+                    }
                 }
                 if(search) {
                     PlayerSearchField(query,{query=it.take(120)},uiResources.getString(R.string.ui_search_videos),searchFocus)
@@ -153,7 +157,7 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
     if(filterMenu)OptionMenu(uiResources.getString(R.string.ui_show_media),PlayerLibraryFilter.entries.map {value->MenuOption(uiResources.getString(value.label),filter==value){filter=value;prefs.playerLibraryFilter=value.id}},{filterMenu=false})
     if(sortMenu)OptionMenu(uiResources.getString(R.string.ui_sort_media),PlayerLibrarySort.entries.map {value->MenuOption(uiResources.getString(value.label),sort==value){sort=value;prefs.playerLibrarySort=value.id}},{sortMenu=false})
     if(menu)OptionMenu(uiResources.getString(R.string.ui_ember_player),
-        listOf(MenuOption(uiResources.getString(R.string.ui_open_stream_url)){stream=true},MenuOption(uiResources.getString(R.string.ui_refresh_library_view)){localRevision++},
+        listOf(MenuOption(uiResources.getString(R.string.ui_open_file)){if(!preparing&&!opening)openFiles()},MenuOption(uiResources.getString(R.string.ui_open_stream_url)){stream=true},MenuOption(uiResources.getString(R.string.ui_refresh_library_view)){localRevision++},
             MenuOption(uiResources.getString(R.string.ui_clear_recent_media)){clearingRecent=true}),{menu=false})
     if(clearingRecent)PlayerConfirmationDialog(uiResources.getString(R.string.ui_clear_recent_media_6abe06),uiResources.getString(R.string.ui_clear_the_recent_media_list_resume_positions_playlists_and),uiResources.getString(R.string.ui_clear_recent_media),{clearingRecent=false}) {
         clearingRecent=false
@@ -182,7 +186,7 @@ internal fun LibraryUtility(label:String,icon:ImageVector,modifier:Modifier=Modi
         focusedContainer=scheme.primary,focusedContent=scheme.onPrimary,outline=false,focusedScale=1f) {
         Row((if(expanded)Modifier.fillMaxWidth() else Modifier).padding(horizontal=12.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
             if(LocalPlayerTelevision.current)Icon(icon,null,Modifier.size(18.dp))
-            Text(label,Modifier.weight(1f,fill=expanded),style=MaterialTheme.typography.labelLarge,maxLines=1,overflow=TextOverflow.Ellipsis)
+            Text(label,Modifier.weight(1f,fill=expanded),style=MaterialTheme.typography.labelLarge,maxLines=if(expanded)2 else 1,overflow=TextOverflow.Ellipsis)
             Icon(Icons.Outlined.ExpandMore,null,Modifier.size(16.dp))
         }
     }

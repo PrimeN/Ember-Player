@@ -62,7 +62,7 @@ internal class MediaRelay(private val lan:LanRelayAccess?=null):Closeable {
         try {workers.execute {serve(client)}} catch(_:RejectedExecutionException){clients-=client;client.close()}
     } catch(_:Exception){if(!closed)close()}},"Ember media relay").apply {isDaemon=true;start()}}
     fun register(source:RemoteMedia,name:String):String {
-        check(!closed);require(source.length>0)
+        check(!closed);require(source.length>=-1&&source.length!=0L)
         val id=java.util.UUID.randomUUID().toString()
         val extension=name.substringAfterLast('.').lowercase().takeIf {it.matches(Regex("[a-z0-9]{1,8}"))}?:"bin"
         val path="/$token/$id/media.$extension";media[path]={source}

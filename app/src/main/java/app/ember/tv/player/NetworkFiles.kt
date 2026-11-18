@@ -95,7 +95,7 @@ internal object NetworkFiles {
     }
     private val http=Net.client(20,30).newBuilder().cache(null).followRedirects(false).followSslRedirects(false).build()
     private fun webUrl(l:NetworkLocation,path:String)=HttpUrl.Builder().scheme(l.scheme).host(l.host).port(l.port).addPathSegments(l.full(path)).build()
-    private fun web(a:NetworkAccount,path:String,method:String="GET",offset:Long=0):Response {
+    private fun web(a:NetworkAccount,path:String,method:String="GET",range:String?=null):Response {
         val l=NetworkLocation.parse(a.address);var url=webUrl(l,path)
         if(method=="PROPFIND"&&!url.encodedPath.endsWith('/'))url=url.newBuilder().addPathSegment("").build()
         val origin=url
@@ -103,15 +103,14 @@ internal object NetworkFiles {
             val request=Request.Builder().url(url).header("Cache-Control","no-store").apply {
                 if(a.username.isNotEmpty())header("Authorization",Credentials.basic(a.username,a.password))
                 if(method=="PROPFIND") {header("Depth","1");method(method,"<d:propfind xmlns:d=\"DAV:\"><d:prop><d:displayname/><d:resourcetype/><d:getcontentlength/></d:prop></d:propfind>".toRequestBody("application/xml".toMediaType()))}
-                else if(offset>0)header("Range","bytes=$offset-")
+                else {if(method=="HEAD")head();range?.let {header("Range",it)}}
             }.build()
             val response=http.newCall(request).execute()
             if(response.code in listOf(301,302,303,307,308)) {
                 val next=url.resolve(response.header("Location").orEmpty());response.close()
                 check(next!=null && next.scheme==origin.scheme&&next.host==origin.host&&next.port==origin.port) {"Configure the server's final WebDAV address; cross-origin redirects are blocked."};url=next
             } else {
-                if(!response.isSuccessful){response.close();error("File server request failed.")}
-                if(offset>0 && (response.code!=206||response.header("Content-Range")?.startsWith("bytes $offset-")!=true)){response.close();error("This server does not support seeking.")}
+                if(!response.isSuccessful&&method!="HEAD"&&!(response.code==416&&method!="PROPFIND")){response.close();error("File server request failed.")}
                 return response
             }
         };error("Too many file server redirects.")
@@ -156,19 +155,43 @@ internal object NetworkFiles {
         }
         return listing.result()
     }
-    fun resource(a:NetworkAccount,path:String,size:Long):RemoteMedia=object:RemoteMedia {
-        override val length=size
-        override fun open(offset:Long):InputStream=owned {o->
-            val l=NetworkLocation.parse(a.address)
-            val stream:InputStream=when(l.scheme) {
-                "smb"->{val share=smb(a,o);val file=share.openFile(smbPath(l,path),EnumSet.of(AccessMask.GENERIC_READ),null,SMB2ShareAccess.ALL,SMB2CreateDisposition.FILE_OPEN,null);o.add {file.close()}
-                    object:InputStream(){var at=offset;override fun read():Int {val b=ByteArray(1);return if(read(b,0,1)<0)-1 else b[0].toInt() and 255}
-                        override fun read(b:ByteArray,off:Int,len:Int):Int {if(len==0)return 0;if(at>=length)return -1;val n=file.read(b,at,off,minOf(len.toLong(),length-at).toInt());if(n>0)at+=n;return n}}}
-                "sftp"->sftp(a,o).get("/"+l.full(path),null,offset)
-                "ftp","ftps"->{val client=ftp(a,o);client.restartOffset=offset;client.retrieveFileStream("/"+l.full(path))?:error("File unavailable.")}
-                else->{val response=web(a,path,offset=offset);o.add {response.close()};response.body.byteStream()}
+    fun resource(a:NetworkAccount,path:String,size:Long):RemoteMedia {
+        if(NetworkLocation.parse(a.address).scheme in setOf("http","https"))return object:RemoteHttpMedia {
+            override val length=size
+            override fun response(range:String?,head:Boolean):RemoteHttpResponse {
+                val reply=web(a,path,if(head)"HEAD" else "GET",range)
+                if(!head||reply.isSuccessful)return reply.relayResponse(head,range)
+                reply.close()
+                // Some DAV servers permit GET but reject HEAD; obtain metadata from a tiny range.
+                val requested=range ?: "bytes=0-0"
+                return web(a,path,range=requested).relayResponse(false,requested).use {sample->
+                    if(range!=null)RemoteHttpResponse(sample.code,sample.length,sample.mime,sample.contentRange,sample.acceptsRanges)
+                    else {
+                        val total=if(sample.code in setOf(206,416))sample.contentRange?.substringAfterLast('/')?.toLongOrNull() ?: -1 else sample.length
+                        RemoteHttpResponse(200,total,sample.mime,acceptsRanges=sample.acceptsRanges)
+                    }
+                }
             }
-            object:FilterInputStream(stream) {override fun close(){try{super.close()}finally{o.close()}}}
+            override fun open(offset:Long):InputStream {
+                val reply=response(if(offset>0)"bytes=$offset-" else null,false)
+                val body=reply.body ?: run {reply.close();error("File unavailable.")}
+                return object:FilterInputStream(body){override fun close(){reply.close()}}
+            }
+        }
+        return object:RemoteMedia {
+            override val length=size
+            override fun open(offset:Long):InputStream=owned {o->
+                val l=NetworkLocation.parse(a.address)
+                val stream:InputStream=when(l.scheme) {
+                    "smb"->{val share=smb(a,o);val file=share.openFile(smbPath(l,path),EnumSet.of(AccessMask.GENERIC_READ),null,SMB2ShareAccess.ALL,SMB2CreateDisposition.FILE_OPEN,null);o.add {file.close()}
+                        object:InputStream(){var at=offset;override fun read():Int {val b=ByteArray(1);return if(read(b,0,1)<0)-1 else b[0].toInt() and 255}
+                            override fun read(b:ByteArray,off:Int,len:Int):Int {if(len==0)return 0;if(at>=length)return -1;val n=file.read(b,at,off,minOf(len.toLong(),length-at).toInt());if(n>0)at+=n;return n}}}
+                    "sftp"->sftp(a,o).get("/"+l.full(path),null,offset)
+                    "ftp","ftps"->{val client=ftp(a,o);client.restartOffset=offset;client.retrieveFileStream("/"+l.full(path))?:error("File unavailable.")}
+                    else->{val response=web(a,path,range=if(offset>0)"bytes=$offset-" else null);o.add {response.close()};response.body.byteStream()}
+                }
+                object:FilterInputStream(stream) {override fun close(){try{super.close()}finally{o.close()}}}
+            }
         }
     }
 }

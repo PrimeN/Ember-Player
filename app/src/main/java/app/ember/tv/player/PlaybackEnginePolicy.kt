@@ -13,4 +13,5 @@ internal data class EngineSource(
     val audio: String? = null, val headers: Map<String,String> = emptyMap(), val live: Boolean = false,
     val audioLanguages: List<String> = emptyList(), val subtitleLanguages: List<String> = emptyList(),
     val filename: String? = null,
+    val edition:Int?=null,
 )

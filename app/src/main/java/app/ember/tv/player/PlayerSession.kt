@@ -35,9 +35,11 @@ internal fun PlayerActivity.start(url: String, title: String, release: String?) 
     hdr10PlusMetadata = false
     decoderStableSince=0;decoderLearned=false
     repeatRange.clear()
+    val restoredEdition=intent.getIntExtra(BackgroundAudioService.FORCE_EDITION,-1).takeIf {it in 0..8190}
+    intent.removeExtra(BackgroundAudioService.FORCE_EDITION)
     playbackEngine?.configure(EngineSource(
         urls=listOf(url),title=title,key=resumeKey,
-        audio=audioUrl,headers=sourceHeaders,filename=release,
+        audio=audioUrl,headers=sourceHeaders,filename=release,edition=restoredEdition,
         audioLanguages=listOfNotNull(showKey()?.let(memory::get)?.audio,java.util.Locale.getDefault().language).distinct(),
         subtitleLanguages=app.ember.tv.data.Subtitles.wanted(prefs.subtitleConfig)))
     val geometry=GeometryMemory.selected(config,resumeKey)

@@ -10,7 +10,7 @@ internal data class BackgroundAudioTrack(val language:String?,val mime:String?,v
         val choices=tracks.groups.filter {it.type==C.TRACK_TYPE_AUDIO}.flatMap {group->
             (0 until group.length).filter {index->group.isTrackSupported(index,true)}.map {group to it}
         }
-        return choices.firstOrNull {(group,index)->
+        return choices.sortedByDescending {(group,index)->group.isTrackSelected(index)}.firstOrNull {(group,index)->
             val format=group.getTrackFormat(index)
             (language==null || Subtitles.normalise(format.language)==Subtitles.normalise(language)) &&
                 (mime==null || format.sampleMimeType==mime) && (channels<=0 || format.channelCount==channels) &&

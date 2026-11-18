@@ -830,7 +830,6 @@
     <string name="ui_sdr_to_hdr_experimental" formatted="false">"SDR to HDR · experimental"</string>
     <string name="ui_seamless_only" formatted="false">"Seamless only"</string>
     <string name="ui_search" formatted="false">"Search"</string>
-    <string name="ui_search_and_sorting_apply_to_this_page_use_library" formatted="false">"Search and sorting apply to this page. Use Library search to find files across folders."</string>
     <string name="ui_search_media" formatted="false">"Search media"</string>
     <string name="ui_search_media_library" formatted="false">"Search media library"</string>
     <string name="ui_search_results" formatted="false">"Search results"</string>

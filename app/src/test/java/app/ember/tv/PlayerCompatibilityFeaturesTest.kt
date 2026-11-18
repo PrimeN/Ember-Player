@@ -42,6 +42,28 @@ class PlayerCompatibilityFeaturesTest {
         assertTrue(controller.loadManual("<SAMI><SYNC start=0><P>Hello<SYNC start=1000><P>&nbsp;</SAMI>","sami"))
         assertEquals("srt",loaded?.second);assertTrue(loaded!!.first.contains("00:00:00,000 --> 00:00:01,000"))
     }
+    @Test fun changingProgramsReflectsEmbeddedSubtitlesWithoutRememberingAnImplicitOffChoice() {
+        val activity=Robolectric.buildActivity(ComponentActivity::class.java).get()
+        val actual=ExoPlayer.Builder(activity).build()
+        fun group(id:String,selected:Boolean)=androidx.media3.common.Tracks.Group(
+            androidx.media3.common.TrackGroup(id,Format.Builder().setId(id).setSampleMimeType("application/x-subrip").setLanguage("en").build()),
+            false,intArrayOf(C.FORMAT_HANDLED),booleanArrayOf(selected))
+        var tracks=androidx.media3.common.Tracks(listOf(group("old",true)))
+        val proxy=java.lang.reflect.Proxy.newProxyInstance(ExoPlayer::class.java.classLoader,arrayOf(ExoPlayer::class.java)){_,method,args->
+            if(method.name=="getCurrentTracks")tracks else method.invoke(actual,*(args ?: emptyArray()))
+        } as ExoPlayer
+        try {
+            val controller=SubtitleController(activity,{proxy},SubtitleEngine(SubtitleView(activity)),SubtitleConfig(),{})
+            controller.selectEmbedded(0,0)
+            tracks=androidx.media3.common.Tracks(listOf(group("old",false),group("new",true)))
+            controller.reconcileEmbeddedSelection()
+            assertEquals(SubtitleController.Selection.Embedded(1,0),controller.selection)
+            tracks=androidx.media3.common.Tracks.EMPTY
+            controller.reconcileEmbeddedSelection()
+            assertEquals(SubtitleController.Selection.Off,controller.selection);assertFalse(controller.offChosenByUser)
+            controller.selectOff();assertTrue(controller.offChosenByUser)
+        }finally {actual.release()}
+    }
     private fun format(width:Int=1920,height:Int=1080,transfer:Int=C.COLOR_TRANSFER_SDR)=Format.Builder()
         .setSampleMimeType("video/hevc").setCodecs("hvc1.1.6.L120").setWidth(width).setHeight(height)
         .setColorInfo(ColorInfo.Builder().setColorTransfer(transfer).build()).build()
