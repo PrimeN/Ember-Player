@@ -27,6 +27,19 @@ class PlaybackEngineTransitionTest {
         if(answer!==Unit)answer else try {method.invoke(player,*(args?:emptyArray()))}catch(e:InvocationTargetException){throw e.targetException}
     } as ExoPlayer
 
+    @Test fun explicitStandardModeRefusesImplicitSwitchButAnExplicitModeChangeWorks() {
+        val context=RuntimeEnvironment.getApplication()
+        val original=ExoPlayer.Builder(context).build();val candidate=ExoPlayer.Builder(context).build()
+        var created=0
+        val engine=PlaybackEngine(context,original,{PlaybackConfig(engine="standard",rememberDecoderChoices=false)},compatibilityFactory={_,_,_->created++;candidate}) {}
+        try {
+            engine.configure(EngineSource(listOf("content://media/123"),"Film","key"))
+            engine.player.setMediaItem(MediaItem.fromUri("content://media/123"))
+            assertFalse(engine.switch());assertEquals(0,created)
+            engine.mode("compatibility");assertEquals(1,created)
+        }finally{engine.player.release();if(created==0)candidate.release()}
+    }
+
     @Test fun failedPrepareReleasesCandidateAndRestoresOriginalPositionAndPause() {
         val context=RuntimeEnvironment.getApplication()
         val original=ExoPlayer.Builder(context).build()

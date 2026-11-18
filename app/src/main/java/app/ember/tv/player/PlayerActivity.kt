@@ -418,6 +418,7 @@ class PlayerActivity : ComponentActivity() {
 
     // ---- Live TV: bounded retries for transient provider failures ----
     internal val codecs = Playback.CodecChoice()
+    internal val audioTiming by lazy {AudioTiming(audioDelay){playbackEngine?.compatibility?.audioDelay(it)}}
     internal val decoderManager = DecoderManager()
     internal val decoderRecovery = DecoderRecovery()
     internal var userVideoMode: DecoderMode? = null

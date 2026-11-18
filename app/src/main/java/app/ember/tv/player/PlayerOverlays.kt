@@ -90,7 +90,7 @@ internal fun PlayerActivity.doSkip() {
 internal fun PlayerActivity.shiftSound(deltaMs: Int?) {
     val now = (audioDelay.us / 1000).toInt()
     val next = if (deltaMs == null) 0 else (now + deltaMs).coerceIn(-1000, 1000)
-    audioDelay.us = next * 1000L
+    audioTiming.set(next.toLong())
     updateSoundLabel()
 }
 
@@ -119,12 +119,13 @@ internal fun PlayerActivity.updateSoundLabel() {
 /** Switches the display to a refresh rate (and optionally resolution) that fits the video, once per title. */
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.matchDisplayMode(p: ExoPlayer) {
-    if (config.frameRate != "always" || modeApplied) return
+    val seamless=config.frameRate=="seamless" && playbackEngine?.compatibility!=null
+    if ((config.frameRate != "always" && !seamless) || modeApplied) return
     val f = p.videoFormat ?: return
     modeApplied = true
     val display = if (android.os.Build.VERSION.SDK_INT >= 30) display else @Suppress("DEPRECATION") windowManager.defaultDisplay
     display ?: return
-    Playback.applyMode(this, Playback.modeFor(display, f.frameRate, f.width, f.height, config.matchResolution))
+    Playback.applyMode(this, Playback.modeFor(display, f.frameRate, f.width, f.height, config.matchResolution && !seamless,seamless))
 }
 
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
