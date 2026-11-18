@@ -34,6 +34,7 @@ internal class ManualSubtitleChoices(private val readValue:()->String?,private v
     fun remove(key:String):Boolean=synchronized(lock) {writeValue(json.encodeToString(read().filterKeys {it!=CachePolicy.digest(key)}))}
     companion object {
         private val json=Json {ignoreUnknownKeys=true};private val lock=Any()
+        fun clearAll(context:Context):Boolean=synchronized(lock){TokenStore(context).removePrefix("player.subtitleChoices.")}
         fun valid(value:ManualSubtitleFile):Boolean {
             if(value.name.isBlank() || value.name.length>180 || value.name.any {it.isISOControl()})return false
             if(value.network!=null)return value.uris.isEmpty() && SavedPlaylists.valid(SavedPlaylist("subtitle","Subtitle",listOf(PlaylistEntry("",value.name,network=value.network))))

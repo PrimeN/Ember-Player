@@ -61,12 +61,12 @@ class RemainingPlaybackRegressionTest {
             assertEquals(activity.getString(app.ember.tv.R.string.ui_this_video_surface_cannot_be_captured),org.robolectric.shadows.ShadowToast.getTextOfLatestToast())
         } finally {activity.exports.close();activity.handler.removeCallbacksAndMessages(null)}
     }
-    @Test fun bookmarkLimitHasAnExplicitRecoveryThatKeepsOtherProfiles() {
+    @Test fun bookmarksDoNotEvictSavedTitlesOrShareATitleQuotaAcrossProfiles() {
         val app=RuntimeEnvironment.getApplication();app.getSharedPreferences("bookmarks",0).edit().clear().commit()
         val shared=PlaybackBookmarks(app,"shared");val other=PlaybackBookmarks(app,"local:other")
         assertTrue(other.add("other",1000,"Keep"))
-        repeat(511){assertTrue(shared.add("video$it",1000,"Mark"))}
-        assertFalse(shared.add("overflow",1000,"Mark"))
+        repeat(520){assertTrue(shared.add("video$it",1000,"Mark"))}
+        assertTrue(shared.add("overflow",1000,"Mark"));assertTrue(other.add("new",1000,"Other"));assertEquals("Mark",shared.read("video0").single().name)
         assertTrue(shared.clearScope());assertTrue(shared.add("overflow",1000,"Mark"))
         assertEquals("Keep",other.read("other").single().name)
     }

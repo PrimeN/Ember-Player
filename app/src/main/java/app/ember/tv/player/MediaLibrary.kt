@@ -32,10 +32,10 @@ internal class MediaLibrary(context:Context,
         db.execSQL("CREATE INDEX IF NOT EXISTS scan_remaining ON scan_queue(root,done,id)")
         db.execSQL("CREATE TABLE IF NOT EXISTS search_schema (id INTEGER PRIMARY KEY, version INTEGER NOT NULL)")
         val searchVersion=db.query("SELECT version FROM search_schema WHERE id=1").use {if(it.moveToFirst())it.getInt(0) else 0}
-        if(searchVersion!=1)transaction {
+        if(searchVersion!=2)transaction {
             // Existing display names are retained; missing order rows rebuild their normalized FTS terms in batches.
             db.execSQL("DELETE FROM media_order")
-            db.execSQL("INSERT OR REPLACE INTO search_schema VALUES(1,1)")
+            db.execSQL("INSERT OR REPLACE INTO search_schema VALUES(1,2)")
         }
         db.query("PRAGMA secure_delete=ON").use {it.moveToFirst()}
         db.query("PRAGMA busy_timeout=5000").use {it.moveToFirst()}
@@ -123,7 +123,7 @@ internal class MediaLibrary(context:Context,
             try {
                 pending.forEach {(id,title)->
                     db.execSQL("INSERT OR REPLACE INTO media_order VALUES(?,?)",arrayOf(id,NaturalOrder.key(title)))
-                    db.execSQL("UPDATE names SET title=? WHERE docid=(SELECT rowid FROM media WHERE id=?)",arrayOf(MediaSearch.tokens(title).joinToString(" "),id))
+                    db.execSQL("UPDATE names SET title=? WHERE docid=(SELECT rowid FROM media WHERE id=?)",arrayOf(MediaSearch.indexText(title),id))
                 }
                 db.setTransactionSuccessful()
             } finally {db.endTransaction()}
@@ -143,7 +143,7 @@ internal class MediaLibrary(context:Context,
             db.query("SELECT uri,title,root,modified FROM media JOIN media_order ON media.id=media_order.id$clause ORDER BY $order LIMIT ? OFFSET ?",args.toTypedArray()).use {cursor->
                 while(cursor.moveToNext()) {
                     rows++;cursorOffset++
-                    if(cursor.getString(2) in allowed && !hidden(cursor.getString(0))) {
+                    if(cursor.getString(2) in allowed && !hidden(cursor.getString(0)) && MediaSearch.matches(cursor.getString(1),query)) {
                         val media=QueueMedia(cursor.getString(0),cursor.getString(1));found+=media;dates[media.key]=cursor.getLong(3)
                     }
                     if(found.size==100)break

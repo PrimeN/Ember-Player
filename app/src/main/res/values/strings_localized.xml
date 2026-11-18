@@ -176,8 +176,8 @@
     <string name="ui_clear_activity" formatted="false">"Clear activity"</string>
     <string name="ui_clear_dialogue" formatted="false">"Clear dialogue"</string>
     <string name="ui_clear_disposable_caches" formatted="false">"Clear disposable caches"</string>
-    <string name="ui_clear_recent_activity" formatted="false">"Clear recent activity?"</string>
-    <string name="ui_clear_recent_activity_and_resume_positions" formatted="false">"Clear recent activity and resume positions"</string>
+    <string name="ui_clear_recent_activity" formatted="false">"Clear all saved activity?"</string>
+    <string name="ui_clear_recent_activity_and_resume_positions" formatted="false">"Clear all saved activity"</string>
     <string name="ui_clear_recent_media" formatted="false">"Clear recent media"</string>
     <string name="ui_clear_recent_media_6abe06" formatted="false">"Clear recent media?"</string>
     <string name="ui_clear_repeat_range" formatted="false">"Clear repeat range"</string>
@@ -233,7 +233,7 @@
     <string name="ui_could_not_read_this_subtitle_file_check_its_format" formatted="false">"Could not read this subtitle file. Check its format, encoding and folder access. For VobSub, select both IDX and SUB files."</string>
     <string name="ui_could_not_read_those_files" formatted="false">"Could not read those files."</string>
     <string name="ui_could_not_remove_this_download" formatted="false">"Could not remove this download."</string>
-    <string name="ui_could_not_save_bookmark_limit_50_per_title_512" formatted="false">"Could not save bookmark. Limit: 50 per title, 512 titles."</string>
+    <string name="ui_could_not_save_bookmark" formatted="false">"Could not save bookmark. Each video can hold up to 50 bookmarks."</string>
     <string name="ui_could_not_save_playlist_check_encrypted_storage_and_the" formatted="false">"Could not save playlist. Check encrypted storage and the 50-playlist limit."</string>
     <string name="ui_could_not_save_private_media_check_access_and_the" formatted="false">"Could not save private media. Check access and the 256-entry limit."</string>
     <string name="ui_could_not_save_the_backup_check_file_access_and" formatted="false">"Could not save the backup. Check file access and available storage."</string>
@@ -469,8 +469,6 @@
     <string name="ui_incorrect_pin" formatted="false">"Incorrect PIN"</string>
     <string name="ui_installed_offline_voices">"%1$s installed offline voices"</string>
     <string name="ui_installed_translation_languages" formatted="false">"Installed translation languages"</string>
-    <string name="ui_introdb_community_timings" formatted="false">"IntroDB (community timings)"</string>
-    <string name="ui_introdb_markers" formatted="false">"IntroDB markers"</string>
     <string name="ui_japanese_shift_jis" formatted="false">"Japanese · Shift-JIS"</string>
     <string name="ui_jsch_compression_notices" formatted="false">"JSch compression notices"</string>
     <string name="ui_jsch_password_hashing_notices" formatted="false">"JSch password hashing notices"</string>
@@ -558,7 +556,7 @@
     <string name="ui_network_and_buffering" formatted="false">"Network and buffering"</string>
     <string name="ui_network_cache" formatted="false">"Network &amp; cache"</string>
     <string name="ui_neutral" formatted="false">"Neutral"</string>
-    <string name="ui_new_activity_will_no_longer_be_saved" formatted="false">" New activity will no longer be saved."</string>
+    <string name="ui_new_activity_will_no_longer_be_saved" formatted="false">" Automatic playback history will no longer be saved."</string>
     <string name="ui_new_playlist_from_files" formatted="false">"New playlist from files"</string>
     <string name="ui_new_playlist_name" formatted="false">"New playlist name"</string>
     <string name="ui_newest_first" formatted="false">"Newest first"</string>
@@ -670,7 +668,7 @@
     <string name="ui_playback_locked_back_also_unlocks" formatted="false">"Playback locked · Back also unlocks"</string>
     <string name="ui_playback_speed" formatted="false">"Playback speed"</string>
     <string name="ui_playback_stays_paused_backward_steps_may_take_longer_while" formatted="false">"Playback stays paused. Backward steps may take longer while the previous keyframe is decoded."</string>
-    <string name="ui_player_interface_glass_ember_basic_streaming_controls_engine_resume" formatted="false">"player interface glass ember basic streaming controls engine resume seeking buffer decoder memory picture in picture background audio exit IntroDB skip markers"</string>
+    <string name="ui_player_interface_glass_ember_basic_streaming_controls_engine_resume" formatted="false">"player interface glass ember basic streaming controls engine resume seeking buffer decoder memory picture in picture background audio exit chapters intro opening credits skip markers"</string>
     <string name="ui_player_settings" formatted="false">"Player settings"</string>
     <string name="ui_player_shortcuts" formatted="false">"Player shortcuts"</string>
     <string name="ui_playing" formatted="false">"Playing"</string>
@@ -728,8 +726,8 @@
     <string name="ui_receiver_a3878e">"Receiver · %1$s"</string>
     <string name="ui_receiver_disconnected" formatted="false">"Receiver disconnected"</string>
     <string name="ui_receiver_playback" formatted="false">"Receiver playback"</string>
-    <string name="ui_recent_activity_and_resume_positions_will_be_cleared_playlists" formatted="false">"Recent activity and resume positions will be cleared. Playlists, bookmarks and per-video audio/subtitle choices will be kept."</string>
-    <string name="ui_recent_activity_cleared" formatted="false">"Recent activity cleared"</string>
+    <string name="ui_recent_activity_and_resume_positions_will_be_cleared_playlists" formatted="false">"Recent activity, resume positions, bookmarks and remembered audio/subtitle choices will be cleared in all profiles. Playlists and saved folders will be kept."</string>
+    <string name="ui_recent_activity_cleared" formatted="false">"Saved activity cleared"</string>
     <string name="ui_recently_modified" formatted="false">"Recently modified"</string>
     <string name="ui_red" formatted="false">"Red"</string>
     <string name="ui_refill_before_resuming" formatted="false">"Refill before resuming"</string>
@@ -999,7 +997,7 @@
     <string name="ui_turkish" formatted="false">"Turkish"</string>
     <string name="ui_turn_off_activity_history" formatted="false">"Turn off activity history?"</string>
     <string name="ui_turn_off_and_clear" formatted="false">"Turn off and clear"</string>
-    <string name="ui_turning_this_off_clears_recent_activity_and_resume_positions" formatted="false">"Turning this off clears recent activity and resume positions. Playlists and bookmarks are kept."</string>
+    <string name="ui_turning_this_off_clears_recent_activity_and_resume_positions" formatted="false">"Turning this off clears playback history, bookmarks and remembered track choices in all profiles. Playlists are kept."</string>
     <string name="ui_tv_receiver" formatted="false">"TV receiver"</string>
     <string name="ui_unavailable" formatted="false">"Unavailable"</string>
     <string name="ui_unlock" formatted="false">"Unlock"</string>

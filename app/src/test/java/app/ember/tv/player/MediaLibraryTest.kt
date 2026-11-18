@@ -71,7 +71,7 @@ class MediaLibraryTest {
         assertFalse(last.limited)
     }
     @Test fun searchTermsCannotInjectFtsSyntax() {
-        assertEquals("\"hello\"* \"or\"* \"世界\"*",MediaLibrary.terms("hello OR (世界*)\""))
+        assertEquals("\"hello\"* \"or\"* \"世界\"",MediaLibrary.terms("hello OR (世界*)\""))
         assertEquals("",MediaLibrary.terms("* - \""))
     }
     @Test fun sortingUsesTheWholeIndexAndKeepsStablePages() {
@@ -146,6 +146,19 @@ class MediaLibraryTest {
                 assertTrue(MediaSearch.matches(title,query))
                 assertEquals(listOf(title),index.search(query).entries.map {it.title})
             }
+        }
+    }
+
+    @Test fun cjkSubstringSearchUsesTheIndexAndRejectsNoncontiguousGramMatches() {
+        val db=database();val folder=DeviceFolder("content://device.files/tree/root","Root")
+        val root=java.security.MessageDigest.getInstance("SHA-256").digest(folder.uri.toByteArray()).joinToString(""){"%02x".format(it)}
+        MediaLibrary(app,{db},{listOf(folder)},{false}).use {index->
+            listOf("千と千尋の神隠し","神隠〇隠し","流浪地球2","Episode 10").forEachIndexed {i,title->
+                db.execSQL("INSERT INTO media VALUES(?,?,?,?,?,?,?,?)",arrayOf<Any>("id-$i",root,"content://device.files/tree/root/document/$i",title,"video/mp4",1L,0L,"test"))
+            }
+            assertEquals(listOf("千と千尋の神隠し"),index.search("神隠し").entries.map {it.title})
+            assertEquals(listOf("流浪地球2"),index.search("地球2").entries.map {it.title})
+            assertTrue(index.search("isode").entries.isEmpty())
         }
     }
 
