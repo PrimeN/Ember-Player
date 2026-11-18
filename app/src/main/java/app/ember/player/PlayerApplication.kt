@@ -11,11 +11,12 @@ class PlayerApplication:Application(),ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         PrivateMedia.install(this)
-        CrashLog.install(this)
+        scope.launch {LegacyCrashLog.clear(this@PlayerApplication)}
         Net.init(this)
         CacheManagement.init(this)
         scope.launch {app.ember.tv.player.PlaybackStateRetention.prune(this@PlayerApplication)}
         scope.launch {ApiKeys.init(this@PlayerApplication)}
+        app.ember.tv.player.MediaLibraryScanner.request(this)
     }
     override fun newImageLoader()=ImageLoader.Builder(this)
         .okHttpClient {Net.artworkClient()}.allowRgb565(true)

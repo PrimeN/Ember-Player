@@ -60,6 +60,7 @@
         <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.downloads" android:exported="false" android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/download_paths" />
         </provider>
+        <service android:name="app.ember.tv.player.MediaLibraryScanJob" android:exported="false" android:permission="android.permission.BIND_JOB_SERVICE" />
         <service android:name="app.ember.player.MediaDownloadService" android:exported="false" android:foregroundServiceType="dataSync" />
         <service android:name="app.ember.tv.player.BackgroundAudioService" android:exported="true" android:foregroundServiceType="mediaPlayback">
             <intent-filter>

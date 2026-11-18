@@ -19,7 +19,7 @@ internal data class DeviceFile(val uri: Uri, val parent: Uri, val name: String, 
     val directory get() = mime == DocumentsContract.Document.MIME_TYPE_DIR
 }
 
-/** Folder access is explicit and uses persisted Android document grants. No startup scan. */
+/** Folder access is explicit and uses persisted Android document grants. Indexing uses background jobs. */
 internal class DeviceFolders(private val readValue: () -> String?, private val writeValue: (String) -> Boolean) {
     constructor(context: Context) : this(
         { TokenStore(context.applicationContext).getForUpdate("player.folders") },

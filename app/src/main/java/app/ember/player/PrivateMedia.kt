@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.*
 import android.provider.DocumentsContract
 import app.ember.tv.player.*
+import app.ember.tv.data.LegacyCrashLog
 import app.ember.player.storage.TokenStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.Serializable
@@ -220,6 +221,7 @@ internal object PrivateMedia {
     }
     @Synchronized fun recordHistory(value:Boolean){check(!unavailable);save(state.value.copy(history=value));if(!value)clearHistory()}
     fun clearHistory() {
+        check(LegacyCrashLog.clear(app))
         check(MediaHistory(app).clear())
         check(TokenStore(app).putEncrypted("player.folderRecents","{}"))
         check(PlaybackStateRetention.clearPositions(app))

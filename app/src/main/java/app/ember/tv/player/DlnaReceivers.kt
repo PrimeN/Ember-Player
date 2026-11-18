@@ -24,19 +24,10 @@ internal object DlnaReceivers {
         try {DatagramSocket().use {socket->
             socket.soTimeout=350
             val message=("M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: \"ssdp:discover\"\r\nMX: 2\r\nST: urn:schemas-upnp-org:device:MediaRenderer:1\r\n\r\n").toByteArray()
-            socket.send(DatagramPacket(message,message.size,InetAddress.getByName("239.255.255.250"),1900))
-            val until=System.nanoTime()+4_000_000_000L
-            val locations=linkedMapOf<String,String>()
-            while(System.nanoTime()<until&&locations.size<24) {
-                check();val packet=DatagramPacket(ByteArray(8192),8192)
-                try {socket.receive(packet)}catch(_:SocketTimeoutException){continue}
-                val ip=packet.address.hostAddress ?: continue
-                if(packet.address !is Inet4Address||(!packet.address.isSiteLocalAddress&&!packet.address.isLinkLocalAddress))continue
-                val text=String(packet.data,0,packet.length,Charsets.US_ASCII)
-                if(!text.startsWith("HTTP/1.1 200"))continue
-                val location=text.lineSequence().firstOrNull {it.startsWith("LOCATION:",true)}?.substringAfter(':')?.trim() ?: continue
-                if(localUrl(location,ip))locations[location]=ip
-            }
+            val locations=discoverLocations(check,System::nanoTime,
+                {socket.send(DatagramPacket(message,message.size,InetAddress.getByName("239.255.255.250"),1900))},
+                {val packet=DatagramPacket(ByteArray(8192),8192)
+                    try {socket.receive(packet);packet}catch(_:SocketTimeoutException){null}})
             for((location,ip) in locations) {
                 check()
                 runCatching {
@@ -49,6 +40,23 @@ internal object DlnaReceivers {
             }
         }}finally{if(multicast?.isHeld==true)multicast.release()}
         return found.values.sortedBy {it.name.lowercase()}
+    }
+    /** Interleave retries with replies so a lost first datagram costs only one second. */
+    internal fun discoverLocations(check:()->Unit,now:()->Long,send:()->Unit,receive:()->DatagramPacket?):Map<String,String> {
+        val start=now();var sent=0
+        val locations=linkedMapOf<String,String>()
+        while(now()-start<4_000_000_000L && locations.size<24) {
+            check()
+            if(sent<3 && now()-start>=sent*1_000_000_000L){send();sent++}
+            val packet=receive() ?: continue
+            val ip=packet.address?.hostAddress ?: continue
+            if(packet.address !is Inet4Address||(!packet.address.isSiteLocalAddress&&!packet.address.isLinkLocalAddress))continue
+            val text=String(packet.data,packet.offset,packet.length,Charsets.US_ASCII)
+            if(!text.startsWith("HTTP/1.1 200"))continue
+            val location=text.lineSequence().firstOrNull {it.startsWith("LOCATION:",true)}?.substringAfter(':')?.trim() ?: continue
+            if(localUrl(location,ip))locations[location]=ip
+        }
+        return locations
     }
     fun localUrl(value:String,peer:String):Boolean=runCatching {
         val uri=URI(value);uri.scheme in setOf("http","https")&&uri.host==peer&&uri.userInfo==null&&uri.fragment==null&&value.length<=4096&&

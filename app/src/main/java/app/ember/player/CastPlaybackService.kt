@@ -35,6 +35,7 @@ class CastPlaybackService:Service() {
     private var commandBusy=false
     private var wake:PowerManager.WakeLock?=null
     private var lastNotification=""
+    private var receiverStatus:ReceiverStatus?=null
     private val profileListener=android.content.SharedPreferences.OnSharedPreferenceChangeListener {_,key->
         if(key=="currentProfile"&&request?.let(::protected)==true)stopRemote()
     }
@@ -63,7 +64,8 @@ class CastPlaybackService:Service() {
         if(intent?.action!=null){when(intent.action){"stop"->stopRemote();"play"->control("play");"pause"->control("pause")};return START_NOT_STICKY}
         startForeground(740,notification(resources.getString(R.string.ui_preparing_receiver),false))
         val next=CastRequests.take(intent?.getStringExtra("request")) ?: run {stopSelf();return START_NOT_STICKY}
-        val before=loading;before?.cancel();polling?.cancel();releaseSource()
+        val before=loading;before?.cancel();polling?.cancel();saveReceiverPosition();releaseSource()
+        receiverStatus=null;lastNotification=""
         request=next;stopping=false;session?.isActive=true
         val visit=++generation
         state.value=CastingState(next.title,next.dlna?.name ?: CastRuntime.context?.sessionManager?.currentCastSession?.castDevice?.friendlyName ?: resources.getString(R.string.ui_cast_receiver),next.key)
@@ -99,9 +101,12 @@ class CastPlaybackService:Service() {
         return START_NOT_STICKY
     }
     private fun protected(value:CastRequest)=value.profile!=app.ember.tv.data.Prefs(this).currentProfile||PrivateMedia.hidden(value.source)||PrivateMedia.hidden(value.key)||value.key.startsWith(DirectUsbIdentity.PREFIX)&&PrivateMedia.enabled
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     @android.annotation.SuppressLint("NotificationPermission")
     private fun ready(visit:Long) {
         if(stopping||visit!=generation)return
+        // Release the paused local source before receiver progress becomes authoritative.
+        PlayerActivity.current?.get()?.takeIf {it.resumeKey==request?.key && it.player?.isPlaying!=true}?.endPlayback()
         state.value=state.value?.copy(ready=true)
         wake=getSystemService(PowerManager::class.java).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"Ember:receiver").apply {acquire(12*60*60*1000L)}
         session?.setMetadata(PlatformMetadata.Builder().putString(PlatformMetadata.METADATA_KEY_TITLE,request?.title).build())
@@ -120,7 +125,7 @@ class CastPlaybackService:Service() {
                         ReceiverStatus(remote.approximateStreamPosition,remote.mediaInfo?.streamDuration?.coerceAtLeast(0) ?: active.duration,remote.isPlaying,
                             remote.mediaStatus?.idleReason==MediaStatus.IDLE_REASON_FINISHED,cast.volume.coerceIn(0.0,1.0))
                     }
-                    failures=0;state.value=state.value?.copy(status=status)
+                    failures=0;receiverStatus=castProgressReport(active,status,receiverStatus);state.value=state.value?.copy(status=status)
                     val platform=if(status.playing)PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED
                     session?.setPlaybackState(PlaybackState.Builder().setState(platform,status.position,if(status.playing)1f else 0f,SystemClock.elapsedRealtime()).setActions(PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PLAY_FROM_SEARCH or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_STOP or PlaybackState.ACTION_SEEK_TO).build())
                     val text=if(status.playing)resources.getString(R.string.ui_playing_on ,state.value?.receiver) else resources.getString(R.string.ui_paused_on ,state.value?.receiver)
@@ -159,11 +164,18 @@ class CastPlaybackService:Service() {
             .addAction(Notification.Action.Builder(null,resources.getString(R.string.ui_disconnect),action("stop")).build()).build()
     }
     private fun fail(message:String){state.value=CastingState(resources.getString(R.string.ui_receiver_playback),resources.getString(R.string.ui_receiver),"",error=message);stopRemote()}
+    private fun saveReceiverPosition() {
+        val active=request ?: return
+        val status=receiverStatus ?: return
+        saveCastPosition(this,active,status)
+        receiverStatus=null
+    }
     private fun releaseSource(){source?.close();source=null;request?.close();request=null;if(wake?.isHeld==true)wake?.release();wake=null}
     internal fun stopRemote(endReceiver:Boolean=true) {
         if(stopping)return
         stopping=true;generation++;loading?.cancel();polling?.cancel()
         session?.setMetadata(null);session?.isActive=false;stopForeground(STOP_FOREGROUND_REMOVE)
+        saveReceiverPosition()
         val dlna=request?.dlna
         val wasGoogle=request!=null&&dlna==null
         releaseSource()

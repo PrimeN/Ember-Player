@@ -216,8 +216,9 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
     })
 
     p.addListener(object : Player.Listener {
-        override fun onEvents(player:Player,events:Player.Events){subtitleTicker.refresh()}
+        override fun onEvents(player:Player,events:Player.Events){subtitleTicker.refresh();updatePictureInPicture()}
         override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+            updatePictureInPicture()
             // PlayerView sets the video's own shape; a forced one goes back on top.
             if (aspect != 0) handler.post { applyAspect() }
         }
@@ -300,7 +301,6 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
             if (!triedAsHls && playbackEngine?.compatibility == null && audioUrl == null &&
                 PlaybackErrors.mayBeHls(error.errorCode, currentUrl)) {
                 triedAsHls = true
-                app.ember.tv.data.CrashLog.note(resources.getString(R.string.ui_playback_error_trying_the_link_as_hls ,error.errorCodeName), error)
                 p.currentMediaItem?.buildUpon()?.setMimeType(MimeTypes.APPLICATION_M3U8)?.build()?.let {
                     val position = p.currentPosition
                     p.setMediaItem(it, position)
@@ -308,14 +308,6 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
                     return
                 }
             }
-            val what = describe((error as? androidx.media3.exoplayer.ExoPlaybackException)?.rendererFormat)
-            // Every playback error goes to Settings > About > Crash log, with the decoders in use.
-            app.ember.tv.data.CrashLog.note(
-                resources.getString(R.string.ui_playback_error ,error.errorCodeName) + (if (what.isNotBlank()) " ($what)" else "") +
-                    resources.getString(R.string.ui_video_decoder_audio_decoder ,videoDecoder ?: "none",audioDecoder ?: "none") +
-                    resources.getString(R.string.ui_ffmpeg_video_retries_at_ms ,codecs.ffmpegVideo.toString(),recoveries.toString(),ioRetries.toString(),(player?.currentPosition ?: 0).toString()),
-                error,
-            )
             if(PlaybackErrors.decoding(error.errorCode)) {
                 val failed=(error as? androidx.media3.exoplayer.ExoPlaybackException)?.rendererFormat ?: p.videoFormat
                 if(failed!=null)codecs.decoderHealth?.forget(failed)
