@@ -150,7 +150,23 @@ class PrivateMediaTest {
         assertEquals(1,closes)
         try {PlayerBackups.snapshot(context);fail("Expected backup gate")}catch(_:IllegalStateException){}
     }
-    @Test fun historyOffClearsActivityAndStopsNewResumeWritesButKeepsBookmarks() {
+    @Test fun clearingActivityRemovesAllProfilesBookmarksAndRememberedTracksWithoutDeletingPlaylists() {
+        val tokens=app.ember.player.storage.TokenStore(context)
+        val saved=SavedPlaylists(context,"main")
+        assertTrue(saved.save("Keep",listOf(QueueMedia("https://example.test/movie.mp4","Movie"))))
+        tokens.putEncrypted("media.network.main","saved connection")
+        for(scope in listOf("shared","local:other")) {
+            assertTrue(PlaybackBookmarks(context,scope).add("movie",1000,"Scene"))
+            TrackMemory(context,scope).putAudio("movie","fr")
+        }
+        val choices=ManualSubtitleChoices(context,"main")
+        assertTrue(choices.put("movie",ManualSubtitleFile("Subtitles",listOf("content://docs/subtitle"))))
+        PrivateMedia.clearHistory()
+        for(scope in listOf("shared","local:other")){assertTrue(PlaybackBookmarks(context,scope).read("movie").isEmpty());assertNull(TrackMemory(context,scope).get("movie"))}
+        assertNull(choices.get("movie"));assertEquals("Keep",saved.read().single().name)
+        assertEquals("saved connection",tokens.get("media.network.main"))
+    }
+    @Test fun historyOffClearsBookmarksAndActivityAndStopsNewResumeWrites() {
         MediaHistory(context).add(listOf(QueueMedia("content://docs/movie","Movie")))
         PositionStore(context).put("movie",100,1000)
         val bookmarks=PlaybackBookmarks(context,app.ember.tv.data.LocalActivity.SHARED)
@@ -158,7 +174,7 @@ class PrivateMediaTest {
         PrivateMedia.recordHistory(false)
         assertTrue(MediaHistory(context).read().isEmpty());assertNull(PositionStore(context).get("movie"))
         PositionStore(context).put("other",100,1000);assertNull(PositionStore(context).get("other"))
-        assertEquals("Scene",bookmarks.read("movie").single().name)
+        assertTrue(bookmarks.read("movie").isEmpty())
     }
     @Test fun privateTreeGrantsProtectChildrenWithOpaqueDocumentIds() {
         val folder=PrivateItem("content://docs/tree/opaque-parent","Private folder",true)

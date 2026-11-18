@@ -17,7 +17,7 @@ internal class PlaybackBookmarks(context:Context,scope:String) {
     private fun key(title:String)=prefix+CachePolicy.digest(title)
     fun read(title:String):List<PlaybackBookmark> = decode(store.getString(key(title),null))
     fun add(title:String,position:Long,name:String):Boolean = synchronized(lock) {
-        if(position<0 || title.isBlank() || (!store.contains(key(title)) && store.all.size>=512))return@synchronized false
+        if(position<0 || title.isBlank())return@synchronized false
         val values=read(title)
         if(values.size>=50)return@synchronized false
         val at=position.coerceAtMost(604_800_000L)
@@ -49,6 +49,7 @@ internal class PlaybackBookmarks(context:Context,scope:String) {
     }
     companion object {
         private val lock=Any()
+        fun clearAll(context:Context):Boolean=synchronized(lock){context.getSharedPreferences("bookmarks",Context.MODE_PRIVATE).edit().clear().commit()}
         private val json=Json {ignoreUnknownKeys=true}
         fun valid(raw:String):Boolean {
             if(raw.length>64*1024)return false

@@ -6,11 +6,19 @@ internal object Mp4Chapters {
     fun recognizes(head:ByteArray)=head.size>=8 && String(head,4,4,Charsets.US_ASCII) in setOf("ftyp","moov","free","wide","mdat")
     fun read(head:ByteArray,fetch:(Long,Int)->ByteArray?):List<Chapter> {
         var budget=4*1024*1024
+        var metadata:LongRange?=null;var readAhead=0
+        val cached=ArrayDeque<Pair<Long,ByteArray>>()
         fun bytes(at:Long,size:Int):ByteArray {
             require(at>=0 && size in 0..1024*1024 && at<=Long.MAX_VALUE-size)
             if(at+size<=head.size)return head.copyOfRange(at.toInt(),at.toInt()+size)
-            require(size<=budget);budget-=size
-            return fetch(at,size)?.also {require(it.size==size)} ?: error("Missing chapter data")
+            cached.firstOrNull {(offset,data)->at>=offset&&at+size<=offset+data.size}?.let {(offset,data)->return data.copyOfRange((at-offset).toInt(),(at-offset).toInt()+size)}
+            val window=metadata
+            val ahead=window!=null&&at in window&&size<=64*1024&&at+size-1<=window.last&&readAhead<1024*1024
+            val wanted=if(ahead)minOf(maxOf(size,64*1024).toLong(),window!!.last-at+1,(1024*1024-readAhead).toLong()).toInt().coerceAtLeast(size) else size
+            require(wanted<=budget);budget-=wanted
+            val data=fetch(at,wanted)?.also {require(it.size>=size&&it.size<=wanted)} ?: error("Missing chapter data")
+            if(ahead){readAhead+=wanted;cached.addLast(at to data);if(cached.size>8)cached.removeFirst()}
+            return data.copyOfRange(0,size)
         }
         fun boxes(start:Long,end:Long):List<Box> {
             val out=mutableListOf<Box>();var at=start
@@ -36,6 +44,7 @@ internal object Mp4Chapters {
         try {
             if(!recognizes(head))return emptyList()
             val movie=boxes(0,Long.MAX_VALUE).firstOrNull {it.type=="moov"} ?: return emptyList()
+            metadata=movie.body until movie.end
             val movieChildren=children(movie)
             val chapterList=movieChildren.firstOrNull {it.type=="udta"}?.let(::children)?.firstOrNull {it.type=="chpl"}
             if(chapterList!=null) {
@@ -92,13 +101,22 @@ internal object Mp4Chapters {
                     while(mapping+1<stsc.size && stsc[mapping+1][0]<=chunk)mapping++
                     val n=stsc[mapping][1];require(n in 1..2000 && sample+n<=count)
                     var offset=if(stride==8)u64(cb,8+(chunk-1)*8) else u32(cb,8+(chunk-1)*4)
-                    repeat(n.toInt()) {
-                        val data=bytes(offset,sizes[sample].toInt());val length=((data[0].toInt() and 255) shl 8) or (data[1].toInt() and 255)
-                        require(length<=data.size-2)
-                        val text=data.copyOfRange(2,2+length)
-                        val name=String(text,if(text.size>=2 && ((text[0]==0xfe.toByte() && text[1]==0xff.toByte()) || (text[0]==0xff.toByte() && text[1]==0xfe.toByte())))Charsets.UTF_16 else Charsets.UTF_8).trim()
-                        val ms=(times[sample]*1000.0/scale+adjustment).toLong().coerceAtLeast(0)
-                        out+=Chapter(name.ifBlank {"Chapter ${sample+1}"},ms);offset+=sizes[sample];sample++
+                    val limit=sample+n.toInt()
+                    while(sample<limit) {
+                        var endSample=sample;var blockSize=0
+                        while(endSample<limit && blockSize+sizes[endSample]<=1024*1024){blockSize+=sizes[endSample].toInt();endSample++}
+                        require(endSample>sample)
+                        val block=bytes(offset,blockSize);var within=0
+                        while(sample<endSample) {
+                            val size=sizes[sample].toInt()
+                            val length=((block[within].toInt() and 255) shl 8) or (block[within+1].toInt() and 255)
+                            require(length<=size-2)
+                            val text=block.copyOfRange(within+2,within+2+length)
+                            val name=String(text,if(text.size>=2 && ((text[0]==0xfe.toByte() && text[1]==0xff.toByte()) || (text[0]==0xff.toByte() && text[1]==0xfe.toByte())))Charsets.UTF_16 else Charsets.UTF_8).trim()
+                            val ms=(times[sample]*1000.0/scale+adjustment).toLong().coerceAtLeast(0)
+                            out+=Chapter(name.ifBlank {"Chapter ${sample+1}"},ms);within+=size;sample++
+                        }
+                        offset+=blockSize
                     }
                 }
                 require(sample==count)

@@ -22,7 +22,7 @@ internal fun PlayerActivity.showBookmarks() {
         if(visit!=playbackVisit || resumeKey!=key)return@launch
         showPlayerActions(resources.getString(R.string.ui_bookmarks),listOf(PlayerDialogAction(resources.getString(R.string.ui_save_current_position)) {
             if(visit==playbackVisit && resumeKey==key)player?.currentPosition?.let {at->bookmarkName(resources.getString(R.string.ui_bookmark_name),clock(at)) {label->
-                lifecycleScope.launch {val saved=withContext(Dispatchers.IO){store.add(key,at,label)};if(!saved)android.widget.Toast.makeText(this@showBookmarks,resources.getString(R.string.ui_could_not_save_bookmark_limit_50_per_title_512),android.widget.Toast.LENGTH_LONG).show();if(visit==playbackVisit)showBookmarks()}
+                lifecycleScope.launch {val saved=withContext(Dispatchers.IO){store.add(key,at,label)};if(!saved)android.widget.Toast.makeText(this@showBookmarks,resources.getString(R.string.ui_could_not_save_bookmark),android.widget.Toast.LENGTH_LONG).show();if(visit==playbackVisit)showBookmarks()}
             }}
         },PlayerDialogAction(resources.getString(R.string.ui_clear_saved_bookmarks),destructive=true) {
             showPlayerActions(resources.getString(R.string.ui_clear_saved_bookmarks),listOf(

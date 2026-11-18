@@ -104,12 +104,12 @@ class PlayerSettingsUiTest {
             val bookmarks=app.ember.tv.player.PlaybackBookmarks(context,"shared")
             org.junit.Assert.assertTrue(bookmarks.add(media.key,50_000,"Keep bookmark"))
             category("Private media")
-            fun openClear(){compose.onNodeWithTag("settingsContent").performScrollToNode(hasText("Clear recent activity and resume positions"));compose.onNodeWithText("Clear recent activity and resume positions").performSemanticsAction(SemanticsActions.OnClick){it()}}
+            fun openClear(){compose.onNodeWithTag("settingsContent").performScrollToNode(hasText("Clear all saved activity"));compose.onNodeWithText("Clear all saved activity").performSemanticsAction(SemanticsActions.OnClick){it()}}
             openClear();compose.onNodeWithText("Cancel").performSemanticsAction(SemanticsActions.OnClick){it()}
-            compose.runOnIdle {assertEquals(1,history.read().size);org.junit.Assert.assertNotNull(positions.get(media.key))}
+            compose.runOnIdle {assertEquals(1,history.read().size);org.junit.Assert.assertNotNull(positions.get(media.key));assertEquals("Keep bookmark",bookmarks.read(media.key).single().name)}
             openClear();compose.onNodeWithText("Clear activity").performSemanticsAction(SemanticsActions.OnClick){it()}
-            compose.waitUntil(10_000){history.read().isEmpty()&&positions.get(media.key)==null}
-            compose.runOnIdle {assertEquals("Keep bookmark",bookmarks.read(media.key).single().name)}
+            compose.waitUntil(10_000){history.read().isEmpty()&&positions.get(media.key)==null&&bookmarks.read(media.key).isEmpty()}
+            compose.runOnIdle {org.junit.Assert.assertTrue(bookmarks.read(media.key).isEmpty())}
         }
     }
 

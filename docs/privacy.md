@@ -15,6 +15,7 @@ mounted-drive browsing can request media-library access when you open that tool.
 - Playback positions, bookmarks, playlists and preferences stay in the app's
   private storage. Device-video thumbnails use a bounded memory cache.
 - **Clear disposable caches** preserves settings, positions and credentials.
+- **Clear all saved activity** removes recent media, resume positions, bookmarks and remembered audio/subtitle selections across profiles after confirmation. Playlists, saved folders and connection credentials are kept.
 
 ## Connections you choose
 

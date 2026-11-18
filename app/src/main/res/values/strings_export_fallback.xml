@@ -1,0 +1,5 @@
+<resources>
+    <string name="ui_export_without_audio">Export without audio</string>
+    <string name="ui_clip_audio_unavailable">The selected audio cannot be copied into this MP4 clip. Try exporting the video without audio while keeping its original quality.</string>
+    <string name="ui_video_only_clip_boundaries">This clip will have no audio. Video quality is preserved and its boundaries use nearby keyframes.</string>
+</resources>

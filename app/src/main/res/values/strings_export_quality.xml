@@ -1,5 +1,5 @@
 <resources>
     <string name="ui_lossless_clip_boundaries">Lossless MP4 clips use nearby keyframes for their start and end. Video quality and the selected audio are preserved.</string>
-    <string name="ui_lossless_clip_unsupported">This source, selected track or destination cannot be copied losslessly to MP4. Choose a seekable local destination and a supported video/audio combination. External soundtracks are not supported.</string>
+    <string name="ui_lossless_clip_unsupported">This source, selected track or destination cannot be copied losslessly to MP4. Choose a seekable destination and a supported video format.</string>
     <string name="ui_hdr_capture_warning">HDR screenshot colours may look washed out or differ from playback because this capture path cannot guarantee accurate tone mapping.</string>
 </resources>

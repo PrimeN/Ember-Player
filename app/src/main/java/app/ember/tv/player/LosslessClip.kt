@@ -12,17 +12,35 @@ import java.nio.ByteBuffer
 /** Copy encoded samples directly to a seekable MP4 destination; no intermediate movie is made. */
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal object LosslessClip {
+    class AudioUnavailable:IllegalStateException("Selected audio cannot be copied to MP4")
     data class Track(val index:Int,val id:Int?,val mime:String,val language:String?,val channels:Int,val rate:Int)
     fun chooseAudio(tracks:List<Track>,selected:Format?,disabled:Boolean):Int? {
-        if(disabled || tracks.isEmpty())return null
+        if(disabled)return null
+        if(tracks.isEmpty()){if(selected!=null)throw AudioUnavailable();return null}
         selected?.id?.toIntOrNull()?.let {id->tracks.singleOrNull {it.id==id}?.let {return it.index}}
-        val candidates=tracks.filter {track->selected==null ||
+        fun matches(track:Track)=selected==null ||
             (selected.sampleMimeType==null || track.mime==selected.sampleMimeType) &&
             (selected.language.isNullOrBlank() || language(track.language)==language(selected.language)) &&
-            (selected.channelCount<=0 || track.channels==selected.channelCount) && (selected.sampleRate<=0 || track.rate==selected.sampleRate)}
-        return candidates.singleOrNull()?.index ?: error("Selected audio track cannot be identified")
+            (selected.channelCount<=0 || track.channels==selected.channelCount) && (selected.sampleRate<=0 || track.rate==selected.sampleRate)
+        selected?.id?.takeIf {it.startsWith("mpv:audio:")}?.substringAfterLast(':')?.toIntOrNull()?.let {ordinal->
+            tracks.getOrNull(ordinal-1)?.takeIf(::matches)?.let {return it.index}
+            throw AudioUnavailable()
+        }
+        return tracks.filter(::matches).singleOrNull()?.index ?: throw AudioUnavailable()
     }
-    private fun language(value:String?):String=runCatching {java.util.Locale.forLanguageTag(value.orEmpty()).isO3Language}.getOrDefault(value.orEmpty()).lowercase(java.util.Locale.ROOT)
+    internal fun openDestination(open:(String)->android.os.ParcelFileDescriptor?):android.os.ParcelFileDescriptor {
+        val file=try {open("rwt")}catch(_:java.io.IOException){null}catch(_:IllegalArgumentException){null}catch(_:UnsupportedOperationException){null}
+            ?: open("rw") ?: error("Cannot open destination")
+        try {
+            android.system.Os.ftruncate(file.fileDescriptor,0)
+            android.system.Os.lseek(file.fileDescriptor,0,android.system.OsConstants.SEEK_SET)
+            return file
+        }catch(e:Exception){file.close();throw e}
+    }
+    private fun language(value:String?):String {
+        val code=runCatching {java.util.Locale.forLanguageTag(value.orEmpty()).isO3Language}.getOrDefault(value.orEmpty()).lowercase(java.util.Locale.ROOT)
+        return mapOf("fre" to "fra","ger" to "deu","chi" to "zho","dut" to "nld","cze" to "ces","gre" to "ell","rum" to "ron","slo" to "slk","may" to "msa")[code] ?: code
+    }
     fun copy(context:Context,source:String,headers:Map<String,String>,destination:Uri,startMs:Long,endMs:Long,selected:Format?,audioDisabled:Boolean,check:()->Unit,progress:(Int)->Unit) {
         require(startMs>=0 && endMs>startMs && endMs<=Long.MAX_VALUE/1000)
         val extractor=MediaExtractor()
@@ -44,12 +62,14 @@ internal object LosslessClip {
             require(end>anchor)
             audio?.let(extractor::selectTrack)
             extractor.seekTo(anchor,MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-            context.contentResolver.openFileDescriptor(destination,"rwt")?.use {file->
-                android.system.Os.lseek(file.fileDescriptor,0,android.system.OsConstants.SEEK_CUR)
+            openDestination {mode->context.contentResolver.openFileDescriptor(destination,mode)}.use {file->
                 val muxer=MediaMuxer(file.fileDescriptor,MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
                 var started=false
                 try {
-                    val map=listOfNotNull(video,audio).associateWith {muxer.addTrack(formats.getValue(it))}
+                    val map=mutableMapOf(video to muxer.addTrack(formats.getValue(video)))
+                    audio?.let {index->
+                        map[index]=try {muxer.addTrack(formats.getValue(index))}catch(_:IllegalArgumentException){throw AudioUnavailable()}catch(_:IllegalStateException){throw AudioUnavailable()}
+                    }
                     if(format.containsKey(MediaFormat.KEY_ROTATION))muxer.setOrientationHint(format.getInteger(MediaFormat.KEY_ROTATION))
                     muxer.start();started=true
                     var buffer=ByteBuffer.allocateDirect(256*1024);val info=MediaCodec.BufferInfo();var written=false
@@ -71,7 +91,7 @@ internal object LosslessClip {
                     }
                     check(written);check();muxer.stop();started=false;progress(100)
                 } finally {if(started)runCatching {muxer.stop()};muxer.release()}
-            } ?: error("Cannot open destination")
+            }
         } finally {extractor.release()}
     }
 }

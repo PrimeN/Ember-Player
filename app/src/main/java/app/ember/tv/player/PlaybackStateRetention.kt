@@ -83,6 +83,9 @@ internal class PlaybackStateRetention(context:Context,private val file:String) {
             }
             return result
         }
+        fun clearTrackChoices(context:Context):Boolean=synchronized(lock) {
+            listOf("trackMemory",LEGACY_RECENCY).all {file->context.getSharedPreferences(file,Context.MODE_PRIVATE).edit().clear().commit()}
+        }
         private fun entryBytes(key:String,value:String)=Json.encodeToString(key).toByteArray().size+Json.encodeToString(value).toByteArray().size+16
         private fun discardLegacyRecency(context:Context,file:String):Boolean {
             val legacy=context.getSharedPreferences(LEGACY_RECENCY,Context.MODE_PRIVATE)

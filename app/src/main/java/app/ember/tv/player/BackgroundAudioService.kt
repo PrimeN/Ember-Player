@@ -48,7 +48,7 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
     private var wanted=true
     private var wake:android.os.PowerManager.WakeLock?=null
     private var wakeUntil=0L
-    private val timeout=Runnable {if(audio==null)stopPlayback()}
+    private val timeout=Runnable {if(audio==null&&handoff?.retainedPreparation!=true)stopPlayback()}
     private val preferences=android.content.SharedPreferences.OnSharedPreferenceChangeListener {_,key->
         if(key==null || key=="playbackConfig" || key=="currentProfile")handler.post {
             val prefs=app.ember.tv.data.Prefs(applicationContext)
@@ -101,7 +101,7 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
         id=incoming;handoff=entry;closing=false;wanted=true
         createSession()
         startForeground(NOTIFICATION,preparingNotification(),ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-        handler.removeCallbacks(timeout);handler.postDelayed(timeout,10000)
+        handler.removeCallbacks(timeout);if(handoff?.retainedPreparation!=true)handler.postDelayed(timeout,10000)
         beginIfCommitted()
         return START_NOT_STICKY
     }
@@ -252,7 +252,7 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
         .setAction(action).setData(Uri.Builder().scheme("emberplayer").authority("background").appendPath(id).appendPath(action).build())
         .putExtra(EXTRA_ID,id),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     private fun preparingNotification():Notification=Notification.Builder(this,CHANNEL).setSmallIcon(R.drawable.ic_player_notification)
-        .setContentTitle(resources.getString(R.string.ui_ember_player)).setContentText(resources.getString(R.string.ui_preparing_background_playback)).setVisibility(Notification.VISIBILITY_PRIVATE).setOnlyAlertOnce(true).build()
+        .setContentTitle(resources.getString(R.string.ui_ember_player)).setContentText(resources.getString(if(handoff?.retainedPreparation==true)R.string.ui_pip_background_prepared else R.string.ui_preparing_background_playback)).setVisibility(Notification.VISIBILITY_PRIVATE).setOnlyAlertOnce(true).build()
     private fun releaseSession(releaseQueue:Boolean) {
         usbWatch?.close();usbWatch=null
         closing=true
@@ -316,6 +316,14 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             try {checkNotNull(ContextCompat.startForegroundService(context,intent)) {context.resources.getString(R.string.ui_background_service_unavailable)}} catch(e:Exception){pending.remove(id);throw e}
             return id
+        }
+        internal fun retainStage(id:String):Boolean {
+            val retained=pending[id]?.retainPreparation()==true
+            if(retained)current?.get()?.takeIf {it.id==id}?.let {
+                it.handler.removeCallbacks(it.timeout)
+                it.getSystemService(NotificationManager::class.java).notify(NOTIFICATION,it.preparingNotification())
+            }
+            return retained
         }
         internal fun commit(id:String,request:BackgroundAudioRequest):Boolean {
             if(pending[id]?.commit(request)!=true)return false

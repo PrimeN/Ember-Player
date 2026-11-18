@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Offer video-only lossless clips when audio cannot be copied, recognize Compatibility track ordinals and support more document providers.
+- Retain the prepared background handoff during PiP and release it on return to full screen.
+- Restore the unfaded Cast stream level after stopping playback.
+- Remove the shared bookmark title cap and include bookmarks and track choices in confirmed activity clearing.
+- Find partial Chinese and Japanese titles, remove obsolete marker labels and batch MP4 chapter reads.
+
 - Update SQLite, Commons IO, JSON serialization and the JVM test framework.
 - Refuse incomplete encrypted backups and preserve the local library index key on restore.
 - Validate restored privacy settings, require the current PIN and keep protection markers consistent.

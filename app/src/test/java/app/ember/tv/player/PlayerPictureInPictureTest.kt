@@ -107,7 +107,11 @@ class PlayerPictureInPictureTest {
         engine.configure(EngineSource(listOf("https://example.test/video.mp4"),"Video","video"))
         activity.playbackEngine=engine
         ReflectionHelpers.setField(shadowOf(activity),"isInPictureInPictureMode",true)
-        activity.pictureInPictureEntered=true
+        activity.onPictureInPictureModeChanged(true,Configuration())
+        val prepared=activity.backgroundStage
+        assertNotNull(prepared)
+        val app:Application=RuntimeEnvironment.getApplication()
+        assertNotNull(shadowOf(app).nextStartedService)
         val power=shadowOf(activity.getSystemService(android.os.PowerManager::class.java))
         power.setIsInteractive(false)
         try {
@@ -115,10 +119,26 @@ class PlayerPictureInPictureTest {
             assertNotNull(activity.backgroundRequest(true))
             ReflectionHelpers.callInstanceMethod<Unit>(activity,"onStop")
             assertTrue(activity.backgroundQueueTransferred)
+            assertNull(shadowOf(app).nextStartedService)
             assertNull(activity.player);assertEquals(1,fake.released)
             val pending=ReflectionHelpers.getStaticField<java.util.concurrent.ConcurrentHashMap<String,BackgroundHandoff<BackgroundAudioRequest>>>(BackgroundAudioService::class.java,"pending")
             pending.values.forEach {it.close()};pending.clear()
         }finally{power.setIsInteractive(true);engine.player.release();activity.playbackEngine=null}
+    }
+    @Test fun returningToFullScreenReleasesTheRetainedPreparation()=fixture {activity,_->
+        val actual=ExoPlayer.Builder(activity).build()
+        val engine=PlaybackEngine(activity,actual,{activity.config.copy(rememberDecoderChoices=false)}) {}
+        engine.configure(EngineSource(listOf("https://example.test/video.mp4"),"Video","video"));activity.playbackEngine=engine
+        try {
+            ReflectionHelpers.setField(shadowOf(activity),"isInPictureInPictureMode",true)
+            activity.onPictureInPictureModeChanged(true,Configuration())
+            val id=activity.backgroundStage;assertNotNull(id)
+            ReflectionHelpers.setField(shadowOf(activity),"isInPictureInPictureMode",false)
+            ReflectionHelpers.callInstanceMethod<Unit>(activity,"onResume")
+            assertNull(activity.backgroundStage)
+            val pending=ReflectionHelpers.getStaticField<java.util.concurrent.ConcurrentHashMap<String,BackgroundHandoff<BackgroundAudioRequest>>>(BackgroundAudioService::class.java,"pending")
+            assertFalse(pending.containsKey(id))
+        }finally {engine.player.release();activity.playbackEngine=null}
     }
     @Test fun unchangedPipStateDoesNotRebuildWindowParameters()=fixture {activity,fake->
         activity.updatePictureInPicture()

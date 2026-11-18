@@ -73,6 +73,17 @@ class TokenStore internal constructor(context: Context, private val vaultProvide
         }
     }
 
+    /** Explicit activity clearing removes only matching records, even if their ciphertext is unreadable. */
+    internal fun removePrefix(prefix:String):Boolean {
+        require(prefix.isNotBlank())
+        val store=existingVault()
+        return synchronized(store ?: legacy) {
+            val keys=(encrypted.all.keys+legacy.all.keys).filter {it.startsWith(prefix)}
+            val removed=store?.write(keys.associateWith {null}) ?: encrypted.edit().apply {keys.forEach(::remove)}.commit()
+            removed&&legacy.edit().apply {keys.forEach(::remove)}.commit()
+        }
+    }
+
     /** Every saved token and key, for backups. */
     fun all(): Map<String, String> {
         val store=existingVault()

@@ -29,7 +29,7 @@ class CastPlaybackService:Service() {
     private var polling:Job?=null
     private var privacy:Job?=null
     private var sleep:java.io.Closeable?=null
-    private var receiverFade=app.ember.tv.data.SleepVolume()
+    private var receiverFade=ReceiverSleepVolume()
     private var session:MediaSession?=null
     private var generation=0L
     private var stopping=false
@@ -66,7 +66,7 @@ class CastPlaybackService:Service() {
         startForeground(740,notification(resources.getString(R.string.ui_preparing_receiver),false))
         val next=CastRequests.take(intent?.getStringExtra("request")) ?: run {stopSelf();return START_NOT_STICKY}
         val before=loading;before?.cancel();polling?.cancel();saveReceiverPosition();releaseSource()
-        receiverStatus=null;lastNotification="";receiverFade=app.ember.tv.data.SleepVolume()
+        receiverStatus=null;lastNotification=""
         request=next;stopping=false;session?.isActive=true
         val visit=++generation
         state.value=CastingState(next.title,next.dlna?.name ?: CastRuntime.context?.sessionManager?.currentCastSession?.castDevice?.friendlyName ?: resources.getString(R.string.ui_cast_receiver),next.key)
@@ -142,10 +142,12 @@ class CastPlaybackService:Service() {
         // DLNA exposes device-wide volume, not stream gain; leave the receiver's level alone.
         if(active.dlna!=null)return
         runCatching {
-            val remote=CastRuntime.context?.sessionManager?.currentCastSession?.remoteMediaClient ?: return
+            val cast=CastRuntime.context?.sessionManager?.currentCastSession ?: return
+            receiverFade=receiverFades.getOrPut(cast){ReceiverSleepVolume()}
+            val remote=cast.remoteMediaClient ?: return
             val current=remote.mediaStatus?.streamVolume ?: return
             val gain=app.ember.tv.data.SleepVolume.gain(SleepTimer.state.value,SystemClock.elapsedRealtime())
-            val desired=receiverFade.apply(current.toFloat(),gain).toDouble()
+            val desired=receiverFade.level(current,gain)
             if(kotlin.math.abs(current-desired)>=.0001)remote.setStreamVolume(desired)
         }
     }
@@ -194,10 +196,23 @@ class CastPlaybackService:Service() {
         releaseSource()
         if(endReceiver) {
             if(dlna!=null)Thread({runCatching {DlnaReceivers.soap(dlna,"Stop")}},"Ember receiver stop").apply {isDaemon=true;start()}
-            else if(wasGoogle)runCatching {CastRuntime.context?.sessionManager?.endCurrentSession(true)}
+            else if(wasGoogle)stopGoogleReceiver(generation)
         }
         if(state.value?.error==null)state.value=null
         stopSelf()
+    }
+    private fun stopGoogleReceiver(visit:Long) {
+        val manager=CastRuntime.context?.sessionManager ?: return
+        val cast=manager.currentCastSession ?: return
+        val remote=cast.remoteMediaClient
+        val fade=receiverFades[cast] ?: receiverFade
+        fun allowed()=generation==visit && manager.currentCastSession===cast && current?.get()?.let {it!==this}!=true
+        fun close(){if(allowed())manager.endCurrentSession(true)}
+        if(remote==null){close();return}
+        fade.stopAndRestore(::allowed,
+            stop={done->try {remote.stop().setResultCallback({result->done(result.status.isSuccess)},3,java.util.concurrent.TimeUnit.SECONDS)}catch(_:Exception){done(false)}},
+            restore={level,done->try {remote.setStreamVolume(level).setResultCallback({result->done(result.status.isSuccess)},3,java.util.concurrent.TimeUnit.SECONDS)}catch(_:Exception){done(false)}},
+            close=::close)
     }
     override fun onDestroy() {
         stopRemote();sleep?.close();privacy?.cancel();scope.cancel();releaseSource()
@@ -208,6 +223,7 @@ class CastPlaybackService:Service() {
         stopForeground(STOP_FOREGROUND_REMOVE);super.onDestroy()
     }
     companion object {
+        private val receiverFades=java.util.WeakHashMap<CastSession,ReceiverSleepVolume>()
         internal val state=MutableStateFlow<CastingState?>(null)
         private var current:WeakReference<CastPlaybackService>?=null
         fun start(context:Context,id:String){context.startForegroundService(Intent(context,CastPlaybackService::class.java).putExtra("request",id))}
