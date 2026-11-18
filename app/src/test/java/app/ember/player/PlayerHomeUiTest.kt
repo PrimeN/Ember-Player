@@ -79,7 +79,7 @@ class PlayerHomeUiTest {
         compose.onNodeWithText("Add a media folder").assertExists()
         compose.onNodeWithTag("library-navigation").performScrollToNode(hasText("Videos"))
         compose.onNodeWithText("Videos").performSemanticsAction(SemanticsActions.OnClick){it()}
-        compose.onNodeWithText("Watched").assertExists()
+        compose.onNode(hasText("Watched") and hasClickAction()).assertExists()
     }
 
 }
