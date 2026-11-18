@@ -307,6 +307,7 @@ class PlayerActivity : ComponentActivity() {
 
     internal val controlActions by lazy {
         ControlsActions(
+            seekStep = {TouchPlaybackMath.step(config.touch.seekSeconds)},
             playPause = { player?.let { it.playWhenReady = !it.playWhenReady }; showControls() },
             seekBy = { d -> player?.let { p -> navigateSeek(PlaybackSeeking.target(p.currentPosition,d,p.duration)) }; showControls() },
             skip = { doSkip() },

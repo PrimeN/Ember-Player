@@ -31,6 +31,7 @@ class PlaybackOverlayTest {
     @get:Rule val compose=createComposeRule()
     private val seeks=mutableListOf<Long>()
     private var plays=0
+    private var seekStep=10_000L
     private var pickedAudio=-1
     private var pickedSubtitle=-1
     private fun state(design:String=PlayerInterfaces.GLASS)=ControlsState().apply {
@@ -41,7 +42,7 @@ class PlaybackOverlayTest {
         subtitleOptions=listOf("Off" to true,"English" to false)
     }
     private fun actions(s:ControlsState)=ControlsActions(
-        playPause={plays++},seekBy={seeks+=it},skip={},
+        playPause={plays++},seekBy={seeks+=it},skip={},seekStep={seekStep},
         openMenu={which,_->s.menu=which;s.visible=false},options={emptyList()},next={},touched={},
         pickAudio={pickedAudio=it},pickSubtitle={pickedSubtitle=it},
     )
@@ -49,13 +50,28 @@ class PlaybackOverlayTest {
         compose.setContent {
             CompositionLocalProvider(LocalNight provides true,LocalReduceMotion provides true,
                 LocalDensity provides Density(1f,scale),LocalRenderOptions provides RenderOptions(device="low")) {
-                EmberTheme(0) {Box(Modifier.size(width.dp,height.dp).background(Color(0xFF28434A)).testTag("scene")) {
+                EmberTheme(0,PlayerInterfaces.layoutStyle(s.design)) {Box(Modifier.size(width.dp,height.dp).background(Color(0xFF28434A)).testTag("scene")) {
                     AdvancedControls(s,actions(s))
                 }}
             }
         }
     }
     private fun click(tag:String)=compose.onNodeWithTag(tag).performSemanticsAction(SemanticsActions.OnClick){it()}
+    @Test fun configuredSeekIntervalAppliesToTheTransportAndItsSpokenLabels() {
+        seekStep=25_000L
+        val s=state();show(s)
+        compose.onNodeWithContentDescription("Back 25 seconds").assertExists()
+        compose.onNodeWithContentDescription("Forward 25 seconds").assertExists()
+        click("player_rewind");click("player_forward")
+        assertEquals(listOf(-25_000L,25_000L),seeks)
+    }
+    @Test fun emberXUsesTheConfiguredSeekIntervalInBothDirections() {
+        seekStep=25_000L
+        val s=state(PlayerInterfaces.BASIC);show(s)
+        compose.onNodeWithContentDescription("Back 25 seconds").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithContentDescription("Forward 25 seconds").performSemanticsAction(SemanticsActions.OnClick){it()}
+        assertEquals(listOf(-25_000L,25_000L),seeks)
+    }
     @Test fun timelineAcceptsTouchSeekingAndCancelledDragsDoNotSeek() {
         val s=state();show(s)
         val node=compose.onNodeWithTag("player_timeline")
@@ -77,7 +93,7 @@ class PlaybackOverlayTest {
         compose.onRoot().performKeyInput {keyDown(Key.DirectionCenter);keyUp(Key.DirectionCenter)}
         assertEquals(1,plays)
         click("player_rewind");click("player_forward")
-        assertEquals(listOf(-10_000L,30_000L),seeks)
+        assertEquals(listOf(-10_000L,10_000L),seeks)
         val play=compose.onNodeWithTag("player_play").fetchSemanticsNode().boundsInRoot
         assertTrue(play.height<=48f)
         compose.onNodeWithTag("player_glass").assertExists()
@@ -90,7 +106,7 @@ class PlaybackOverlayTest {
         compose.onNodeWithTag("player_audio").assertDoesNotExist()
         compose.onNodeWithTag("player_subtitles").assertDoesNotExist()
         compose.onNodeWithTag("player_episodes").assertDoesNotExist()
-        click("player_forward");assertEquals(listOf(30_000L),seeks)
+        click("player_forward");assertEquals(listOf(10_000L),seeks)
         save("ember-cinema")
     }
     @Test fun seekingPreviewsBeforeCommitAndDoesNotTogglePlayback() {

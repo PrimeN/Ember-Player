@@ -98,8 +98,6 @@
     <string name="player_back">Back</string>
     <string name="player_play">Play</string>
     <string name="player_pause">Pause</string>
-    <string name="player_back_ten">Back 10 seconds</string>
-    <string name="player_forward_thirty">Forward 30 seconds</string>
     <string name="player_audio">Audio</string>
     <string name="player_episodes">Episodes</string>
     <string name="player_queue">Queue</string>
