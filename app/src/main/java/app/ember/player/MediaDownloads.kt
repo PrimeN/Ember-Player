@@ -34,6 +34,7 @@ internal class DownloadStore(private val context:Context) {
             }
         }
     }
+    fun readForDisplay():List<MediaDownload> = load()
     fun read():List<MediaDownload> = runCatching {load()}.getOrDefault(emptyList())
     fun add(url:String,name:String=""):MediaDownload=synchronized(lock) {
         require(supported(url)) {"Use a direct HTTP or HTTPS media file, rather than a playlist or protected stream."}

@@ -84,6 +84,33 @@ class PlayerDestructiveActionsUiTest {
         compose.onNodeWithText(context.getString(app.ember.tv.R.string.ui_this_saved_folder_was_removed_add_it_again_to)).assertDoesNotExist()
         compose.runOnIdle {assertEquals(previous,encrypted.all)}
     }
+    @Test fun unreadablePlaylistAndDownloadPanelsExplainFailureAndRecoverWithoutDataLoss() {
+        val playlists=SavedPlaylists(context)
+        assertTrue(playlists.save("Recovered playlist",listOf(QueueMedia("content://videos/1","One"))))
+        val downloads=DownloadStore(context)
+        downloads.add("https://example.test/recovered.mkv","Recovered.mkv")
+        val encrypted=context.getSharedPreferences(app.ember.player.storage.SecretVault.FILE,Context.MODE_PRIVATE)
+        val playlistKey="player.playlists."+Prefs(context).currentProfile
+        val downloadKey="player.downloads"
+        val playlistCopy=encrypted.getString(playlistKey,null)!!
+        val downloadCopy=encrypted.getString(downloadKey,null)!!
+        encrypted.edit().putString(playlistKey,"%unreadable%").putString(downloadKey,"%unreadable%").commit()
+        click("Playlists")
+        val playlistError=context.getString(app.ember.tv.R.string.ui_playlists_unreadable)
+        compose.waitUntil(10_000){compose.onAllNodesWithText(playlistError).fetchSemanticsNodes().isNotEmpty()}
+        compose.runOnIdle {assertEquals("%unreadable%",encrypted.getString(playlistKey,null));encrypted.edit().putString(playlistKey,playlistCopy).commit()}
+        compose.onNodeWithContentDescription("More options").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithContentDescription("Refresh library view").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.waitUntil(10_000){compose.onAllNodesWithText("Recovered playlist",substring=true).fetchSemanticsNodes().isNotEmpty()}
+        compose.onNodeWithText(playlistError).assertDoesNotExist()
+        click("Downloads")
+        val downloadError=context.getString(app.ember.tv.R.string.ui_downloads_unreadable)
+        compose.waitUntil(10_000){compose.onAllNodesWithText(downloadError).fetchSemanticsNodes().isNotEmpty()}
+        compose.runOnIdle {assertEquals("%unreadable%",encrypted.getString(downloadKey,null));encrypted.edit().putString(downloadKey,downloadCopy).commit()}
+        compose.waitUntil(10_000){compose.onAllNodesWithText("Recovered.mkv").fetchSemanticsNodes().isNotEmpty()}
+        compose.onNodeWithText(downloadError).assertDoesNotExist()
+        compose.runOnIdle {assertEquals(playlistCopy,encrypted.getString(playlistKey,null));assertEquals(downloadCopy,encrypted.getString(downloadKey,null))}
+    }
     @Test fun playlistOptionsHaveASpokenNameAndDeletionCanBeCanceled() {
         val store=SavedPlaylists(context)
         assertTrue(store.save("Test playlist",listOf(QueueMedia("https://example.test/clip.mkv","Clip"))))

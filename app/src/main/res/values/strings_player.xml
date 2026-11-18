@@ -77,7 +77,7 @@
     <string name="pl_channel_unavailable">This channel is not available right now (%1$s).</string>
     <string name="pl_channel_refused">The provider refused it: check the login, or whether your plan allows another connection.</string>
     <string name="pl_channel_other">Use channel up or down for another.</string>
-    <string name="pl_source_cannot_play">This source cannot play here (%1$s). Pick another source, or hold OK on a source to open it in another player.</string>
+    <string name="pl_source_cannot_play">This media could not be played. %1$s</string>
     <string name="pl_sound_in_step">in step</string>
     <string name="pl_sound_later">sound %1$d ms later</string>
     <string name="pl_sound_earlier">sound %1$d ms earlier</string>

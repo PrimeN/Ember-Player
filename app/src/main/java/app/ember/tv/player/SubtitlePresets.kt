@@ -15,9 +15,9 @@ data class SubtitleStyle(val font:String="default",val customFontName:String="",
 data class SubtitleStylePreset(val name:String,val style:SubtitleStyle)
 internal object SubtitlePresets {
     fun save(values:List<SubtitleStylePreset>,name:String,config:SubtitleConfig):List<SubtitleStylePreset> {
-        val clean=PictureProfiles.name(name);require(clean.isNotBlank()){"Enter a style name."}
+        val clean=PictureProfiles.name(name);if(clean.isBlank())throw PresetValidationException(app.ember.tv.R.string.ui_style_name_required)
         val existing=values.filterNot {it.name.equals(clean,true)}
-        require(existing.size<12){"Delete a saved style before adding another."}
+        if(existing.size>=12)throw PresetValidationException(app.ember.tv.R.string.ui_style_limit_reached)
         return existing+SubtitleStylePreset(clean,SubtitleStyle.from(config))
     }
 }

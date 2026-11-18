@@ -89,4 +89,38 @@ class SavedPlaylistsTest {
         assertFalse(store.move(id,-1,0));assertFalse(store.move(id,0,3))
     }
 
+    @Test fun removingEntriesKeepsResumeIdentityAndOnlyDeletesAnEmptyPlaylist() {
+        var raw:String?=null
+        val store=SavedPlaylists({raw},{raw=it;true})
+        val items=(0..3).map {QueueMedia("content://videos/$it","Video $it")}
+        assertTrue(store.save("Keep",items,2,"all",true))
+        assertTrue(store.save("Other",listOf(items[0])))
+        val first=store.read().first();val id=first.id
+        assertTrue(store.removeEntry(id,0,first.entries))
+        var value=store.read().first {it.id==id}
+        assertEquals("Video 2",value.entries[value.index].title)
+        assertEquals(1,value.index);assertTrue(value.shuffle);assertEquals("all",value.repeat)
+        assertTrue(store.removeEntry(id,1,value.entries))
+        value=store.read().first {it.id==id}
+        assertEquals("Video 3",value.entries[value.index].title)
+        assertTrue(store.removeEntry(id,1,value.entries))
+        value=store.read().first {it.id==id};assertEquals(0,value.index)
+        assertTrue(store.removeEntry(id,0,value.entries))
+        assertEquals(listOf("Other"),store.read().map {it.name})
+    }
+    @Test fun entryEditsRejectStaleRowsUnreadableCopiesAndFailedWrites() {
+        var raw:String?=null
+        val store=SavedPlaylists({raw},{raw=it;true})
+        assertTrue(store.save("Order",(0..2).map {QueueMedia("content://videos/$it","Video $it")}))
+        val value=store.read().single()
+        assertTrue(store.move(value.id,0,1,value.entries))
+        val original=raw
+        assertFalse(store.removeEntry(value.id,0,value.entries));assertFalse(store.move(value.id,0,2,value.entries));assertEquals(original,raw)
+        val failed=SavedPlaylists({raw},{false})
+        assertFalse(failed.removeEntry(value.id,0));assertEquals(original,raw)
+        raw="not json"
+        assertFalse(store.removeEntry(value.id,0));assertEquals("not json",raw)
+        try {store.readForDisplay();fail("Expected unreadable copy")}catch(_:IllegalArgumentException){}
+    }
+
 }

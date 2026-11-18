@@ -108,7 +108,7 @@ internal class PlayerTouchControls(
                 "seek"->if(host.seekable) {
                     val delta=TouchPlaybackMath.step(cfg.seekSeconds)*if(region==0)-1 else 1
                     host.seek(TouchPlaybackMath.seek(host.position,delta,host.duration))
-                    showHint(activity.resources.getString(R.string.ui_seconds ,if(delta<0)"−" else "+",(abs(delta)/1000).toString()))
+                    showHint(activity.resources.getQuantityString(R.plurals.ui_seconds,(abs(delta)/1000).coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),if(delta<0)"−" else "+",abs(delta)/1000))
                 }
             }
             return true

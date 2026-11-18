@@ -31,7 +31,7 @@ internal fun PlayerActivity.manageSubtitlePresets() {
             PlayerDialogAction(resources.getString(R.string.ui_delete_style),destructive=true){prefs.subtitlePresets=prefs.subtitlePresets.filterNot {it.name==preset.name};manageSubtitlePresets()}))
     }}+PlayerDialogAction(resources.getString(R.string.ui_save_current_style)) {
         playbackValueDialog(resources.getString(R.string.ui_save_subtitle_style),"",resources.getString(R.string.ui_appearance_only_language_and_provider_settings_stay_as_they),resources.getString(R.string.ui_save)){name->
-            runCatching {prefs.subtitlePresets=SubtitlePresets.save(prefs.subtitlePresets,name,current)}.exceptionOrNull()?.message
+            runCatching {prefs.subtitlePresets=SubtitlePresets.save(prefs.subtitlePresets,name,current)}.exceptionOrNull()?.let {resources.getString(PresetValidationException.resource(it))}
         }
     })
 }

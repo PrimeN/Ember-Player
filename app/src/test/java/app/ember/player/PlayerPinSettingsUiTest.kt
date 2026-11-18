@@ -33,9 +33,11 @@ class PlayerPinSettingsUiTest {
         TokenStore::class.java.getDeclaredField("instance").apply {isAccessible=true;set(null,null)}
     }
     private fun click(label:String)=compose.onNodeWithText(label).performSemanticsAction(SemanticsActions.OnClick){it()}
-    private fun confirmPin(pin:String,button:String) {
+    private fun confirmPin(pin:String,button:String,current:String?=null) {
         val inputs=compose.onAllNodes(hasSetTextAction() and hasAnyAncestor(isDialog()))
-        inputs[0].performTextInput(pin);inputs[1].performTextInput(pin)
+        if(current!=null)inputs[0].performTextInput(current)
+        val first=if(current==null)0 else 1
+        inputs[first].performTextInput(pin);inputs[first+1].performTextInput(pin)
         compose.onNode(hasText(button) and hasAnyAncestor(isDialog())).performSemanticsAction(SemanticsActions.OnClick){it()}
     }
     @Test fun pinSearchCanCreateChangeAndRemoveProtectionWithoutLosingPrivateEntries() {
@@ -46,7 +48,7 @@ class PlayerPinSettingsUiTest {
         compose.waitUntil(10_000){PrivateMedia.enabled&&PrivateMedia.unlocked.value}
         compose.runOnIdle {PrivateMedia.add(PrivateItem("content://private.example/video","Keep this item"))}
         val previousPin=PrivateMedia.state.value.pin
-        click("Change PIN");confirmPin("654321","Save PIN")
+        click("Change PIN");confirmPin("654321","Save PIN","123456")
         compose.waitUntil(10_000){PrivateMedia.state.value.pin!=previousPin}
         compose.runOnIdle {
             assertTrue(PrivateMedia.hidden("content://private.example/video"))
@@ -58,7 +60,9 @@ class PlayerPinSettingsUiTest {
         compose.runOnIdle {assertTrue(PrivateMedia.enabled)}
         click("Cancel")
         compose.runOnIdle {assertTrue(PrivateMedia.hidden("content://private.example/video"))}
-        click("Remove PIN protection");click("Remove protection")
+        click("Remove PIN protection")
+        compose.onNode(hasSetTextAction() and hasAnyAncestor(isDialog())).performTextInput("654321")
+        click("Remove protection")
         compose.waitUntil(10_000){!PrivateMedia.enabled}
         compose.runOnIdle {assertFalse(PrivateMedia.hidden("content://private.example/video"))}
         compose.onNodeWithText("Create PIN").assertExists()

@@ -11,6 +11,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -27,20 +29,22 @@ internal fun PrivatePinPrompt(close:()->Unit,success:()->Unit,createNew:Boolean=
     val scope=rememberCoroutineScope()
     val create=createNew||!PrivateMedia.enabled
     val changing=createNew&&PrivateMedia.enabled
+    var currentPin by remember {mutableStateOf("")}
     var pin by remember {mutableStateOf("")};var confirm by remember {mutableStateOf("")}
     var notice by remember {mutableStateOf<String?>(null)};var busy by remember {mutableStateOf(false)}
     TvDialog({if(!busy)close()},width=460.dp,resizeForKeyboard=true,scrollContent=true) {
         DialogHeading(if(changing)uiResources.getString(R.string.ui_change_private_media_pin) else if(create)uiResources.getString(R.string.ui_create_private_media_pin) else uiResources.getString(R.string.ui_unlock_private_media))
         Text(if(create)uiResources.getString(R.string.ui_use_6_12_digits_keep_your_pin_safe_it) else uiResources.getString(R.string.ui_enter_your_private_media_pin),style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
-        TvTextField(pin,{pin=it.filter {c->c in '0'..'9'}.take(12)},Modifier.fillMaxWidth(),password=true,keyboardType=KeyboardType.NumberPassword,placeholder=uiResources.getString(R.string.ui_pin))
+        if(changing)TvTextField(currentPin,{currentPin=it.filter {c->c in '0'..'9'}.take(12)},Modifier.fillMaxWidth().semantics {contentDescription=uiResources.getString(R.string.ui_current_pin)},password=true,keyboardType=KeyboardType.NumberPassword,placeholder=uiResources.getString(R.string.ui_current_pin))
+        TvTextField(pin,{pin=it.filter {c->c in '0'..'9'}.take(12)},Modifier.fillMaxWidth(),password=true,keyboardType=KeyboardType.NumberPassword,placeholder=uiResources.getString(if(changing)R.string.ui_new_pin else R.string.ui_pin))
         if(create)TvTextField(confirm,{confirm=it.filter {c->c in '0'..'9'}.take(12)},Modifier.fillMaxWidth(),password=true,keyboardType=KeyboardType.NumberPassword,placeholder=uiResources.getString(R.string.ui_confirm_pin))
         notice?.let {PlayerErrorText(it)}
         ButtonRow {
             PlayerAction(if(busy)uiResources.getString(R.string.ui_checking) else if(changing)uiResources.getString(R.string.ui_save_pin) else if(create)uiResources.getString(R.string.ui_create_pin) else uiResources.getString(R.string.ui_unlock),primary=true,enabled=!busy) {if(!busy){
-                if(!PrivatePin.valid(pin)||create&&pin!=confirm)notice=uiResources.getString(R.string.ui_use_6_12_digits_and_matching_pins)
-                else {val value=pin;pin="";confirm="";busy=true;scope.launch {
+                if(!PrivatePin.valid(pin)||create&&pin!=confirm||changing&&!PrivatePin.valid(currentPin))notice=uiResources.getString(R.string.ui_use_6_12_digits_and_matching_pins)
+                else {val value=pin;val previous=currentPin;pin="";confirm="";currentPin="";busy=true;scope.launch {
                     try {
-                        val okay=withContext(Dispatchers.IO){if(create){PrivateMedia.configure(value);true}else PrivateMedia.authenticate(value)}
+                        val okay=withContext(Dispatchers.IO){if(create)PrivateMedia.configure(value,previous.takeIf {changing}) else PrivateMedia.authenticate(value)}
                         if(okay)success() else notice=uiResources.getString(R.string.ui_incorrect_pin)
                     } catch(e:CancellationException){throw e}
                     catch(e:Exception){notice=if(PrivateMedia.state.value.retryElapsed>android.os.SystemClock.elapsedRealtime())uiResources.getString(R.string.ui_too_many_attempts_wait_before_trying_again) else uiResources.getString(R.string.ui_private_storage_is_unavailable)}
@@ -127,24 +131,34 @@ internal fun PrivateMediaPanel(activity:ComponentActivity) {
             }
             PlayerAction(uiResources.getString(R.string.ui_remove_pin_protection),destructive=true){removing=true}
         }
-        if(removing&&unlocked)RemovePrivateProtectionPrompt({removing=false}){notice=it}
+        if(removing&&unlocked)RemovePrivateProtectionPrompt({removing=false})
         notice?.let {PlayerErrorText(it)}
     }
 }
 
 @Composable
-private fun RemovePrivateProtectionPrompt(close:()->Unit,error:(String)->Unit) {
+private fun RemovePrivateProtectionPrompt(close:()->Unit) {
     val uiResources=androidx.compose.ui.platform.LocalResources.current
 
     val scope=rememberCoroutineScope()
     var busy by remember {mutableStateOf(false)}
-    PlayerConfirmationDialog(uiResources.getString(R.string.ui_make_private_media_visible),uiResources.getString(R.string.ui_removes_the_pin_and_makes_all_private_entries_visible),uiResources.getString(R.string.ui_remove_protection),close,busy) {
-        if(!busy){busy=true;scope.launch {
-            try {withContext(Dispatchers.IO){PrivateMedia.removeProtection()};close()}
-            catch(e:CancellationException){throw e}
-            catch(_:Exception){error("Could not remove protection.")}
-            finally {busy=false}
-        }}
+    var pin by remember {mutableStateOf("")}
+    var notice by remember {mutableStateOf<String?>(null)}
+    PlayerConfirmationDialog(uiResources.getString(R.string.ui_make_private_media_visible),uiResources.getString(R.string.ui_removes_the_pin_and_makes_all_private_entries_visible),uiResources.getString(R.string.ui_remove_protection),close,busy,content={
+        TvTextField(pin,{pin=it.filter {c->c in '0'..'9'}.take(12)},Modifier.fillMaxWidth().semantics {contentDescription=uiResources.getString(R.string.ui_current_pin)},password=true,keyboardType=KeyboardType.NumberPassword,placeholder=uiResources.getString(R.string.ui_current_pin))
+        notice?.let {PlayerErrorText(it)}
+    }) {
+        if(!busy){
+            val current=pin;pin="";busy=true
+            scope.launch {
+                try {
+                    if(withContext(Dispatchers.IO){PrivateMedia.removeProtection(current)})close()
+                    else notice=uiResources.getString(R.string.ui_incorrect_pin)
+                } catch(e:CancellationException){throw e}
+                  catch(_:Exception){notice=uiResources.getString(if(PrivateMedia.state.value.retryElapsed>android.os.SystemClock.elapsedRealtime())R.string.ui_too_many_attempts_wait_before_trying_again else R.string.ui_could_not_remove_protection)}
+                finally {busy=false}
+            }
+        }
     }
 }
 
@@ -172,7 +186,7 @@ private fun RemovePrivateProtectionPrompt(close:()->Unit,error:(String)->Unit) {
     }
     if(editingPin)PrivatePinPrompt({editingPin=false},{editingPin=false},createNew=true)
     if(unlocking)PrivatePinPrompt({unlocking=false},{unlocking=false})
-    if(removing&&unlocked)RemovePrivateProtectionPrompt({removing=false}){notice=it}
+    if(removing&&unlocked)RemovePrivateProtectionPrompt({removing=false})
     SwitchChip(uiResources.getString(R.string.ui_save_recent_activity_and_resume_positions),state.history){
         if(state.history)disabling=true else scope.launch {
             try {withContext(Dispatchers.IO){PrivateMedia.recordHistory(true)}}

@@ -36,4 +36,15 @@ class DevicePreviewTest {
         assertEquals(BrowserPreview(),DeviceThumbnails.preview(context,file))
         assertEquals(BrowserPreview(),DeviceThumbnails.preview(context,file.copy(mime=android.provider.DocumentsContract.Document.MIME_TYPE_DIR)))
     }
+    @Test fun disabledNetworkPreviewsDoNotReadRemoteMetadataOrOpenTheStream()=runBlocking {
+        val metadataReads=java.util.concurrent.atomic.AtomicInteger()
+        val streamOpens=java.util.concurrent.atomic.AtomicInteger()
+        val source=object:RemoteMedia {
+            override val length:Long get(){metadataReads.incrementAndGet();throw AssertionError("Remote metadata was accessed")}
+            override fun open(offset:Long):java.io.InputStream {streamOpens.incrementAndGet();throw AssertionError("Remote stream was opened")}
+        }
+        assertEquals(BrowserPreview(),DeviceThumbnails.remote("disabled","Video.mkv",source,enabled={false}))
+        assertEquals(0,metadataReads.get());assertEquals(0,streamOpens.get())
+    }
+
 }

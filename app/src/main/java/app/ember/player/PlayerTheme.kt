@@ -7,6 +7,8 @@ import app.ember.tv.data.Prefs
 import app.ember.tv.player.PlayerTouchControls
 import app.ember.tv.ui.*
 
+internal val LocalNetworkMediaPreviews=staticCompositionLocalOf {true}
+
 /** Both component families use one palette, so dialogs and playback controls remain cohesive. */
 @Composable
 internal fun PlayerTheme(prefs:Prefs,content:@Composable ()->Unit) {
@@ -14,11 +16,12 @@ internal fun PlayerTheme(prefs:Prefs,content:@Composable ()->Unit) {
     val preferences=remember(app){app.getSharedPreferences("ember",android.content.Context.MODE_PRIVATE)}
     var preferenceRevision by remember {mutableIntStateOf(0)}
     DisposableEffect(preferences) {
-        val keys=setOf("accent","theme","oled","contentDensity","navigationGlass","artworkQuality","devicePerformance","customPerformance","navigationGlassMethod")
+        val keys=setOf("networkMediaPreviews","accent","theme","oled","contentDensity","navigationGlass","artworkQuality","devicePerformance","customPerformance","navigationGlassMethod")
         val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener {_,key->if(key==null||key in keys)preferenceRevision++}
         preferences.registerOnSharedPreferenceChangeListener(listener)
         onDispose {preferences.unregisterOnSharedPreferenceChangeListener(listener)}
     }
+    val previews=remember(prefs,preferenceRevision){prefs.networkMediaPreviews}
     val appearance=remember(prefs,preferenceRevision){Triple(prefs.accent,prefs.theme,prefs.oled)}
     val render=rememberDeviceRenderOptions(prefs.contentDensity,prefs.navigationGlass,prefs.artworkQuality,
         prefs.devicePerformance,prefs.customPerformance).copy(glassMethod=prefs.navigationGlassMethod)
@@ -33,7 +36,7 @@ internal fun PlayerTheme(prefs:Prefs,content:@Composable ()->Unit) {
             }
         }
     }
-    CompositionLocalProvider(LocalRenderOptions provides render,LocalNight provides !day,
+    CompositionLocalProvider(LocalNetworkMediaPreviews provides previews,LocalRenderOptions provides render,LocalNight provides !day,
         LocalReduceMotion provides rememberReduceMotion(),LocalPlayerDesign provides true,LocalPlayerTelevision provides television) {
         EmberTheme(appearance.first,"modern") {
             val base=androidx.tv.material3.MaterialTheme.colorScheme

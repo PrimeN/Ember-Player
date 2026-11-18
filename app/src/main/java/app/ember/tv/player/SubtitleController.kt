@@ -98,8 +98,8 @@ class SubtitleController(
             searched = true
             status = when {
                 candidates.isEmpty() -> activity.resources.getString(R.string.ui_no_subtitles_found_in_your_languages)
-                candidates.any { it.hashMatch } -> activity.resources.getString(R.string.ui_found_made_for_this_exact_file ,candidates.size.toString())
-                else -> activity.resources.getString(R.string.ui_found ,candidates.size.toString())
+                candidates.any { it.hashMatch } -> activity.resources.getQuantityString(R.plurals.ui_found_made_for_this_exact_file,candidates.size,candidates.size)
+                else -> activity.resources.getQuantityString(R.plurals.ui_found,candidates.size,candidates.size)
             }
             onChange()
             autoSelect()

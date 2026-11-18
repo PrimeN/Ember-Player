@@ -323,15 +323,11 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
             }
             if (recover(error)) return
             if(playbackEngine?.recover(error.errorCode)==true)return
-            // The underlying cause, e.g. "FfmpegDecoderException: ..." or "EOFException".
-            val cause = generateSequence(error.cause) { it.cause }.lastOrNull()?.let { c ->
-                (c.javaClass.simpleName + (c.message?.let { ": " + app.ember.tv.data.CrashLog.redact(it).take(80) } ?: ""))
-            }
             Toast.makeText(
                 this@createPlayer,
                 getString(
                     R.string.pl_source_cannot_play,
-                    error.errorCodeName + (if (what.isNotBlank()) ", $what" else "") + (if (cause != null) "; $cause" else ""),
+                    getString(PlaybackErrors.message(error.errorCode)),
                 ),
                 Toast.LENGTH_LONG,
             ).show()

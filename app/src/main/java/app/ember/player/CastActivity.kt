@@ -54,7 +54,7 @@ class CastActivity:FragmentActivity() {
                 var receivers by remember {mutableStateOf<List<DlnaReceiver>>(emptyList())}
                 var discovery by remember {mutableStateOf<Job?>(null)}
                 LazyColumn(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding().padding(horizontal=32.dp),contentPadding=PaddingValues(vertical=24.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
-                    item {ButtonRow {Text(resources.getString(R.string.ui_receiver_playback),style=androidx.tv.material3.MaterialTheme.typography.headlineSmall);Chip(resources.getString(R.string.ui_back)){finish()}}}
+                    item {PlayerHeading(resources.getString(R.string.ui_receiver_playback),back={finish()})}
                     item {Text(pending?.title ?: casting?.title ?: resources.getString(R.string.ui_select_media_in_the_player_to_send_it_to),style=androidx.tv.material3.MaterialTheme.typography.bodyLarge,maxLines=2)}
                     item {Text(resources.getString(R.string.ui_use_a_receiver_on_the_same_network_playback_depends),style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)}
                     item {

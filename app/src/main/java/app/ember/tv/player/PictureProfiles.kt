@@ -38,9 +38,9 @@ internal object PictureProfiles {
     fun effective(config:PlaybackConfig,media:String?)=selected(config,media)?.state?.applyTo(config) ?: config
     fun save(config:PlaybackConfig,title:String,state:PictureState,id:()->String={java.util.UUID.randomUUID().toString()}):PlaybackConfig {
         val safe=normalized(config);val n=name(title)
-        require(n.isNotBlank()){ "Enter a profile name." }
+        if(n.isBlank())throw PresetValidationException(app.ember.tv.R.string.ui_profile_name_required)
         val existing=safe.pictureProfiles.firstOrNull {it.name.equals(n,true)}
-        require(existing!=null || safe.pictureProfiles.size<MAX_PROFILES){"You can save up to $MAX_PROFILES profiles. Delete one first."}
+        if(existing==null && safe.pictureProfiles.size>=MAX_PROFILES)throw PresetValidationException(app.ember.tv.R.string.ui_profile_limit_reached)
         val value=PictureProfile(existing?.id ?: id(),n,state.normalized())
         return normalized(safe.copy(pictureProfiles=safe.pictureProfiles.filterNot {it.id==value.id}+value))
     }

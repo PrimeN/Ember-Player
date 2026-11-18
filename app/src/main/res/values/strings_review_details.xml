@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ui_current_pin">Current PIN</string>
+    <string name="ui_new_pin">New PIN</string>
+    <string name="ui_could_not_remove_protection">Could not remove protection. Try again after unlocking private media.</string>
+    <string name="ui_playlists_unreadable">Saved playlists could not be read. Your saved data has been kept. Try refreshing or unlocking storage again.</string>
+    <string name="ui_downloads_unreadable">Saved downloads could not be read. Your saved data has been kept. Try again after unlocking storage.</string>
+    <string name="ui_remove_playlist_entry">Remove %1$s from playlist</string>
+    <string name="ui_remove_playlist_entry_title">Remove playlist entry?</string>
+    <string name="ui_remove_playlist_entry_message">%1$s will be removed from this playlist. Its media file will stay on your device.</string>
+    <string name="ui_remove_last_playlist_entry">This is the last entry. Removing it also removes this playlist. Its media file will stay on your device.</string>
+    <string name="ui_edit_playlist_entries">Edit entries</string>
+    <string name="ui_playlist_editor_help">Move or remove entries. Moving entries keeps your resume item selected. Media files stay unchanged.</string>
+    <string name="ui_profile_name_required">Enter a profile name.</string>
+    <string name="ui_profile_limit_reached">Delete a saved picture profile before adding another.</string>
+    <string name="ui_style_name_required">Enter a style name.</string>
+    <string name="ui_style_limit_reached">Delete a saved subtitle style before adding another.</string>
+    <string name="ui_preset_save_failed">Could not save this preset. Try again.</string>
+    <string name="ui_playback_network_failure">Check the network connection and try again.</string>
+    <string name="ui_playback_network_timeout">The connection timed out. Try again.</string>
+    <string name="ui_playback_server_failure">The server refused the request or the stream is unavailable.</string>
+    <string name="ui_playback_file_missing">The media file could not be found. Check that it is still available.</string>
+    <string name="ui_playback_permission_failure">Access to this media was denied. Select the file or folder again to renew access.</string>
+    <string name="ui_playback_cleartext_failure">This connection requires a secure stream address.</string>
+    <string name="ui_playback_format_failure">The media format is unsupported or the file is damaged.</string>
+    <string name="ui_playback_decoding_failure">The media could not be decoded. Try another playback engine or decoding setting.</string>
+    <string name="ui_playback_audio_failure">The audio output could not be opened. Check the audio output settings.</string>
+    <string name="ui_playback_protection_failure">The protection or license for this media could not be opened.</string>
+    <string name="ui_playback_failure">Try opening the media again. Details are available in the crash log in Settings.</string>
+    <string name="ui_network_media_previews">Network media previews</string>
+    <string name="ui_network_media_previews_help">Load thumbnails and durations from network files. Each preview may read up to 8 MB. Turn this off on slow or metered connections.</string>
+</resources>

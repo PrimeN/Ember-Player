@@ -188,8 +188,43 @@ class PrivateMediaTest {
     }
     @Test fun oldPrivacySettingsDefaultSafelyAndRemovingProtectionRequiresUnlock() {
         PrivateMedia.configure("123456");PrivateMedia.lock()
-        try {PrivateMedia.removeProtection();fail("Expected PIN gate")}catch(_:IllegalStateException){}
-        assertTrue(PrivateMedia.authenticate("123456"));PrivateMedia.removeProtection();assertFalse(PrivateMedia.enabled)
+        try {PrivateMedia.removeProtection("123456");fail("Expected PIN gate")}catch(_:IllegalStateException){}
+        assertTrue(PrivateMedia.authenticate("123456"));PrivateMedia.removeProtection("123456");assertFalse(PrivateMedia.enabled)
         assertTrue(kotlinx.serialization.json.Json.decodeFromString<PrivacyData>("{}").history)
     }
+    @Test fun unlockedSessionsStillNeedTheCurrentPinForChangesAndRemoval() {
+        assertTrue(PrivateMedia.configure("123456"))
+        val item=PrivateItem("content://docs/private","Private")
+        PrivateMedia.add(item)
+        val original=PrivateMedia.state.value.pin
+        assertFalse(PrivateMedia.configure("654321"))
+        assertFalse(PrivateMedia.configure("654321","000000"))
+        assertFalse(PrivateMedia.removeProtection("000000"))
+        assertEquals(original,PrivateMedia.state.value.pin)
+        assertTrue(PrivateMedia.enabled);assertTrue(PrivateMedia.hidden(item.uri))
+        assertEquals(2,PrivateMedia.state.value.failures)
+        assertTrue(PrivateMedia.configure("654321","123456"))
+        assertFalse(PrivatePin.verify("123456",PrivateMedia.state.value.pin))
+        assertTrue(PrivatePin.verify("654321",PrivateMedia.state.value.pin))
+        assertEquals(listOf(item),PrivateMedia.state.value.items)
+        assertFalse(PrivateMedia.removeProtection("123456"))
+        assertTrue(PrivateMedia.removeProtection("654321"))
+        assertFalse(PrivateMedia.enabled);assertFalse(PrivateMedia.hidden(item.uri))
+    }
+    @Test fun currentPinChecksUseThePersistedRetryLimitEvenWhileUnlocked() {
+        PrivateMedia.configure("123456")
+        repeat(5){assertFalse(PrivateMedia.configure("654321","000000"))}
+        val record=PrivateMedia.state.value.pin
+        try {PrivateMedia.removeProtection("123456");fail("Expected cooldown")}catch(_:IllegalStateException){}
+        assertEquals(record,PrivateMedia.state.value.pin);assertTrue(PrivateMedia.enabled)
+    }
+    @Test fun aLatePinMutationCannotCommitAfterLockEvenIfTheSessionUnlocksAgain() {
+        val session=PrivateSession();val ticket=session.token()
+        assertTrue(session.unlock(ticket));session.lock()
+        assertTrue(session.unlock(session.token()))
+        var changed=false
+        assertFalse(session.change(ticket,true){changed=true});assertFalse(changed)
+        assertTrue(session.change(session.token(),true){changed=true});assertTrue(changed)
+    }
+
 }

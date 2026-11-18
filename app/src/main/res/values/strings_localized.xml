@@ -205,7 +205,7 @@
     <string name="ui_condensed" formatted="false">"Condensed"</string>
     <string name="ui_confirm_password" formatted="false">"Confirm password"</string>
     <string name="ui_confirm_pin" formatted="false">"Confirm PIN"</string>
-    <string name="ui_connect_connection_timeout_read_forward_rewind_memory_custom_buffering" formatted="false">"connect connection timeout read forward rewind memory custom buffering cache read ahead refill"</string>
+    <string name="ui_connect_connection_timeout_read_forward_rewind_memory_custom_buffering" formatted="false">"connect connection timeout read forward rewind memory custom buffering cache read ahead refill thumbnails previews artwork mobile data metered"</string>
     <string name="ui_connect_timeout" formatted="false">"Connect timeout"</string>
     <string name="ui_continue" formatted="false">"Continue"</string>
     <string name="ui_continue_watching" formatted="false">"Continue watching"</string>
@@ -356,9 +356,7 @@
     <string name="ui_engine" formatted="false">"Engine"</string>
     <string name="ui_enter_a_direct_non_private_media_url" formatted="false">"Enter a direct, non-private media URL."</string>
     <string name="ui_enter_a_name_you_can_keep_up_to_12" formatted="false">"Enter a name. You can keep up to 12 sound presets."</string>
-    <string name="ui_enter_a_profile_name_you_can_save_up_to">"Enter a profile name. You can save up to %1$s profiles; replace one with the same name or delete one first."</string>
     <string name="ui_enter_a_speed_between_0_25_and_4_0" formatted="false">"Enter a speed between 0.25 and 4.0."</string>
-    <string name="ui_enter_a_style_name_you_can_save_up_to" formatted="false">"Enter a style name. You can save up to 12 subtitle styles; replace one with the same name or delete one first."</string>
     <string name="ui_enter_a_supported_network_stream_url" formatted="false">"Enter a supported network stream URL."</string>
     <string name="ui_enter_a_valid_filename" formatted="false">"Enter a valid filename."</string>
     <string name="ui_enter_a_valid_sha256_host_key_fingerprint_verified_with" formatted="false">"Enter a valid SHA256 host key fingerprint verified with the server owner."</string>
@@ -400,8 +398,6 @@
     <string name="ui_forget_folder" formatted="false">"Forget folder"</string>
     <string name="ui_forward_10_seconds" formatted="false">"Forward 10 seconds"</string>
     <string name="ui_forward_buffer" formatted="false">"Forward buffer"</string>
-    <string name="ui_found">"%1$s found"</string>
-    <string name="ui_found_made_for_this_exact_file">"%1$s found · ★ made for this exact file"</string>
     <string name="ui_fps" formatted="false">" fps"</string>
     <string name="ui_frame_inspection" formatted="false">"Frame inspection"</string>
     <string name="ui_frame_inspection_requires_compatibility_playback_and_a_supported_audio" formatted="false">"Frame inspection requires Compatibility playback and a supported audio track."</string>
@@ -849,7 +845,6 @@
     <string name="ui_searching_for_subtitles" formatted="false">"Searching for subtitles..."</string>
     <string name="ui_secondary_subtitles" formatted="false">"Secondary subtitles"</string>
     <string name="ui_secondary_timing" formatted="false">"Secondary timing"</string>
-    <string name="ui_seconds">"%1$s%2$s seconds"</string>
     <string name="ui_seconds_mm_ss_or_hh_mm_ss_milliseconds_are" formatted="false">"Seconds, MM:SS or HH:MM:SS · milliseconds are optional"</string>
     <string name="ui_see_all">"See all · %1$s"</string>
     <string name="ui_seek" formatted="false">"Seek"</string>

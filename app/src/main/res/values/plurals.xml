@@ -11,4 +11,16 @@
         <item quantity="one">%1$d entry · Page %2$d</item>
         <item quantity="other">%1$d entries · Page %2$d</item>
     </plurals>
+    <plurals name="ui_found">
+        <item quantity="one">%1$d subtitle found</item>
+        <item quantity="other">%1$d subtitles found</item>
+    </plurals>
+    <plurals name="ui_found_made_for_this_exact_file">
+        <item quantity="one">%1$d subtitle found · ★ made for this exact file</item>
+        <item quantity="other">%1$d subtitles found · ★ made for this exact file</item>
+    </plurals>
+    <plurals name="ui_seconds">
+        <item quantity="one">%1$s%2$d second</item>
+        <item quantity="other">%1$s%2$d seconds</item>
+    </plurals>
 </resources>
