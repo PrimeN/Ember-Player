@@ -4,7 +4,7 @@ Ember Player runs on Android phones, tablets and TVs. See the [library and setti
 
 ## Playback
 
-- **Two internal engines:** AndroidX Media3/Nextlib and mpv, each available as a manually selected playback core, with automatic recovery where available. The player explains automatic core choices and renderer recovery. mpv exposes source-provided programs, HLS quality variants and editions; seekable video keeps its position when switching.
+- **Two internal engines:** AndroidX Media3/Nextlib and mpv, each available as a manually selected playback core, with automatic recovery where available. The player explains automatic core choices and renderer recovery. mpv exposes source-provided programs, HLS quality variants and editions; seekable video keeps its position when switching. The selected program follows background audio handoff and return to the player.
 - **Software audio:** AC-3, E-AC-3, DTS, TrueHD and other common formats are bundled. Media3 also supports supported MPEG-H streams as stereo PCM and IAMF tracks in MP4 using Opus, FLAC or PCM. AAC-based IAMF and encrypted IAMF are excluded. HDR output, immersive passthrough and device-only codecs depend on the device and selected engine.
 - **Automatic engine choices:** known filenames guide opaque file URLs, and successful playback choices are remembered privately for seven days. Reset them in Settings with Reset decoder memory. Explicit engine selections take priority. Supported RTMPS and SRTP streams open directly in mpv.
 - **Player interfaces:** Glass, Ember, Basic and Streaming controls.

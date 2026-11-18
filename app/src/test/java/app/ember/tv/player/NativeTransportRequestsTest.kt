@@ -90,18 +90,18 @@ class NativeTransportRequestsTest {
         assertFalse(MediaFileTypes.playable(entry.copy(size=0)))
         val playlist=SavedPlaylist("saved","Saved",listOf(PlaylistEntry("","Film",network=NetworkQueueEntry("account","Film.mp4",-1))))
         assertTrue(SavedPlaylists.valid(playlist))
-        Origin().use {origin->MediaRelay().use {relay->
+        for(unknown in listOf(false,true))Origin(unknown).use {origin->MediaRelay().use {relay->
             val resource=NetworkFiles.resource(NetworkAccount(label="DAV",address=origin.url),"Film.mp4",-1)
             val url=relay.register(resource,"Film.mp4")
             assertEquals("0123456789",URL(url).readText())
             val head=connection(url,head=true)
-            try {assertEquals(200,head.responseCode);assertEquals(10,head.contentLength)}finally {head.disconnect()}
+            try {assertEquals(200,head.responseCode);assertEquals(if(unknown)-1 else 10,head.contentLength)}finally {head.disconnect()}
             val partial=connection(url,"bytes=2-4")
             try {assertEquals(206,partial.responseCode);assertEquals("234",partial.inputStream.bufferedReader().readText())}finally {partial.disconnect()}
             assertEquals("0123456789",resource.open(0).bufferedReader().use {it.readText()})
         }}
     }
-    internal class Origin:Closeable {
+    internal class Origin(private val unknownTotal:Boolean=false):Closeable {
         private val socket=ServerSocket(0,8,InetAddress.getByName("127.0.0.1"))
         private val workers=Executors.newCachedThreadPool {r->Thread(r,"Origin fixture").apply {isDaemon=true}}
         private val revision=AtomicInteger()
@@ -121,7 +121,7 @@ class NativeTransportRequestsTest {
             val text=if(manifest)"#EXTM3U\n#EXT-X-MEDIA-SEQUENCE:${revision.incrementAndGet()}\n#EXTINF:5,\npart.ts\n" else if(start[1].contains("size=short"))"abc" else "0123456789"
             val bytes=text.toByteArray();val range=ByteRange.parse(headers["range"],bytes.size.toLong())!!
             val part=bytes.copyOfRange(range.start.toInt(),range.end.toInt()+1);val partial=headers["range"]!=null
-            val response="HTTP/1.1 ${if(partial)"206 Partial Content" else "200 OK"}\r\nContent-Type: ${if(manifest)"application/vnd.apple.mpegurl" else "video/mp2t"}\r\nContent-Length: ${part.size}\r\nConnection: close\r\n"+(if(partial)"Content-Range: bytes ${range.start}-${range.end}/${bytes.size}\r\n" else "")+"\r\n"
+            val response="HTTP/1.1 ${if(partial)"206 Partial Content" else "200 OK"}\r\nContent-Type: ${if(manifest)"application/vnd.apple.mpegurl" else "video/mp2t"}\r\nContent-Length: ${part.size}\r\nConnection: close\r\n"+(if(partial)"Content-Range: bytes ${range.start}-${range.end}/${if(unknownTotal)"*" else bytes.size}\r\n" else "")+"\r\n"
             it.getOutputStream().apply {write(response.toByteArray());write(part);flush()}
         }
         override fun close(){closed=true;socket.close();workers.shutdownNow()}

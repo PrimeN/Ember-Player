@@ -64,7 +64,11 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
         if(config().rememberDecoderChoices && health==null)DecoderHealth.loadAsync(context) {if(!released){health=it;if(active.isPlaying)stabilityListener.onIsPlayingChanged(true)}}
     }
     val compatibility get()=if(active===standard)null else active as? MpvPlayer
-    internal fun snapshot():EngineSource?=source
+    internal fun snapshot():EngineSource? {
+        val native=compatibility
+        val current=native?.source ?: source ?: return null
+        return current.copy(edition=if(native!=null)native.currentEdition ?: current.edition else null)
+    }
     private fun key(method:Method)=method.name+method.parameterTypes.joinToString {it.name}
     private val common=Player::class.java.methods.associateBy(::key)
     val player:ExoPlayer=Proxy.newProxyInstance(ExoPlayer::class.java.classLoader,arrayOf(ExoPlayer::class.java)) { proxy,method,args ->
@@ -86,9 +90,10 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
                 }
                 "prepare" -> {val current=source
                     val learned=if(config().rememberDecoderChoices)memoryKey()?.let {health?.engine(it)} else null
+                    val restoredEdition=current?.edition!=null
                     val automatic=current?.urls?.firstOrNull()?.let {PlaybackEnginePolicy.nativeFirst(it,current.filename)}==true
-                    if(active===standard && (mode=="compatibility" || mode=="auto" && (learned=="compatibility" || learned==null&&automatic))) {
-                        if(!switch(if(mode=="compatibility")app.ember.tv.R.string.ui_core_manual else if(learned=="compatibility")app.ember.tv.R.string.ui_core_remembered else app.ember.tv.R.string.ui_core_format)) {
+                    if(active===standard && (mode=="compatibility" || mode=="auto" && (restoredEdition || learned=="compatibility" || learned==null&&automatic))) {
+                        if(!switch(if(mode=="compatibility")app.ember.tv.R.string.ui_core_manual else if(restoredEdition)app.ember.tv.R.string.ui_core_feature else if(learned=="compatibility")app.ember.tv.R.string.ui_core_remembered else app.ember.tv.R.string.ui_core_format)) {
                             selectionReason=app.ember.tv.R.string.ui_core_unavailable;standard.prepare()
                         }
                     } else {if(active===standard)selectionReason=if(mode!="auto")app.ember.tv.R.string.ui_core_manual else if(learned=="standard")app.ember.tv.R.string.ui_core_remembered else app.ember.tv.R.string.ui_core_default;active.prepare()};null}
@@ -150,7 +155,7 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
         val desired=standard.playWhenReady
         val state=standard.playbackState
         val native=try {
-            val input=current.copy(durationMs=current.durationMs ?: standard.duration.takeIf {it>0&&current.urls.size==1})
+            val input=current.copy(live=current.live||standard.isCurrentMediaItemLive,durationMs=current.durationMs ?: standard.duration.takeIf {it>0&&current.urls.size==1})
             compatibilityFactory?.invoke(input,position,standard.trackSelectionParameters) ?: MpvPlayer(context,input,config(),position,standard.trackSelectionParameters)
         } catch(_:Exception){return false} catch(_:LinkageError){return false}
         try {

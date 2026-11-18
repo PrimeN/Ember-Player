@@ -20,6 +20,13 @@ class NativeEditionChoicesTest {
         assertEquals(42_000L,restore.takeOnRestart());assertNull(restore.takeOnRestart())
         restore.request(42_000,true,true);assertEquals(0L,restore.takeOnRestart())
     }
+    @Test fun backgroundSourcesRestoreOnlyValidProgramOptions() {
+        assertEquals(mapOf("edition" to "2"),NativeEditions.initialOptions(2))
+        assertEquals(mapOf("edition" to "0"),NativeEditions.initialOptions(0))
+        assertTrue(NativeEditions.initialOptions(null).isEmpty())
+        assertTrue(NativeEditions.initialOptions(-1).isEmpty())
+        assertTrue(NativeEditions.initialOptions(Int.MAX_VALUE).isEmpty())
+    }
     @Test fun liveStreamsDoNotInheritAVodSeekAfterChangingProgram() {
         assertEquals(42_000L,NativeEditions.resumePosition(42_000,true,false))
         assertEquals(0L,NativeEditions.resumePosition(42_000,true,true))

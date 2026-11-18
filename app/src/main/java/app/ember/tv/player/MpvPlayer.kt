@@ -133,6 +133,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
             option("ao","audiotrack,opensles")
             option("load-unsafe-playlists","no");option("access-references","no")
             option("tls-verify","yes");option("tls-ca-file",NativePlayerFiles.requirePrepared().certificates.absolutePath)
+            NativeEditions.initialOptions(source.edition).forEach {key,value->option(key,value)}
             option("keep-open","yes");option("idle","yes");option("cache","yes")
             StreamConfig.plan(context,config).nativeOptions().forEach { (key,value)->option(key,value) }
             option("audio-pitch-correction","yes");option("volume-max","400")
@@ -528,6 +529,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         native.setPropertyString("vo",renderer);appliedHdr=null;applyHdrOutput()
     }
     fun buffering(value:PlaybackConfig){requestedStream=value.stream;StreamConfig.plan(context,value).nativeOptions().filterKeys {it!="network-timeout"}.forEach {(key,option)->native.setPropertyString(key,option)}}
+    val currentEdition:Int? get()=native.getPropertyInt("current-edition")?.takeIf {it in 0..8190}
     fun editions():List<NativeEdition> = NativeEditions.read(native.getPropertyInt("edition-list/count") ?: 0,
         native.getPropertyInt("current-edition"),{native.getPropertyString("edition-list/$it/title")}) {context.getString(R.string.ui_program_variant_n,it)}
     fun selectEdition(index:Int):Boolean {

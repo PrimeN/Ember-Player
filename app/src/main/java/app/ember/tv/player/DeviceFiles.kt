@@ -161,6 +161,7 @@ internal object DeviceFiles {
     internal fun browsePages(load:(Int)->Page,query:String,sort:String,hidden:Boolean,after:DeviceFile?=null,hiddenMedia:(String)->Boolean={false},check:()->Unit={}):BrowsePage {
         val comparator=order(sort)
         val best=java.util.PriorityQueue(LIMIT+1,comparator.reversed())
+        val retained=hashSetOf<String>()
         var offset=0
         do {
             check()
@@ -168,7 +169,9 @@ internal object DeviceFiles {
             for(file in page.entries) {
                 check()
                 if(hiddenMedia(file.uri.toString())||!hidden&&file.name.startsWith('.')||!MediaSearch.matches(file.name,query)||after!=null&&comparator.compare(file,after)<=0)continue
-                best.add(file);if(best.size>LIMIT+1)best.remove()
+                if(!retained.add(file.uri.toString()))continue
+                best.add(file)
+                if(best.size>LIMIT+1)retained.remove(best.remove().uri.toString())
             }
             if(!page.limited)break
             require(page.nextOffset>offset);offset=page.nextOffset

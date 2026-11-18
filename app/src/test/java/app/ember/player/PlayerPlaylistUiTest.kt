@@ -35,7 +35,7 @@ class PlayerPlaylistUiTest {
         compose.onNodeWithText("Watch next").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.waitUntil(10_000){store.read().single().entries.size==2}
         compose.runOnIdle {assertEquals(listOf("One","Two"),store.read().single().entries.map {it.title})}
-        compose.onNodeWithText("Add to playlist").assertDoesNotExist()
+        compose.waitUntil(10_000){compose.onAllNodesWithText("Add to playlist").fetchSemanticsNodes().isEmpty()}
     }
     @Test @Config(qualifiers="w960dp-h720dp-land-television-mdpi")
     fun reorderingWithRemoteActionsKeepsTheResumeItemAndCanBeClosed() {

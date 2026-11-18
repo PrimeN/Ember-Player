@@ -55,6 +55,10 @@ class DeviceFilesTest {
         assertEquals(listOf("Episode 2.mp4","Episode 20.mp4","Episode 21.mp4"),DeviceFiles.browsePages(::load,"episode 2","name",false).entries.take(3).map {it.name})
         assertEquals("Episode 450.mp4",DeviceFiles.browsePages(::load,"","date",false).entries.first().name)
         assertEquals("Episode 450.mp4",DeviceFiles.browsePages(::load,"","size",false).entries.first().name)
+        val ordered=files.reversed()
+        val overlapping=DeviceFiles.browsePages({at->if(at==0)DeviceFiles.Page(ordered.take(200),true,200) else DeviceFiles.Page(ordered.drop(190),false)},"","name",false)
+        assertEquals((1..200).map {"Episode $it.mp4"},overlapping.entries.map {it.name})
+        assertEquals(200,overlapping.entries.map {it.uri}.distinct().size)
         assertFalse(DeviceFiles.browsePages(::load,"","name",false,hiddenMedia={it.endsWith("/2")}).entries.any {it.uri.toString().endsWith("/2")})
         var checked=0
         assertTrue(runCatching {DeviceFiles.browsePages(::load,"","name",false,check={if(++checked>10)throw kotlinx.coroutines.CancellationException()})}.exceptionOrNull() is kotlinx.coroutines.CancellationException)

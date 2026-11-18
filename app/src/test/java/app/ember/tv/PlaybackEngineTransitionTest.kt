@@ -92,6 +92,18 @@ class PlaybackEngineTransitionTest {
             engine.mode("compatibility");assertEquals(app.ember.tv.R.string.ui_core_manual,engine.selectionReason);assertEquals(1,created)
         }finally {engine.player.release();if(created==0)candidate.release()}
     }
+    @Test fun anAutomaticBackgroundResumeRestoresItsProgramWithMpv() {
+        val context=RuntimeEnvironment.getApplication()
+        val original=ExoPlayer.Builder(context).build();val candidate=ExoPlayer.Builder(context).build()
+        var received:EngineSource?=null
+        val engine=PlaybackEngine(context,original,{PlaybackConfig(rememberDecoderChoices=false)},compatibilityFactory={source,_,_->received=source;candidate}) {}
+        try {
+            engine.configure(EngineSource(listOf("content://media/123"),"Film.mp4","key",edition=2))
+            engine.player.setMediaItem(MediaItem.fromUri("content://media/123"));engine.player.prepare()
+            assertEquals(2,received?.edition)
+            assertEquals(app.ember.tv.R.string.ui_core_feature,engine.selectionReason)
+        }finally {engine.player.release();if(received==null)candidate.release()}
+    }
     @Test fun failedPrepareReleasesCandidateAndRestoresOriginalPositionAndPause() {
         val context=RuntimeEnvironment.getApplication()
         val original=ExoPlayer.Builder(context).build()

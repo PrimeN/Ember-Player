@@ -166,7 +166,10 @@ internal object NetworkFiles {
                 val requested=range ?: "bytes=0-0"
                 return web(a,path,range=requested).relayResponse(false,requested).use {sample->
                     if(range!=null)RemoteHttpResponse(sample.code,sample.length,sample.mime,sample.contentRange,sample.acceptsRanges)
-                    else RemoteHttpResponse(200,sample.contentRange?.substringAfterLast('/')?.toLongOrNull() ?: sample.length,sample.mime,acceptsRanges=sample.acceptsRanges)
+                    else {
+                        val total=if(sample.code in setOf(206,416))sample.contentRange?.substringAfterLast('/')?.toLongOrNull() ?: -1 else sample.length
+                        RemoteHttpResponse(200,total,sample.mime,acceptsRanges=sample.acceptsRanges)
+                    }
                 }
             }
             override fun open(offset:Long):InputStream {

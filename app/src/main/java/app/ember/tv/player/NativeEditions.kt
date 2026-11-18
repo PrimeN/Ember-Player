@@ -4,6 +4,7 @@ internal data class NativeEdition(val index:Int,val title:String,val selected:Bo
 
 /** mpv maps MPEG-TS programs and HLS variants to zero-based editions. */
 internal object NativeEditions {
+    fun initialOptions(index:Int?)=index?.takeIf {it in 0..8190}?.let {mapOf("edition" to it.toString())} ?: emptyMap()
     fun read(count:Int,selected:Int?,title:(Int)->String?,fallback:(Int)->String):List<NativeEdition> =
         (0 until count.coerceIn(0,256)).map {index->
             NativeEdition(index,title(index)?.filterNot(Char::isISOControl)?.trim()?.take(180)?.takeIf {it.isNotEmpty()} ?: fallback(index+1),index==selected)
