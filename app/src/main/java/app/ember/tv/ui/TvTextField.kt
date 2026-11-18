@@ -85,7 +85,7 @@ fun TvTextField(
             modifier.fillMaxWidth().heightIn(min=maxOf(56.dp,minHeight)).then(if(focusRequester!=null)Modifier.focusRequester(focusRequester) else Modifier),
             placeholder={androidx.compose.material3.Text(placeholder)},singleLine=singleLine,enabled=enabled,
             visualTransformation=if(password)PasswordVisualTransformation() else VisualTransformation.None,
-            keyboardOptions=androidx.compose.foundation.text.KeyboardOptions(keyboardType=if(password)androidx.compose.ui.text.input.KeyboardType.Password else keyboardType,imeAction=imeAction),
+            keyboardOptions=androidx.compose.foundation.text.KeyboardOptions(keyboardType=if(password&&keyboardType==androidx.compose.ui.text.input.KeyboardType.Text)androidx.compose.ui.text.input.KeyboardType.Password else keyboardType,imeAction=imeAction),
             keyboardActions=androidx.compose.foundation.text.KeyboardActions(onDone={submit()},onSearch={submit()},onGo={submit()},onSend={submit()}),
             shape=androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
         return
