@@ -66,9 +66,9 @@ class PlayerHomeUiTest {
         compose.onNodeWithContentDescription("Settings").assertIsDisplayed()
         compose.onNodeWithText("Search").assertDoesNotExist()
         compose.onNodeWithText("Settings").assertDoesNotExist()
-        compose.onNodeWithContentDescription("All media").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithText("All media").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithContentDescription("Watched").performSemanticsAction(SemanticsActions.OnClick){it()}
-        compose.onNodeWithContentDescription("Date modified").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.onNodeWithText("Date modified").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithContentDescription("Name A–Z").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.runOnIdle {
             val stored=app.ember.tv.data.Prefs(compose.activity)
@@ -79,7 +79,7 @@ class PlayerHomeUiTest {
         compose.onNodeWithText("Add a media folder").assertExists()
         compose.onNodeWithTag("library-navigation").performScrollToNode(hasText("Videos"))
         compose.onNodeWithText("Videos").performSemanticsAction(SemanticsActions.OnClick){it()}
-        compose.onNodeWithContentDescription("Watched").assertExists()
+        compose.onNode(hasText("Watched") and hasClickAction()).assertExists()
     }
 
 }

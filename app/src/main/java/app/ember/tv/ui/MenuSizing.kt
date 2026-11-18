@@ -16,9 +16,9 @@ internal object MenuSizing {
     private val whitespace = Regex("\\s+")
     fun actionLabel(text: String) = text.replace(whitespace, " ").trim()
     /** Fit one-line actions plus padding. Long headings ellipsize instead of inflating the menu. */
-    fun actionMenuWidth(label: Dp, title: Dp, available: Dp): Dp =
+    fun actionMenuWidth(label: Dp, title: Dp, available: Dp, message: Dp = 0.dp): Dp =
         minOf(available.coerceAtLeast(0.dp), maxOf(label + ACTION_PADDING * 2 + ACTION_ICON + ACTION_GAP + 4.dp,
-            minOf(title, 140.dp) + 38.dp) + ACTION_DIALOG_PADDING * 2)
+            minOf(title, 140.dp) + 38.dp, minOf(message, 480.dp)) + ACTION_DIALOG_PADDING * 2)
     /** Extra profiles scroll; they must not inflate the whole dropdown. Includes the Add slot. */
     fun profileAvatarStripWidth(profileCount: Int): Dp {
         val slots = profileCount.coerceIn(1, 2) + 1

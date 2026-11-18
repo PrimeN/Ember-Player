@@ -8,6 +8,14 @@ internal object TvTokens {
     }
     /** Text sizes in sp. Nothing on screen goes below 12 sp, the TV minimum for secondary text (#37). */
     object Type {
+        object Player {
+            const val BodyLarge=20;const val BodyMedium=18;const val BodySmall=16
+            const val LabelLarge=18;const val LabelMedium=16;const val LabelSmall=14
+            const val TitleLarge=26;const val TitleMedium=22;const val TitleSmall=20
+            const val BodyLargeLine=28;const val BodyMediumLine=26;const val BodySmallLine=24
+            const val LabelLargeLine=26;const val LabelMediumLine=24;const val LabelSmallLine=22
+            const val TitleLargeLine=34;const val TitleMediumLine=30;const val TitleSmallLine=28
+        }
         const val Page=30;const val Hero=30;const val HeroExpanded=40;const val Details=38;const val DetailsLarge=34
         const val Pane=28;const val Dialog=22;const val Section=20;const val Navigation=16;const val SettingsLabel=16;const val Label=15
         const val Body=15;const val CompactBody=14;const val Menu=14;const val Compact=13;const val Caption=12

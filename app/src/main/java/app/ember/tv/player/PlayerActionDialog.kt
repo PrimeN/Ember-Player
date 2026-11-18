@@ -69,10 +69,10 @@ internal fun PlayerActivity.showPlayerActions(title: String, actions: List<Playe
 @Composable
 internal fun PlayerActionMenu(title: String, actions: List<PlayerDialogAction>, message: String?, close: () -> Unit,
     selected: (PlayerDialogAction) -> Unit = { it.action() }, target: (View?) -> Unit = {}) {
-    CompactActionMenu(title, actions.map { it.label }, close) { first ->
+    CompactActionMenu(title, actions.map { it.label }, close, message=message) { first ->
         val view=LocalView.current
         DisposableEffect(view) { target(view); onDispose {target(null)} }
-        message?.let { Text(it, color = Mute, style=androidx.tv.material3.MaterialTheme.typography.bodySmall, maxLines = 2) }
+        message?.let { Text(it, color = Mute, style=androidx.tv.material3.MaterialTheme.typography.bodySmall) }
         actions.forEachIndexed { index, action ->
             MenuActionRow(action.label, if (index == 0) Modifier.focusRequester(first) else Modifier,
                 action.icon ?: Icons.Outlined.MoreHoriz, selected = action.selected, destructive = action.destructive) { selected(action) }

@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.player.PlayerAction
+
 import app.ember.tv.R
 
 import android.app.PendingIntent
@@ -96,23 +98,23 @@ internal fun DirectUsbPanel(activity:ComponentActivity,refresh:Int) {
         if(private){Text(uiResources.getString(R.string.ui_use_the_mounted_drive_or_saved_folder_browser_while),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall);return@PlayerSection}
         Text(uiResources.getString(R.string.ui_read_only_fat32_browsing_including_files_android_has_not),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
         if(session==null) {
-            Chip(if(busy)uiResources.getString(R.string.ui_checking_drives) else uiResources.getString(R.string.ui_refresh_usb_drives)){operation {devices=withContext(Dispatchers.IO){UsbMassStorageDevice.getMassStorageDevices(activity).toList()};if(devices.isEmpty())notice=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_no_supported_usb_mass_storage_drive_found),false)}}
-            devices.forEach {device->Chip(device.usbDevice.productName ?: uiResources.getString(R.string.ui_usb_drive)) {
+            PlayerAction(if(busy)uiResources.getString(R.string.ui_checking_drives) else uiResources.getString(R.string.ui_refresh_usb_drives)){operation {devices=withContext(Dispatchers.IO){UsbMassStorageDevice.getMassStorageDevices(activity).toList()};if(devices.isEmpty())notice=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_no_supported_usb_mass_storage_drive_found),false)}}
+            devices.forEach {device->PlayerAction(device.usbDevice.productName ?: uiResources.getString(R.string.ui_usb_drive)) {
                 if(!busy) {
                     if(manager.hasPermission(device.usbDevice))connect(device)
                     else {pending=device;manager.requestPermission(device.usbDevice,PendingIntent.getBroadcast(activity,device.usbDevice.deviceId,Intent(action).setPackage(activity.packageName),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))}
                 }
             }}
         } else if(directory==null) {
-            session!!.roots.forEachIndexed {index,root->Chip(uiResources.getString(R.string.ui_partition ,(index+1).toString())){directory=root}}
-            Chip(uiResources.getString(R.string.ui_close_browser)){session=null;files=emptyList()}
+            session!!.roots.forEachIndexed {index,root->PlayerAction(uiResources.getString(R.string.ui_partition ,(index+1).toString())){directory=root}}
+            PlayerAction(uiResources.getString(R.string.ui_close_browser)){session=null;files=emptyList()}
         } else {
             Text(directory!!.name,maxLines=1,style=androidx.tv.material3.MaterialTheme.typography.bodyMedium)
             ButtonRow {
-                Chip(uiResources.getString(R.string.ui_back)){directory=directory?.parent;files=emptyList();offset=0}
-                if(offset>0)Chip(uiResources.getString(R.string.ui_previous_page)){offset=(offset-100).coerceAtLeast(0)}
-                if(offset+100<files.size)Chip(uiResources.getString(R.string.ui_next_page)){offset+=100}
-                Chip(uiResources.getString(R.string.ui_play_folder)){play(files.filter {!it.isDirectory&&it.length>0})}
+                PlayerAction(uiResources.getString(R.string.ui_back)){directory=directory?.parent;files=emptyList();offset=0}
+                if(offset>0)PlayerAction(uiResources.getString(R.string.ui_previous_page)){offset=(offset-100).coerceAtLeast(0)}
+                if(offset+100<files.size)PlayerAction(uiResources.getString(R.string.ui_next_page)){offset+=100}
+                PlayerAction(uiResources.getString(R.string.ui_play_folder)){play(files.filter {!it.isDirectory&&it.length>0})}
             }
             LazyColumn(Modifier.fillMaxWidth().heightIn(max=440.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
                 items(files.drop(offset).take(100),key={it.absolutePath}) {file->app.ember.player.PlayerFileRow(file.name,file.isDirectory) {

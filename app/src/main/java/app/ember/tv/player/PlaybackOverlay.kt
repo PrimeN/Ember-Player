@@ -124,16 +124,16 @@ internal fun PlaybackOverlay(s:ControlsState,a:ControlsActions) {
                         }
                     })
                 Row(Modifier.fillMaxWidth()) {
-                    Text(time(if(s.seekPreview>=0f)(s.seekPreview*s.duration).toLong() else s.position),color=Soft,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+                    Text(time(if(s.seekPreview>=0f)(s.seekPreview*s.duration).toLong() else s.position),color=Soft,style=androidx.tv.material3.MaterialTheme.typography.bodySmall.copy(fontFeatureSettings="tnum"))
                     Spacer(Modifier.weight(1f))
-                    Text(if(s.duration>0)time(s.duration) else "—:—",color=Soft,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+                    Text(if(s.duration>0)time(s.duration) else "—:—",color=Soft,style=androidx.tv.material3.MaterialTheme.typography.bodySmall.copy(fontFeatureSettings="tnum"))
                 }
                 @Composable fun transport() {
                     Row(horizontalArrangement=Arrangement.spacedBy(10.dp),verticalAlignment=Alignment.CenterVertically) {
-                        control("rewind",Icons.Outlined.Replay10,stringResource(R.string.player_back_ten),enabled=s.duration>0){a.seekBy(-10_000)}
+                        control("rewind",Icons.Outlined.Replay,uiResources.getQuantityString(R.plurals.ui_seek_backward_seconds,(a.seekStep()/1000).toInt(),a.seekStep()/1000),enabled=s.duration>0){a.seekBy(-a.seekStep())}
                         control("play",if(s.playing)Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
                             stringResource(if(s.playing)R.string.player_pause else R.string.player_play),large=true,action=a.playPause)
-                        control("forward",Icons.Outlined.Forward30,stringResource(R.string.player_forward_thirty),enabled=s.duration>0){a.seekBy(30_000)}
+                        control("forward",Icons.Outlined.FastForward,uiResources.getQuantityString(R.plurals.ui_seek_forward_seconds,(a.seekStep()/1000).toInt(),a.seekStep()/1000),enabled=s.duration>0){a.seekBy(a.seekStep())}
                         if(s.fileQueueNext)control("next",Icons.Outlined.SkipNext,
                             stringResource(if(s.fileQueueLabel!=null)R.string.player_next_file else R.string.ui_next_episode),action=a.next)
                     }

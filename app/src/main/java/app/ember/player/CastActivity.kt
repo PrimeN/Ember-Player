@@ -59,16 +59,16 @@ class CastActivity:FragmentActivity() {
                     item {Text(resources.getString(R.string.ui_use_a_receiver_on_the_same_network_playback_depends),style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)}
                     item {
                         Text(resources.getString(R.string.ui_google_cast),style=androidx.tv.material3.MaterialTheme.typography.titleMedium)
-                        if(sdk==null)Chip(if(initializing)resources.getString(R.string.ui_setting_up_cast) else resources.getString(R.string.ui_enable_google_cast_for_this_session)){initializeCast()}
+                        if(sdk==null)PlayerAction(if(initializing)resources.getString(R.string.ui_setting_up_cast) else resources.getString(R.string.ui_enable_google_cast_for_this_session)){initializeCast()}
                         else {
                             Text(resources.getString(R.string.ui_choose_a_receiver),style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
                             AndroidView(factory={context->MediaRouteButton(context).apply {CastButtonFactory.setUpMediaRouteButton(this@CastActivity,this)}},modifier=Modifier.size(52.dp))
-                            if(pending!=null&&sdk?.sessionManager?.currentCastSession?.isConnected==true)Chip(resources.getString(R.string.ui_play_selected_media_on_this_receiver)){sendToReceiver()}
+                            if(pending!=null&&sdk?.sessionManager?.currentCastSession?.isConnected==true)PlayerAction(resources.getString(R.string.ui_play_selected_media_on_this_receiver)){sendToReceiver()}
                         }
                     }
                     item {
                         Text(resources.getString(R.string.ui_dlna_receivers),style=androidx.tv.material3.MaterialTheme.typography.titleMedium)
-                        Chip(if(discovery?.isActive==true)resources.getString(R.string.ui_cancel_discovery) else resources.getString(R.string.ui_find_receivers)) {
+                        PlayerAction(if(discovery?.isActive==true)resources.getString(R.string.ui_cancel_discovery) else resources.getString(R.string.ui_find_receivers)) {
                             if(discovery?.isActive==true)discovery?.cancel()
                             else discovery=scope.launch {
                                 notice=null;status=null
@@ -77,26 +77,26 @@ class CastActivity:FragmentActivity() {
                                 catch(_:Exception){notice=resources.getString(R.string.ui_could_not_discover_receivers_check_the_local_network)}
                             }
                         }
-                        receivers.forEach {receiver->Chip(receiver.name){if(pending!=null)sendToReceiver(receiver) else status=resources.getString(R.string.ui_open_receiver_controls_from_the_media_you_want_to)}}
+                        receivers.forEach {receiver->PlayerAction(receiver.name){if(pending!=null)sendToReceiver(receiver) else status=resources.getString(R.string.ui_open_receiver_controls_from_the_media_you_want_to)}}
                     }
                     casting?.let {view->item {
                         Text(view.receiver,style=androidx.tv.material3.MaterialTheme.typography.titleMedium)
                         view.error?.let {PlayerErrorText(it)}
                         if(view.ready&&view.error==null) {
                             val status=view.status
-                            Text("${DlnaReceivers.clock(status.position)} / ${DlnaReceivers.clock(status.duration)}",style=androidx.tv.material3.MaterialTheme.typography.bodyMedium)
+                            Text("${DlnaReceivers.clock(status.position)} / ${DlnaReceivers.clock(status.duration)}",style=androidx.tv.material3.MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings="tnum"))
                             ButtonRow {
-                                Chip(if(status.playing)resources.getString(R.string.ui_pause) else resources.getString(R.string.ui_play)){CastPlaybackService.command(if(status.playing)"pause" else "play")}
+                                PlayerAction(if(status.playing)resources.getString(R.string.ui_pause) else resources.getString(R.string.ui_play)){CastPlaybackService.command(if(status.playing)"pause" else "play")}
                                 if(status.duration>0) {
-                                    Chip(resources.getString(R.string.ui_30_s)){CastPlaybackService.command("seek",(status.position-30000).coerceAtLeast(0).toDouble())}
-                                    Chip(resources.getString(R.string.ui_30_s_224790)){CastPlaybackService.command("seek",(status.position+30000).toDouble())}
+                                    PlayerAction(resources.getString(R.string.ui_30_s)){CastPlaybackService.command("seek",(status.position-30000).coerceAtLeast(0).toDouble())}
+                                    PlayerAction(resources.getString(R.string.ui_30_s_224790)){CastPlaybackService.command("seek",(status.position+30000).toDouble())}
                                 }
                             }
                             ButtonRow {
-                                Chip(resources.getString(R.string.ui_volume)){CastPlaybackService.command("volume",status.volume-.05)}
+                                PlayerAction(resources.getString(R.string.ui_volume)){CastPlaybackService.command("volume",status.volume-.05)}
                                 Text("${(status.volume*100).toInt()}%",style=androidx.tv.material3.MaterialTheme.typography.bodyMedium)
-                                Chip(resources.getString(R.string.ui_volume_066105)){CastPlaybackService.command("volume",status.volume+.05)}
-                                Chip(resources.getString(R.string.ui_disconnect)){CastPlaybackService.disconnect()}
+                                PlayerAction(resources.getString(R.string.ui_volume_066105)){CastPlaybackService.command("volume",status.volume+.05)}
+                                PlayerAction(resources.getString(R.string.ui_disconnect)){CastPlaybackService.disconnect()}
                             }
                         } else if(view.error==null)Text(resources.getString(R.string.ui_preparing_media),style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
                     }}

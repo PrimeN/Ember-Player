@@ -9,7 +9,7 @@ import androidx.compose.ui.res.stringResource
 import app.ember.tv.R
 import app.ember.tv.ui.isEmberX
 import app.ember.tv.ui.EmberXColors
-import androidx.compose.material.icons.outlined.Forward10
+import androidx.compose.material.icons.outlined.FastForward
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import app.ember.tv.ui.navigationGlass
@@ -46,7 +46,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Replay10
+import androidx.compose.material.icons.outlined.Replay
 import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material.icons.outlined.Subtitles
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
@@ -169,6 +169,7 @@ class ControlsActions(
     /** Quick choices outside the menus: an index into [ControlsState.audioTracks] / [ControlsState.subtitleOptions]. */
     val pickAudio: (Int) -> Unit = {},
     val pickSubtitle: (Int) -> Unit = {},
+    val seekStep: () -> Long = {10_000L},
 )
 
 private val Scrim = Color(0xCC000000)
@@ -409,10 +410,10 @@ private fun EmberXControls(s:ControlsState,a:ControlsActions) {
                 IconButton(Icons.Outlined.Info,uiResources.getString(R.string.ui_details)){s.sheet=if(s.sheet=="info")null else "info"}
             }
             Row(Modifier.align(Alignment.Center),horizontalArrangement=Arrangement.spacedBy(28.dp),verticalAlignment=Alignment.CenterVertically) {
-                IconButton(Icons.Outlined.Replay10,uiResources.getString(R.string.ui_back_10_seconds)){a.seekBy(-10_000)}
+                IconButton(Icons.Outlined.Replay,uiResources.getQuantityString(R.plurals.ui_seek_backward_seconds,(a.seekStep()/1000).toInt(),a.seekStep()/1000)){a.seekBy(-a.seekStep())}
                 IconButton(if(s.playing)Icons.Outlined.Pause else Icons.Outlined.PlayArrow,if(s.playing)uiResources.getString(R.string.ui_pause) else uiResources.getString(R.string.ui_play),big=true,
                     modifier=Modifier.focusRequester(play),onClick=a.playPause)
-                IconButton(Icons.Outlined.Forward10,uiResources.getString(R.string.ui_forward_10_seconds)){a.seekBy(10_000)}
+                IconButton(Icons.Outlined.FastForward,uiResources.getQuantityString(R.plurals.ui_seek_forward_seconds,(a.seekStep()/1000).toInt(),a.seekStep()/1000)){a.seekBy(a.seekStep())}
             }
             Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(horizontal=32.dp,vertical=18.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
                 if(s.seekPreview>=0f && s.duration>0) {
@@ -421,7 +422,7 @@ private fun EmberXControls(s:ControlsState,a:ControlsActions) {
                 SeekBar(s,a)
                 Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
                     Text(time(if(s.seekPreview>=0f)(s.seekPreview*s.duration).toLong() else s.position)+"  ·  "+time(s.duration),
-                        style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Color.White,fontWeight=FontWeight.SemiBold)
+                        style=androidx.tv.material3.MaterialTheme.typography.bodySmall.copy(fontFeatureSettings="tnum"),color=Color.White,fontWeight=FontWeight.SemiBold)
                     Spacer(Modifier.weight(1f))
                     if(s.fileQueueNext)IconButton(Icons.Outlined.SkipNext,if(s.fileQueueLabel!=null)uiResources.getString(R.string.ui_next_file) else uiResources.getString(R.string.ui_next_episode),onClick=a.next)
                     if(s.fileQueueLabel!=null)IconButton(Icons.AutoMirrored.Outlined.FormatListBulleted,uiResources.getString(R.string.ui_queue),onClick=a.queue)

@@ -1,6 +1,7 @@
 package app.ember.player
 
 import app.ember.tv.R
+import app.ember.tv.ui.TvTokens
 
 import android.content.Intent
 import android.net.Uri
@@ -162,7 +163,7 @@ private fun ShelfHeading(title:String,all:()->Unit) {
 
     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
         Text(title,Modifier.weight(1f).semantics {heading()},style=if(LocalPlayerTelevision.current)MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold,maxLines=1,overflow=TextOverflow.Ellipsis)
-        if(LocalPlayerTelevision.current)Focusable(all,Modifier.size(28.dp).semantics {contentDescription=uiResources.getString(R.string.ui_see_all ,title)},radius=50,
+        if(LocalPlayerTelevision.current)Focusable(all,Modifier.size(48.dp).semantics {contentDescription=uiResources.getString(R.string.ui_see_all ,title)},radius=TvTokens.Shape.Pill,
             container=Color.Transparent,focusedContainer=MaterialTheme.colorScheme.primary,focusedContent=MaterialTheme.colorScheme.onPrimary,outline=false,focusedScale=1f) {
             Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){Icon(Icons.AutoMirrored.Outlined.ArrowForward,null,Modifier.size(20.dp))}
         } else PlayerIconAction(uiResources.getString(R.string.ui_see_all ,title),Icons.AutoMirrored.Outlined.ArrowForward,onClick=all)
@@ -177,22 +178,22 @@ internal fun PlayerMediaCard(entry:PlayerLibraryMedia,modifier:Modifier,version:
     val television=LocalPlayerTelevision.current
     Focusable(play,modifier,container=scheme.surface,focusedContainer=scheme.surface,outline=true,card=true,focusedScale=1.025f) {
         Column(Modifier.fillMaxWidth()) {
-            Box(Modifier.fillMaxWidth().aspectRatio(if(portrait){if(television)1f else 2f/3} else 16f/9).clip(RoundedCornerShape(10.dp))) {
+            Box(Modifier.fillMaxWidth().aspectRatio(if(portrait){if(television)1f else 2f/3} else 16f/9).clip(RoundedCornerShape(TvTokens.Shape.Card.dp))) {
                 PlayerMediaArtwork(entry.media,version,Modifier.fillMaxSize())
-                LibraryPlaylistAction(entry.media,Modifier.align(Alignment.TopStart).background(scheme.surface.copy(alpha=.9f),RoundedCornerShape(24.dp)))
-                if(entry.watched)Icon(Icons.Outlined.CheckCircle,uiResources.getString(R.string.ui_watched),Modifier.align(Alignment.TopEnd).padding(5.dp).size(20.dp).background(scheme.surface.copy(alpha=.85f),RoundedCornerShape(10.dp)),tint=scheme.primary)
+                LibraryPlaylistAction(entry.media,Modifier.align(Alignment.TopStart).background(scheme.surface.copy(alpha=.9f),RoundedCornerShape(TvTokens.Shape.Panel.dp)))
+                if(entry.watched)Icon(Icons.Outlined.CheckCircle,uiResources.getString(R.string.ui_watched),Modifier.align(Alignment.TopEnd).padding(5.dp).size(20.dp).background(scheme.surface.copy(alpha=.85f),RoundedCornerShape(TvTokens.Shape.Card.dp)),tint=scheme.primary)
                 if(!portrait)Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                     .background(Brush.verticalGradient(listOf(Color.Transparent,Color.Black.copy(alpha=.8f)))).padding(if(television)6.dp else 8.dp),verticalArrangement=Arrangement.spacedBy(3.dp)) {
                     Text(entry.media.title,style=if(television)MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodySmall,color=Color.White,maxLines=1,overflow=TextOverflow.Ellipsis)
                     if(entry.continuing) {
-                        Text("${playerMediaTime(entry.position)} / ${playerMediaTime(entry.duration)}",style=MaterialTheme.typography.labelSmall,color=Color.White,maxLines=1,overflow=TextOverflow.Ellipsis)
+                        Text("${playerMediaTime(entry.position)} / ${playerMediaTime(entry.duration)}",style=MaterialTheme.typography.labelSmall.copy(fontFeatureSettings="tnum"),color=Color.White,maxLines=1,overflow=TextOverflow.Ellipsis)
                         LinearProgressIndicator(progress={entry.progress},modifier=Modifier.fillMaxWidth().height(3.dp),color=scheme.primary,trackColor=Color.White.copy(alpha=.3f),drawStopIndicator={})
                     }
                 }
             }
             if(portrait)Column(Modifier.fillMaxWidth().padding(if(television)6.dp else 8.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
                 Text(entry.media.title,style=if(television)MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodySmall,maxLines=1,overflow=TextOverflow.Ellipsis)
-                if(entry.duration>0)Text(playerMediaTime(entry.duration),style=MaterialTheme.typography.labelSmall,color=scheme.onSurfaceVariant,maxLines=1)
+                Text(if(entry.duration>0)playerMediaTime(entry.duration) else "",style=MaterialTheme.typography.labelSmall.copy(fontFeatureSettings="tnum"),color=scheme.onSurfaceVariant,maxLines=1)
             }
         }
     }
@@ -227,6 +228,6 @@ private fun PlayerMediaArtwork(media:QueueMedia,version:Int,modifier:Modifier) {
     }
     Box(modifier.background(MaterialTheme.colorScheme.surfaceVariant),contentAlignment=Alignment.Center) {
         bitmap?.let {Image(it.asImageBitmap(),null,Modifier.fillMaxSize(),contentScale=ContentScale.Crop)}
-            ?: Icon(Icons.Outlined.Movie,null,Modifier.size(28.dp),tint=MaterialTheme.colorScheme.onSurfaceVariant)
+            ?: Icon(Icons.Outlined.Movie,null,Modifier.size(48.dp),tint=MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

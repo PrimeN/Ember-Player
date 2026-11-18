@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.player.PlayerAction
+
 import app.ember.tv.R
 
 import androidx.compose.material.icons.outlined.MoreHoriz
@@ -63,9 +65,9 @@ internal fun PlaylistsPanel(activity:ComponentActivity,refresh:Int) {
         }
     }
     app.ember.player.PlayerSection(uiResources.getString(R.string.ui_playlists)) {
-        Chip(if(busy)uiResources.getString(R.string.ui_working) else uiResources.getString(R.string.ui_new_playlist_from_files)) {if(!busy)runCatching {picker.launch(arrayOf("video/*","audio/*","application/octet-stream"))}.onFailure {notice=uiResources.getString(R.string.ui_no_document_picker_is_installed_on_this_device)}}
+        PlayerAction(if(busy)uiResources.getString(R.string.ui_working) else uiResources.getString(R.string.ui_new_playlist_from_files)) {if(!busy)runCatching {picker.launch(arrayOf("video/*","audio/*","application/octet-stream"))}.onFailure {notice=uiResources.getString(R.string.ui_no_document_picker_is_installed_on_this_device)}}
         values.filter {it.entries.none {entry->app.ember.player.PrivateMedia.hidden(entry.uri)}}.forEach {value->ButtonRow {
-            Chip(uiResources.getString(R.string.ui_playlist_summary ,value.name,value.entries.size),maxLines=1) {if(!busy)play(value,value.index)}
+            PlayerAction(uiResources.getString(R.string.ui_playlist_summary ,value.name,value.entries.size),maxLines=1) {if(!busy)play(value,value.index)}
             app.ember.player.PlayerIconAction(uiResources.getString(R.string.ui_more_options_for ,value.name),androidx.compose.material.icons.Icons.Outlined.MoreHoriz) {if(!busy)selected=value}
         }}
         if(readError) {

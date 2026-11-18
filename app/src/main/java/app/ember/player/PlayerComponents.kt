@@ -12,6 +12,7 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -31,7 +32,7 @@ internal fun PlayerFeedbackText(message:PlayerFeedback) {
 @Composable
 internal fun PlayerErrorText(message:String,modifier:Modifier=Modifier) {
     Row(modifier.fillMaxWidth().semantics(mergeDescendants=true){liveRegion=LiveRegionMode.Polite;error(message)},
-        horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically) {
+        horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.Top) {
         Icon(Icons.Outlined.ErrorOutline,null,Modifier.size(20.dp),tint=androidx.tv.material3.MaterialTheme.colorScheme.error)
         Text(message,style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=androidx.tv.material3.MaterialTheme.colorScheme.error)
     }
@@ -72,11 +73,13 @@ internal fun PlayerFileRow(name:String,directory:Boolean,modifier:Modifier=Modif
         contentColor=if(selected)scheme.onPrimaryContainer else scheme.onSurfaceVariant,
         focusedContent=scheme.onPrimary,outline=false,focusedScale=1f) {
         Row(Modifier.fillMaxWidth().padding(12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
-            if(!directory&&preview.bitmap!=null)Image(preview.bitmap.asImageBitmap(),null,Modifier.size(80.dp,45.dp),contentScale=ContentScale.Crop)
-            else Icon(if(directory)Icons.Outlined.Folder else if(audio)Icons.Outlined.AudioFile else Icons.Outlined.Movie,null,Modifier.size(if(directory)24.dp else 40.dp))
+            Box(Modifier.size(80.dp,45.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(TvTokens.Shape.Card.dp)),contentAlignment=Alignment.Center) {
+                if(!directory&&preview.bitmap!=null)Image(preview.bitmap.asImageBitmap(),null,Modifier.fillMaxSize(),contentScale=ContentScale.Crop)
+                else Icon(if(directory)Icons.Outlined.Folder else if(audio)Icons.Outlined.AudioFile else Icons.Outlined.Movie,null,Modifier.size(32.dp))
+            }
             Column(Modifier.weight(1f)) {
                 Text(name,style=androidx.tv.material3.MaterialTheme.typography.bodyLarge,maxLines=2,overflow=TextOverflow.Ellipsis)
-                if(!directory&&preview.duration>0)Text(playerMediaTime(preview.duration),style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+                if(!directory&&preview.duration>0)Text(playerMediaTime(preview.duration),style=androidx.tv.material3.MaterialTheme.typography.bodySmall.copy(fontFeatureSettings="tnum"))
             }
             if(selected)Icon(Icons.Outlined.Check,uiResources.getString(R.string.ui_selected),Modifier.size(20.dp))
         }

@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.player.PlayerAction
+
 import androidx.compose.ui.res.stringResource
 import app.ember.tv.R
 
@@ -47,8 +49,8 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
     }
     app.ember.player.PlayerSection(stringResource(R.string.tx_network_folders)) {
         LazyRow(horizontalArrangement=Arrangement.spacedBy(10.dp)) {
-            item {Chip(uiResources.getString(R.string.ui_add_network_folder)){edit=true}}
-            items(accounts,key={it.id}) {a->Chip(a.label){browse=a}}
+            item {PlayerAction(uiResources.getString(R.string.ui_add_network_folder)){edit=true}}
+            items(accounts,key={it.id}) {a->PlayerAction(a.label){browse=a}}
         }
         error?.let {app.ember.player.PlayerErrorText(it)}
         if(readError)app.ember.player.SavedListRecoveryControls(R.string.ui_reset_saved_network_folders,R.string.ui_reset_saved_network_folders_warning,store::resetUnreadable){revision++}
@@ -94,8 +96,8 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                     item {NetworkField(uiResources.getString(R.string.ui_name),label){label=it}}
                     item {NetworkField(uiResources.getString(R.string.ui_address),address){address=it}}
                     item {ButtonRow(spacing=8.dp) {
-                        Chip(if(finding)uiResources.getString(R.string.ui_stop_discovery) else uiResources.getString(R.string.ui_find_smb_servers)) {if(!finding)servers=emptyList();note=null;finding=!finding}
-                        Chip(if(shareJob?.isActive==true)uiResources.getString(R.string.ui_cancel_share_browsing) else uiResources.getString(R.string.ui_browse_smb_shares)) {
+                        PlayerAction(if(finding)uiResources.getString(R.string.ui_stop_discovery) else uiResources.getString(R.string.ui_find_smb_servers)) {if(!finding)servers=emptyList();note=null;finding=!finding}
+                        PlayerAction(if(shareJob?.isActive==true)uiResources.getString(R.string.ui_cancel_share_browsing) else uiResources.getString(R.string.ui_browse_smb_shares)) {
                             if(shareJob?.isActive==true){shareJob?.cancel();shareJob=null;note=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_share_browsing_canceled),false)}
                             else {
                                 val endpoint=runCatching {NetworkLocation.parse(address,allowSmbRoot=true).also {require(it.scheme=="smb")}}.getOrNull()
@@ -115,8 +117,8 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                             }
                         }
                     }}
-                    items(servers,key={"server:"+it.address}) {server->Chip(server.name){finding=false;address=server.address;if(label.isBlank())label=server.name}}
-                    items(shares,key={"share:"+it}) {share->Chip(share){address=NetworkLocation.parse(address,allowSmbRoot=true).smbShare(share);if(label.isBlank())label=share;shares=emptyList()}}
+                    items(servers,key={"server:"+it.address}) {server->PlayerAction(server.name){finding=false;address=server.address;if(label.isBlank())label=server.name}}
+                    items(shares,key={"share:"+it}) {share->PlayerAction(share){address=NetworkLocation.parse(address,allowSmbRoot=true).smbShare(share);if(label.isBlank())label=share;shares=emptyList()}}
                     item {NetworkField(uiResources.getString(R.string.ui_username),user){user=it}}
                     val sftp=address.trim().startsWith("sftp://")
                     if(sftp)item {ButtonRow {
@@ -125,7 +127,7 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                     }}
                     if(!sftp||authentication=="password")item {NetworkField(uiResources.getString(R.string.ui_password),password,true){password=it}}
                     if(sftp&&authentication=="key") {
-                        item {Chip(if(importing)uiResources.getString(R.string.ui_importing_key) else if(privateKey.isEmpty())uiResources.getString(R.string.ui_import_private_key) else uiResources.getString(R.string.ui_replace_private_key)) {
+                        item {PlayerAction(if(importing)uiResources.getString(R.string.ui_importing_key) else if(privateKey.isEmpty())uiResources.getString(R.string.ui_import_private_key) else uiResources.getString(R.string.ui_replace_private_key)) {
                             if(!importing)runCatching {
                                 if(app.ember.player.PrivateMedia.enabled&&app.ember.player.PrivateMedia.unlocked.value)app.ember.player.PrivateMedia.beginPicker()
                                 importKey.launch(arrayOf("*/*"))
@@ -231,17 +233,17 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
                 }
                 Text(if(path.isEmpty())uiResources.getString(R.string.ui_root_folder) else path,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
                 ButtonRow(spacing=8.dp) {
-                    if(path.isNotEmpty())Chip(uiResources.getString(R.string.ui_up)){path=path.substringBeforeLast('/',"")}
-                    Chip(uiResources.getString(R.string.ui_play_selected ,selected.size.toString())){play(false)}
-                    Chip(uiResources.getString(R.string.ui_play_media_on_page)){play(true)}
+                    if(path.isNotEmpty())PlayerAction(uiResources.getString(R.string.ui_up)){path=path.substringBeforeLast('/',"")}
+                    PlayerAction(uiResources.getString(R.string.ui_play_selected ,selected.size.toString())){play(false)}
+                    PlayerAction(uiResources.getString(R.string.ui_play_media_on_page)){play(true)}
                 }
                 ButtonRow(spacing=8.dp) {
-                    if(offset>0)Chip(uiResources.getString(R.string.ui_previous_page)){offset=(offset-200).coerceAtLeast(0)}
-                    next?.let {at->Chip(uiResources.getString(R.string.ui_next_page)){if(!busy)offset=at}}
-                    Chip(uiResources.getString(R.string.ui_refresh)){if(!busy)reload++}
+                    if(offset>0)PlayerAction(uiResources.getString(R.string.ui_previous_page)){offset=(offset-200).coerceAtLeast(0)}
+                    next?.let {at->PlayerAction(uiResources.getString(R.string.ui_next_page)){if(!busy)offset=at}}
+                    PlayerAction(uiResources.getString(R.string.ui_refresh)){if(!busy)reload++}
                 }
                 ButtonRow(spacing=8.dp) {
-                    Chip(if(testJob?.isActive==true)uiResources.getString(R.string.ui_cancel_test) else uiResources.getString(R.string.ui_test_connection)) {
+                    PlayerAction(if(testJob?.isActive==true)uiResources.getString(R.string.ui_cancel_test) else uiResources.getString(R.string.ui_test_connection)) {
                         if(testJob?.isActive==true){testJob?.cancel();probeNote=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_test_canceled),false)}
                         else {
                             val sample=entries.firstOrNull {MediaFileTypes.playable(it)}

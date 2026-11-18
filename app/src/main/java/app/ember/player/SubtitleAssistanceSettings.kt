@@ -20,7 +20,7 @@ internal fun SubtitleAssistanceSettings(config:SubtitleAssistance,save:(Subtitle
     var pairs by remember {mutableStateOf<List<CaptionLanguagePair>>(emptyList())}
     var voices by remember {mutableStateOf<List<android.speech.tts.Voice>>(emptyList())}
     var voiceStatus by remember {mutableStateOf(uiResources.getString(R.string.ui_checking_installed_offline_voices))}
-    Chip(if(expanded)uiResources.getString(R.string.ui_hide_offline_assistance) else uiResources.getString(R.string.ui_offline_subtitle_assistance)){expanded=!expanded}
+    PlayerAction(if(expanded)uiResources.getString(R.string.ui_hide_offline_assistance) else uiResources.getString(R.string.ui_offline_subtitle_assistance)){expanded=!expanded}
     if(!expanded)return
     LaunchedEffect(Unit){pairs=withContext(Dispatchers.IO){OfflineCaptions.installedPairs(context)}}
     DisposableEffect(Unit) {

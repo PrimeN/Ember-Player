@@ -1,5 +1,7 @@
 package app.ember.tv.player
 
+import app.ember.player.PlayerAction
+
 import app.ember.tv.R
 
 import android.os.CancellationSignal
@@ -54,20 +56,20 @@ internal fun UsbFilesPanel(activity:ComponentActivity,refresh:Int) {
     }
     app.ember.player.PlayerSection(uiResources.getString(R.string.ui_usb_drives)) {
         Text(uiResources.getString(R.string.ui_shows_media_android_has_mounted_and_indexed_android_s),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
-        Chip(uiResources.getString(R.string.ui_refresh_drives)){activeSignal?.cancel();selected=null;revision++}
-        drives.forEach {drive->Chip(drive.name,maxLines=1){
+        PlayerAction(uiResources.getString(R.string.ui_refresh_drives)){activeSignal?.cancel();selected=null;revision++}
+        drives.forEach {drive->PlayerAction(drive.name,maxLines=1){
             activeSignal?.cancel();selected=drive;after=0
             if(!UsbMedia.permitted(activity))permission.launch(UsbMedia.permissions(android.os.Build.VERSION.SDK_INT)) else revision++
         }}
         if(drives.isEmpty())Text(uiResources.getString(R.string.ui_no_mounted_removable_drive_found),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
-        if(loading)Chip(uiResources.getString(R.string.ui_cancel_loading)){activeSignal?.cancel();selected=null}
+        if(loading)PlayerAction(uiResources.getString(R.string.ui_cancel_loading)){activeSignal?.cancel();selected=null}
         else LazyColumn(Modifier.fillMaxWidth().heightIn(max=320.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
-            items(page.items.filterNot {app.ember.player.PrivateMedia.hidden(it.uri)},key={it.uri}) {media->Chip(media.title,maxLines=1){scope.launch {
+            items(page.items.filterNot {app.ember.player.PrivateMedia.hidden(it.uri)},key={it.uri}) {media->PlayerAction(media.title,maxLines=1){scope.launch {
                 runCatching {val visible=page.items.filterNot {app.ember.player.PrivateMedia.hidden(it.uri)};MediaFiles.launch(activity,visible,index=visible.indexOf(media))}.onFailure {notice=app.ember.player.PlayerFeedback(uiResources.getString(R.string.ui_this_media_is_unavailable_refresh_the_drive))}
             }}}
         }
-        if(after>0)Chip(uiResources.getString(R.string.ui_first_page)){after=0}
-        page.next?.let {next->Chip(uiResources.getString(R.string.ui_next_files)){after=next}}
+        if(after>0)PlayerAction(uiResources.getString(R.string.ui_first_page)){after=0}
+        page.next?.let {next->PlayerAction(uiResources.getString(R.string.ui_next_files)){after=next}}
         notice?.let {app.ember.player.PlayerFeedbackText(it)}
     }
 }

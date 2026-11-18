@@ -105,24 +105,24 @@ internal fun PrivateMediaPanel(activity:ComponentActivity) {
         catch(_:Exception){notice=uiResources.getString(R.string.ui_private_folder_is_unavailable_add_it_again_to_renew)}
     }
     PlayerSection(uiResources.getString(PlayerUiLabels.PRIVATE_MEDIA)) {
-        Chip(if(open&&unlocked)uiResources.getString(R.string.ui_close_private_media) else uiResources.getString(R.string.ui_open_private_media)){
+        PlayerAction(if(open&&unlocked)uiResources.getString(R.string.ui_close_private_media) else uiResources.getString(R.string.ui_open_private_media)){
             if(open)open=false else if(PrivateMedia.enabled&&unlocked)open=true else prompt=true
         }
         if(prompt)PrivatePinPrompt({prompt=false},{prompt=false;open=true})
         if(open&&unlocked) {
             Text(uiResources.getString(R.string.ui_hidden_inside_ember_player_original_files_remain_available_to),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
             ButtonRow {
-                Chip(if(importing)uiResources.getString(R.string.ui_adding_files) else uiResources.getString(R.string.ui_add_files)){if(!importing){PrivateMedia.beginPicker();runCatching {files.launch(arrayOf("video/*","audio/*","application/octet-stream"))}.onFailure {PrivateMedia.endPicker();notice=uiResources.getString(R.string.ui_no_file_picker_is_installed)}}}
-                Chip(uiResources.getString(R.string.ui_add_folder)){if(!importing){PrivateMedia.beginPicker();runCatching {folders.launch(null)}.onFailure {PrivateMedia.endPicker();notice=uiResources.getString(R.string.ui_no_folder_picker_is_installed)}}}
-                Chip(uiResources.getString(R.string.ui_lock)){PrivateMedia.lock()}
+                PlayerAction(if(importing)uiResources.getString(R.string.ui_adding_files) else uiResources.getString(R.string.ui_add_files)){if(!importing){PrivateMedia.beginPicker();runCatching {files.launch(arrayOf("video/*","audio/*","application/octet-stream"))}.onFailure {PrivateMedia.endPicker();notice=uiResources.getString(R.string.ui_no_file_picker_is_installed)}}}
+                PlayerAction(uiResources.getString(R.string.ui_add_folder)){if(!importing){PrivateMedia.beginPicker();runCatching {folders.launch(null)}.onFailure {PrivateMedia.endPicker();notice=uiResources.getString(R.string.ui_no_folder_picker_is_installed)}}}
+                PlayerAction(uiResources.getString(R.string.ui_lock)){PrivateMedia.lock()}
             }
             if(folder==null)LazyColumn(Modifier.fillMaxWidth().heightIn(max=360.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
                 items(state.items.sortedWith(compareByDescending<PrivateItem> {it.folder}.thenBy(NaturalOrder) {it.name}),key={it.uri}) {item->ButtonRow {
                     DeviceMediaRow(DeviceFile(android.net.Uri.parse(item.uri),android.net.Uri.parse(item.uri),item.name,if(item.folder)android.provider.DocumentsContract.Document.MIME_TYPE_DIR else "video/*",-1,0,0)){if(item.folder){folder=item;parents=emptyList()}else runCatching {MediaFiles.launch(activity,listOf(QueueMedia(item.uri,item.name)))}.onFailure {notice=uiResources.getString(R.string.ui_this_media_is_unavailable_add_it_again_to_renew)}}
-                    Chip(uiResources.getString(R.string.ui_make_visible)){scope.launch {runCatching {withContext(Dispatchers.IO){PrivateMedia.remove(item.uri)}}.onFailure {notice=uiResources.getString(R.string.ui_could_not_update_private_media)}}}
+                    PlayerAction(uiResources.getString(R.string.ui_make_visible)){scope.launch {runCatching {withContext(Dispatchers.IO){PrivateMedia.remove(item.uri)}}.onFailure {notice=uiResources.getString(R.string.ui_could_not_update_private_media)}}}
                 }}
             } else {
-                Chip(uiResources.getString(R.string.ui_back)){if(parents.isEmpty())folder=null else parents=parents.dropLast(1)}
+                PlayerAction(uiResources.getString(R.string.ui_back)){if(parents.isEmpty())folder=null else parents=parents.dropLast(1)}
                 LazyColumn(Modifier.fillMaxWidth().heightIn(max=360.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
                     items(entries,key={it.uri.toString()}) {entry->DeviceMediaRow(entry){
                         if(entry.directory)parents=parents+entry.uri else runCatching {MediaFiles.launch(activity,listOf(QueueMedia(entry.uri.toString(),entry.name,directory=entry.parent.toString())))}.onFailure {notice=uiResources.getString(R.string.ui_could_not_open_private_media)}
@@ -177,12 +177,12 @@ private fun RemovePrivateProtectionPrompt(close:()->Unit) {
     Text(uiResources.getString(R.string.ui_private_media_pin),style=androidx.tv.material3.MaterialTheme.typography.bodyLarge)
     Text(uiResources.getString(R.string.ui_protect_access_inside_ember_player_add_and_browse_protected),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
     when {
-        !PrivateMedia.enabled->Chip(uiResources.getString(R.string.ui_create_pin)){editingPin=true}
+        !PrivateMedia.enabled->PlayerAction(uiResources.getString(R.string.ui_create_pin)){editingPin=true}
         unlocked->ButtonRow {
-            Chip(uiResources.getString(R.string.ui_change_pin)){editingPin=true}
+            PlayerAction(uiResources.getString(R.string.ui_change_pin)){editingPin=true}
             PlayerAction(uiResources.getString(R.string.ui_remove_pin_protection),destructive=true){removing=true}
         }
-        else->Chip(uiResources.getString(R.string.ui_unlock_private_media)){unlocking=true}
+        else->PlayerAction(uiResources.getString(R.string.ui_unlock_private_media)){unlocking=true}
     }
     if(editingPin)PrivatePinPrompt({editingPin=false},{editingPin=false},createNew=true)
     if(unlocking)PrivatePinPrompt({unlocking=false},{unlocking=false})

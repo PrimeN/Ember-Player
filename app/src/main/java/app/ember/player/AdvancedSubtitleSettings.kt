@@ -33,11 +33,11 @@ internal fun AdvancedSubtitleSettings(config:SubtitleConfig,save:(SubtitleConfig
         } catch(e:CancellationException){throw e}
         catch(_:Exception){notice=PlayerFeedback(uiResources.getString(R.string.ui_could_not_install_this_font_choose_a_valid_ttf))}
     }}
-    Chip(if(expanded)uiResources.getString(R.string.ui_hide_subtitle_details) else uiResources.getString(R.string.ui_more_subtitle_controls)) {expanded=!expanded}
+    PlayerAction(if(expanded)uiResources.getString(R.string.ui_hide_subtitle_details) else uiResources.getString(R.string.ui_more_subtitle_controls)) {expanded=!expanded}
     if(!expanded)return
     val fonts=SubtitleFonts.options.filter {it.first!=SubtitleFonts.CUSTOM || SubtitleFonts.hasCustom(context)}
     PlayerChoice(uiResources.getString(R.string.ui_font),fonts,config.font){save(config.copy(font=it))}
-    Chip(uiResources.getString(R.string.ui_load_a_font_file)) {runCatching {fontPicker.launch(arrayOf("font/*","application/octet-stream","*/*"))}.onFailure {notice=PlayerFeedback(uiResources.getString(R.string.ui_no_document_picker_is_installed_on_this_device))}}
+    PlayerAction(uiResources.getString(R.string.ui_load_a_font_file)) {runCatching {fontPicker.launch(arrayOf("font/*","application/octet-stream","*/*"))}.onFailure {notice=PlayerFeedback(uiResources.getString(R.string.ui_no_document_picker_is_installed_on_this_device))}}
     PlayerChoice(uiResources.getString(R.string.ui_text_color),listOf("white" to uiResources.getString(R.string.ui_white),"yellow" to uiResources.getString(R.string.ui_yellow),"green" to uiResources.getString(R.string.ui_green),"cyan" to uiResources.getString(R.string.ui_cyan)),config.color){save(config.copy(color=it,layout=config.layout.copy(foreground="")))}
     PlayerChoice(uiResources.getString(R.string.ui_text_scale),(50..200 step 5).map {it.toString() to "$it%"},config.layout.scalePercent.toString()){save(config.copy(layout=config.layout.copy(scalePercent=it.toInt())))}
     PlayerChoice(uiResources.getString(R.string.ui_alignment),listOf("auto" to uiResources.getString(R.string.ui_from_subtitle_file),"left" to uiResources.getString(R.string.ui_left),"center" to uiResources.getString(R.string.ui_center),"right" to uiResources.getString(R.string.ui_right)),config.layout.alignment){save(config.copy(layout=config.layout.copy(alignment=it)))}
@@ -48,9 +48,9 @@ internal fun AdvancedSubtitleSettings(config:SubtitleConfig,save:(SubtitleConfig
     PlayerChoice(uiResources.getString(R.string.ui_character_encoding),SubtitleEncodings.options,config.encoding){save(config.copy(encoding=it))}
     Text(uiResources.getString(R.string.ui_default_timing_ms ,config.defaultDelayMs.toString()),style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
     ButtonRow {
-        Chip(uiResources.getString(R.string.ui_100_ms)){save(config.copy(defaultDelayMs=(config.defaultDelayMs-100).coerceAtLeast(-600000)))}
-        Chip(uiResources.getString(R.string.ui_100_ms_d618f2)){save(config.copy(defaultDelayMs=(config.defaultDelayMs+100).coerceAtMost(600000)))}
-        Chip(uiResources.getString(R.string.ui_reset_timing)){save(config.copy(defaultDelayMs=0))}
+        PlayerAction(uiResources.getString(R.string.ui_100_ms)){save(config.copy(defaultDelayMs=(config.defaultDelayMs-100).coerceAtLeast(-600000)))}
+        PlayerAction(uiResources.getString(R.string.ui_100_ms_d618f2)){save(config.copy(defaultDelayMs=(config.defaultDelayMs+100).coerceAtMost(600000)))}
+        PlayerAction(uiResources.getString(R.string.ui_reset_timing)){save(config.copy(defaultDelayMs=0))}
     }
     var foreground by remember(config.layout.foreground) {mutableStateOf(config.layout.foreground)}
     var background by remember(config.layout.background) {mutableStateOf(config.layout.background)}
@@ -58,7 +58,7 @@ internal fun AdvancedSubtitleSettings(config:SubtitleConfig,save:(SubtitleConfig
     TvTextField(foreground,{foreground=it.take(9)},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_text_color_rrggbb_or_aarrggbb))
     TvTextField(background,{background=it.take(9)},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_box_color_rrggbb_or_aarrggbb))
     TvTextField(edge,{edge=it.take(9)},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_outline_color_rrggbb_or_aarrggbb))
-    Chip(uiResources.getString(R.string.ui_apply_custom_colors)) {
+    PlayerAction(uiResources.getString(R.string.ui_apply_custom_colors)) {
         if(listOf(foreground,background,edge).all {it.isBlank() || SubtitleLayout.validColor(it)})
             save(config.copy(layout=config.layout.copy(foreground=foreground,background=background,edgeColor=edge)))
         else notice=PlayerFeedback(uiResources.getString(R.string.ui_use_rrggbb_or_aarrggbb_colors))

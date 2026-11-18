@@ -65,7 +65,7 @@ internal class DownloadStore(private val context:Context) {
         fun safeName(name:String)=name.substringAfterLast('/').substringAfterLast('\\').filter {it.isLetterOrDigit()||it in " ._-"}.trim().take(120).takeUnless {it.isEmpty()||it in setOf(".","..")} ?: "media.mp4"
         fun suggestedName(url:String):String {
             val segment=url.trim().toHttpUrlOrNull()?.pathSegments?.lastOrNull().orEmpty()
-            return segment.takeIf {it.isNotBlank()&&it !in setOf(".","..")&&it.any(Char::isLetterOrDigit)}?.let(::safeName) ?: "media"
+            return segment.takeIf {it.isNotBlank()&&it !in setOf(".","..")&&it.any(Char::isLetterOrDigit)}?.let(::safeName)?.let {if(it.substringAfterLast('.',"").matches(Regex("[A-Za-z0-9]{1,10}")))it else it.take(116)+".mp4"} ?: "media.mp4"
         }
         private fun valid(item:MediaDownload)=item.id.matches(Regex("[a-f0-9-]{36}"))&&supported(item.url)&&item.name==safeName(item.name)&&item.bytes>=0&&item.total>=-1&&item.validator.length<=512&&item.state in setOf("paused","queued","downloading","complete","failed")
         fun folder(context:Context,id:String):File {require(id.matches(Regex("[a-f0-9-]{36}")));return File(context.filesDir,"offline-media/$id")}

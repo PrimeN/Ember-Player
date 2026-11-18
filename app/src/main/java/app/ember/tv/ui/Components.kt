@@ -1,6 +1,7 @@
 package app.ember.tv.ui
 
 import app.ember.tv.R
+import androidx.compose.material.icons.outlined.ExpandMore
 
 import androidx.compose.runtime.*
 
@@ -129,21 +130,22 @@ fun Focusable(
 }
 
 @Composable
-fun Chip(label: String, selected: Boolean = false, modifier: Modifier = Modifier, centered: Boolean = false, maxLines: Int = 2, onClick: () -> Unit) {
+fun Chip(label: String, selected: Boolean = false, modifier: Modifier = Modifier, centered: Boolean = false, maxLines: Int = 2, dropdown: Boolean = false, onClick: () -> Unit) {
     if(app.ember.player.LocalPlayerDesign.current && !app.ember.player.LocalPlayerTelevision.current) {
         val scheme=androidx.compose.material3.MaterialTheme.colorScheme
         androidx.compose.material3.FilledTonalButton(onClick,modifier.semantics {this.selected=selected}.then(Modifier.sizeIn(minHeight=48.dp)),
-            shape=RoundedCornerShape(12.dp),colors=androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
+            shape=RoundedCornerShape(TvTokens.Shape.Control.dp),colors=androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
                 containerColor=if(selected)scheme.primaryContainer else scheme.surfaceVariant,
                 contentColor=if(selected)scheme.onPrimaryContainer else scheme.onSurface)) {
-            androidx.compose.material3.Text(label,maxLines=maxLines,softWrap=maxLines>1,overflow=TextOverflow.Ellipsis)
+            androidx.compose.material3.Text(label,Modifier.weight(1f,fill=false),style=MaterialTheme.typography.labelLarge,maxLines=maxLines,softWrap=maxLines>1,overflow=TextOverflow.Ellipsis)
+            if(dropdown){androidx.compose.foundation.layout.Spacer(Modifier.width(8.dp));MaterialGlyph(androidx.compose.material.icons.Icons.Outlined.ExpandMore,androidx.compose.material3.LocalContentColor.current,20.dp)}
         }
         return
     }
     // Selection uses a persistent accent fill; focus uses the brighter navigation pill.
     Focusable(
         onClick = onClick,
-        modifier = modifier.semantics { this.selected = selected },
+        modifier = modifier.sizeIn(minHeight=48.dp).semantics { this.selected = selected },
         radius = if(isEmberX)EmberXLayout.Radius else TvTokens.Shape.Pill,
         container = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = .38f) else Wash,
         focusedContainer = PillColor,
@@ -151,11 +153,12 @@ fun Chip(label: String, selected: Boolean = false, modifier: Modifier = Modifier
         outline = false,
         focusedScale = TvTokens.Focus.Control,
     ) {
-        Row((if(centered)Modifier.fillMaxWidth() else Modifier).padding(horizontal=18.dp,vertical=8.dp),
+        Row((if(centered)Modifier.fillMaxWidth() else Modifier).sizeIn(minHeight=48.dp).padding(horizontal=18.dp,vertical=8.dp),
             verticalAlignment=Alignment.CenterVertically,horizontalArrangement=if(centered)Arrangement.Center else Arrangement.Start) {
-            Text(label,style=MaterialTheme.typography.labelLarge,fontWeight=if(selected)FontWeight.SemiBold else FontWeight.Medium,
+            Text(label,modifier=Modifier.weight(1f,fill=false),style=MaterialTheme.typography.labelLarge,fontWeight=if(selected)FontWeight.SemiBold else FontWeight.Medium,
                 maxLines=maxLines,softWrap=maxLines>1,overflow=TextOverflow.Ellipsis,
                 textAlign=if(centered)androidx.compose.ui.text.style.TextAlign.Center else null)
+            if(dropdown){androidx.compose.foundation.layout.Spacer(Modifier.width(8.dp));MaterialGlyph(androidx.compose.material.icons.Icons.Outlined.ExpandMore,androidx.tv.material3.LocalContentColor.current,20.dp)}
         }
     }
 }
@@ -170,6 +173,7 @@ fun ButtonRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(spacing),
         verticalArrangement = Arrangement.spacedBy(spacing),
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) { content() }
 }
 
@@ -199,7 +203,7 @@ fun SwitchChip(label: String, on: Boolean, modifier: Modifier = Modifier, locked
     Focusable(
         onClick = onClick,
         role = Role.Switch,
-        modifier = modifier.semantics {
+        modifier = modifier.sizeIn(minHeight=48.dp).semantics {
             role = Role.Switch
             toggleableState = if (shownOn) ToggleableState.On else ToggleableState.Off
             stateDescription = if (locked) uiResources.getString(R.string.ui_off_not_available) else if (on) uiResources.getString(R.string.ui_on) else uiResources.getString(R.string.ui_off)
@@ -212,11 +216,11 @@ fun SwitchChip(label: String, on: Boolean, modifier: Modifier = Modifier, locked
         focusedScale = TvTokens.Focus.Control,
     ) {
         Row(
-            Modifier.padding(start = if (label.isEmpty()) 10.dp else 18.dp, end = 10.dp, top = 7.dp, bottom = 7.dp),
+            Modifier.sizeIn(minHeight=48.dp).padding(start = if (label.isEmpty()) 10.dp else 18.dp, end = 10.dp, top = 7.dp, bottom = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (label.isNotEmpty()) Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium, maxLines = 1, softWrap = false)
+            if (label.isNotEmpty()) Text(label, modifier=Modifier.weight(1f,fill=false), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium, maxLines = 2, overflow=TextOverflow.Ellipsis)
             // On: accent track (darker on the white focused pill); off: grey track.
             val track = when {
                 shownOn && focused -> lerp(accent, Color.Black, 0.25f)

@@ -36,7 +36,7 @@ internal fun DownloadsPanel(activity:ComponentActivity,save:suspend (String,Stri
     var version by remember {mutableIntStateOf(0)}
     app.ember.player.PlayerSection(uiResources.getString(R.string.ui_downloads)) {
         LaunchedEffect(version) {activity.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED){while(true){val loaded=withContext(Dispatchers.IO){runCatching {DownloadStore(activity).readForDisplay()}.getOrNull()};readError=loaded==null;entries=loaded.orEmpty();delay(1500)}}}
-        ButtonRow {Chip(uiResources.getString(R.string.ui_download_media_url)){adding=true};Chip(uiResources.getString(R.string.ui_pause_downloads)){MediaDownloadService.pause(activity)}}
+        ButtonRow {PlayerAction(uiResources.getString(R.string.ui_download_media_url)){adding=true};PlayerAction(uiResources.getString(R.string.ui_pause_downloads)){MediaDownloadService.pause(activity)}}
         Text(uiResources.getString(R.string.ui_direct_media_files_download_one_at_a_time_additional),style=androidx.tv.material3.MaterialTheme.typography.bodySmall,color=Mute)
         entries.filterNot {PrivateMedia.hidden(it.url)||PrivateMedia.hidden(DownloadStore.uri(activity,it).toString())}.forEach {entry->
             DownloadRow(entry,

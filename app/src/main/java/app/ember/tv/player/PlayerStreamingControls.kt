@@ -110,9 +110,9 @@ internal fun StreamingControls(s: ControlsState, a: ControlsActions) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     StreamingIcon(if (s.playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow, if (s.playing) uiResources.getString(R.string.ui_pause) else uiResources.getString(R.string.ui_play), null,
                         Modifier.focusRequester(play), size = 52.dp, onClick = a.playPause)
-                    Text(time(if (s.seekPreview >= 0f) (s.seekPreview * s.duration).toLong() else s.position), style=androidx.tv.material3.MaterialTheme.typography.bodyLarge, color = Color.White)
+                    Text(time(if (s.seekPreview >= 0f) (s.seekPreview * s.duration).toLong() else s.position), style=androidx.tv.material3.MaterialTheme.typography.bodyLarge.copy(fontFeatureSettings="tnum"), color = Color.White)
                     Box(Modifier.weight(1f)) { SeekBar(s, a) }
-                    Text(if (s.duration > 0) time(s.duration) else "", style=androidx.tv.material3.MaterialTheme.typography.bodyLarge, color = Color.White)
+                    Text(if (s.duration > 0) time(s.duration) else "", style=androidx.tv.material3.MaterialTheme.typography.bodyLarge.copy(fontFeatureSettings="tnum"), color = Color.White)
                 }
                 // Sound and Subtitles are drop-ups: OK opens a short list above the button, and picking an
                 // entry applies it straight away. Back closes the list and returns to its button.
