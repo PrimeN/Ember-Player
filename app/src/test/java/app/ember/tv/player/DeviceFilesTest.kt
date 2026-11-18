@@ -111,6 +111,7 @@ class DeviceFilesTest {
 
 class DeviceTestProvider : DocumentsProvider() {
     val files = linkedMapOf<String, File>()
+    var failQueries=false
     var children=listOf("video", "folder", "hidden", "other")
     private val names = mutableMapOf("root" to "Root", "destination" to "Destination", "folder" to "Subfolder", "video" to "video.mkv", "hidden" to ".hidden.mp4", "other" to "notes.txt")
     override fun onCreate(): Boolean {
@@ -135,7 +136,10 @@ class DeviceTestProvider : DocumentsProvider() {
             }})
         }}
     }
-    override fun queryDocument(documentId: String, projection: Array<out String>?) = cursor(listOf(documentId), projection)
+    override fun queryDocument(documentId: String, projection: Array<out String>?):Cursor {
+        if(failQueries)throw IllegalStateException("Metadata unavailable")
+        return cursor(listOf(documentId),projection)
+    }
     override fun queryChildDocuments(parentDocumentId: String, projection: Array<out String>?, sortOrder: String?) = cursor(children, projection)
     override fun openDocument(documentId: String, mode: String, signal: CancellationSignal?): ParcelFileDescriptor = ParcelFileDescriptor.open(files.getValue(documentId), ParcelFileDescriptor.parseMode(mode))
     override fun createDocument(parentDocumentId: String, mimeType: String, displayName: String): String {

@@ -68,7 +68,10 @@ internal fun PlaylistsPanel(activity:ComponentActivity,refresh:Int) {
             Chip(uiResources.getString(R.string.ui_playlist_summary ,value.name,value.entries.size),maxLines=1) {if(!busy)play(value,value.index)}
             app.ember.player.PlayerIconAction(uiResources.getString(R.string.ui_more_options_for ,value.name),androidx.compose.material.icons.Icons.Outlined.MoreHoriz) {if(!busy)selected=value}
         }}
-        if(readError)app.ember.player.PlayerErrorText(uiResources.getString(R.string.ui_playlists_unreadable))
+        if(readError) {
+            app.ember.player.PlayerErrorText(uiResources.getString(R.string.ui_playlists_unreadable))
+            app.ember.player.SavedListRecoveryControls(R.string.ui_reset_saved_playlists,R.string.ui_reset_saved_playlists_warning,store::resetUnreadable){revision++}
+        }
         notice?.let {app.ember.player.PlayerErrorText(it)}
         selected?.let {value->OptionMenu(value.name,listOf(
             MenuOption(uiResources.getString(R.string.ui_resume_playlist)) {play(value,value.index)},

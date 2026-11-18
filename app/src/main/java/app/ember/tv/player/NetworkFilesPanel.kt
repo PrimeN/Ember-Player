@@ -28,13 +28,16 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
     val scope=rememberCoroutineScope()
     val profile=remember {Prefs(activity).currentProfile}
     val store=remember(profile) {SavedNetworkFolders(activity,profile)}
+    var readError by remember {mutableStateOf(false)}
+    var revision by remember {mutableIntStateOf(0)}
     var accounts by remember {mutableStateOf<List<NetworkAccount>>(emptyList())}
     var edit by remember {mutableStateOf(false)}
     var browse by remember {mutableStateOf<NetworkAccount?>(null)}
     var error by remember {mutableStateOf<String?>(null)}
     var handledRequest by remember {mutableStateOf(false)}
-    LaunchedEffect(store,refresh) {
+    LaunchedEffect(store,refresh,revision) {
         val loaded=withContext(Dispatchers.IO){runCatching {store.read()}.getOrNull()}
+        readError=loaded==null
         if(loaded!=null){accounts=loaded;error=null} else error=uiResources.getString(R.string.ui_could_not_update_encrypted_folder_storage)
         if(loaded!=null && !handledRequest && activity.intent.getStringExtra("network.profile")==profile) {
             handledRequest=true
@@ -48,6 +51,7 @@ internal fun NetworkFilesPanel(activity:MediaFilesActivity,refresh:Int=0) {
             items(accounts,key={it.id}) {a->Chip(a.label){browse=a}}
         }
         error?.let {app.ember.player.PlayerErrorText(it)}
+        if(readError)app.ember.player.SavedListRecoveryControls(R.string.ui_reset_saved_network_folders,R.string.ui_reset_saved_network_folders_warning,store::resetUnreadable){revision++}
         if(edit) {
             var label by remember {mutableStateOf("")};var address by remember {mutableStateOf("")}
             var user by remember {mutableStateOf("")};var password by remember {mutableStateOf("")}

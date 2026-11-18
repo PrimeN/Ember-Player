@@ -19,6 +19,9 @@ internal class SavedNetworkFolders(private val readValue:()->String?,private val
         require(values.all(::valid) && values.distinctBy {it.id}.size==values.size)
         return values
     }
+    fun resetUnreadable():Boolean=synchronized(lock) {
+        app.ember.player.storage.resetUnreadableList(::read){writeValue("[]")}
+    }
     fun add(value:NetworkAccount):List<NetworkAccount>?=update {values->
         require(valid(value) && values.none {it.id==value.id})
         values+value

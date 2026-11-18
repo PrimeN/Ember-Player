@@ -26,6 +26,7 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
 
     val store = remember { DeviceFolders(activity) }
     val scope = rememberCoroutineScope()
+    var readError by remember {mutableStateOf(false)}
     var folders by remember { mutableStateOf<List<DeviceFolder>>(emptyList()) }
     var root by remember { mutableStateOf<DeviceFolder?>(null) }
     var parents by remember { mutableStateOf<List<Pair<Uri,String>>>(emptyList()) }
@@ -62,6 +63,7 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
         scope.launch {
             try {block(); selected = emptySet(); revision++}
             catch (e: CancellationException) {throw e}
+            catch (_:SavedFolderLimitException) {notice=uiResources.getQuantityString(R.plurals.ui_saved_folder_limit,DeviceFolders.MAX_FOLDERS,DeviceFolders.MAX_FOLDERS);revision++}
             catch (e: Exception) {notice = uiResources.getString(R.string.ui_the_file_operation_could_not_be_completed); revision++}
             finally {busy = false}
         }
@@ -81,9 +83,11 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
         selected = emptySet(); query = ""; select = false
     }
     BackHandler(enabled = root != null && !busy) {back()}
-    LaunchedEffect(refresh) {
+    LaunchedEffect(refresh,revision) {
         selected=emptySet()
-        folders = withContext(Dispatchers.IO) {store.read().filterNot {app.ember.player.PrivateMedia.hidden(it.uri)}}
+        val loaded=withContext(Dispatchers.IO) {runCatching {store.readForDisplay()}.getOrNull()}
+        readError=loaded==null
+        folders=loaded.orEmpty().filterNot {app.ember.player.PrivateMedia.hidden(it.uri)}
         if(root!=null && folders.none {it.uri==root?.uri}){root=null;parents=emptyList()}
     }
     LaunchedEffect(root,current) {offsets=listOf(0)}
@@ -102,12 +106,7 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
     }
     val addFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree ->
         if (tree != null) operation {
-            val folder = withContext(Dispatchers.IO) {
-                DeviceFiles.retain(activity, tree)
-                DeviceFolder(tree.toString(), DeviceFiles.name(activity, DeviceFiles.root(tree))).also {
-                    check(store.add(it)) {"Encrypted folder storage is unavailable."}
-                }
-            }
+            val folder = withContext(Dispatchers.IO) {saveDeviceFolder(activity,tree,store){ensureActive()}}
             folders = withContext(Dispatchers.IO) {store.read().filterNot {app.ember.player.PrivateMedia.hidden(it.uri)}}
             root = folder; parents = emptyList(); query = ""
         }
@@ -136,6 +135,12 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
         runCatching {activity.startActivity(Intent.createChooser(intent, uiResources.getString(R.string.ui_share_media)))}.onFailure {notice = uiResources.getString(R.string.ui_no_app_is_available_to_share_these_files)}
     }
     app.ember.player.PlayerSection(uiResources.getString(R.string.ui_device_folders)) {
+        if(readError) {
+            app.ember.player.PlayerErrorText(uiResources.getString(R.string.ui_saved_folders_unreadable))
+            app.ember.player.SavedListRecoveryControls(R.string.ui_reset_saved_folders,R.string.ui_reset_saved_folders_warning,store::resetUnreadable){revision++}
+        }
+        notice?.let {app.ember.player.PlayerErrorText(it)}
+        status?.let {app.ember.player.PlayerStatusText(it)}
         if (root == null) {
             Chip(uiResources.getString(R.string.ui_add_a_media_folder)) {if (!busy) runCatching {addFolder.launch(null)}.onFailure {notice = uiResources.getString(R.string.ui_no_document_picker_is_installed_on_this_device)}}
             folders.forEach {folder -> ButtonRow {
@@ -184,8 +189,6 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
             Text(uiResources.getString(R.string.ui_search_and_sorting_apply_to_this_page_use_library),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
             if (entries.any {!it.directory}) Chip(uiResources.getString(R.string.ui_play_this_page)) {open(entries.filterNot {it.directory})}
         }
-        notice?.let {app.ember.player.PlayerErrorText(it)}
-        status?.let {app.ember.player.PlayerStatusText(it)}
         menu?.takeUnless {app.ember.player.PrivateMedia.hidden(it.uri.toString())}?.let {file -> OptionMenu(file.name, listOf(
             MenuOption(uiResources.getString(R.string.ui_play)) {open(listOf(file))},
             MenuOption(uiResources.getString(R.string.ui_keep_private)) {protect=file;protectPin=true},

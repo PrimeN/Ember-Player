@@ -62,10 +62,12 @@ internal fun PlaylistPickerContent(context:Context,items:List<QueueMedia>,index:
         items(playlists,key={it.id}) {playlist->PlayerAction(playlist.name,enabled=!busy){save(playlist.id)}}
     }
     TvTextField(name,{name=it.take(80)},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_new_playlist_name))
-    if(readError)PlayerErrorText(uiResources.getString(R.string.ui_playlists_unreadable))
+    if(readError) {
+        PlayerErrorText(uiResources.getString(R.string.ui_playlists_unreadable))
+        SavedListRecoveryControls(R.string.ui_reset_saved_playlists,R.string.ui_reset_saved_playlists_warning,store::resetUnreadable){revision++}
+    }
     error?.let {PlayerErrorText(it)}
     ButtonRow {
-        if(readError)PlayerAction(uiResources.getString(R.string.ui_refresh),enabled=!busy&&!loading){revision++}
         PlayerAction(if(busy)uiResources.getString(R.string.ui_saving) else uiResources.getString(R.string.ui_create_playlist),primary=true,enabled=!busy&&!loading&&!readError&&name.isNotBlank()){save(null)}
         PlayerAction(uiResources.getString(R.string.ui_cancel),enabled=!busy,onClick=close)
     }

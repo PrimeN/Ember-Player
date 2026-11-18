@@ -34,6 +34,12 @@ internal class DownloadStore(private val context:Context) {
             }
         }
     }
+    fun resetUnreadable():Boolean=synchronized(lock) {
+        app.ember.player.storage.resetUnreadableList(::load) {
+            MediaDownloadService.pause(context)
+            save(emptyList());true
+        }
+    }
     fun readForDisplay():List<MediaDownload> = load()
     fun read():List<MediaDownload> = runCatching {load()}.getOrDefault(emptyList())
     fun add(url:String,name:String=""):MediaDownload=synchronized(lock) {
