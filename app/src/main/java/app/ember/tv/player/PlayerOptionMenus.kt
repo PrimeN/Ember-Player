@@ -194,10 +194,12 @@ internal fun PlayerActivity.optionRows(which: String): List<OptionRow> {
                 if(audioUrl==null)add(OptionRow(resources.getString(R.string.ui_cast_to_a_receiver),action={openCasting()}))
                 add(OptionRow(resources.getString(R.string.ui_save_screenshot),action={exports.screenshot()}))
 
+                if(clips.active)add(OptionRow(resources.getString(R.string.ui_cancel_clip_export),clips.progress?.let {"$it%"}.orEmpty(),action={clips.cancel();changed()}))
+                else {
                     add(OptionRow(resources.getString(R.string.ui_mark_clip_start),clips.startMs?.let(::clock).orEmpty(),action={clips.markStart();changed()}))
                     add(OptionRow(resources.getString(R.string.ui_mark_clip_end),clips.endMs?.let(::clock).orEmpty(),action={if(!clips.markEnd())Toast.makeText(this@optionRows,resources.getString(R.string.ui_mark_the_start_then_seek_at_least_one_second),Toast.LENGTH_SHORT).show();changed()}))
-                    if(clips.active)add(OptionRow(resources.getString(R.string.ui_cancel_clip_export),clips.progress?.let {"$it%"}.orEmpty(),action={clips.cancel();changed()}))
-                    else add(OptionRow(resources.getString(R.string.ui_export_clip),note=resources.getString(R.string.ui_mp4_using_device_encoders_original_kept),action={clips.chooseDestination()}))
+                    add(OptionRow(resources.getString(R.string.ui_export_clip),note=resources.getString(R.string.ui_mp4_using_device_encoders_original_kept),action={clips.chooseDestination()}))
+                }
 
             }
             add(OptionRow(resources.getString(R.string.ui_lock_playback),note=resources.getString(R.string.ui_use_the_unlock_button_or_back_to_restore_controls),action={closeMenu();touchControls?.setLocked(true)}))

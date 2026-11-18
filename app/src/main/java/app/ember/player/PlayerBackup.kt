@@ -57,6 +57,9 @@ internal object PlayerBackupCipher {
 }
 
 internal object PlayerBackups {
+    internal const val LOCAL_INDEX_KEY="player.library.key"
+    internal fun portableSecrets(values:Map<String,String>)=values-LOCAL_INDEX_KEY
+    internal fun restoredSecrets(values:Map<String,String>,localKey:String?)=portableSecrets(values)+(localKey?.let {mapOf(LOCAL_INDEX_KEY to it)} ?: emptyMap())
     val files=setOf("ember","positions","trackMemory","bookmarks")
     private val json=Json {ignoreUnknownKeys=false}
     private val configurationJson=Json {ignoreUnknownKeys=true}
@@ -87,6 +90,7 @@ internal object PlayerBackups {
             if(file=="ember" && key=="subtitleConfig")configurationJson.decodeFromString<SubtitleConfig>(value.text)
         }}
         require(data.secrets.all {(key,value)->key.isNotBlank() && key.length<=256 && key.none {it.isISOControl()} && value.length<=2*1024*1024})
+        data.secrets[PrivateMedia.KEY]?.let(PrivacyRecords::decode)
     }
     fun snapshot(context:Context):PlayerBackupData {
         check(!PrivateMedia.enabled||PrivateMedia.unlocked.value){"Unlock private media before exporting settings."}
@@ -105,7 +109,7 @@ internal object PlayerBackups {
                 else->error("Unsupported preference value.")
             }
         }}
-        return PlayerBackupData(version=2,preferences=preferences,secrets=tokens.all())
+        return PlayerBackupData(version=2,preferences=preferences,secrets=portableSecrets(tokens.all()))
     }
     fun export(context:Context,password:CharArray):ByteArray {
         val value=snapshot(context);validate(value)
@@ -120,7 +124,8 @@ internal object PlayerBackups {
         return try {json.decodeFromString<PlayerBackupData>(String(plain,Charsets.UTF_8)).also(::validate)} finally {plain.fill(0)}
     }
     private fun write(context:Context,data:PlayerBackupData) {
-        TokenStore(context).replaceAll(data.secrets)
+        val tokens=TokenStore(context)
+        tokens.replaceAll(restoredSecrets(data.secrets,tokens.getForUpdate(LOCAL_INDEX_KEY)))
         data.preferences.forEach {(file,values)->
             val edit=context.getSharedPreferences(file,Context.MODE_PRIVATE).edit().clear()
             values.forEach {(key,value)->when(value.type) {
@@ -133,11 +138,14 @@ internal object PlayerBackups {
             }}
             check(edit.commit()) {"Could not write restored settings."}
         }
+        val protectionEnabled=data.secrets[PrivateMedia.KEY]?.let(PrivacyRecords::decode)?.pin?.isNotEmpty()==true
+        check(context.getSharedPreferences("playerSecurity",Context.MODE_PRIVATE).edit().putBoolean("enabled",protectionEnabled).commit()) {"Could not restore privacy protection."}
     }
-    fun restore(context:Context,data:PlayerBackupData)=synchronized(this) {
-        check(!PrivateMedia.enabled||PrivateMedia.unlocked.value){"Unlock private media before restoring settings."}
+    fun restore(context:Context,data:PlayerBackupData,currentPin:String?=null):Boolean=synchronized(this) {
         validate(data)
-        val retained=data.copy(version=2,preferences=data.preferences.mapValues {(file,values)->
+        check(!PrivateMedia.enabled||PrivateMedia.unlocked.value){"Unlock private media before restoring settings."}
+        if(PrivateMedia.enabled&&(currentPin==null||!PrivateMedia.authenticate(currentPin)))return@synchronized false
+        val retained=data.copy(version=2,secrets=portableSecrets(data.secrets),preferences=data.preferences.mapValues {(file,values)->
             if(file in setOf("positions","trackMemory")) {
                 val kept=PlaybackStateRetention.bounded(file,values.mapValues {it.value.text})
                 kept.mapValues {(key,value)->values.getValue(key).copy(text=value)}
@@ -146,6 +154,8 @@ internal object PlayerBackups {
         replace(retained,{snapshot(context)},{write(context,it)})
         PrivateMedia.reload(context)
         app.ember.tv.data.CacheManagement.preferencesRestored(context.applicationContext)
+        app.ember.tv.player.MediaLibraryScanner.request(context.applicationContext,force=true)
+        true
     }
     /** Validate first, then verify the write. A failed write restores and verifies the old snapshot. */
     internal fun replace(target:PlayerBackupData,read:()->PlayerBackupData,write:(PlayerBackupData)->Unit) {

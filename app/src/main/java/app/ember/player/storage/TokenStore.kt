@@ -77,7 +77,8 @@ class TokenStore internal constructor(context: Context, private val vaultProvide
     fun all(): Map<String, String> {
         val store=existingVault()
         return synchronized(store ?: legacy) {
-            legacy.all.mapNotNull { (k, v) -> (v as? String)?.let { k to it } }.toMap() + store?.all().orEmpty()
+            check(encrypted.all.isEmpty() || store!=null) {"Saved encrypted data could not be read."}
+            legacy.all.mapNotNull { (k, v) -> (v as? String)?.let { k to it } }.toMap() + store?.allForUpdate().orEmpty()
         }
     }
 
@@ -87,7 +88,7 @@ class TokenStore internal constructor(context: Context, private val vaultProvide
         synchronized(target ?: legacy) {
             check(values.isEmpty() || target != null) { "Encrypted storage is unavailable. Restore was not applied." }
             target?.let { store ->
-                val saved = VerifiedSecretWrite.replace(store.all(), values, { next -> store.write(next, clear = true) }, store::all)
+                val saved = VerifiedSecretWrite.replace(store.allForUpdate(), values, { next -> store.write(next, clear = true) }, store::allForUpdate)
                 check(saved) { "Could not save restored credentials. Previous configuration was kept." }
             }
             legacy.edit(commit = true) { clear() }

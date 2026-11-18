@@ -131,4 +131,22 @@ class MediaLibraryTest {
         app.deleteDatabase(name)
     }
 
+    @Test fun legacySearchTermsAreRebuiltForNonLatinNamesWithoutChangingTheirDisplay() {
+        val db=database();val folder=DeviceFolder("content://device.files/tree/root","Root")
+        val root=java.security.MessageDigest.getInstance("SHA-256").digest(folder.uri.toByteArray()).joinToString(""){"%02x".format(it)}
+        MediaLibrary(app,{db},{listOf(folder)},{false})
+        val cases=listOf("हिंदी कहानी" to "हिंदी","বাংলা ছবি" to "বাংলা","العَرَبِيَّة" to "العربية","Café movie" to "cafe")
+        cases.forEachIndexed {i,(title,_)->
+            db.execSQL("INSERT INTO media VALUES(?,?,?,?,?,?,?,?)",arrayOf<Any>("id-$i",root,"content://device.files/tree/root/document/$i",title,"video/mp4",100L,0L,"old"))
+            db.execSQL("INSERT INTO media_order VALUES(?,?)",arrayOf("id-$i",title))
+        }
+        db.execSQL("DELETE FROM search_schema")
+        MediaLibrary(app,{db},{listOf(folder)},{false}).use {index->
+            cases.forEach {(title,query)->
+                assertTrue(MediaSearch.matches(title,query))
+                assertEquals(listOf(title),index.search(query).entries.map {it.title})
+            }
+        }
+    }
+
 }

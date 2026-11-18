@@ -73,6 +73,7 @@ fun TvTextField(
     startEditing: Boolean = false,
     /** Search uses the shared glass surface; other forms keep their established field style. */
     glass: Boolean = false,
+    enabled: Boolean = true,
 ) {
     val uiResources=androidx.compose.ui.platform.LocalResources.current
 
@@ -82,9 +83,9 @@ fun TvTextField(
         fun submit(){if(onSubmit!=null)onSubmit() else {keyboard?.hide();focus.clearFocus()}}
         androidx.compose.material3.OutlinedTextField(value,onValueChange,
             modifier.fillMaxWidth().heightIn(min=maxOf(56.dp,minHeight)).then(if(focusRequester!=null)Modifier.focusRequester(focusRequester) else Modifier),
-            placeholder={androidx.compose.material3.Text(placeholder)},singleLine=singleLine,
+            placeholder={androidx.compose.material3.Text(placeholder)},singleLine=singleLine,enabled=enabled,
             visualTransformation=if(password)PasswordVisualTransformation() else VisualTransformation.None,
-            keyboardOptions=androidx.compose.foundation.text.KeyboardOptions(keyboardType=if(password)androidx.compose.ui.text.input.KeyboardType.Password else keyboardType,imeAction=imeAction),
+            keyboardOptions=androidx.compose.foundation.text.KeyboardOptions(keyboardType=if(password&&keyboardType==androidx.compose.ui.text.input.KeyboardType.Text)androidx.compose.ui.text.input.KeyboardType.Password else keyboardType,imeAction=imeAction),
             keyboardActions=androidx.compose.foundation.text.KeyboardActions(onDone={submit()},onSearch={submit()},onGo={submit()},onSend={submit()}),
             shape=androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
         return
@@ -104,6 +105,8 @@ fun TvTextField(
         focus.moveFocus(direction)
         return true
     }
+
+    androidx.compose.runtime.LaunchedEffect(enabled) {if(!enabled){editing=false;keyboard?.hide()}}
 
     // The on-screen keyboard covers the lower part of the screen: once it is up, scroll the page
     // so this field sits above it (the window shrinks to the space left, adjustResize).
@@ -127,10 +130,13 @@ fun TvTextField(
         BasicTextField(
             value = current,
             onValueChange = {
-                tfv = it
-                if (it.text != value) onValueChange(it.text)
+                if (enabled) {
+                    tfv = it
+                    if (it.text != value) onValueChange(it.text)
+                }
             },
             readOnly = !editing,
+            enabled = enabled,
             singleLine = singleLine,
             visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
             textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = fontSize, lineHeight = lineHeight),
@@ -156,6 +162,9 @@ fun TvTextField(
                     }
                 }
                 .onPreviewKeyEvent { e ->
+                    if (!enabled) {
+                        return@onPreviewKeyEvent false
+                    }
                     if ((e.key == Key.Back || e.key == Key.Escape) && consumedBack) {
                         if (e.type == KeyEventType.KeyUp) consumedBack = false
                         return@onPreviewKeyEvent true

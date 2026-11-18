@@ -4,6 +4,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SavedPlaylistsTest {
+    @Test fun progressKeepsTheChosenDuplicateAndRejectsAChangedPlaylistIndex() {
+        var raw:String?=null;val store=SavedPlaylists({raw},{raw=it;true})
+        val same=QueueMedia("https://example.test/same.mp4","Same")
+        assertTrue(store.save("Repeated",listOf(same,same)))
+        val id=store.read().single().id
+        assertTrue(store.progress(id,same.key,1));assertEquals(1,store.read().single().index)
+        assertFalse(store.progress(id,same.key,2));assertEquals(1,store.read().single().index)
+    }
     @Test fun everyMutationPreservesUnreadableOrPartlyInvalidSavedPlaylists() {
         var raw:String?=null;var writes=0;var unavailable=false
         val store=SavedPlaylists({check(!unavailable);raw},{raw=it;writes++;true})

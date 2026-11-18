@@ -9,30 +9,36 @@ import androidx.media3.common.C
 import androidx.media3.common.Format
 import kotlinx.coroutines.*
 
-/** Lossless, keyframe-aligned exports preserve encoded video and the selected audio track. */
+internal data class ClipCopyRequest(val source:String,val headers:Map<String,String>,val destination:Uri,val start:Long,val end:Long,val audio:Format?,val audioDisabled:Boolean)
+
+/** Lossless exports snapshot player state on its owner thread; workers only see immutable inputs. */
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-internal class PlayerClipExport(private val activity:PlayerActivity):java.io.Closeable {
+internal class PlayerClipExport(private val activity:PlayerActivity,
+    private val copy:suspend (ClipCopyRequest,()->Unit,(Int)->Unit)->Unit={request,check,progress->
+        LosslessClip.copy(activity.applicationContext,request.source,request.headers,request.destination,request.start,request.end,request.audio,request.audioDisabled,check,progress)
+    }):java.io.Closeable {
     var startMs:Long?=null;private set
     var endMs:Long?=null;private set
     private var visit=-1L
     private var source:String?=null
-    private var output:Uri?=null
     private var job:Job?=null
     private var audio:Format?=null
     private var audioDisabled=false
     private var closed=false
-    private var keepAwake=false
+    @Volatile private var generation=0L
+    private var keepAwake:Boolean?=null
     val active get()=job?.isActive==true
-    var progress:Int?=null;private set
+    @Volatile var progress:Int?=null;private set
     private val picker=activity.registerForActivityResult(ActivityResultContracts.CreateDocument("video/mp4")) {uri->
         activity.pickingSidecar=false
-        if(uri!=null&&validSource()){output=uri;begin()}else {uri?.let(::remove);source=null}
+        if(uri!=null&&validSource())begin(uri) else {uri?.let {value->activity.lifecycleScope.launch {remove(value)}};source=null}
     }
-    fun markStart(){resetForSource();startMs=activity.player?.currentPosition;endMs=null}
-    fun markEnd():Boolean {resetForSource();val end=activity.player?.currentPosition ?: return false;if(!validRange(startMs,end))return false;endMs=end;return true}
+    fun markStart(){if(active)return;resetForSource();startMs=activity.player?.currentPosition;endMs=null}
+    fun markEnd():Boolean {if(active)return false;resetForSource();val end=activity.player?.currentPosition ?: return false;if(!validRange(startMs,end))return false;endMs=end;return true}
     private fun resetForSource(){if(visit!=activity.playbackVisit&&!active){startMs=null;endMs=null;visit=activity.playbackVisit}}
     fun chooseDestination() {
         resetForSource()
+        if(closed||activity.pickingSidecar)return
         if(active||!activity.exports.permitted()||!validRange(startMs,endMs)){message(activity.getString(R.string.ui_mark_a_clip_start_and_end_at_least_one));return}
         if(activity.audioUrl!=null){message(activity.getString(R.string.ui_lossless_clip_unsupported));return}
         source=activity.currentUrl;visit=activity.playbackVisit
@@ -44,22 +50,34 @@ internal class PlayerClipExport(private val activity:PlayerActivity):java.io.Clo
         catch(_:Exception){activity.pickingSidecar=false;source=null;message(activity.getString(R.string.ui_no_file_picker_is_available))}
     }
     private fun validSource()=!closed&&source!=null&&visit==activity.playbackVisit&&source==activity.currentUrl&&activity.exports.permitted()
-    private fun begin() {
-        if(!validSource()){cancel();return}
-        val uri=output ?: return
+    internal fun begin(uri:Uri) {
+        if(!validSource()||!validRange(startMs,endMs)||active){activity.lifecycleScope.launch {remove(uri)};return}
+        val request=ClipCopyRequest(source!!,activity.sourceHeaders.toMap(),uri,startMs!!,endMs!!,audio,audioDisabled)
+        val run=++generation
         keepAwake=activity.window.decorView.keepScreenOn;activity.window.decorView.keepScreenOn=true;progress=0
         job=activity.lifecycleScope.launch {
+            var completed=false
             try {
-                withContext(Dispatchers.IO){LosslessClip.copy(activity.applicationContext,source!!,activity.sourceHeaders.toMap(),uri,startMs!!,endMs!!,audio,audioDisabled,{ensureActive();check(validSource())},{progress=it})}
-                if(validSource())message(activity.getString(R.string.ui_clip_saved))else {remove(uri);message(activity.getString(R.string.ui_export_canceled_because_playback_changed))}
-                output=null
-            }catch(e:CancellationException){remove(uri);throw e}
-             catch(_:Exception){remove(uri);message(activity.getString(R.string.ui_lossless_clip_unsupported))}
-            finally {output=null;source=null;progress=null;activity.window.decorView.keepScreenOn=keepAwake}
+                withContext(Dispatchers.IO) {
+                    val owner=currentCoroutineContext()
+                    var reported=-1
+                    copy(request,{owner.ensureActive();check(!app.ember.player.PrivateMedia.hidden(request.source))},{value->
+                        if(value!=reported){reported=value;activity.handler.post {if(run==generation)progress=value}}
+                    })
+                }
+                if(run==generation&&validSource()){completed=true;message(activity.getString(R.string.ui_clip_saved))}
+                else if(run==generation)message(activity.getString(R.string.ui_export_canceled_because_playback_changed))
+            }catch(e:CancellationException){throw e}
+             catch(_:Exception){if(run==generation)message(activity.getString(R.string.ui_lossless_clip_unsupported))}
+            finally {
+                if(!completed)remove(request.destination)
+                if(run==generation){source=null;progress=null;restoreAwake()}
+            }
         }
     }
-    fun cancel(){job?.cancel();output?.let(::remove);output=null;source=null;progress=null;activity.window.decorView.keepScreenOn=keepAwake}
-    private fun remove(uri:Uri){runCatching {android.provider.DocumentsContract.deleteDocument(activity.contentResolver,uri)}}
+    fun cancel(){generation++;job?.cancel();job=null;source=null;progress=null;restoreAwake()}
+    private fun restoreAwake(){keepAwake?.let {activity.window.decorView.keepScreenOn=it};keepAwake=null}
+    private suspend fun remove(uri:Uri)=withContext(NonCancellable+Dispatchers.IO){runCatching {android.provider.DocumentsContract.deleteDocument(activity.contentResolver,uri)};Unit}
     private fun message(text:String){if(!closed)Toast.makeText(activity,text,Toast.LENGTH_LONG).show()}
     override fun close(){closed=true;cancel()}
     companion object {fun validRange(start:Long?,end:Long?)=start!=null&&end!=null&&start>=0&&end>start&&end-start>=1000}

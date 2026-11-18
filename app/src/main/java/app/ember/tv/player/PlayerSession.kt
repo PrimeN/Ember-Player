@@ -21,6 +21,7 @@ import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 @OptIn(UnstableApi::class)
 /** Loads a source into the player and starts it. Used for the first episode and every next one. */
 internal fun PlayerActivity.start(url: String, title: String, release: String?) {
+    clips.cancel()
     touchControls?.cancel()
     closeCaptionAssistance();captionConfig=null;embeddedCaptionText=""
     manualSubtitleJob?.cancel();manualSubtitleJob=null
@@ -123,6 +124,7 @@ internal fun PlayerActivity.askToLeave() {
 @OptIn(UnstableApi::class)
 /** Save the position, release playback resources and normally close the screen. */
 internal fun PlayerActivity.endPlayback(finishActivity: Boolean = true) {
+    clips.cancel()
     closeCaptionAssistance();captionConfig=null;embeddedCaptionText=""
     usbWatch?.close();usbWatch=null
     manualSubtitleJob?.cancel();manualSubtitleJob=null

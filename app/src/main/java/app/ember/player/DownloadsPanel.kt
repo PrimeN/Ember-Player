@@ -16,7 +16,7 @@ import kotlinx.coroutines.*
 import androidx.lifecycle.repeatOnLifecycle
 
 @Composable
-internal fun DownloadsPanel(activity:ComponentActivity) {
+internal fun DownloadsPanel(activity:ComponentActivity,save:suspend (String,String)->MediaDownload={url,name->DownloadStore(activity).add(url,name)}) {
     val uiResources=androidx.compose.ui.platform.LocalResources.current
 
     val scope=rememberCoroutineScope()
@@ -58,21 +58,26 @@ internal fun DownloadsPanel(activity:ComponentActivity) {
             var editedName by remember {mutableStateOf<String?>(null)}
             val name=editedName ?: DownloadStore.suggestedName(url)
             var error by remember {mutableStateOf<String?>(null)}
-            TvDialog({adding=false},width=560.dp,resizeForKeyboard=true,scrollContent=true) {
+            var submitting by remember {mutableStateOf(false)}
+            TvDialog({if(!submitting)adding=false},width=560.dp,resizeForKeyboard=true,scrollContent=true) {
                 DialogHeading(uiResources.getString(R.string.ui_download_media))
-                TvTextField(url,{url=it.take(16384)},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_https_video_mp4))
-                TvTextField(name,{editedName=it.take(120)},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_filename))
+                TvTextField(url,{if(!submitting)url=it.take(16384)},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_https_video_mp4),enabled=!submitting)
+                TvTextField(name,{if(!submitting)editedName=it.take(120)},Modifier.fillMaxWidth(),placeholder=uiResources.getString(R.string.ui_filename),enabled=!submitting)
                 error?.let {PlayerErrorText(it)}
                 ButtonRow {
-                    PlayerAction(uiResources.getString(R.string.ui_download),primary=true){if(!DownloadStore.supported(url.trim())||PrivateMedia.hidden(url.trim()))error=uiResources.getString(R.string.ui_enter_a_direct_non_private_media_url)
-                        else scope.launch {
+                    PlayerAction(uiResources.getString(if(submitting)R.string.ui_working else R.string.ui_download),primary=true,enabled=!submitting){if(!submitting){if(!DownloadStore.supported(url.trim())||PrivateMedia.hidden(url.trim()))error=uiResources.getString(R.string.ui_enter_a_direct_non_private_media_url)
+                        else {
+                            val address=url.trim();val filename=name;submitting=true;error=null
+                            scope.launch {
                             try {
-                                val item=withContext(Dispatchers.IO){DownloadStore(activity).add(url.trim(),name)}
+                                val item=withContext(Dispatchers.IO){save(address,filename)}
                                 start(item.id);adding=false;version++
                             }catch(e:CancellationException){throw e}catch(_:Exception){error=uiResources.getString(R.string.ui_could_not_start_this_download_check_available_space_and)}
+                            finally {submitting=false}
+                            }
                         }
-                    }
-                    app.ember.player.PlayerAction(uiResources.getString(R.string.ui_cancel)){adding=false}
+                    }}
+                    app.ember.player.PlayerAction(uiResources.getString(R.string.ui_cancel),enabled=!submitting){adding=false}
                 }
             }
         }

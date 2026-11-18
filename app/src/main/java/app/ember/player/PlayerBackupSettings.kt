@@ -94,15 +94,30 @@ internal fun PlayerBackupSettings(restored:()->Unit) {
             }
         }
     }
-    restoreData?.let {data->PlayerConfirmationDialog(uiResources.getString(R.string.ui_restore_this_backup),
-        uiResources.getString(R.string.ui_this_replaces_your_player_settings_and_saved_activity_folder),
-        uiResources.getString(R.string.ui_restore),{restoreData=null}) {
-                restoreData=null;busy=true
+    restoreData?.let {data->
+        var currentPin by remember(data) {mutableStateOf("")}
+        var pinError by remember(data) {mutableStateOf<String?>(null)}
+        PlayerConfirmationDialog(uiResources.getString(R.string.ui_restore_this_backup),
+            uiResources.getString(R.string.ui_this_replaces_your_player_settings_and_saved_activity_folder),
+            uiResources.getString(R.string.ui_restore),{restoreData=null},busy=busy,content={
+                if(PrivateMedia.enabled)TvTextField(currentPin,{currentPin=it.take(12);pinError=null},Modifier.fillMaxWidth(),
+                    placeholder=uiResources.getString(R.string.ui_current_pin),password=true,keyboardType=androidx.compose.ui.text.input.KeyboardType.NumberPassword,enabled=!busy)
+                pinError?.let {PlayerErrorText(it)}
+            }) {
+            if(!busy) {
+                val pin=currentPin;busy=true;pinError=null
                 scope.launch {
-                    try {withContext(Dispatchers.IO) {PlayerBackups.restore(context,data)};restored();notice=PlayerFeedback(uiResources.getString(R.string.ui_backup_restored),false)}
-                    catch(e:CancellationException) {throw e}
-                    catch(e:Exception) {notice=PlayerFeedback(when {e is BackupRestoreException&&e.rollbackFailed->uiResources.getString(R.string.ui_restore_failed_and_the_previous_configuration_could_not_be);e is BackupRestoreException->uiResources.getString(R.string.ui_restore_failed_the_previous_configuration_was_kept);else->uiResources.getString(R.string.ui_restore_failed)})}
-                    finally {busy=false}
+                    try {
+                        val saved=withContext(Dispatchers.IO) {PlayerBackups.restore(context,data,pin)}
+                        if(saved){restoreData=null;restored();notice=PlayerFeedback(uiResources.getString(R.string.ui_backup_restored),false)}
+                        else pinError=uiResources.getString(R.string.ui_incorrect_pin)
+                    }catch(e:CancellationException){throw e}
+                     catch(e:Exception){
+                        restoreData=null
+                        notice=PlayerFeedback(when {e is BackupRestoreException&&e.rollbackFailed->uiResources.getString(R.string.ui_restore_failed_and_the_previous_configuration_could_not_be);e is BackupRestoreException->uiResources.getString(R.string.ui_restore_failed_the_previous_configuration_was_kept);else->uiResources.getString(R.string.ui_restore_failed)})
+                    }finally {currentPin="";busy=false}
                 }
-    }}
+            }
+        }
+    }
 }

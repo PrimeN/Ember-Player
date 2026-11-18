@@ -35,8 +35,8 @@
 
 Ember Player brings a warm charcoal-and-amber interface to your own media. Pick
 up where you stopped, browse saved folders or open a network stream. The library
-adapts from a phone dock to a dense tablet layout and a remote-friendly TV sidebar.
-Day/night palettes, searchable settings and independent playback-control layouts
+adapts from a phone navigation row to a dense tablet layout and a remote-friendly TV sidebar.
+Light, dark and system-following palettes, searchable settings and independent playback-control layouts
 keep the experience consistent across screens.
 
 Local playback needs **no account or API key**. Optional network and subtitle tools
@@ -70,7 +70,7 @@ and is not supplied with the app.
     <th align="center">Settings</th>
   </tr>
   <tr>
-    <td align="center"><img src="docs/screenshots/mobile.png" width="320" alt="Phone library with media shelves and a floating navigation dock" /></td>
+    <td align="center"><img src="docs/screenshots/mobile.png" width="320" alt="Phone library with media shelves and navigation" /></td>
     <td align="center"><img src="docs/screenshots/settings.png" width="320" alt="Searchable Settings organized into eight categories" /></td>
   </tr>
 </table>

@@ -22,5 +22,5 @@ internal fun PlayerActivity.saveFilePlaylist() {
 
 internal object PlaylistProgress {
     private val scope=CoroutineScope(SupervisorJob()+Dispatchers.IO.limitedParallelism(1))
-    fun save(context:Context,profile:String,id:String,key:String) {if(!app.ember.player.PrivateMedia.state.value.history)return;scope.launch {runCatching {SavedPlaylists(context,profile).progress(id,key)}}}
+    fun save(context:Context,profile:String,id:String,key:String,at:Int?=null) {if(!app.ember.player.PrivateMedia.state.value.history)return;scope.launch {runCatching {SavedPlaylists(context,profile).progress(id,key,at)}}}
 }

@@ -17,7 +17,7 @@ internal fun PlayerActivity.playFile(media:QueueMedia) {
     if(subsInitialized)subs.config=subConfigFor(prefs.subtitleConfig)
     start(media.uri,media.title,media.title);refreshControlsTitle()
     platformSession?.nextAvailable(fileQueue?.hasNext(::queueItemAllowed)==true)
-    fileQueue?.let {q->q.playlistId?.let {PlaylistProgress.save(applicationContext,watchProfileId,it,media.key)}}
+    fileQueue?.let {q->q.playlistId?.let {id->q.originalIndex()?.let {at->PlaylistProgress.save(applicationContext,watchProfileId,id,media.key,at)}}}
 }
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
@@ -27,13 +27,14 @@ internal fun PlayerActivity.showFileQueue(page:Int=0) {
     val actions=queue.items.drop(start).take(100).mapIndexedNotNull { offset, media ->
         val index=start+offset
         if(!queueItemAllowed(media))return@mapIndexedNotNull null
+        val occurrence=queue.occurrence(index) ?: return@mapIndexedNotNull null
         PlayerDialogAction(media.title, Icons.Outlined.PlayArrow, selected = index == queue.index) {
-            val currentIndex = queue.items.indexOf(media)
+            val currentIndex = queue.indexOfOccurrence(occurrence)
             if (currentIndex >= 0) showPlayerActions(media.title, listOf(
-                PlayerDialogAction(resources.getString(R.string.ui_play), Icons.Outlined.PlayArrow) { queue.select(queue.items.indexOf(media))?.let { playFile(it) } },
-                PlayerDialogAction(resources.getString(R.string.ui_move_earlier_07dd6f), Icons.Outlined.ArrowUpward) { val at = queue.items.indexOf(media); queue.move(at, at - 1); changed() },
-                PlayerDialogAction(resources.getString(R.string.ui_move_later_bb4c84), Icons.Outlined.ArrowDownward) { val at = queue.items.indexOf(media); queue.move(at, at + 1); changed() },
-                PlayerDialogAction(resources.getString(R.string.ui_remove), Icons.Outlined.DeleteOutline, destructive = true) { queue.remove(queue.items.indexOf(media)); changed() },
+                PlayerDialogAction(resources.getString(R.string.ui_play), Icons.Outlined.PlayArrow) { queue.select(queue.indexOfOccurrence(occurrence))?.let { playFile(it) } },
+                PlayerDialogAction(resources.getString(R.string.ui_move_earlier_07dd6f), Icons.Outlined.ArrowUpward) { val at = queue.indexOfOccurrence(occurrence); queue.move(at, at - 1); changed() },
+                PlayerDialogAction(resources.getString(R.string.ui_move_later_bb4c84), Icons.Outlined.ArrowDownward) { val at = queue.indexOfOccurrence(occurrence); queue.move(at, at + 1); changed() },
+                PlayerDialogAction(resources.getString(R.string.ui_remove), Icons.Outlined.DeleteOutline, destructive = true) { queue.remove(queue.indexOfOccurrence(occurrence)); changed() },
             ))
         }
     }.toMutableList()

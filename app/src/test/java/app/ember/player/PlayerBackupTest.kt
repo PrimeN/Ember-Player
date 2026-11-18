@@ -5,6 +5,16 @@ import org.junit.Test
 import javax.crypto.AEADBadTagException
 
 class PlayerBackupTest {
+    @Test fun malformedPrivateProtectionCannotBeImportedAsAValidBackup() {
+        val invalid=sample().copy(secrets=mapOf(PrivateMedia.KEY to "{\"pin\":\"invalid\"}"))
+        try {PlayerBackups.validate(invalid);fail("Invalid private protection must be rejected")}catch(_:IllegalArgumentException){}
+    }
+    @Test fun portableBackupsCannotReplaceTheLocalIndexEncryptionKey() {
+        val incoming=mapOf(PlayerBackups.LOCAL_INDEX_KEY to "old-device-key","connection" to "restored")
+        assertEquals(mapOf("connection" to "restored"),PlayerBackups.portableSecrets(incoming))
+        assertEquals(mapOf("connection" to "restored",PlayerBackups.LOCAL_INDEX_KEY to "this-device-key"),PlayerBackups.restoredSecrets(incoming,"this-device-key"))
+        assertEquals(mapOf("connection" to "restored"),PlayerBackups.restoredSecrets(incoming,null))
+    }
     @Test fun legacyBackupsRemainReadableAndNewBackupsUseTheVersionTwoEnvelope() {
         val password="a sufficiently long password".toCharArray()
         val salt=ByteArray(16){it.toByte()};val nonce=ByteArray(12){(it+16).toByte()}

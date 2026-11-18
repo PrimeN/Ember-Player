@@ -167,7 +167,7 @@ class BackgroundAudioService:MediaLibraryService(),Player.Listener {
         val at=PositionStore(this,request.scope).resume(media.key)?.first ?: 0
         audio?.load(source!!,at)
         loadArtwork()
-        MediaQueues.get(request.queueId)?.let {queue->queue.playlistId?.let {PlaylistProgress.save(applicationContext,request.profile,it,media.key)}}
+        MediaQueues.get(request.queueId)?.let {queue->queue.playlistId?.let {id->queue.originalIndex()?.let {at->PlaylistProgress.save(applicationContext,request.profile,id,media.key,at)}}}
         update()
     }
     private fun savePosition() {

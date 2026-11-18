@@ -80,11 +80,12 @@ internal class SavedPlaylists(private val readValue:()->String?,private val writ
         val values=runCatching {load()}.getOrNull() ?: return@synchronized false
         writeValue(json.encodeToString(values.filterNot {it.id==id}))
     }
-    fun progress(id:String,key:String):Boolean=synchronized(lock) {
+    fun progress(id:String,key:String,at:Int?=null):Boolean=synchronized(lock) {
         val values=runCatching {load()}.getOrNull() ?: return@synchronized false
         val value=values.firstOrNull {it.id==id} ?: return@synchronized false
-        val index=value.entries.indexOfFirst {entry->(entry.identity ?: QueueMedia(entry.uri,entry.title).key)==key}
-        if(index !in value.entries.indices)return@synchronized false
+        fun matches(entry:PlaylistEntry)=(entry.identity ?: QueueMedia(entry.uri,entry.title).key)==key
+        val index=at ?: value.entries.indexOfFirst(::matches)
+        if(index !in value.entries.indices || !matches(value.entries[index]))return@synchronized false
         writeValue(json.encodeToString(values.map {if(it.id==id)it.copy(index=index) else it}))
     }
     companion object {
