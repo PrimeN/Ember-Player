@@ -32,6 +32,21 @@ class BackgroundAudioServiceTest {
     private fun service(id:String)=Robolectric.buildService(BackgroundAudioService::class.java).create().also {
         it.get().onStartCommand(Intent(context,BackgroundAudioService::class.java).putExtra(BackgroundAudioService.EXTRA_ID,id),0,1)
     }
+    @Test fun retainedPipPreparationSurvivesItsTimeoutWithoutStartingAudio() {
+        val request=request();val id=BackgroundAudioService.stage(context,request)
+        assertTrue(BackgroundAudioService.retainStage(id))
+        val controller=service(id)
+        shadowOf(Looper.getMainLooper()).idleFor(20,java.util.concurrent.TimeUnit.SECONDS)
+        assertTrue(created.isEmpty());assertFalse(shadowOf(controller.get()).isStoppedBySelf)
+        assertTrue(BackgroundAudioService.commit(id,request));assertEquals(1,created.size)
+        controller.destroy()
+    }
+    @Test fun ordinaryUnusedPreparationStillTimesOut() {
+        val request=request();val id=BackgroundAudioService.stage(context,request);val controller=service(id)
+        shadowOf(Looper.getMainLooper()).idleFor(20,java.util.concurrent.TimeUnit.SECONDS)
+        assertTrue(shadowOf(controller.get()).isStoppedBySelf);assertFalse(BackgroundAudioService.commit(id,request))
+        assertTrue(created.isEmpty());controller.destroy()
+    }
     @Test fun stagingDoesNotCreateAnEngineAndCommitStartsItOnce() {
         val request=request();val id=BackgroundAudioService.stage(context,request)
         val controller=service(id)

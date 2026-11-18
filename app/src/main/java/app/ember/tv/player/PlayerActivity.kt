@@ -192,7 +192,7 @@ class PlayerActivity : ComponentActivity() {
     internal var pipActions:PlayerPipActions?=null
     internal var pictureInPictureEntered=false
 
-    override fun onResume(){super.onResume();pictureInPictureEntered=false;updatePictureInPicture();captionConfig=null;captionForeground=true;subtitleTicker.refresh()}
+    override fun onResume(){super.onResume();backgroundStage?.let(BackgroundAudioService::cancelStage);backgroundStage=null;pictureInPictureEntered=false;updatePictureInPicture();captionConfig=null;captionForeground=true;subtitleTicker.refresh()}
 
     override fun onStart() {
         super.onStart()
@@ -236,7 +236,8 @@ class PlayerActivity : ComponentActivity() {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         if (isInPictureInPictureMode) {
             pictureInPictureEntered=true;userLeft=false
-            backgroundStage?.let(BackgroundAudioService::cancelStage);backgroundStage=null
+            stageBackgroundAudio(allowPip=true)
+            backgroundStage?.let(BackgroundAudioService::retainStage)
         } else if(pictureInPictureEntered && !lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) {
             if(getSystemService(android.os.PowerManager::class.java).isInteractive)endPlayback()
             return
@@ -607,7 +608,7 @@ class PlayerActivity : ComponentActivity() {
     internal var backgroundQueueTransferred=false
 
     override fun onPause() {
-        stageBackgroundAudio()
+        stageBackgroundAudio(allowPip=pictureInPictureEntered||isInPictureInPictureMode)
         super.onPause()
         captionForeground=false;closeCaptionAssistance()
     }

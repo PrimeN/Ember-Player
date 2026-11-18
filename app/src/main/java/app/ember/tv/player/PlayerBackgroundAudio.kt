@@ -25,9 +25,9 @@ internal fun PlayerActivity.backgroundRequest(allowPip:Boolean=false):Background
 }
 
 @androidx.annotation.OptIn(UnstableApi::class)
-internal fun PlayerActivity.stageBackgroundAudio() {
+internal fun PlayerActivity.stageBackgroundAudio(allowPip:Boolean=false) {
     if(backgroundStage!=null || !configInitialized)return
-    val request=backgroundRequest() ?: return
+    val request=backgroundRequest(allowPip) ?: return
     backgroundStage=runCatching {BackgroundAudioService.stage(this,request)}.getOrNull()
 }
 
