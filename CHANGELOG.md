@@ -1,15 +1,15 @@
 # Changelog
 
-## Unreleased
+## [1.0.0]
 
 - Add mpv program and quality choices, explain automatic core and renderer decisions, and prepare reusable native resources off the main thread.
 - Search and naturally sort entire saved folders, show durations before videos are played, and improve compact phone headers and TV accessibility labels.
 - Fix background embedded artwork, unknown-length WebDAV playback, unreadable folder-history writes and subtitle ZIP handling.
-
 - Prefer gpu-next for automatic mpv rendering, with one Stable GPU fallback and an explicit manual renderer choice.
-
 - Offer explicit Media3 and mpv playback-core choices in settings and the player menu.
 - Update to mpv 0.42.0 and the Android wrapper 1.1.0, with matching FFmpeg 9.0.2 filters and rebuilt custom native components.
+- Handle remote Menu presses safely while native playback resources are loading, and use consistent playback-core names.
+- Provide smaller ARM64 and ARM32 APKs alongside the universal APK, plus an Android App Bundle for store distribution. Trim unused crypto code, add privacy-policy access in About, and refresh the screenshot gallery and release documentation.
 
 ## [0.8.5]
 

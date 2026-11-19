@@ -23,7 +23,7 @@
     <string name="ui_playback_permission_failure">Access to this media was denied. Select the file or folder again to renew access.</string>
     <string name="ui_playback_cleartext_failure">This connection requires a secure stream address.</string>
     <string name="ui_playback_format_failure">The media format is unsupported or the file is damaged.</string>
-    <string name="ui_playback_decoding_failure">The media could not be decoded. Try another playback engine or decoding setting.</string>
+    <string name="ui_playback_decoding_failure">The media could not be decoded. Try another playback core or decoding setting.</string>
     <string name="ui_playback_audio_failure">The audio output could not be opened. Check the audio output settings.</string>
     <string name="ui_playback_protection_failure">The protection or license for this media could not be opened.</string>
     <string name="ui_playback_failure">Try opening the media again. Check that the file or stream is available.</string>

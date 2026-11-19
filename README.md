@@ -44,7 +44,7 @@ are enabled when you choose to use them. See [privacy and local data](docs/priva
 
 | | What is included |
 | --- | --- |
-| **Playback** | Media3 Media3/Nextlib and mpv libmpv engines, automatic routing and remembered working decoder choices |
+| **Playback** | Media3/Nextlib and mpv playback cores, automatic routing and remembered working decoder choices |
 | **Your library** | Continue watching, compact media shelves, saved folders, filename search, playlists, watched-state filters and grid/list views |
 | **Files and servers** | Android file picker, mounted USB, read-only FAT32 USB browsing, SMB, SFTP, WebDAV, FTP and FTPS |
 | **Sound and picture** | Track selection, passthrough, delay controls, equalizer, night listening, picture profiles, optional upscaling and tone mapping |
@@ -57,8 +57,8 @@ are enabled when you choose to use them. See [privacy and local data](docs/priva
 
 ## Screenshots
 
-Current app views with representative media. Media shown here is illustrative
-and is not supplied with the app.
+Current app views. Library screenshots show first launch before media is added.
+The playback preview shows the controls over an illustrative backdrop.
 
 <p align="center">
   <img src="docs/screenshots/player.png" width="100%" alt="Ember Player Glass playback controls" />
@@ -70,19 +70,19 @@ and is not supplied with the app.
     <th align="center">Settings</th>
   </tr>
   <tr>
-    <td align="center"><img src="docs/screenshots/mobile.png" width="320" alt="Phone library with media shelves and navigation" /></td>
+    <td align="center"><img src="docs/screenshots/mobile.png" width="320" alt="Phone library with browsing tabs and top-bar actions" /></td>
     <td align="center"><img src="docs/screenshots/settings.png" width="320" alt="Searchable Settings organized into eight categories" /></td>
   </tr>
 </table>
 
 <details open>
   <summary><strong>Tablet library</strong></summary>
-  <p><img src="docs/screenshots/tablet.png" width="100%" alt="Tablet library with dense media shelves, top browsing controls and bottom navigation" /></p>
+  <p><img src="docs/screenshots/tablet.png" width="100%" alt="Tablet library with top actions and browsing tabs" /></p>
 </details>
 
 <details open>
   <summary><strong>TV library</strong></summary>
-  <p><img src="docs/screenshots/tv.png" width="100%" alt="TV library with a compact sidebar and more visible media cards" /></p>
+  <p><img src="docs/screenshots/tv.png" width="100%" alt="TV library with a compact remote navigation sidebar" /></p>
 </details>
 
 ## Get started
@@ -91,7 +91,10 @@ Ember Player supports **Android 10 or newer** on **ARM64 and ARM32**. Phones and
 tablets use touch controls; TVs support remotes and controllers.
 
 Download the APK from the [latest release](https://github.com/PrimeN/Ember-Player/releases/latest)
-and install it on your device. The current release is **0.8.5**;
+and install it on your device. Choose **arm64-v8a** for modern ARM64 devices,
+**armeabi-v7a** for ARM32 devices, or the universal APK if you are unsure.
+An `.aab` is for store distribution and cannot be installed directly. This source prepares **1.0.0**;
+the release page shows the latest published version, and
 [the changelog](CHANGELOG.md) describes its features and requirements.
 
 Development happens on [`beta`](https://github.com/PrimeN/Ember-Player/tree/beta).
@@ -99,7 +102,7 @@ Code pushes build and validate the app, with unsigned APK artifacts. Publishing
 a signed release requires an explicit version tag or manual request and approval
 through the protected release-signing Environment.
 
-To build the preview with JDK 21 and Android SDK platform 37:
+To build the app with JDK 21 and Android SDK platform 37:
 
 ```sh
 git clone --branch beta https://github.com/PrimeN/Ember-Player.git
@@ -117,7 +120,7 @@ AC-3, E-AC-3, DTS and TrueHD. Media3 also supports selected MPEG-H streams as
 stereo PCM and unencrypted IAMF in MP4 using Opus, FLAC or PCM.
 
 HDR10+, Dolby Vision, encoded surround output and device-only codecs depend on
-the hardware, output path and selected engine. There is no bundled software AC-4
+the hardware, output path and selected core. There is no bundled software AC-4
 decoder. AAC-based/encrypted IAMF and Dolby Vision full enhancement-layer playback
 are not advertised as universally supported. Casting requires a receiver that
 supports the media; it does not transcode video.

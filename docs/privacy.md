@@ -50,3 +50,16 @@ are replaced. Keep a backup password somewhere separate from its file.
 
 Public bug reports should contain no passwords, private server addresses,
 access tokens or signed media URLs. See [reporting a bug](contributing.md#report-a-bug).
+
+## Local HTTP and cleartext connections
+
+Android cleartext traffic is enabled so the player can read local HTTP media,
+communicate with DLNA receivers and serve its local playback relay. User-selected
+HTTP streams and HTTP WebDAV connections are also allowed. HTTP is unencrypted;
+addresses, credentials and media sent over it may be visible to others on that
+network. Use HTTPS, SFTP or another encrypted connection when available.
+
+This public policy is available at
+https://github.com/PrimeN/Ember-Player/blob/main/docs/privacy.md.
+For questions, use the repository's issue tracker without including private
+filenames, passwords or media addresses.

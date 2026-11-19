@@ -550,7 +550,8 @@ class PlayerActivity : ComponentActivity() {
             if(event.action==KeyEvent.ACTION_UP)(if(event.keyCode==KeyEvent.KEYCODE_MEDIA_NEXT)fileQueue?.next(accept=::queueItemAllowed) else fileQueue?.previous(::queueItemAllowed))?.let { playFile(it) }
             return true
         }
-        val menuIsOurs = event.keyCode == KeyEvent.KEYCODE_MENU && prefs.remoteSettingsKey == "ember"
+        val menuIsOurs = event.keyCode == KeyEvent.KEYCODE_MENU &&
+            ::prefs.isInitialized && prefs.remoteSettingsKey == "ember"
         if (event.keyCode == KeyEvent.KEYCODE_INFO || menuIsOurs || event.keyCode == KeyEvent.KEYCODE_GUIDE) {
             if (event.action == KeyEvent.ACTION_UP && ::panel.isInitialized) {
                 when {

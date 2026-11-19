@@ -16,6 +16,16 @@ import org.robolectric.annotation.Config
 @Config(sdk=[35,36],application=Application::class)
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlayerBackNavigationTest {
+    @Test fun menuKeysDuringNativePreparationDoNotRequirePlayerPreferences() {
+        val activity=Robolectric.buildActivity(PlayerActivity::class.java).get()
+        assertNull(activity.player)
+        for (key in listOf(KeyEvent.KEYCODE_MENU,KeyEvent.KEYCODE_INFO,KeyEvent.KEYCODE_GUIDE)) {
+            activity.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN,key))
+            activity.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP,key))
+        }
+        assertFalse(activity.panelVisible)
+        assertNull(activity.actionDialog)
+    }
     private fun fixture(test:(PlayerActivity)->Unit) {
         val activity=Robolectric.buildActivity(PlayerActivity::class.java).get()
         val player=ExoPlayer.Builder(activity).build()

@@ -1,7 +1,7 @@
 # Ember Player release build: R8 shrinks and optimises the code, which makes Compose start and scroll
 # noticeably faster on TV boxes. Most libraries ship their own rules; these cover the rest.
 
-# Keep line numbers so crash logs (Settings > About > Crash log) point at the right place.
+# Keep source locations available in Android crash reports.
 -keepattributes SourceFile,LineNumberTable,*Annotation*,Signature,InnerClasses,EnclosingMethod
 -renamesourcefileattribute SourceFile
 
@@ -41,9 +41,10 @@
 # libmpv JNI observers are called by their original class/member names.
 -keep class dev.jdtech.mpv.** { *; }
 
-# SFTP selects crypto implementations by class name; SMB's provider registers algorithms reflectively.
+# SFTP selects its own crypto implementations by class name.
 -keep class com.jcraft.jsch.** { *; }
--keep class org.bouncycastle.** { *; }
+# JSch and SMBJ call Bouncy Castle's lightweight APIs directly. R8 retains their
+# reachable algorithms and can remove unused JCA providers, TLS and ASN.1 code.
 # SMBJ's event bus invokes annotated handlers, which need to survive release shrinking.
 -keepattributes *Annotation*
 -keepclassmembers class * {

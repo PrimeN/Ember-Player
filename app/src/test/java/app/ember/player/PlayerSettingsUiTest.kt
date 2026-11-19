@@ -18,6 +18,16 @@ import org.robolectric.annotation.Config
 class PlayerSettingsUiTest {
     @get:Rule val compose=createAndroidComposeRule<PlayerSettingsActivity>()
     private fun category(label:String){compose.onNodeWithTag("settingsCategories").performScrollToNode(hasText(label));compose.onNodeWithText(label).performSemanticsAction(SemanticsActions.OnClick){it()}}
+    @Test fun aboutLinksToThePublicPrivacyPolicy() {
+        category("About")
+        compose.onNodeWithTag("settingsContent").performScrollToNode(hasText("Privacy policy"))
+        compose.onNodeWithText("Privacy policy").performSemanticsAction(SemanticsActions.OnClick){it()}
+        compose.runOnIdle {
+            val intent=org.robolectric.Shadows.shadowOf(compose.activity).nextStartedActivity
+            assertEquals(android.content.Intent.ACTION_VIEW,intent.action)
+            assertEquals("https://github.com/PrimeN/Ember-Player/blob/main/docs/privacy.md",intent.dataString)
+        }
+    }
     @Test fun controlStylePickerPersistsTheSelectedPlayerInterface() {
         category("Playback")
         compose.onNodeWithText("Controls · Glass").performSemanticsAction(SemanticsActions.OnClick){it()}
