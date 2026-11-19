@@ -26,7 +26,8 @@ internal fun PlayerActivity.describe(f: androidx.media3.common.Format?) = Playba
  */
 internal fun PlayerActivity.recover(e: PlaybackException): Boolean {
     if(playbackEngine?.compatibility!=null)return false
-    val decoding = PlaybackErrors.decoding(e.errorCode)
+    val failure=PlaybackFailureClassifier.classify(e)
+    val decoding = failure.changesDecoder
     val p = player ?: return false
     val network = PlaybackErrors.connection(e.errorCode)
     if (network && ioRetries < 2) {
@@ -50,10 +51,14 @@ internal fun PlayerActivity.recover(e: PlaybackException): Boolean {
         handler.postDelayed(retry, 1_500L * ioRetries)
         return true
     }
-    val outputFailure=PlaybackErrors.audioOutput(e.errorCode)
+    val outputFailure=failure==PlaybackFailure.AUDIO_OUTPUT
     if ((!decoding && !outputFailure) || recoveries >= 6) return false
     val format=(e as? androidx.media3.exoplayer.ExoPlaybackException)?.rendererFormat
     val audio=outputFailure || format?.sampleMimeType?.let(MimeTypes::isAudio)==true
+    // Session and saved decoder choices are explicit. Leave their error visible.
+    val manual=if(audio)userAudioMode!=null || config.ffmpeg=="prefer" || config.ffmpeg=="off"
+        else userVideoMode!=null || config.ffmpegVideo=="always" ||
+            config.decoderRules.preference(currentUrl.orEmpty(),format?.sampleMimeType,codecs.sourceFilename) !in setOf("inherit","auto")
     val message: String
     if(audio && decoderRecovery.pcmFallback()) {
         codecs.pcm=true
@@ -61,9 +66,11 @@ internal fun PlayerActivity.recover(e: PlaybackException): Boolean {
         p.stop();p.seekTo(at);p.playWhenReady=was
         message=resources.getString(R.string.ui_trying_pcm_audio_output)
     } else {
-        val height=format?.height?.takeIf { it>0 } ?: p.videoFormat?.height ?: 2160
-        val hdr=(format ?: p.videoFormat)?.colorInfo?.colorTransfer.let { it==C.COLOR_TRANSFER_ST2084 || it==C.COLOR_TRANSFER_HLG }
-        val next=decoderRecovery.next(audio,if(audio)config.ffmpeg!="off" else config.ffmpegVideo!="off",audio || height<=1080 && !hdr) ?: return false
+        val safe=audio || (format ?: p.videoFormat)?.let(DecoderHealth::softwareSafe)==true
+        val next=decoderRecovery.next(audio,if(audio)config.ffmpeg!="off" else config.ffmpegVideo!="off",safe,manual) ?: return false
+        val route=PlaybackRoute(PlaybackCore.MEDIA3,if(audio)videoDecoder else next,
+            if(audio)next else audioDecoder,if(codecs.pcm)"pcm" else "automatic")
+        if(!decoderRecovery.attempt(route))return false
         val mode=if(next=="ffmpeg")DecoderMode.FFMPEG else DecoderMode.SOFTWARE
         if(audio)decoderManager.selectAudioDecoder(mode) else { decoderManager.selectVideoDecoder(mode);codecs.ffmpegVideo=mode==DecoderMode.FFMPEG }
         message=if(audio)resources.getString(R.string.ui_trying_another_audio_decoder) else resources.getString(R.string.ui_trying_another_video_decoder)

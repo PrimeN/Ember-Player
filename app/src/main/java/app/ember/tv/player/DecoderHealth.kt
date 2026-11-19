@@ -10,7 +10,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 @Serializable
-internal data class ProvenDecoder(val name:String,val software:Boolean=false,val savedAt:Long)
+internal data class ProvenDecoder(val name:String,val software:Boolean=false,val savedAt:Long,
+    val startupMs:Long?=null,val renderedFrames:Int?=null,val droppedFrames:Int?=null)
 @Serializable
 internal data class DecoderHealthDocument(val environment:String,val entries:Map<String,ProvenDecoder> = emptyMap())
 
@@ -32,7 +33,7 @@ internal class DecoderHealthMemory(val environment:String,initial:DecoderHealthD
 internal class DecoderHealth private constructor(private val store:android.content.SharedPreferences,val memory:DecoderHealthMemory,private var generation:Long) {
     @Synchronized private fun syncReset() {val now=resets.get();if(generation!=now){memory.clear();generation=now}}
     @Synchronized fun hint(format:Format):ProvenDecoder? {syncReset();return profile(format)?.let(memory::get)}
-    @Synchronized fun remember(format:Format,name:String,software:Boolean) {syncReset();profile(format)?.let {key->memory.remember(key,ProvenDecoder(name,software,System.currentTimeMillis()));save()}}
+    @Synchronized fun remember(format:Format,name:String,software:Boolean,quality:PlaybackQuality=PlaybackQuality()) {syncReset();profile(format)?.let {key->memory.remember(key,ProvenDecoder(name,software,System.currentTimeMillis(),quality.startupMs,quality.renderedFrames,quality.droppedFrames));save()}}
     @Synchronized fun forget(format:Format){syncReset();profile(format)?.let {memory.forget(it);save()}}
     @Synchronized fun engine(key:String):String? {syncReset();return memory.get("engine:$key")?.name?.takeIf {it in setOf("standard","compatibility")}}
     @Synchronized fun rememberEngine(key:String,engine:String) {syncReset();if(engine in setOf("standard","compatibility")){memory.remember("engine:$key",ProvenDecoder(engine,savedAt=System.currentTimeMillis()));save()}}

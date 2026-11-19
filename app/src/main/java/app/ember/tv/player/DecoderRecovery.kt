@@ -4,12 +4,14 @@ package app.ember.tv.player
 internal class DecoderRecovery {
     private val triedVideo = linkedSetOf<String>()
     private val triedAudio = linkedSetOf<String>()
+    private val triedRoutes = linkedSetOf<PlaybackRoute>()
     var pcm = false; private set
-    fun reset() { triedVideo.clear(); triedAudio.clear(); pcm = false }
+    fun reset() { triedVideo.clear(); triedAudio.clear(); triedRoutes.clear(); pcm = false }
+    fun attempt(route: PlaybackRoute): Boolean = triedRoutes.size < 12 && triedRoutes.add(route)
     fun pcmFallback(): Boolean { if(pcm)return false;pcm=true;return true }
-    fun next(audio: Boolean, ffmpeg: Boolean, softwareAllowed: Boolean = true): String? {
+    fun next(audio: Boolean, ffmpeg: Boolean, softwareAllowed: Boolean = true, manual: Boolean = false): String? {
         val tried=if(audio)triedAudio else triedVideo
-        return listOfNotNull("software".takeIf { softwareAllowed },"ffmpeg".takeIf { ffmpeg && softwareAllowed }).firstOrNull { tried.add(it) }
+        return PlaybackRoutePlanner.fallbackModes(softwareAllowed,ffmpeg,manual).firstOrNull { tried.add(it) }
     }
 }
 object DolbyVisionPolicy {

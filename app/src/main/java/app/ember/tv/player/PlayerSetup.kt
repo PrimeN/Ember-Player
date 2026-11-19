@@ -136,7 +136,8 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         )
         .build()
 
-    playbackEngine=PlaybackEngine(this,standard,{renderConfig().copy(passthrough=config.passthrough&&!codecs.pcm)}) { compatible ->
+    playbackEngine=PlaybackEngine(this,standard,{renderConfig().copy(passthrough=config.passthrough&&!codecs.pcm)},
+        recoveryAllowed={userVideoMode==null && userAudioMode==null}) { compatible ->
         pictureBypassed=false;pictureSignature=null;pictureEffectsActive=false
         videoDecoder=if(compatible)resources.getString(R.string.ui_compatibility_engine) else null
         loudness?.release();loudness=null
@@ -318,7 +319,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
                     return
                 }
             }
-            if(PlaybackErrors.decoding(error.errorCode)) {
+            if(PlaybackFailureClassifier.classify(error).changesDecoder) {
                 val failed=(error as? androidx.media3.exoplayer.ExoPlaybackException)?.rendererFormat ?: p.videoFormat
                 if(failed!=null)codecs.decoderHealth?.forget(failed)
                 decoderLearned=false;decoderStableSince=0

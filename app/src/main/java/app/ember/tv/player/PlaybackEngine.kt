@@ -29,6 +29,7 @@ internal fun playbackListener(listener: Player.Listener, player: () -> Player): 
 @androidx.annotation.OptIn(UnstableApi::class)
 internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer,private val config:()->PlaybackConfig,
     private val compatibilityFactory:((EngineSource,Long,TrackSelectionParameters)->Player)?=null,
+    private val recoveryAllowed:()->Boolean={true},
     private val changed:(Boolean)->Unit) {
     internal var selectionReason=if(config().engine=="auto")app.ember.tv.R.string.ui_core_default else app.ember.tv.R.string.ui_core_manual;private set
     private var active:Player=standard
@@ -46,6 +47,7 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
         if(!released)seekNow(at,fast)
     }
     private var stable:Runnable?=null
+    private val recovery=DecoderRecovery()
     private fun memoryKey()=source?.let {app.ember.tv.data.CachePolicy.digest("${it.key}|${it.filename.orEmpty()}|${it.audio!=null}")}
     private val stabilityListener=object:Player.Listener {
         override fun onIsPlayingChanged(isPlaying:Boolean) {
@@ -54,7 +56,13 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
             val owner=active;val key=memoryKey()?:return
             stable=Runnable {
                 stable=null
-                if(!released && active===owner && owner.isPlaying && memoryKey()==key && mode=="auto" && config().rememberDecoderChoices)
+                val quality=if(owner===standard)standard.videoDecoderCounters?.let {
+                    it.ensureUpdated();PlaybackQuality(renderedFrames=it.renderedOutputBufferCount,droppedFrames=it.droppedBufferCount)
+                } else null
+                val video=owner.currentTracks.groups.any {it.type==androidx.media3.common.C.TRACK_TYPE_VIDEO && it.isSelected} ||
+                    owner===standard && standard.videoFormat!=null
+                if(!released && active===owner && owner.isPlaying && memoryKey()==key && mode=="auto" && config().rememberDecoderChoices &&
+                    (quality ?: PlaybackQuality()).learnable(video))
                     health?.rememberEngine(key,if(owner===standard)"standard" else "compatibility")
             }.also {handler.postDelayed(it,15_000)}
         }
@@ -124,7 +132,7 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
         val old=active.takeUnless {it===standard}
         if(old!=null){old.removeListener(stabilityListener);listeners.values.forEach(old::removeListener);old.release();active=standard;standard.addListener(stabilityListener);listeners.values.forEach(standard::addListener)
             surfaceMethod?.let {method->surface?.let {method.invoke(standard,it)}};changed(false)}
-        source=value;attempted=false;selectionReason=if(mode=="auto")app.ember.tv.R.string.ui_core_default else app.ember.tv.R.string.ui_core_manual
+        source=value;attempted=false;recovery.reset();selectionReason=if(mode=="auto")app.ember.tv.R.string.ui_core_default else app.ember.tv.R.string.ui_core_manual
     }
     fun mode(value:String) {
         mode=value
@@ -137,7 +145,10 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
         }
     }
     fun recover(code:Int):Boolean {
-        if(!PlaybackEnginePolicy.compatibilityError(code))return false
+        if(!PlaybackRoutePlanner.canSwitchCore(PlaybackFailureClassifier.classify(code),mode=="auto",true))return false
+        val c=config()
+        if(!recoveryAllowed() || c.ffmpegVideo in setOf("always","off") || c.ffmpeg in setOf("prefer","off") ||
+            c.decoderRules.preference(source?.urls?.firstOrNull().orEmpty(),standard.videoFormat?.sampleMimeType,source?.filename) !in setOf("inherit","auto"))return false
         if(mode=="auto")memoryKey()?.let {health?.forgetEngine(it)}
         if(mode=="standard" || active!==standard)return false
         return switch(app.ember.tv.R.string.ui_core_recovery)
@@ -149,6 +160,7 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
             (0 until group.length).firstOrNull(group::isTrackSelected)?.let(group::getTrackFormat)
         }
         if(!PlaybackEnginePolicy.preservesAudio(audio?.sampleMimeType,audio?.drmInitData!=null || standard.videoFormat?.drmInitData!=null))return false
+        if(!recovery.attempt(PlaybackRoute(PlaybackCore.MPV,"mpv-native","mpv-native","automatic")))return false
         attempted=true
         val position=(navigation.target?:standard.currentPosition).coerceAtLeast(0)
         navigation.cancel()
