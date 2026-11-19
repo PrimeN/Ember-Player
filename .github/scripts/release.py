@@ -41,11 +41,38 @@ def validate_assets(root, version, commit):
         raise ValueError('The build artifact does not match the requested signed production release.')
     apk = dist / expected_name
     digest = hashlib.sha256(apk.read_bytes()).hexdigest()
-    if record.get('sha256') != digest or (dist / 'SHA256SUMS.txt').read_text().strip() != f'{digest}  {expected_name}':
+    if record.get('sha256') != digest:
         raise ValueError('The APK checksum does not match the validated build.')
     if (dist / 'SIGNING-CERTIFICATE-SHA256.txt').read_text().strip() != certificate:
         raise ValueError('The published signing fingerprint does not match the release identity.')
+    assets = record.get('assets', [{'filename': expected_name, 'sha256': digest}])
+    expected_names = {expected_name}
+    if 'assets' in record:
+        expected_names |= {f'ember-player-{version}-{abi}.apk' for abi in ('arm64-v8a', 'armeabi-v7a')}
+        expected_names.add(f'ember-player-{version}.aab')
+    if len(assets) != len(expected_names) or {asset.get('filename') for asset in assets} != expected_names:
+        raise ValueError('The release package set is incomplete or contains unexpected files.')
+    checksums = []
+    for asset in sorted(assets, key=lambda item: item['filename']):
+        actual = hashlib.sha256((dist / asset['filename']).read_bytes()).hexdigest()
+        if asset.get('sha256') != actual:
+            raise ValueError('A release package checksum does not match the validated build.')
+        checksums.append(f'{actual}  {asset["filename"]}')
+    if (dist / 'SHA256SUMS.txt').read_text().strip() != '\n'.join(checksums):
+        raise ValueError('The release package checksum list does not match the validated build.')
     return apk, digest
+
+
+def release_files(root):
+    dist = root / 'dist'
+    record = json.loads((dist / 'release-metadata.json').read_text())
+    packages = [dist / asset['filename'] for asset in record.get('assets', [{'filename': record['apk']}])]
+    return packages + [dist / 'SHA256SUMS.txt', dist / 'SIGNING-CERTIFICATE-SHA256.txt']
+
+
+def existing_assets_match(existing, files):
+    digests = {asset['name']: asset.get('digest') for asset in existing.get('assets', [])}
+    return all(digests.get(path.name) == 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest() for path in files)
 
 
 def notes_for_version(text, version):
@@ -76,13 +103,14 @@ def main():
             outputs.write(f'commit={commit}\n')
         print(f'Using validated main build {run["id"]}.')
         return
-    apk, digest = validate_assets(root, version, commit)
+    validate_assets(root, version, commit)
+    files = release_files(root)
     tag = f'v{version}'
     response = subprocess.run(['gh', 'api', f'repos/{repo}/releases/tags/{tag}'], text=True, capture_output=True)
     if response.returncode == 0:
         existing = json.loads(response.stdout)
-        if any(asset['name'] == apk.name and asset.get('digest') == f'sha256:{digest}' for asset in existing.get('assets', [])):
-            print(f'{tag} is already published with the validated APK.')
+        if existing_assets_match(existing, files):
+            print(f'{tag} is already published with all validated packages.')
             return
         raise ValueError('A release already exists for this version; it will not be replaced.')
     if 'HTTP 404' not in response.stderr:
@@ -93,8 +121,7 @@ def main():
     with tempfile.TemporaryDirectory() as temporary:
         path = Path(temporary) / 'notes.md'
         path.write_text(notes + '\n')
-        gh('release', 'create', tag, str(apk), str(root / 'dist/SHA256SUMS.txt'),
-           str(root / 'dist/SIGNING-CERTIFICATE-SHA256.txt'), '--repo', repo, '--target', commit,
+        gh('release', 'create', tag, *(str(path) for path in files), '--repo', repo, '--target', commit,
            '--title', f'Ember Player {version}', '--notes-file', str(path), '--latest')
     print(f'Published Ember Player {version}.')
 

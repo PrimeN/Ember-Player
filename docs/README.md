@@ -3,7 +3,7 @@
 | Guide | What you will find |
 | --- | --- |
 | [Changelog](../CHANGELOG.md) | Published versions, added features and compatibility notes |
-| [Features](features.md) | Playback engines, formats, subtitles, media tools and receivers |
+| [Features](features.md) | Playback cores, formats, subtitles, media tools and receivers |
 | [Library and settings](settings.md) | Navigation, browsing choices and the eight settings categories |
 | [Privacy](privacy.md) | Local data, optional connections, private media and backups |
 | [Building](building.md) | Android requirements, source builds and native dependencies |

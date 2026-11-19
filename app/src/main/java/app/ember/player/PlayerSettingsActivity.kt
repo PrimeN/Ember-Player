@@ -174,6 +174,10 @@ private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:
         "about"->PlayerSection(uiResources.getString(R.string.ui_about)) {
             PlayerBrandLockup()
             Text(uiResources.getString(R.string.ui_an_independent_player_for_android_and_android_tv_no),color=Mute,style=androidx.tv.material3.MaterialTheme.typography.bodySmall)
+            PlayerAction(uiResources.getString(R.string.ui_privacy_policy)) {
+                runCatching {startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,
+                    android.net.Uri.parse("https://github.com/PrimeN/Ember-Player/blob/main/docs/privacy.md")))}
+            }
             PlayerLegal()
         }
         "cache"->PlayerSection(uiResources.getString(R.string.ui_cache)) {

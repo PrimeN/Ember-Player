@@ -240,7 +240,7 @@
     <string name="ui_could_not_save_the_trusted_key_in_encrypted_storage" formatted="false">"Could not save the trusted key in encrypted storage."</string>
     <string name="ui_could_not_save_this_playlist_check_the_name_storage" formatted="false">"Could not save this playlist. Check the name, storage and playlist limits. Private media and temporary USB addresses cannot be saved."</string>
     <string name="ui_could_not_start_clip_export" formatted="false">"Could not start clip export."</string>
-    <string name="ui_could_not_start_compatibility_playback" formatted="false">"Could not start compatibility playback."</string>
+    <string name="ui_could_not_start_compatibility_playback" formatted="false">"Could not start mpv playback."</string>
     <string name="ui_could_not_start_file_playback" formatted="false">"Could not start file playback."</string>
     <string name="ui_could_not_start_receiver_playback_check_the_connection_and" formatted="false">"Could not start receiver playback. Check the connection and supported formats."</string>
     <string name="ui_could_not_start_this_download_check_available_space_and" formatted="false">"Could not start this download. Check available space and saved downloads."</string>
@@ -256,7 +256,7 @@
     <string name="ui_create_private_media_pin" formatted="false">"Create private-media PIN"</string>
     <string name="ui_current_playback" formatted="false">"Current playback"</string>
     <string name="ui_custom" formatted="false">"Custom"</string>
-    <string name="ui_custom_alignment_and_spacing_use_compatibility_playback_authored_and" formatted="false">"Custom alignment and spacing use compatibility playback. Authored and system caption styles take priority."</string>
+    <string name="ui_custom_alignment_and_spacing_use_compatibility_playback_authored_and" formatted="false">"Custom alignment and spacing use mpv playback. Authored and system caption styles take priority."</string>
     <string name="ui_custom_buffering" formatted="false">"Custom buffering"</string>
     <string name="ui_custom_buffering_7e833c">"Custom buffering · %1$s"</string>
     <string name="ui_custom_colors_font_import_outline_and_default_timing_are" formatted="false">"Custom colors, font import, outline and default timing are in Settings &gt; Subtitles."</string>
@@ -973,7 +973,7 @@
     <string name="ui_this_source_does_not_support_seeking_to_a_time" formatted="false">"This source does not support seeking to a time."</string>
     <string name="ui_this_video_does_not_support_frame_inspection" formatted="false">"This video does not support frame inspection."</string>
     <string name="ui_this_video_surface_cannot_be_captured" formatted="false">"This video surface cannot be captured."</string>
-    <string name="ui_timeouts_apply_when_a_stream_is_reopened_these_http" formatted="false">"Timeouts apply when a stream is reopened. These HTTP limits are shared by both playback engines and background audio."</string>
+    <string name="ui_timeouts_apply_when_a_stream_is_reopened_these_http" formatted="false">"Timeouts apply when a stream is reopened. These HTTP limits are shared by both playback cores and background audio."</string>
     <string name="ui_tone_mapping" formatted="false">"Tone mapping"</string>
     <string name="ui_too_many_attempts_wait_before_trying_again" formatted="false">"Too many attempts. Wait before trying again."</string>
     <string name="ui_touch_and_rotation" formatted="false">"Touch and rotation"</string>
@@ -987,7 +987,7 @@
     <string name="ui_try_another_filename_or_media_filter" formatted="false">"Try another filename or media filter."</string>
     <string name="ui_trying_another_audio_decoder" formatted="false">"Trying another audio decoder"</string>
     <string name="ui_trying_another_video_decoder" formatted="false">"Trying another video decoder"</string>
-    <string name="ui_trying_compatibility_playback" formatted="false">"Trying compatibility playback"</string>
+    <string name="ui_trying_compatibility_playback" formatted="false">"Trying mpv playback"</string>
     <string name="ui_trying_decoded_audio_output" formatted="false">"Trying decoded audio output"</string>
     <string name="ui_trying_pcm_audio_output" formatted="false">"Trying PCM audio output"</string>
     <string name="ui_turkish" formatted="false">"Turkish"</string>
@@ -1014,7 +1014,7 @@
     <string name="ui_use_a_receiver_on_the_same_network_playback_depends" formatted="false">"Use a receiver on the same network. Playback depends on its supported formats; the app does not transcode video for receivers. Private or protected playback cannot be sent."</string>
     <string name="ui_use_as_default" formatted="false">"Use as default"</string>
     <string name="ui_use_at_least_10_characters" formatted="false">"Use at least 10 characters."</string>
-    <string name="ui_use_compatibility_playback" formatted="false">"Use compatibility playback"</string>
+    <string name="ui_use_compatibility_playback" formatted="false">"Use mpv playback"</string>
     <string name="ui_use_default" formatted="false">"Use default"</string>
     <string name="ui_use_dolby_vision" formatted="false">"Use Dolby Vision"</string>
     <string name="ui_use_for_this_media" formatted="false">"Use for this media"</string>
@@ -1057,7 +1057,7 @@
     <string name="ui_western_european" formatted="false">"Western European"</string>
     <string name="ui_when_needed" formatted="false">"When needed"</string>
     <string name="ui_white" formatted="false">"White"</string>
-    <string name="ui_whole_title_soundtrack_compatibility_playback" formatted="false">"Whole-title soundtrack · compatibility playback"</string>
+    <string name="ui_whole_title_soundtrack_compatibility_playback" formatted="false">"Whole-title soundtrack · mpv playback"</string>
     <string name="ui_will_be_removed_its_media_files_will_stay_on">"%1$s will be removed. Its media files will stay on your device."</string>
     <string name="ui_with_subtitles_selected_and_controls_hidden_start_in_the" formatted="false">"With subtitles selected and controls hidden, start in the lower third: swipe sideways for timing, up/down for position, or pinch for text size. System captions keep their own style."</string>
     <string name="ui_working" formatted="false">"Working…"</string>

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Version to publish, matching main's versionName (for example v0.7.5)
+        description: Version to publish, matching main's versionName (for example v1.0.0)
         required: true
         type: string
 
@@ -78,13 +78,15 @@ jobs:
           with open(os.environ['GITHUB_ENV'], 'a') as env:
               env.write(f'EMBER_KEYSTORE_FILE={key}\n')
           PY
-      - name: Build the approved signed release
+      - name: Build the approved signed APKs and app bundle
         env:
           EMBER_KEYSTORE_PASSWORD: ${{ secrets.EMBER_KEYSTORE_PASSWORD }}
           EMBER_KEY_ALIAS: ${{ secrets.EMBER_KEY_ALIAS }}
           EMBER_KEY_PASSWORD: ${{ secrets.EMBER_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon --max-workers=2 assembleRelease
-      - name: Verify release identity and prepare the APK
+        run: |
+          ./gradlew --no-daemon --max-workers=2 bundleRelease
+          ./gradlew --no-daemon --max-workers=2 assembleRelease -PsplitApks=true
+      - name: Verify release identity and prepare all packages
         run: python3 scripts/prepare-release.py --require-signed
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -114,7 +116,7 @@ jobs:
         with:
           name: Ember-Player-signed-release
           path: dist
-      - name: Publish the signed APK and changelog
+      - name: Publish the signed packages and changelog
         run: python3 .github/scripts/release.py
         env:
           GH_TOKEN: ${{ github.token }}

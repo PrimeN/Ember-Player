@@ -228,8 +228,8 @@ android {
         applicationId = "app.ember.player"
         minSdk = 29
         targetSdk = 36
-        versionCode = 805
-        versionName = "0.8.5"
+        versionCode = 1000
+        versionName = "1.0.0"
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
     val releaseKeystore = System.getenv("EMBER_KEYSTORE_FILE")?.takeIf { it.isNotBlank() }
@@ -252,6 +252,14 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+    splits {
+        abi {
+            isEnable = providers.gradleProperty("splitApks").orNull == "true"
+            reset()
+            include("arm64-v8a", "armeabi-v7a")
+            isUniversalApk = true
         }
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
@@ -328,4 +336,18 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
     testImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+}
+
+// Export only the runtime JARs needed by the release crypto smoke check.
+tasks.register("writeNetworkCryptoClasspath") {
+    val runtime = configurations.named("releaseRuntimeClasspath")
+    val target = layout.buildDirectory.file("network-crypto-classpath.txt")
+    inputs.files(runtime)
+    outputs.file(target)
+    doLast {
+        val names = listOf("jsch-", "smbj-", "bcprov-", "slf4j-api-", "jzlib-", "jbcrypt-")
+        val jars = runtime.get().files.filter { it.extension == "jar" && names.any(it.name::startsWith) }
+        val r8 = File(Class.forName("com.android.tools.r8.R8").protectionDomain.codeSource.location.toURI())
+        target.get().asFile.apply { parentFile.mkdirs(); writeText((listOf(r8) + jars).joinToString("\n") { it.absolutePath }) }
+    }
 }

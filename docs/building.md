@@ -48,11 +48,35 @@ Subsequent updates to an installed release must use the same signing identity.
 `release-signing-certificate.sha256` records only the public certificate fingerprint.
 Download preparation verifies signed builds against that identity before distribution.
 
+## Distribution packages
+
+```sh
+./gradlew bundleRelease
+./gradlew assembleRelease -PsplitApks=true
+python3 scripts/prepare-release.py --require-signed
+```
+
+Build the bundle before enabling APK splits: Android resource shrinking does not
+support building both in one invocation.
+
+With the signing variables above, this prepares four verified packages in `dist/`:
+
+- `ember-player-1.0.0.apk`: universal ARM64 and ARM32 APK.
+- `ember-player-1.0.0-arm64-v8a.apk`: ARM64 only.
+- `ember-player-1.0.0-armeabi-v7a.apk`: ARM32 only.
+- `ember-player-1.0.0.aab`: Android App Bundle for Google Play.
+
+All share version code 1000 and the release signing identity. ABI APKs are for
+GitHub downloads; Google Play receives the bundle and delivers the appropriate
+architecture itself. Without `-PsplitApks=true`, APK builds remain universal.
+An AAB cannot be installed directly. See [Google Play preparation](google-play.md)
+for the Console declarations and privacy-policy link.
+
 ## GitHub Actions
 
 The [Android workflow](../.github/workflows/android.yml) runs functional tests,
-optimized release compilation, lint and native dependency/alignment checks on
-pushes and pull requests. Pushes and manual runs provide an unsigned release-build
+optimized APK and app-bundle compilation, lint and native dependency/alignment checks on
+pushes and pull requests. Pushes and manual runs provide an unsigned universal and per-architecture APKs plus an app-bundle
 artifact, retained for seven days. Manual runs also provide an installable debug
 APK. Validation jobs have no signing-secret references. All workflow actions use
 full commit SHAs.
@@ -70,7 +94,7 @@ Configure the GitHub Environment **release-signing** before publishing:
 
 Only the explicit release-signing job references these secrets; ordinary validation
 builds do not use them. The key is decoded only into temporary runner storage and
-removed after the build. It is never uploaded with the APK artifact. The signing
+removed after the build. It is never uploaded with the release artifacts. The signing
 job stops if any required secret is missing.
 
 Gradle caching is disabled in the signing job; it does not restore or save the
@@ -81,14 +105,15 @@ Ordinary pushes do not publish releases. To publish a requested version:
 1. Set `versionName` and a larger `versionCode`, and add a matching section to
    `CHANGELOG.md`.
 2. Merge to `main` and wait for its **Android player** workflow to pass.
-3. Push a tag matching the version, such as `v0.7.5`, or run **Publish requested
+3. Push a tag matching the version, such as `v1.0.0`, or run **Publish requested
    player release** manually with that tag name.
 4. Review and approve the **release-signing** Environment deployment.
 
 After approval, the signing job builds the exact validated main commit and
 verifies its signing identity. Publication consumes that job's signed artifact
 from the same workflow run, verifies its source commit, version and checksum,
-and publishes the APK with changelog notes. It does not replace an existing version.
+and publishes the universal and per-architecture APKs plus the app bundle with
+changelog notes. It does not replace an existing version.
 
 Development takes place on `beta`. Published versions, when available, appear
 under [Releases](https://github.com/PrimeN/Ember-Player/releases).
