@@ -20,7 +20,12 @@ def main():
     image = 'system-images;android-36;android-tv;x86_64' if args.television else 'system-images;android-35;default;x86_64'
     run(str(sdk / 'cmdline-tools/latest/bin/sdkmanager'), image, 'emulator')
     name = 'ember-profile-tv' if args.television else 'ember-profile-phone'
-    run(str(sdk / 'cmdline-tools/latest/bin/avdmanager'), 'create', 'avd', '--force', '--name', name, '--package', image, input='no\n', text=True)
+    avds = root / 'benchmark/build/avd'
+    avds.mkdir(parents=True, exist_ok=True)
+    os.environ['ANDROID_AVD_HOME'] = str(avds)
+    avd = avds / f'{name}.avd'
+    run(str(sdk / 'cmdline-tools/latest/bin/avdmanager'), 'create', 'avd', '--force', '--name', name, '--path', str(avd), '--package', image, input='no\n', text=True)
+    (avds / f'{name}.ini').write_text(f'avd.ini.encoding=UTF-8\npath={avd}\n')
     logs = root / 'benchmark/build/reports/device'
     logs.mkdir(parents=True, exist_ok=True)
     adb = str(sdk / 'platform-tools/adb')
