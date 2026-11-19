@@ -24,7 +24,7 @@ def main():
     avds.mkdir(parents=True, exist_ok=True)
     os.environ['ANDROID_AVD_HOME'] = str(avds)
     avd = avds / f'{name}.avd'
-    run(str(sdk / 'cmdline-tools/latest/bin/avdmanager'), 'create', 'avd', '--force', '--name', name, '--path', str(avd), '--package', image, input='no\n', text=True)
+    run(str(sdk / 'cmdline-tools/latest/bin/avdmanager'), 'create', 'avd', '--force', '--name', name, '--device', 'tv_1080p' if args.television else 'pixel_2', '--path', str(avd), '--package', image, input='no\n', text=True)
     (avds / f'{name}.ini').write_text(f'avd.ini.encoding=UTF-8\npath={avd}\n')
     logs = root / 'benchmark/build/reports/device'
     logs.mkdir(parents=True, exist_ok=True)
