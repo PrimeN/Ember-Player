@@ -71,6 +71,16 @@ internal fun PlayerActivity.updateStats() {
     playbackEngine?.compatibility?.diagnostics()?.forEach {(k,v)->if(k!=R.string.ui_engine)out+=resources.getString(k) to v}
     out += resources.getString(R.string.ui_source_hdr_f0e76b) to HdrDiagnostics.source(resources,p.videoFormat)
     out += resources.getString(R.string.ui_requested_output_ef90cd) to HdrDiagnostics.requested(resources,PictureProfiles.effective(config,resumeKey).hdrOutput)
+    val hdrState=playbackEngine?.compatibility?.hdrState() ?: HdrOutputValidator.source(p.videoFormat,hdr10PlusMetadata).let {source->
+        HdrOutputValidator.state(source,source,HdrDisplayInfo.read(this),"Media3",null,false)
+    }
+    out += resources.getString(R.string.ui_hdr_confidence) to resources.getString(when(hdrState.confidence) {
+        HdrConfidence.SOURCE_UNKNOWN->R.string.ui_hdr_source_unknown
+        HdrConfidence.SOURCE_IDENTIFIED->R.string.ui_hdr_source_identified
+        HdrConfidence.OUTPUT_CONFIGURED->R.string.ui_hdr_output_configured
+    })
+    out += resources.getString(R.string.ui_hdr_display_support) to resources.getString(when(hdrState.displaySupportsOutput) {true->R.string.ui_yes;false->R.string.ui_no;null->R.string.ui_not_reported})
+    out += resources.getString(R.string.ui_hdr_tone_mapping_active) to resources.getString(if(hdrState.toneMappingActive)R.string.ui_yes else R.string.ui_no)
     out += resources.getString(R.string.ui_picture_comparison) to if(compareOriginal)resources.getString(R.string.ui_original_preview) else resources.getString(R.string.ui_saved_processing)
     if(playbackEngine?.compatibility==null){out+=resources.getString(R.string.ui_dolby_vision_rpu_fel) to resources.getString(R.string.ui_not_independently_verified);out+=resources.getString(R.string.ui_active_output) to resources.getString(R.string.ui_device_renderer_active_hdr_signal_not_independently_verified)}
     if (full) out += getString(R.string.pl_container) to containerName(p)

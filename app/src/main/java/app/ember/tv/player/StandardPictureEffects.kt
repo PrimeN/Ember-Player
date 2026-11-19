@@ -12,7 +12,7 @@ import kotlin.math.pow
 @androidx.annotation.OptIn(UnstableApi::class)
 internal object StandardPictureEffects {
     fun supported(format:Format?)=format!=null && format.drmInitData==null && format.sampleMimeType!=MimeTypes.VIDEO_DOLBY_VISION &&
-        format.colorInfo?.colorTransfer !in setOf(C.COLOR_TRANSFER_ST2084,C.COLOR_TRANSFER_HLG)
+        format.colorInfo?.colorTransfer==C.COLOR_TRANSFER_SDR
     fun effects(config:PictureEnhancement,width:Int,height:Int,format:Format?):List<Effect> {
         if(!config.enabled || !supported(format))return emptyList()
         val p=config.normalized()
