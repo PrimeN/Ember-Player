@@ -10,8 +10,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.Direction
-import androidx.test.uiautomator.Until
 import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.StaleObjectException
 import android.os.SystemClock
 import org.junit.Assert.assertTrue
@@ -25,6 +25,22 @@ import java.util.concurrent.TimeUnit
 @RunWith(AndroidJUnit4::class)
 class StartupProfile {
     @get:Rule val profile=BaselineProfileRule()
+    private fun label(device:UiDevice,text:String,timeout:Long=15_000):UiObject2 {
+        val end=SystemClock.elapsedRealtime()+timeout
+        do {
+            val node=device.findObject(By.text(text)) ?: device.findObject(By.desc(text)) ?: device.findObject(By.descStartsWith(text))
+            if(node!=null)return node
+            SystemClock.sleep(100)
+        }while(SystemClock.elapsedRealtime()<end)
+        throw AssertionError("Missing visible label: $text")
+    }
+    private fun click(device:UiDevice,text:String) {
+        repeat(5) {
+            try {label(device,text).click();return}
+            catch(_:StaleObjectException){device.waitForIdle(3000)}
+        }
+        throw AssertionError("Could not click: $text")
+    }
     private fun scroll(device:UiDevice,direction:Direction) {
         var stale:StaleObjectException?=null
         repeat(5) {
@@ -48,19 +64,19 @@ class StartupProfile {
     }
     @Test fun startup()=profile.collect(packageName="app.ember.player.benchmark",includeInStartupProfile=true,maxIterations=3,stableIterations=2) {
         pressHome();startActivityAndWait()
-        assertTrue(device.wait(Until.hasObject(By.text("Sample episode 1")),30_000))
+        label(device,"Sample episode 1",30_000)
     }
     @Test fun libraryNavigationAndScrolling()=profile.collect(packageName="app.ember.player.benchmark",maxIterations=3,stableIterations=2) {
         pressHome();startActivityAndWait()
-        assertTrue(device.wait(Until.hasObject(By.text("Sample episode 1")),30_000))
+        label(device,"Sample episode 1",30_000)
         scroll(device,Direction.DOWN)
         scroll(device,Direction.UP)
         device.pressDPadDown();device.pressDPadRight();device.pressDPadLeft()
-        device.findObject(By.text("Folders"))?.click()
-        assertTrue(device.wait(Until.hasObject(By.text("Add a media folder")),15_000))
-        device.findObject(By.desc("Settings"))?.click()
-        assertTrue(device.wait(Until.hasObject(By.text("Playback")),15_000))
-        device.findObject(By.text("Audio"))?.click();device.waitForIdle()
+        click(device,"Folders")
+        label(device,"Add a media folder")
+        click(device,"Settings")
+        label(device,"Playback")
+        click(device,"Audio");device.waitForIdle()
         scroll(device,Direction.DOWN)
         scroll(device,Direction.UP)
         device.pressBack();device.pressBack()
