@@ -128,3 +128,10 @@ the native components requires their documented toolchains, including NDK
 Follow [Playback dependencies and source](../player-dependencies.md) for the exact
 source revisions, checksums, licenses, patches and rebuild commands. Retain all
 applicable notices when distributing a modified build.
+
+## Optional startup profiling
+
+See [startup profiles and folder browsing](performance.md) for profile collection
+on phone and TV emulators or a dedicated ARM device. The optional module is
+enabled with `-PincludePerformanceTests=true`; ordinary release builds omit it.
+See [UI translation guidance](localization.md) before contributing a language pack.

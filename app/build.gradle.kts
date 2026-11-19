@@ -16,6 +16,10 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+val includePerformanceTests = providers.gradleProperty("includePerformanceTests").orNull == "true"
+val profileAbi = providers.gradleProperty("profileAbi").orElse("x86_64").get()
+require(profileAbi in setOf("x86_64","arm64-v8a","armeabi-v7a"))
+
 /** The two engines ship independent FFmpeg bundles. Rename libmpv's private ELF dependencies
  * and its JNI loader strings without changing symbols, byte offsets or JNI class names.
  * Never use packaging pickFirst for these libraries: that would break one engine.
@@ -230,7 +234,7 @@ android {
         targetSdk = 36
         versionCode = 1000
         versionName = "1.0.0"
-        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+        ndk { abiFilters += if(includePerformanceTests)listOf(profileAbi) else listOf("arm64-v8a", "armeabi-v7a") }
     }
     val releaseKeystore = System.getenv("EMBER_KEYSTORE_FILE")?.takeIf { it.isNotBlank() }
     signingConfigs {
@@ -254,6 +258,17 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
+    if(includePerformanceTests)buildTypes.create("benchmark") {
+        initWith(buildTypes.getByName("release"))
+        applicationIdSuffix = ".benchmark"
+        signingConfig = signingConfigs.getByName("debug")
+        isDebuggable = false
+        isProfileable = true
+        isMinifyEnabled = false
+        isShrinkResources = false
+        matchingFallbacks += listOf("release")
+    }
+    if(includePerformanceTests)sourceSets.getByName("benchmark").assets.srcDir("src/benchmark/assets")
     splits {
         abi {
             isEnable = providers.gradleProperty("splitApks").orNull == "true"
@@ -308,7 +323,7 @@ dependencies {
     implementation("androidx.sqlite:sqlite:2.7.1")
     // FFmpeg audio decoders from Nextlib (TrueHD, DTS/DTS-HD core, AC3, E-AC3, FLAC, ALAC, MP3, AAC,
     // Opus, Vorbis), plus software video recovery through Nextlib DecoderManager.
-    implementation("io.github.anilbeesetti:nextlib-media3ext:1.11.1-0.17.0")
+    implementation("io.github.anilbeesetti:nextlib-media3ext:1.11.1-0.19.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("io.coil-kt:coil:2.7.0") // ImageView loading for the screensaver
     implementation("io.coil-kt:coil-gif:2.7.0") // animated collection covers
@@ -327,8 +342,8 @@ dependencies {
     implementation("commons-net:commons-net:3.13.0")
     implementation("me.jahnen.libaums:core:0.10.0")
     implementation("com.google.android.gms:play-services-cast-framework:23.0.0")
-    implementation("androidx.appcompat:appcompat:1.7.1")
-    implementation("androidx.fragment:fragment:1.8.9")
+    implementation("androidx.appcompat:appcompat:1.8.0")
+    implementation("androidx.fragment:fragment:1.9.1")
 
     testImplementation("androidx.sqlite:sqlite-framework:2.7.1")
     testImplementation("junit:junit:4.13.2")
@@ -349,5 +364,12 @@ tasks.register("writeNetworkCryptoClasspath") {
         val jars = runtime.get().files.filter { it.extension == "jar" && names.any(it.name::startsWith) }
         val r8 = File(Class.forName("com.android.tools.r8.R8").protectionDomain.codeSource.location.toURI())
         target.get().asFile.apply { parentFile.mkdirs(); writeText((listOf(r8) + jars).joinToString("\n") { it.absolutePath }) }
+    }
+}
+
+// Profiling APKs are isolated from production releases and may use a different device ABI.
+gradle.taskGraph.whenReady {
+    if(includePerformanceTests && allTasks.any {it.project==project && it.name in setOf("packageRelease","bundleRelease","assembleRelease")}) {
+        error("Build production releases without -PincludePerformanceTests=true.")
     }
 }

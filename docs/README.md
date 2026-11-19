@@ -3,6 +3,8 @@
 | Guide | What you will find |
 | --- | --- |
 | [Changelog](../CHANGELOG.md) | Published versions, added features and compatibility notes |
+| [Startup profiles and browsing](performance.md) | Profile collection, release optimization and folder visit caching |
+| [UI translations](localization.md) | Resource formats, plural forms and language-pack checks |
 | [Features](features.md) | Playback cores, formats, subtitles, media tools and receivers |
 | [Library and settings](settings.md) | Navigation, browsing choices and the eight settings categories |
 | [Privacy](privacy.md) | Local data, optional connections, private media and backups |

@@ -30,8 +30,10 @@ jobs:
         run: python3 scripts/verify-network-crypto.py
       - name: Verify native dependency isolation and ARM alignment
         run: python3 scripts/verify-player-native.py app/build/isolated-mpv/libmpv-1.1.0.aar --apk app/build/outputs/apk/release/app-universal-release-unsigned.apk
+      - name: Check translation resources
+        run: python3 scripts/check-translations.py
       - name: Check release integrity rules
-        run: python3 -m unittest discover -s tests -p 'test_release.py' -v
+        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
       - name: Verify and prepare unsigned validation packages
         run: python3 scripts/prepare-release.py
       - name: Save unsigned release build

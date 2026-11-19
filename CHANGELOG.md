@@ -2,6 +2,9 @@
 
 ## [1.0.0]
 
+- Cache saved-folder listings for the current visit, prepare phone/TV startup profiles, and add translation resource checks and contributor guidance.
+- Update AppCompat, Fragment and the matching Media3/Nextlib extension.
+
 - Add mpv program and quality choices, explain automatic core and renderer decisions, and prepare reusable native resources off the main thread.
 - Search and naturally sort entire saved folders, show durations before videos are played, and improve compact phone headers and TV accessibility labels.
 - Fix background embedded artwork, unknown-length WebDAV playback, unreadable folder-history writes and subtitle ZIP handling.

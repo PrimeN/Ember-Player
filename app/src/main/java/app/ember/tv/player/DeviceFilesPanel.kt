@@ -95,15 +95,19 @@ internal fun DeviceFilesPanel(activity: ComponentActivity,refresh:Int=0,initialF
         folders=loaded.orEmpty().filterNot {app.ember.player.PrivateMedia.hidden(it.uri)}
         if(root!=null && folders.none {it.uri==root?.uri}){root=null;parents=emptyList()}
     }
+    val privacy by app.ember.player.PrivateMedia.state.collectAsState()
+    val unlocked by app.ember.player.PrivateMedia.unlocked.collectAsState()
+    val visit=remember(root?.uri,current?.first,revision,refresh,privacy,unlocked){FolderBrowseVisit()}
+    DisposableEffect(visit){onDispose {visit.close()}}
     LaunchedEffect(root,current,query,sort,hidden) {offsets=listOf(null)}
-    LaunchedEffect(root, current, revision, offsets,query,sort,hidden) {
+    LaunchedEffect(root, current, revision, offsets,query,sort,hidden,visit) {
         selected = emptySet(); page = DeviceFiles.BrowsePage();lastPlayed=null
         val folder = root ?: return@LaunchedEffect
         val directory = current?.first ?: DeviceFiles.root(Uri.parse(folder.uri))
         loading = true
         try {
             delay(if(query.isBlank())0 else 180)
-            val loaded=withContext(Dispatchers.IO) {DeviceFiles.browse(activity,Uri.parse(folder.uri),directory,query,sort,hidden,offsets.last()) {ensureActive()} to history.get(directory)}
+            val loaded=withContext(Dispatchers.IO) {visit.page({offset->DeviceFiles.list(activity,Uri.parse(folder.uri),directory,offset){ensureActive()}},query,sort,hidden,offsets.last(),app.ember.player.PrivateMedia::hidden){ensureActive()} to history.get(directory)}
             page=loaded.first.copy(entries=loaded.first.entries.filterNot {app.ember.player.PrivateMedia.hidden(it.uri.toString())});lastPlayed=loaded.second
         }
         catch (e: CancellationException) {throw e}
