@@ -149,7 +149,7 @@ class PlayerActivity : ComponentActivity() {
     }) {
             val p = player
             if(p!=null && p.isPlaying)repeatRange.destination(p.currentPosition)?.let(p::seekTo)
-            if (p != null && ::subs.isInitialized) {val prefix=if(subs.wholeFileTiming)0L else (playbackEngine?.compatibility?.partOffset)?:0L;subs.engine.render((p.currentPosition-prefix).coerceAtLeast(0))}
+            if (p != null && ::subs.isInitialized) {val prefix=if(subs.wholeFileTiming)0L else (playbackEngine?.compatibility?.partOffset)?:0L;subs.engine.render(p.currentPosition,prefix)}
             if(p!=null&&::prefs.isInitialized){
                 val native=playbackEngine?.compatibility
                 val text=if(native!=null)native.captionText else if(::subs.isInitialized&&(subs.selection is SubtitleController.Selection.Manual||subs.selection is SubtitleController.Selection.External))subs.engine.visibleText else embeddedCaptionText

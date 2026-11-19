@@ -238,13 +238,17 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
 
         override fun onTracksChanged(tracks: Tracks) {
             val captions=prefs.subtitleConfig
-            if(config.engine=="auto" && !captions.systemStyle && captions.layout.needsCompatibility && playbackEngine?.compatibility==null &&
+            if(SubtitleStyleProbe.routeToMpv(config.engine=="auto",true,captions.systemStyle,captions.layout.needsCompatibility,p.videoFormat,p.audioFormat) && playbackEngine?.compatibility==null &&
                 tracks.groups.any {it.type==C.TRACK_TYPE_TEXT && it.isSelected} && playbackEngine?.switch()==true)return
             if (config.engine == "auto" && playbackEngine?.compatibility == null && tracks.groups.any { group ->
                 group.type == C.TRACK_TYPE_VIDEO && (0 until group.length).any { group.isTrackSelected(it) && PlaybackFormats.nativeFirst(group.getTrackFormat(it).sampleMimeType, group.isTrackSupported(it, false)) }
             } && playbackEngine?.switch(R.string.ui_core_format) == true) return
-            if(config.engine=="auto" && prefs.subtitleConfig.authoredStyles && !prefs.subtitleConfig.systemStyle && playbackEngine?.compatibility==null && tracks.groups.any {it.type==C.TRACK_TYPE_TEXT && (0 until it.length).any { index -> it.isTrackSelected(index) && it.getTrackFormat(index).sampleMimeType==MimeTypes.TEXT_SSA }}) {
-                if(playbackEngine?.switch()==true)return
+            val styledAss=tracks.groups.any {group->group.type==C.TRACK_TYPE_TEXT && (0 until group.length).any {index->
+                val format=group.getTrackFormat(index)
+                group.isTrackSelected(index) && format.sampleMimeType==MimeTypes.TEXT_SSA && format.initializationData.any {SubtitleStyleProbe.styled(it.toString(Charsets.UTF_8))}
+            }}
+            if(playbackEngine?.compatibility==null && SubtitleStyleProbe.routeToMpv(config.engine=="auto",captions.authoredStyles,captions.systemStyle,styledAss,p.videoFormat,p.audioFormat)) {
+                if(playbackEngine?.switch(R.string.ui_core_styled_subtitles)==true)return
             }
             if (advanced) {
                 controls.audioTracks = audioTracks()
@@ -351,7 +355,10 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         SubtitleEngine.style(sv, subCfg)
         baseSubCfg = subCfg
         subs = SubtitleController(this, { player }, SubtitleEngine(sv){subtitleTicker.refresh()}, subConfigFor(subCfg), {refreshSubtitlePanel();updateSubtitleSheet();subtitleTicker.refresh()}) { text,format,wholeFile ->
-            if(config.engine=="auto" && (format=="ass"&&prefs.subtitleConfig.authoredStyles || prefs.subtitleConfig.layout.needsCompatibility&&!prefs.subtitleConfig.systemStyle))playbackEngine?.switch()
+            val captions=prefs.subtitleConfig
+            val styled=format=="ass" && captions.authoredStyles && SubtitleStyleProbe.styled(text)
+            if(SubtitleStyleProbe.routeToMpv(config.engine=="auto",true,captions.systemStyle,styled||captions.layout.needsCompatibility,p.videoFormat,p.audioFormat))
+                playbackEngine?.switch(if(styled)R.string.ui_core_styled_subtitles else R.string.ui_core_feature)
             playbackEngine?.compatibility?.external(text,format,wholeFile)==true
         }
         subs.onManualSelection={subtitleSelectionChanged()}

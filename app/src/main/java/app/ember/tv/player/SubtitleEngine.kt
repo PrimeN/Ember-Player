@@ -78,9 +78,9 @@ class SubtitleEngine(private val view: SubtitleView,private val invalidate:()->U
     }
 
     /** Shows the cues for [positionMs] of the video. Call every ~100 ms while playing. */
-    fun render(positionMs: Long) {
+    fun render(positionMs: Long, partOffsetMs:Long=0) {
         if (cues.isEmpty()) return
-        val t = ((positionMs * speed - offsetMs) * 1000).toLong()
+        val t = SubtitleClock.timeUs(positionMs,partOffsetMs,speed,offsetMs)
         val now = index.at(t).flatMap { it.cues }
         if (now != lastShown) {
             lastShown = now

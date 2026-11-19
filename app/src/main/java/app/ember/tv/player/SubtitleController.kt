@@ -43,6 +43,10 @@ class SubtitleController(
     var candidates: List<SubtitleCandidate> = emptyList(); private set
     var status: String? = null; private set
     var selection: Selection = Selection.Off; private set
+    private val renderers=SubtitleRenderCoordinator {_,_,next->
+        if(next!=SubtitleOwner.EXTERNAL)engine.clear()
+        if(next==SubtitleOwner.EXTERNAL || next==SubtitleOwner.OFF)setMedia3Text(false)
+    }
 
     var onManualSelection:(()->Unit)?=null
     fun reserveManualSelection(){autoSelection.manual();loadJob?.cancel()}
@@ -69,7 +73,7 @@ class SubtitleController(
         searchJob?.cancel()
         loadJob?.cancel()
         engine.clear()
-        if(!preserve||!manualBitmap)setMedia3Text(false)
+        if(!preserve||!manualBitmap){renderers.select(SubtitleOwner.OFF);setMedia3Text(false)}
         candidates = emptyList()
         selection = Selection.Off
         searched = false
@@ -164,6 +168,7 @@ class SubtitleController(
         autoSelection.manual()
         loadJob?.cancel()
         engine.clear()
+        renderers.select(SubtitleOwner.OFF)
         selection = Selection.Off
         chosenOff=true;choice=null;manualFile=null;manualBitmap=false
         setMedia3Text(enabled = false)
@@ -174,9 +179,10 @@ class SubtitleController(
         if(manual)onManualSelection?.invoke()
         autoSelection.manual()
         loadJob?.cancel()
-        engine.clear()
         val p = player() ?: return
         val g = p.currentTracks.groups.getOrNull(group) ?: return
+        if(track !in 0 until g.length)return
+        renderers.select(SubtitleOwner.EMBEDDED)
         p.trackSelectionParameters = p.trackSelectionParameters.buildUpon()
             .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
             .setOverrideForType(TrackSelectionOverride(g.mediaTrackGroup, track))
@@ -219,7 +225,7 @@ class SubtitleController(
                     else null
                 } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Throwable) { null }
                 if (native != null) {
-                    runCatching { if(native)engine.clear() else setMedia3Text(enabled = false) }
+                    renderers.select(if(native)SubtitleOwner.NATIVE else SubtitleOwner.EXTERNAL)
                     selection = Selection.External(s)
                     status = "${s.languageName} · ${s.provider}" + if (s.hashMatch) activity.resources.getString(R.string.ui_made_for_this_file) else ""
                     onChange()
@@ -237,11 +243,11 @@ class SubtitleController(
         autoSelection.manual();chosenOff=false
         val fps=player()?.videoFormat?.frameRate?.takeIf {it>0}
         val converted=kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {when(format) {"microdvd"->app.ember.tv.data.SubtitleFiles.microDvd(text,fps)?:return@withContext null;"sami"->app.ember.tv.data.SamiSubtitles.toSrt(text,Subtitles.wanted(config));else->text}} ?: return false
-        if(nativeSubtitle(converted,if(format in setOf("microdvd","sami"))"srt" else format,true)){engine.clear();manualBitmap=false;manualFile=text to format;selection=Selection.Manual(activity.resources.getString(R.string.ui_manual_subtitle_file));status=activity.resources.getString(R.string.ui_manual_subtitle_file);onChange();return true}
+        if(nativeSubtitle(converted,if(format in setOf("microdvd","sami"))"srt" else format,true)){renderers.select(SubtitleOwner.NATIVE);engine.clear();manualBitmap=false;manualFile=text to format;selection=Selection.Manual(activity.resources.getString(R.string.ui_manual_subtitle_file));status=activity.resources.getString(R.string.ui_manual_subtitle_file);onChange();return true}
         if(!engine.load(converted,if(format in setOf("microdvd","sami"))"srt" else format,fps))return false
-        setMedia3Text(false);manualBitmap=false;manualFile=text to format;selection=Selection.Manual(activity.resources.getString(R.string.ui_manual_subtitle_file));status=activity.resources.getString(R.string.ui_manual_subtitle_file);onChange();return true
+        renderers.select(SubtitleOwner.EXTERNAL);setMedia3Text(false);manualBitmap=false;manualFile=text to format;selection=Selection.Manual(activity.resources.getString(R.string.ui_manual_subtitle_file));status=activity.resources.getString(R.string.ui_manual_subtitle_file);onChange();return true
     }
-    fun selectManualNative(){autoSelection.manual();loadJob?.cancel();chosenOff=false;manualFile=null;manualBitmap=true;engine.clear();selection=Selection.Manual(activity.resources.getString(R.string.ui_manual_bitmap_subtitles));status=activity.resources.getString(R.string.ui_manual_bitmap_subtitles);onChange()}
+    fun selectManualNative(){autoSelection.manual();loadJob?.cancel();chosenOff=false;manualFile=null;manualBitmap=true;renderers.select(SubtitleOwner.NATIVE);engine.clear();selection=Selection.Manual(activity.resources.getString(R.string.ui_manual_bitmap_subtitles));status=activity.resources.getString(R.string.ui_manual_bitmap_subtitles);onChange()}
 
     /** Media3's own subtitle tracks on or off; off while a downloaded subtitle is shown. */
     private fun setMedia3Text(enabled: Boolean) {
