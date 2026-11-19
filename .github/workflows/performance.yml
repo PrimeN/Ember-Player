@@ -28,6 +28,8 @@ jobs:
         with:
           packages: platform-tools
       - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
       - name: Enable Android emulator acceleration
         run: sudo chmod a+rw /dev/kvm
       - name: Compile the profiling packages

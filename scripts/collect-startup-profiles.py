@@ -43,6 +43,8 @@ def main():
                 raise RuntimeError('Emulator did not boot within eight minutes.')
             for key in ('window_animation_scale', 'transition_animation_scale', 'animator_duration_scale'):
                 run(adb, 'shell', 'settings', 'put', 'global', key, '0')
+            run(adb, 'shell', 'settings', 'put', 'system', 'screen_off_timeout', '1800000')
+            run(adb, 'shell', 'svc', 'power', 'stayon', 'true')
             run(adb, 'shell', 'input', 'keyevent', '82')
             run(str(root / 'gradlew'), '--no-daemon', '--max-workers=2', '-PincludePerformanceTests=true', '-PuseMavenCentralMirror=true', ':benchmark:connectedBenchmarkAndroidTest', cwd=root)
             # AGP normally pulls additional test outputs; retain a direct copy as well.

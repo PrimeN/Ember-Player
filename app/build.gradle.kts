@@ -16,6 +16,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+val useMavenCentralMirror = providers.gradleProperty("useMavenCentralMirror").orNull == "true"
 val includePerformanceTests = providers.gradleProperty("includePerformanceTests").orNull == "true"
 val profileAbi = providers.gradleProperty("profileAbi").orElse("x86_64").get()
 require(profileAbi in setOf("x86_64","arm64-v8a","armeabi-v7a"))
@@ -284,7 +285,7 @@ android {
         unitTests.isReturnDefaultValues = true
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
-            it.systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
+            it.systemProperty("robolectric.dependency.repo.url", if(useMavenCentralMirror)"https://gcp.mirrors.maven.org/maven2" else "https://repo.maven.apache.org/maven2")
             it.testLogging.exceptionFormat=org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
         }
     }

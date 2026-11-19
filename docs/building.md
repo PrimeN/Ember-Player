@@ -135,3 +135,7 @@ See [startup profiles and folder browsing](performance.md) for profile collectio
 on phone and TV emulators or a dedicated ARM device. The optional module is
 enabled with `-PincludePerformanceTests=true`; ordinary release builds omit it.
 See [UI translation guidance](localization.md) before contributing a language pack.
+
+CI enables `-PuseMavenCentralMirror=true` to read Maven Central dependencies
+through Google's mirror, with the canonical repository as a fallback. The flag is
+also available for local builds. The pinned native artifact checks still apply.

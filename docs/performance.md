@@ -9,8 +9,8 @@ The fixture provider and media asset are absent from production builds.
 
 The Android startup profiles workflow collects on a phone emulator and an Android
 TV emulator. Its dependency downloads use Google's Maven Central mirror through
-`-PuseMavenCentralMirror=true`; production builds keep the standard repository
-configuration. Download both `Ember-Player-profile-*` artifacts into one directory,
+`-PuseMavenCentralMirror=true`. CI validation and release builds use the same
+mirror with Maven Central as a fallback. Download both `Ember-Player-profile-*` artifacts into one directory,
 then merge the generated rules:
 
 ```sh

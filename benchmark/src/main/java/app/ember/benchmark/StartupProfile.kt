@@ -26,7 +26,7 @@ class StartupProfile {
         val done=CountDownLatch(1);var seeded=false
         val receiver=object:BroadcastReceiver(){override fun onReceive(context:Context,intent:Intent){seeded=resultCode==Activity.RESULT_OK;done.countDown()}}
         InstrumentationRegistry.getInstrumentation().context.sendOrderedBroadcast(
-            Intent("app.ember.player.SEED_PROFILE").setComponent(ComponentName("app.ember.player.benchmark","app.ember.tv.player.ProfileFixtures")),
+            Intent("app.ember.player.SEED_PROFILE").addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES).setComponent(ComponentName("app.ember.player.benchmark","app.ember.tv.player.ProfileFixtures")),
             null,receiver,null,Activity.RESULT_CANCELED,null,null)
         assertTrue("Could not prepare the profiling library",done.await(45,TimeUnit.SECONDS)&&seeded)
     }
