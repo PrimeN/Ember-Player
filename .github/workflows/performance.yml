@@ -31,7 +31,7 @@ jobs:
       - name: Enable Android emulator acceleration
         run: sudo chmod a+rw /dev/kvm
       - name: Compile the profiling packages
-        run: ./gradlew --no-daemon --max-workers=2 -PincludePerformanceTests=true :app:assembleBenchmark :benchmark:assembleBenchmark
+        run: ./gradlew --no-daemon --max-workers=2 -PincludePerformanceTests=true -PuseMavenCentralMirror=true :app:assembleBenchmark :benchmark:assembleBenchmark
       - name: Collect startup and library scrolling profiles
         env:
           DEVICE: ${{ matrix.device }}
@@ -47,7 +47,8 @@ jobs:
         with:
           name: Ember-Player-profile-${{ matrix.device }}
           path: |
-            benchmark/build/outputs/
+            benchmark/build/outputs/connected_android_test_additional_output/
+            benchmark/build/outputs/androidTest-results/
             benchmark/build/reports/
           retention-days: 7
           if-no-files-found: warn

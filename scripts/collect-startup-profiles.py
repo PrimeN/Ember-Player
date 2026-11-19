@@ -44,7 +44,7 @@ def main():
             for key in ('window_animation_scale', 'transition_animation_scale', 'animator_duration_scale'):
                 run(adb, 'shell', 'settings', 'put', 'global', key, '0')
             run(adb, 'shell', 'input', 'keyevent', '82')
-            run(str(root / 'gradlew'), '--no-daemon', '--max-workers=2', '-PincludePerformanceTests=true', ':benchmark:connectedBenchmarkAndroidTest', cwd=root)
+            run(str(root / 'gradlew'), '--no-daemon', '--max-workers=2', '-PincludePerformanceTests=true', '-PuseMavenCentralMirror=true', ':benchmark:connectedBenchmarkAndroidTest', cwd=root)
             # AGP normally pulls additional test outputs; retain a direct copy as well.
             profiles = logs / 'profiles'
             profiles.mkdir(exist_ok=True)

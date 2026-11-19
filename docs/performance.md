@@ -8,7 +8,9 @@ entries through a signature-protected fixture receiver in the profiling variant.
 The fixture provider and media asset are absent from production builds.
 
 The Android startup profiles workflow collects on a phone emulator and an Android
-TV emulator. Download both `Ember-Player-profile-*` artifacts into one directory,
+TV emulator. Its dependency downloads use Google's Maven Central mirror through
+`-PuseMavenCentralMirror=true`; production builds keep the standard repository
+configuration. Download both `Ember-Player-profile-*` artifacts into one directory,
 then merge the generated rules:
 
 ```sh
