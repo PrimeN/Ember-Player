@@ -323,10 +323,8 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
                     return
                 }
             }
-            if(PlaybackFailureClassifier.classify(error).changesDecoder) {
-                val failed=(error as? androidx.media3.exoplayer.ExoPlaybackException)?.rendererFormat ?: p.videoFormat
-                if(failed!=null)codecs.decoderHealth?.forget(failed)
-                decoderLearned=false;decoderStableSince=0
+            PlaybackFailureClassifier.failedVideoDecoder(error)?.let { (format, name) ->
+                codecs.decoderHealth?.forget(format, name)
             }
             if (recover(error)) return
             if(playbackEngine?.recover(error.errorCode)==true)return

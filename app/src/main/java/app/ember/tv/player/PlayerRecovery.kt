@@ -29,7 +29,7 @@ internal fun PlayerActivity.recover(e: PlaybackException): Boolean {
     val failure=PlaybackFailureClassifier.classify(e)
     val decoding = failure.changesDecoder
     val p = player ?: return false
-    val network = PlaybackErrors.connection(e.errorCode)
+    val network = failure == PlaybackFailure.NETWORK
     if (network && ioRetries < 2) {
         ioRetries++
         lastRetryAt = android.os.SystemClock.elapsedRealtime()

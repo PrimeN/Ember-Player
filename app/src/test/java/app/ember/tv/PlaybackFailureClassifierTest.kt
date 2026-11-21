@@ -1,12 +1,20 @@
 package app.ember.tv
 
 import app.ember.tv.player.*
+import android.net.Uri
 import androidx.media3.common.PlaybackException as E
+import androidx.media3.datasource.DataSpec
+import androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException
 import kotlinx.serialization.json.Json
 import org.junit.Assert.*
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35], application = android.app.Application::class)
 class PlaybackFailureClassifierTest {
     @Test fun externalFailuresNeverChangeDecoderOrCore() {
         for(code in listOf(E.ERROR_CODE_IO_BAD_HTTP_STATUS,E.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
@@ -14,6 +22,25 @@ class PlaybackFailureClassifierTest {
             val failure=PlaybackFailureClassifier.classify(code)
             assertFalse(failure.changesDecoder);assertFalse(failure.changesCore)
             assertFalse(PlaybackEnginePolicy.compatibilityError(code))
+        }
+    }
+    @Test fun typedHttpStatusSeparatesRetryableAndPermanentFailures() {
+        val cases = mapOf(
+            401 to PlaybackFailure.AUTHENTICATION, 403 to PlaybackFailure.SOURCE_ACCESS,
+            407 to PlaybackFailure.AUTHENTICATION, 404 to PlaybackFailure.SOURCE_MISSING,
+            410 to PlaybackFailure.SOURCE_MISSING, 416 to PlaybackFailure.HTTP_REJECTED,
+            408 to PlaybackFailure.NETWORK, 429 to PlaybackFailure.NETWORK,
+            500 to PlaybackFailure.NETWORK, 502 to PlaybackFailure.NETWORK,
+            503 to PlaybackFailure.NETWORK, 504 to PlaybackFailure.NETWORK,
+            501 to PlaybackFailure.HTTP_REJECTED
+        )
+        for ((status, expected) in cases) {
+            val cause = InvalidResponseCodeException(status, null, null, emptyMap(),
+                DataSpec(Uri.EMPTY), byteArrayOf())
+            val failure = PlaybackFailureClassifier.classify(E(null, IllegalStateException(cause), E.ERROR_CODE_IO_BAD_HTTP_STATUS))
+            assertEquals("HTTP $status", expected, failure)
+            assertFalse(failure.changesDecoder)
+            assertFalse(failure.changesCore)
         }
     }
     @Test fun outputAndGpuFailuresHaveTheirOwnRecoveryWithoutChangingCores() {
