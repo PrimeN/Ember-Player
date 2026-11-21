@@ -4,12 +4,12 @@ import app.ember.tv.R
 
 import android.content.Intent
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ViewList
@@ -20,15 +20,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ember.tv.data.Prefs
@@ -99,7 +98,22 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
     BoxWithConstraints(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
         val narrow=maxWidth<600.dp
         val horizontal=if(television)20.dp else 16.dp
-        Box(Modifier.fillMaxSize().padding(horizontal=horizontal)) {
+        Scaffold(
+            modifier=Modifier.fillMaxSize().padding(horizontal=horizontal),
+            containerColor=Color.Transparent,
+            contentWindowInsets=WindowInsets(0,0,0,0),
+            bottomBar={
+                if(!television)Box(Modifier.fillMaxWidth().padding(bottom=12.dp),contentAlignment=Alignment.Center) {
+                    LibraryDock(
+                        destination,search,
+                        home={go(PlayerLibraryDestination.VIDEOS)},
+                        files={if(destination!=PlayerLibraryDestination.FOLDERS){folderUri=null;go(PlayerLibraryDestination.FOLDERS)}},
+                        search=::toggleSearch,settings=::settings
+                    )
+                }
+            }
+        ) {padding->
+            val dockPadding=padding.calculateBottomPadding()
             Column(Modifier.fillMaxSize()) {
                 PlayerHeading(uiResources.getString(R.string.ui_ember_player),modifier=if(television)Modifier.height(48.dp) else Modifier,compact=narrow&&!television) {
                     if(!narrow&&destination==PlayerLibraryDestination.VIDEOS) {
@@ -107,12 +121,16 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
                         LibraryUtility(uiResources.getString(sort.label),Icons.AutoMirrored.Outlined.Sort){sortMenu=true}
                         PlayerIconAction(if(grid)uiResources.getString(R.string.ui_list_view) else uiResources.getString(R.string.ui_grid_view),if(grid)Icons.AutoMirrored.Outlined.ViewList else Icons.Outlined.GridView){grid=!grid;prefs.playerLibraryGrid=grid}
                     }
-                    if(!narrow||television)PlayerIconAction(if(preparing||opening)uiResources.getString(R.string.ui_preparing_files) else uiResources.getString(R.string.ui_open_file),Icons.AutoMirrored.Outlined.InsertDriveFile,Modifier.focusRequester(openFocus),enabled=!preparing&&!opening,onClick=openFiles)
-                    PlayerIconAction(uiResources.getString(R.string.ui_search_media),Icons.Outlined.Search,Modifier.semantics {selected=search},onClick=::toggleSearch)
-                    PlayerIconAction(uiResources.getString(R.string.ui_settings),Icons.Outlined.Settings,onClick=::settings)
+                    PlayerIconAction(if(preparing||opening)uiResources.getString(R.string.ui_preparing_files) else uiResources.getString(R.string.ui_open_file),Icons.AutoMirrored.Outlined.InsertDriveFile,Modifier.focusRequester(openFocus),enabled=!preparing&&!opening,onClick=openFiles)
+                    if(television) {
+                        PlayerIconAction(uiResources.getString(R.string.ui_search_media),Icons.Outlined.Search,Modifier.semantics {selected=search},onClick=::toggleSearch)
+                        PlayerIconAction(uiResources.getString(R.string.ui_settings),Icons.Outlined.Settings,onClick=::settings)
+                    }
                     PlayerIconAction(uiResources.getString(R.string.ui_more_options),Icons.Outlined.MoreVert){menu=true}
                 }
-                if(!television)PhoneLibraryNavigation(destination.takeUnless {search}){folderUri=null;go(it)}
+                if(!television&&destination!=PlayerLibraryDestination.VIDEOS) {
+                    LibraryFilesNavigation(destination,Modifier.padding(bottom=8.dp)){folderUri=null;go(it)}
+                }
                 if(narrow&&destination==PlayerLibraryDestination.VIDEOS)Column(Modifier.fillMaxWidth().padding(bottom=8.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
                     val enlarged=androidx.compose.ui.platform.LocalDensity.current.fontScale>1.2f
                     if(enlarged)LibraryUtility(uiResources.getString(filter.label),Icons.Outlined.FilterList,Modifier.fillMaxWidth(),expanded=true){filterMenu=true}
@@ -136,9 +154,9 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
                     stateHolder.SaveableStateProvider(destination.name) {
                         if(destination==PlayerLibraryDestination.VIDEOS)PlayerVideos(activity,version,query,search,grid,filter,sort,::play,
                             background?.takeUnless {BackgroundAudioService.currentIsPrivate()},casting?.takeIf {it.ready&&it.error==null},notice,
-                            {uri->folderUri=uri;go(PlayerLibraryDestination.FOLDERS)},catalogRevision=localRevision)
+                            {uri->folderUri=uri;go(PlayerLibraryDestination.FOLDERS)},catalogRevision=localRevision,bottomPadding=dockPadding)
                         else Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(androidx.compose.foundation.rememberScrollState())
-                            .padding(top=8.dp,bottom=20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
+                            .padding(top=8.dp,bottom=20.dp+dockPadding),verticalArrangement=Arrangement.spacedBy(16.dp)) {
                             when(destination) {
                                 PlayerLibraryDestination.FOLDERS->{DeviceFilesPanel(activity,version,folderUri);UsbFilesPanel(activity,version);DirectUsbPanel(activity,version);PlayerSection(uiResources.getString(R.string.ui_saved_folder_library)){MediaLibraryPanel(activity,version,showTitle=false)}}
                                 PlayerLibraryDestination.NETWORK->NetworkFilesPanel(activity,version)
@@ -167,14 +185,70 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
 }
 
 @Composable
-internal fun PhoneLibraryNavigation(destination:PlayerLibraryDestination?,go:(PlayerLibraryDestination)->Unit) {
-    val uiResources=androidx.compose.ui.platform.LocalResources.current
-    val destinations=remember {PlayerLibraryDestination.entries.toList()}
-    val state=rememberLazyListState()
-    LaunchedEffect(destination){if(destination!=null)state.animateScrollToItem(destinations.indexOf(destination))}
-    LazyRow(Modifier.fillMaxWidth().testTag("library-navigation").padding(bottom=8.dp),state=state,horizontalArrangement=Arrangement.spacedBy(4.dp)) {
-        items(destinations,key={it.name}) {item->
-            LibraryNavigation(uiResources.getString(item.label),item.icon,isSelected=destination==item){go(item)}
+internal fun LibraryFilesNavigation(destination:PlayerLibraryDestination,modifier:Modifier=Modifier,go:(PlayerLibraryDestination)->Unit) {
+    val resources=androidx.compose.ui.platform.LocalResources.current
+    var expanded by remember {mutableStateOf(false)}
+    Box(modifier) {
+        LibraryUtility(resources.getString(destination.label),destination.icon){expanded=true}
+        DropdownMenu(expanded=expanded,onDismissRequest={expanded=false}) {
+            for(section in PlayerLibraryDestination.entries) {
+                if(section==PlayerLibraryDestination.VIDEOS)continue
+                DropdownMenuItem(
+                    text={Text(resources.getString(section.label))},
+                    leadingIcon={Icon(section.icon,null)},
+                    modifier=Modifier.semantics {selected=section==destination},
+                    onClick={
+                        expanded=false
+                        if(section!=destination)go(section)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun LibraryDock(destination:PlayerLibraryDestination,searching:Boolean,home:()->Unit,files:()->Unit,search:()->Unit,settings:()->Unit) {
+    val scheme=MaterialTheme.colorScheme
+    Surface(
+        modifier=Modifier.widthIn(max=440.dp).fillMaxWidth(),
+        shape=RoundedCornerShape(32.dp),
+        color=scheme.surfaceVariant.copy(alpha=if(LocalRenderOptions.current.glass).96f else 1f),
+        border=BorderStroke(1.dp,scheme.outlineVariant),
+        shadowElevation=4.dp
+    ) {
+        Row(Modifier.padding(6.dp),horizontalArrangement=Arrangement.spacedBy(2.dp),verticalAlignment=Alignment.CenterVertically) {
+            LibraryDockButton(R.string.ui_library_home,Icons.Outlined.Home,!searching&&destination==PlayerLibraryDestination.VIDEOS,home)
+            LibraryDockButton(R.string.ui_library_files,Icons.Outlined.Folder,!searching&&destination!=PlayerLibraryDestination.VIDEOS,files)
+            LibraryDockButton(R.string.ui_search,Icons.Outlined.Search,searching,search)
+            LibraryDockButton(R.string.ui_settings,Icons.Outlined.Settings,false,settings)
+        }
+    }
+}
+
+@Composable
+private fun RowScope.LibraryDockButton(@androidx.annotation.StringRes label:Int,icon:ImageVector,isSelected:Boolean,onClick:()->Unit) {
+    val scheme=MaterialTheme.colorScheme
+    Surface(
+        onClick=onClick,
+        modifier=Modifier.weight(1f).heightIn(min=56.dp).semantics {selected=isSelected},
+        shape=RoundedCornerShape(26.dp),
+        color=if(isSelected)scheme.primaryContainer else Color.Transparent,
+        contentColor=if(isSelected)scheme.onPrimaryContainer else scheme.onSurface
+    ) {
+        Column(
+            Modifier.padding(horizontal=4.dp,vertical=6.dp),
+            horizontalAlignment=Alignment.CenterHorizontally,
+            verticalArrangement=Arrangement.spacedBy(2.dp,Alignment.CenterVertically)
+        ) {
+            Icon(icon,null,Modifier.size(22.dp))
+            Text(
+                androidx.compose.ui.res.stringResource(label),
+                style=MaterialTheme.typography.labelMedium,
+                textAlign=TextAlign.Center,
+                maxLines=2,
+                overflow=TextOverflow.Ellipsis
+            )
         }
     }
 }

@@ -486,6 +486,8 @@
     <string name="ui_letter_spacing" formatted="false">"Letter spacing"</string>
     <string name="ui_libaums_usb_notices" formatted="false">"libaums USB notices"</string>
     <string name="ui_libmpv_android_wrapper" formatted="false">"libmpv Android wrapper"</string>
+    <string name="ui_library_files">Files</string>
+    <string name="ui_library_home">Home</string>
     <string name="ui_library_refreshed" formatted="false">"Library refreshed"</string>
     <string name="ui_library_unavailable_add_a_folder_and_refresh_its_index" formatted="false">"Library unavailable. Add a folder and refresh its index."</string>
     <string name="ui_license_unavailable_see_the_source_repository" formatted="false">"License unavailable. See the source repository."</string>

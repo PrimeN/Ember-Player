@@ -48,7 +48,7 @@ class ReleaseLibraryScreenshotsTest {
     @get:Rule(order=1) val compose=createAndroidComposeRule<MediaFilesActivity>()
     private fun capture(name:String) {
         compose.onNodeWithText("Ember Player").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Settings").assertIsDisplayed()
+        compose.onNode(hasText("Settings") or hasContentDescription("Settings")).assertIsDisplayed()
         compose.waitForIdle()
         compose.onRoot().saveScreenshot(name)
     }

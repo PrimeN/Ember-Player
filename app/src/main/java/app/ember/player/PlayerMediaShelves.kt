@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.ember.tv.player.*
 import app.ember.tv.ui.Focusable
@@ -50,7 +51,7 @@ internal fun playerLibraryColumns(width:Float,television:Boolean)=when {
 
 @Composable
 internal fun RowScope.PlayerVideos(activity:MediaFilesActivity,version:Int,query:String,searching:Boolean,grid:Boolean,filter:PlayerLibraryFilter,sort:PlayerLibrarySort,play:(QueueMedia)->Unit,
-    background:BackgroundNowPlaying?,casting:CastingState?,notice:String?,folders:(String?)->Unit,catalogRevision:Int=0,library:PlayerLibraryRepository=activity.library) {
+    background:BackgroundNowPlaying?,casting:CastingState?,notice:String?,folders:(String?)->Unit,catalogRevision:Int=0,library:PlayerLibraryRepository=activity.library,bottomPadding:Dp=0.dp) {
     val uiResources=androidx.compose.ui.platform.LocalResources.current
 
     var snapshot by remember(query) {mutableStateOf(library.peek(query) ?: PlayerLibrarySnapshot(emptyList()))}
@@ -88,7 +89,7 @@ internal fun RowScope.PlayerVideos(activity:MediaFilesActivity,version:Int,query
         val gap=if(television)8.dp else 12.dp
         val cardWidth=((maxWidth-gap*(columns-1))/columns).coerceAtLeast(72.dp)
         val resumeWidth=if(television)((maxWidth-gap*5)/6).coerceAtLeast(108.dp) else if(maxWidth>=600.dp)((maxWidth-gap*4)/5).coerceAtLeast(160.dp) else 248.dp
-        LazyColumn(Modifier.fillMaxSize().testTag("library-media"),state=listState,contentPadding=PaddingValues(top=8.dp,bottom=20.dp),verticalArrangement=Arrangement.spacedBy(if(television)8.dp else 20.dp)) {
+        LazyColumn(Modifier.fillMaxSize().testTag("library-media"),state=listState,contentPadding=PaddingValues(top=8.dp,bottom=20.dp+bottomPadding),verticalArrangement=Arrangement.spacedBy(if(television)8.dp else 20.dp)) {
             background?.let {playing->item {PlayerAction(uiResources.getString(R.string.ui_label_value ,if(playing.playing)uiResources.getString(R.string.ui_playing) else uiResources.getString(R.string.ui_paused),playing.title),Icons.Outlined.Headphones,Modifier.fillMaxWidth()) {
                 activity.startActivity(Intent(activity,ResumeBackgroundAudioActivity::class.java).putExtra(BackgroundAudioService.EXTRA_ID,playing.id))
             }}}

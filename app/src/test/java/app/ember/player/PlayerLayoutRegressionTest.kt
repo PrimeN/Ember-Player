@@ -75,13 +75,13 @@ class PlayerLayoutRegressionTest {
         compose.setContent {PlayerTheme(Prefs(LocalContext.current)) {
             CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(1f,1.5f)) {
                 PlayerHeading("Ember Player",Modifier.padding(horizontal=16.dp),compact=true) {
-                    listOf("Search","Settings","More").forEach {name->PlayerIconAction(name,Icons.Outlined.FilterList){}}
+                    listOf("Open file","More options").forEach {name->PlayerIconAction(name,Icons.Outlined.FilterList){}}
                 }
             }
         }}
         val title=compose.onNodeWithText("Ember Player",useUnmergedTree=true).layout()
         assertFalse(title.hasVisualOverflow)
-        listOf("Search","Settings","More").forEach {compose.onNodeWithContentDescription(it).assertIsDisplayed()}
+        listOf("Open file","More options").forEach {compose.onNodeWithContentDescription(it).assertIsDisplayed().assertHasClickAction()}
     }
     @Test fun neverPlayedLibraryCardsShowTheDurationFromTheirPreview() {
         val context=org.robolectric.RuntimeEnvironment.getApplication()

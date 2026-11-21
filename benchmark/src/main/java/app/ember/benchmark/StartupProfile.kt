@@ -103,7 +103,7 @@ class StartupProfile {
         scroll(device,Direction.DOWN)
         scroll(device,Direction.UP)
         device.pressDPadDown();device.pressDPadRight();device.pressDPadLeft()
-        click(device,"Folders")
+        click(device,if(television) "Folders" else "Files")
         label(device, if (television) "Device folders" else "Add a media folder")
         click(device,"Settings")
         label(device,"Playback")

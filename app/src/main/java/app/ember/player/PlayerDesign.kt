@@ -83,7 +83,7 @@ internal fun PlayerHeading(title:String,modifier:Modifier=Modifier,back:(()->Uni
     val uiResources=androidx.compose.ui.platform.LocalResources.current
 
     Row(modifier.fillMaxWidth().heightIn(min=64.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(if(compact)8.dp else 12.dp)) {
-        if(back!=null)PlayerIconAction(uiResources.getString(R.string.ui_back),Icons.AutoMirrored.Outlined.ArrowBack,onClick=back) else if(!compact)PlayerBrandMark(36.dp)
+        if(back!=null)PlayerIconAction(uiResources.getString(R.string.ui_back),Icons.AutoMirrored.Outlined.ArrowBack,onClick=back) else PlayerBrandMark(if(compact)32.dp else 36.dp)
         Text(title,Modifier.weight(1f).semantics {heading()},style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.SemiBold,maxLines=if(compact)2 else 1,overflow=TextOverflow.Ellipsis)
         actions()
     }
