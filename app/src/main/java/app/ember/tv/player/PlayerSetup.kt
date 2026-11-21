@@ -227,7 +227,11 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         }
 
         override fun onAudioDecoderInitialized(eventTime: AnalyticsListener.EventTime, decoderName: String, initializedTimestampMs: Long, initializationDurationMs: Long) {
-            audioDecoder = decoderName
+            if (player === p) audioDecoder = decoderName
+        }
+
+        override fun onAudioDecoderReleased(eventTime: AnalyticsListener.EventTime, decoderName: String) {
+            if (player === p && audioDecoder == decoderName) audioDecoder = null
         }
 
         override fun onBandwidthEstimate(eventTime: AnalyticsListener.EventTime, totalLoadTimeMs: Int, totalBytesLoaded: Long, bitrateEstimate: Long) {
@@ -247,8 +251,6 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         }
 
         override fun onAudioInputFormatChanged(eventTime: AnalyticsListener.EventTime, format: Format, decoderReuseEvaluation: DecoderReuseEvaluation?) {
-            // A new audio format may go straight to the receiver; the decoder callback says otherwise.
-            audioDecoder = null
             val visit=playbackVisit
             handler.post {if(player===p && playbackVisit==visit)applyPictureEnhancement()}
         }

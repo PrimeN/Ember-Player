@@ -68,6 +68,7 @@
     <string name="pl_network_throughput">Network throughput</string>
     <string name="pl_stream_speed">Stream speed</string>
     <string name="pl_decoders">Decoders</string>
+    <string name="pl_audio_decoder">Audio decoder</string>
     <string name="pl_dropped_frames">Dropped frames</string>
     <string name="pl_display">Display</string>
     <string name="pl_device_info">Device info</string>

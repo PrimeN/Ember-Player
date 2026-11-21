@@ -16,6 +16,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+val playerMedia3Version = "1.11.1"
 val useMavenCentralMirror = providers.gradleProperty("useMavenCentralMirror").orNull == "true"
 val includePerformanceTests = providers.gradleProperty("includePerformanceTests").orNull == "true"
 val profileAbi = providers.gradleProperty("profileAbi").orElse("x86_64").get()
@@ -175,8 +176,14 @@ val prepareSmbRpc by tasks.registering(PrepareSmbRpc::class) {
 val verifyMpeghNative by tasks.registering {
     inputs.dir(layout.projectDirectory.dir("native/mpegh"))
     inputs.files(fileTree("src/main/jniLibs") { include("**/libmpeghJNI.so") })
+    inputs.property("playerMedia3Version", playerMedia3Version)
     doLast {
         val hashes = Properties().apply { file("native/mpegh/checksums.properties").inputStream().use { load(it) } }
+        val adapterVersion = hashes.getProperty("media3.version")
+        require(adapterVersion == playerMedia3Version) {
+            "MPEG-H JNI was built for Media3 ${adapterVersion ?: "unknown"}, but the app uses $playerMedia3Version. " +
+                "Follow app/native/mpegh/README.md to update the adapter before changing Media3."
+        }
         val expected = mapOf("arm64-v8a" to 183, "armeabi-v7a" to 40)
         val files = fileTree("src/main/jniLibs") { include("**/libmpeghJNI.so") }.files
         require(files.map { it.parentFile.name }.toSet() == expected.keys) { "MPEG-H must contain exactly the supported ARM ABIs" }
@@ -196,8 +203,14 @@ tasks.named("preBuild") { dependsOn(verifyMpeghNative) }
 val verifyIamfNative by tasks.registering {
     inputs.dir(layout.projectDirectory.dir("native/iamf"))
     inputs.files(fileTree("src/main/jniLibs") { include("**/libiamfJNI.so") })
+    inputs.property("playerMedia3Version", playerMedia3Version)
     doLast {
         val hashes = Properties().apply {file("native/iamf/checksums.properties").inputStream().use {load(it)}}
+        val adapterVersion = hashes.getProperty("media3.version")
+        require(adapterVersion == playerMedia3Version) {
+            "IAMF JNI was built for Media3 ${adapterVersion ?: "unknown"}, but the app uses $playerMedia3Version. " +
+                "Follow app/native/iamf/README.md to update the adapter before changing Media3."
+        }
         val expected = mapOf("arm64-v8a" to 183, "armeabi-v7a" to 40)
         val files = fileTree("src/main/jniLibs") {include("**/libiamfJNI.so")}.files
         require(files.map {it.parentFile.name}.toSet() == expected.keys) {"IAMF must contain exactly the supported ARM ABIs"}
@@ -315,14 +328,14 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
 
     // Built-in Media3 playback engine
-    implementation("androidx.media3:media3-exoplayer:1.11.1")
-    implementation("androidx.media3:media3-exoplayer-hls:1.11.1")
-    implementation("androidx.media3:media3-exoplayer-dash:1.11.1")
-    implementation("androidx.media3:media3-exoplayer-rtsp:1.11.1")
-    implementation("androidx.media3:media3-exoplayer-smoothstreaming:1.11.1")
-    implementation("androidx.media3:media3-ui:1.11.1")
-    implementation("androidx.media3:media3-session:1.11.1")
-    implementation("androidx.media3:media3-transformer:1.11.1")
+    implementation("androidx.media3:media3-exoplayer:$playerMedia3Version")
+    implementation("androidx.media3:media3-exoplayer-hls:$playerMedia3Version")
+    implementation("androidx.media3:media3-exoplayer-dash:$playerMedia3Version")
+    implementation("androidx.media3:media3-exoplayer-rtsp:$playerMedia3Version")
+    implementation("androidx.media3:media3-exoplayer-smoothstreaming:$playerMedia3Version")
+    implementation("androidx.media3:media3-ui:$playerMedia3Version")
+    implementation("androidx.media3:media3-session:$playerMedia3Version")
+    implementation("androidx.media3:media3-transformer:$playerMedia3Version")
     implementation("net.zetetic:sqlcipher-android:4.20.0")
     implementation("androidx.sqlite:sqlite:2.7.1")
     // FFmpeg audio decoders from Nextlib (TrueHD, DTS/DTS-HD core, AC3, E-AC3, FLAC, ALAC, MP3, AAC,

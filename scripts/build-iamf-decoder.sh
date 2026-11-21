@@ -59,6 +59,7 @@ import hashlib,pathlib,sys
 root=pathlib.Path(sys.argv[1]);lines=['# IAMF Tools; Media3 1.11.1 JNI; AAC disabled; ARM only',
     'source.commit=e552e7d6d8b55530d201fd2764ca7e12d2c66cd6',
     'source.sha256=08a4f80ff8f30a70da926fec4532f789763188f088e324d84d3fc285ef8d326c',
+    'media3.version=1.11.1',
     'media3.commit=8c6678b657ede1e7883fc164ef73ed483c7796c3','ndk.version=29.0.14206865','bazel.version=8.5.1']
 for abi in ['arm64-v8a','armeabi-v7a']:
     lines.append(abi+'.sha256='+hashlib.sha256((root/'app/src/main/jniLibs'/abi/'libiamfJNI.so').read_bytes()).hexdigest())

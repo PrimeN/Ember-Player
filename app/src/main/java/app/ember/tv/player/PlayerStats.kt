@@ -112,7 +112,15 @@ internal fun PlayerActivity.updateStats() {
     if (full) {
         out += getString(R.string.pl_network_throughput) to rate(bandwidth)
         out += getString(R.string.pl_stream_speed) to rate(loadSpeed)
-        out += getString(R.string.pl_decoders) to listOfNotNull(videoDecoder, audioDecoder ?: if (passthrough()) getString(R.string.pl_passthrough) else null).joinToString(" · ").ifBlank { "—" }
+        if (playbackEngine?.compatibility == null) {
+            out += getString(R.string.ui_video_decoder) to (videoDecoder ?: getString(R.string.ui_not_reported))
+            val activeAudioDecoder = when {
+                passthrough() -> getString(R.string.pl_passthrough)
+                p.audioFormat == null -> getString(R.string.ui_none)
+                else -> audioDecoder ?: getString(R.string.ui_not_reported)
+            }
+            out += getString(R.string.pl_audio_decoder) to activeAudioDecoder
+        }
         out += getString(R.string.pl_dropped_frames) to dropped.toString()
         val display = if (android.os.Build.VERSION.SDK_INT >= 30) display else @Suppress("DEPRECATION") windowManager.defaultDisplay
         display?.mode?.let { m ->

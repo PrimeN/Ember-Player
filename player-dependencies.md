@@ -139,6 +139,14 @@ supports unencrypted IAMF tracks in MP4 using Opus, FLAC or PCM. AAC-based IAMF,
 encrypted IAMF and mpv IAMF decoding are excluded. Source, licenses
 and rebuild instructions are in [the IAMF native directory](app/native/iamf/README.md).
 
+Both native manifests pin the Media3 version used for the Java/JNI adapters. The
+Android pre-build checks reject a mismatched pin. When upgrading Media3, review
+the adapter changes against the pinned source, rebuild the corresponding ARM
+libraries, and refresh their manifests using the linked rebuild instructions.
+Full playback statistics show Media3's active audio decoder separately from its
+video decoder. When the output is confirmed as passthrough, the audio decoder
+row reports passthrough.
+
 Software HDR
 preservation/tone mapping is not advertised as equivalent to the TV's HDR pipeline.
 Ember now replaces the pinned libmpv filter library with a selective FFmpeg 9.0.2
