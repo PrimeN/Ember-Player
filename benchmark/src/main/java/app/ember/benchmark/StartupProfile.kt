@@ -105,6 +105,7 @@ class StartupProfile {
         device.pressDPadDown();device.pressDPadRight();device.pressDPadLeft()
         click(device,if(television) "Folders" else "Files")
         label(device, if (television) "Device folders" else "Add a media folder")
+        if (television) click(device, "More options")
         click(device,"Settings")
         label(device,"Playback")
         click(device,"Audio");device.waitForIdle()
