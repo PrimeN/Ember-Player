@@ -1,0 +1,45 @@
+name: Import validated startup rules
+on:
+  push:
+    branches: [enhance/startup-device-and-browser]
+permissions:
+  actions: read
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 44898256656
+          name: Ember-Player-startup-rules
+          path: ${{ runner.temp }}/ember-rules
+      - name: Commit the two generated release inputs
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          import re
+
+          captures = Path(os.environ['RUNNER_TEMP']) / 'ember-rules'
+          target = Path('app/src/main')
+          for name in ('baseline-prof.txt', 'startup-prof.txt'):
+              files = list(captures.rglob(name))
+              if len(files) != 1:
+                  raise ValueError(f'Expected exactly one {name} artifact')
+              data = files[0].read_bytes()
+              rules = data.decode('utf-8').splitlines()
+              if not rules or not all(re.fullmatch(r'[HSP]*[L\[]\S+', line) for line in rules):
+                  raise ValueError(f'Invalid profile rules in {name}')
+              if not any(re.match(r'[HSP]*Lapp/ember/', line) for line in rules):
+                  raise ValueError(f'Missing Ember rules in {name}')
+              (target / name).write_bytes(data)
+              print(f'{name}: {len(rules)} rules')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- app/src/main/baseline-prof.txt app/src/main/startup-prof.txt
+          git commit -m 'Ship the collected phone and TV startup rules' -m 'Refs #204'
+          git push origin HEAD:refs/heads/enhance/startup-device-and-browser

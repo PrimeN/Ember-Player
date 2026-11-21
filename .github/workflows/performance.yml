@@ -73,10 +73,3 @@ jobs:
           name: Ember-Player-startup-rules
           path: merged/*.txt
           if-no-files-found: error
-      - name: Export generated app rules for the initial import
-        run: |
-          for kind in baseline startup; do
-            echo "EMBER_PROFILE_BEGIN_${kind}"
-            grep -E '^[HSP]*Lapp/ember/' "merged/${kind}-prof.txt"
-            echo "EMBER_PROFILE_END_${kind}"
-          done
