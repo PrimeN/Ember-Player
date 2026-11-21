@@ -76,6 +76,6 @@ internal class AndroidBackgroundAudioEngine(context:Context,private val request:
         else engine.player.setMediaSource(content)
         engine.player.seekTo(position.coerceAtLeast(0));engine.player.prepare();engine.player.playWhenReady=true
     }
-    override fun recover(error:PlaybackException)=engine.recover(error.errorCode)
+    override fun recover(error:PlaybackException)=engine.recover(error)
     override fun close(){route.close();engine.player.removeListener(listener);boost?.release();boost=null;manager.detach();engine.player.release()}
 }
