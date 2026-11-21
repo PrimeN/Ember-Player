@@ -32,6 +32,21 @@ jobs:
         run: python3 scripts/verify-network-crypto.py
       - name: Verify native dependency isolation and ARM alignment
         run: python3 scripts/verify-player-native.py app/build/isolated-mpv/libmpv-1.1.0.aar --apk app/build/outputs/apk/release/app-universal-release-unsigned.apk
+      - name: Verify release startup profile packaging
+        if: ${{ hashFiles('app/src/main/baseline-prof.txt', 'app/src/main/startup-prof.txt') != '' }}
+        run: |
+          test -s app/src/main/baseline-prof.txt
+          test -s app/src/main/startup-prof.txt
+          python3 - <<'PY'
+          from zipfile import ZipFile
+          apk = 'app/build/outputs/apk/release/app-universal-release-unsigned.apk'
+          with ZipFile(apk) as archive:
+              for name in ('baseline.prof', 'baseline.profm'):
+                  entry = archive.getinfo(f'assets/dexopt/{name}')
+                  assert entry.file_size > 0, f'Empty compiled profile: {name}'
+              assert 'assets/profile-sample.mp4' not in archive.namelist()
+          print('Release APK includes the compiled baseline profile.')
+          PY
       - name: Check translation resources
         run: python3 scripts/check-translations.py
       - name: Run Python validation tests

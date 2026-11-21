@@ -3,6 +3,7 @@
 | Guide | What you will find |
 | --- | --- |
 | [Changelog](../CHANGELOG.md) | Published versions, added features and compatibility notes |
+| [Startup profiles](performance.md) | Profile collection and release packaging |
 | [UI translations](localization.md) | Resource formats, plural forms and language-pack checks |
 | [Features](features.md) | Playback cores, formats, subtitles, media tools and receivers |
 | [Library and settings](settings.md) | Navigation, browsing choices and the eight settings categories |

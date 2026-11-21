@@ -11,3 +11,5 @@ dependencyResolutionManagement {
 }
 rootProject.name = "EmberPlayer"
 include(":app")
+
+if (providers.gradleProperty("includePerformanceTests").orNull == "true") include(":benchmark")

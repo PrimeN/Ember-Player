@@ -23,7 +23,14 @@ import app.ember.tv.data.SubtitleConfig
  * Files are parsed with Media3's SRT, WebVTT and SSA/ASS parsers.
  */
 @OptIn(UnstableApi::class)
-class SubtitleEngine(private val view: SubtitleView,private val invalidate:()->Unit={}) {
+class SubtitleEngine internal constructor(
+    private val view: SubtitleView,
+    private val parserDispatcher: kotlinx.coroutines.CoroutineDispatcher,
+    private val invalidate: () -> Unit,
+) {
+    constructor(view: SubtitleView, invalidate: () -> Unit = {}) :
+        this(view, kotlinx.coroutines.Dispatchers.Default, invalidate)
+
     var visibleText="";private set
     private var cues: List<CuesWithTiming> = emptyList()
     private var lastShown: List<Cue>? = null
@@ -46,7 +53,7 @@ class SubtitleEngine(private val view: SubtitleView,private val invalidate:()->U
     val active: Boolean get() = cues.isNotEmpty()
 
     internal suspend fun prepare(text: String, format: String, fps: Float?): Prepared? =
-        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+        kotlinx.coroutines.withContext(parserDispatcher) {
             parse(text, format, fps)?.takeIf { it.first.isNotEmpty() }?.let { Prepared(it.first, it.second) }
         }
 

@@ -2,6 +2,8 @@
 
 ## [1.0.0]
 
+- Ship Android startup profiles for phone and TV library navigation.
+
 - Reuse saved-folder listings for paging, search and sorting during the current visit.
 - Add translation resource checks and contributor guidance.
 - Update AppCompat to 1.8.0 and Fragment to 1.9.1.

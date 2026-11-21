@@ -17,6 +17,9 @@ plugins {
 }
 
 val useMavenCentralMirror = providers.gradleProperty("useMavenCentralMirror").orNull == "true"
+val includePerformanceTests = providers.gradleProperty("includePerformanceTests").orNull == "true"
+val profileAbi = providers.gradleProperty("profileAbi").orElse("x86_64").get()
+require(profileAbi in setOf("x86_64", "arm64-v8a", "armeabi-v7a"))
 
 /** The two engines ship independent FFmpeg bundles. Rename libmpv's private ELF dependencies
  * and its JNI loader strings without changing symbols, byte offsets or JNI class names.
@@ -233,7 +236,7 @@ android {
         versionCode = 1000
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+        ndk { abiFilters += if (includePerformanceTests) listOf(profileAbi) else listOf("arm64-v8a", "armeabi-v7a") }
     }
     val releaseKeystore = System.getenv("EMBER_KEYSTORE_FILE")?.takeIf { it.isNotBlank() }
     signingConfigs {
@@ -255,6 +258,18 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+    if (includePerformanceTests) {
+        buildTypes.create("benchmark") {
+            initWith(buildTypes.getByName("release"))
+            applicationIdSuffix = ".benchmark"
+            signingConfig = signingConfigs.getByName("debug")
+            isDebuggable = false
+            isProfileable = true
+            isMinifyEnabled = false
+            isShrinkResources = false
+            matchingFallbacks += listOf("release")
         }
     }
     splits {
@@ -357,5 +372,14 @@ tasks.register("writeNetworkCryptoClasspath") {
         val jars = runtime.get().files.filter { it.extension == "jar" && names.any(it.name::startsWith) }
         val r8 = File(Class.forName("com.android.tools.r8.R8").protectionDomain.codeSource.location.toURI())
         target.get().asFile.apply { parentFile.mkdirs(); writeText((listOf(r8) + jars).joinToString("\n") { it.absolutePath }) }
+    }
+}
+
+// The profiling variant can have a different ABI and includes synthetic library fixtures.
+gradle.taskGraph.whenReady {
+    if (includePerformanceTests && allTasks.any {
+            it.project == project && it.name in setOf("packageRelease", "bundleRelease", "assembleRelease")
+        }) {
+        error("Build production releases without -PincludePerformanceTests=true.")
     }
 }
