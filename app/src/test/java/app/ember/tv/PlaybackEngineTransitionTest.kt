@@ -144,6 +144,23 @@ class PlaybackEngineTransitionTest {
             assertFalse(engine.recover(PlaybackException(null, null, PlaybackException.ERROR_CODE_DECODING_FAILED)));assertFalse(constructed);assertEquals(42000,original.currentPosition)
         } finally {engine.player.release()}
     }
+    @Test fun automaticCoreRoutingHonoursTunnelingAndExplicitDecoderModes() {
+        val context = RuntimeEnvironment.getApplication()
+        for (settings in listOf(PlaybackConfig(tunneling = true), PlaybackConfig(ffmpegVideo = "always"),
+                PlaybackConfig(ffmpeg = "off"))) {
+            val standard = ExoPlayer.Builder(context).build()
+            var created = false
+            val engine = PlaybackEngine(context, standard, { settings.copy(rememberDecoderChoices = false) },
+                compatibilityFactory = { _, _, _ -> created = true; error("Automatic change ignored settings") }) {}
+            try {
+                engine.configure(EngineSource(listOf("content://media/123"), "Film", "key"))
+                assertFalse(engine.recover(PlaybackException(null, null, PlaybackException.ERROR_CODE_DECODING_FAILED)))
+                assertFalse(engine.switch(app.ember.tv.R.string.ui_core_styled_subtitles))
+                assertFalse(created)
+            } finally { engine.player.release() }
+        }
+    }
+
     @Test fun requestedAudioTakesPrecedenceOverTheLastDecoderFormat() {
         val context = RuntimeEnvironment.getApplication()
         val original = ExoPlayer.Builder(context).build()

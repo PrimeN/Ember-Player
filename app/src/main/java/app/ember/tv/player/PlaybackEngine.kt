@@ -288,16 +288,20 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
         if (active !== standard || !PlaybackRoutePlanner.canSwitchCore(
                 PlaybackFailureClassifier.classify(error), mode == "auto", preservesStandardAudio(selectedAudio()),
             )) return false
-        val c = config()
-        if (!recoveryAllowed() || c.ffmpegVideo in setOf("always", "off") || c.ffmpeg in setOf("prefer", "off") ||
-            c.decoderRules.preference(source?.urls?.firstOrNull().orEmpty(), standard.videoFormat?.sampleMimeType,
-                source?.filename) !in setOf("inherit", "auto")) return false
         return switch(app.ember.tv.R.string.ui_core_recovery)
     }
 
     fun switch(reason: Int = app.ember.tv.R.string.ui_core_feature, manual: Boolean = false): Boolean {
         if (mode == "standard" || active !== standard) return false
         val current = source ?: return false
+        if (mode == "auto" && reason in setOf(app.ember.tv.R.string.ui_core_recovery, app.ember.tv.R.string.ui_core_remembered,
+                app.ember.tv.R.string.ui_core_format, app.ember.tv.R.string.ui_core_styled_subtitles)) {
+            val c = config()
+            if (!recoveryAllowed() || c.tunneling || c.ffmpegVideo in setOf("always", "off") ||
+                c.ffmpeg in setOf("prefer", "off") ||
+                c.decoderRules.preference(current.urls.firstOrNull().orEmpty(), standard.videoFormat?.sampleMimeType,
+                    current.filename) !in setOf("inherit", "auto")) return false
+        }
         val audio = selectedAudio()
         if (!preservesStandardAudio(audio)) return false
         val route = PlaybackRoute(PlaybackCore.MPV, "mpv-native", audio?.sampleMimeType, "automatic")
