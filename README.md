@@ -33,11 +33,12 @@
 
 ## Made for your media
 
-Ember Player brings a warm charcoal-and-amber interface to your own media. Pick
+Ember Player uses Ember Launcher's warm charcoal-and-orange palette. Pick
 up where you stopped, browse saved folders or open a network stream. The library
 uses the same Home shelves, library tools and searchable Settings across devices.
-Phones and tablets use a bottom dock, while TVs use a remote-friendly toolbar and
-visible D-pad focus. Light, dark and system-following palettes are available on all three.
+Phones and tablets use a bottom dock. TVs use a remote-friendly toolbar with
+visible D-pad focus. Dark is the default, with Light and Follow system available
+under Appearance.
 
 Local playback needs **no account or API key**. Optional network and subtitle tools
 are enabled when you choose to use them. See [privacy and local data](docs/privacy.md).
@@ -57,7 +58,7 @@ are enabled when you choose to use them. See [privacy and local data](docs/priva
 
 ## Screenshots
 
-The library screenshots show an earlier first-launch layout before media is added.
+The library screenshots show the same sample collection on phone, tablet and TV.
 The playback preview shows the controls over an illustrative backdrop.
 
 <p align="center">
@@ -70,20 +71,22 @@ The playback preview shows the controls over an illustrative backdrop.
     <th align="center">Settings</th>
   </tr>
   <tr>
-    <td align="center"><img src="docs/screenshots/mobile.png" width="320" alt="Phone library with browsing tabs and top-bar actions" /></td>
+    <td align="center"><img src="docs/screenshots/mobile.png" width="320" alt="Phone Home with Continue watching, Open file, More options and a bottom navigation dock" /></td>
     <td align="center"><img src="docs/screenshots/settings.png" width="320" alt="Searchable Settings organized into eight categories" /></td>
   </tr>
 </table>
 
 <details open>
   <summary><strong>Tablet library</strong></summary>
-  <p><img src="docs/screenshots/tablet.png" width="100%" alt="Tablet library with top actions and browsing tabs" /></p>
+  <p><img src="docs/screenshots/tablet.png" width="100%" alt="Tablet Home with wide media shelves and a centered bottom dock" /></p>
 </details>
 
 <details open>
   <summary><strong>TV library</strong></summary>
-  <p><img src="docs/screenshots/tv.png" width="100%" alt="TV library with a compact remote navigation sidebar" /></p>
+  <p><img src="docs/screenshots/tv.png" width="100%" alt="TV Home with Browse, Search and More options above the media shelves" /></p>
 </details>
+
+Sample frames from *Big Buck Bunny*, © 2008, Blender Foundation / www.bigbuckbunny.org. [Gallery and image credits](docs/screenshots/README.md)
 
 ## Get started
 
@@ -93,9 +96,8 @@ tablets use touch controls; TVs support remotes and controllers.
 Download the APK from the [latest release](https://github.com/PrimeN/Ember-Player/releases/latest)
 and install it on your device. Choose **arm64-v8a** for modern ARM64 devices,
 **armeabi-v7a** for ARM32 devices, or the universal APK if you are unsure.
-An `.aab` is for store distribution and cannot be installed directly. This source prepares **1.0.0**;
-the release page shows the latest published version, and
-[the changelog](CHANGELOG.md) describes its features and requirements.
+Use the `.aab` for store distribution. See the changelog for features, fixes
+and compatibility details by version. [Changelog](CHANGELOG.md)
 
 Development happens on [`beta`](https://github.com/PrimeN/Ember-Player/tree/beta).
 Code pushes build and validate the app, with unsigned APK artifacts. Publishing
@@ -117,7 +119,8 @@ cd Ember-Player
 Ember combines Android's decoders with bundled software playback. Common
 containers include MP4, MKV, WebM, AVI, MOV and MPEG-TS. Software audio includes
 AC-3, E-AC-3, DTS and TrueHD. Media3 also supports selected MPEG-H streams as
-stereo PCM and unencrypted IAMF in MP4 using Opus, FLAC or PCM.
+stereo PCM and unencrypted IAMF in MP4 using Opus, FLAC or PCM. mpv playback can
+also decode supported tracks to PCM for eligible local MP4-family files.
 
 HDR10+, Dolby Vision, encoded surround output and device-only codecs depend on
 the hardware, output path and selected core. There is no bundled software AC-4

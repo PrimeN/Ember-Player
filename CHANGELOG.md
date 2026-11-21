@@ -2,20 +2,28 @@
 
 ## [1.0.0]
 
-- Ship Android startup profiles for phone and TV library navigation.
+Ember Player 1.0.0 brings the Ember Launcher palette and a simpler library to
+Android phones, tablets and TVs, along with updates to both playback cores.
 
-- Reuse saved-folder listings for paging, search and sorting during the current visit.
-- Add translation resource checks and contributor guidance.
-- Update AppCompat to 1.8.0 and Fragment to 1.9.1.
+### Library and controls
 
-- Add mpv program and quality choices, explain automatic core and renderer decisions, and prepare reusable native resources off the main thread.
-- Search and naturally sort entire saved folders, show durations before videos are played, and improve compact phone headers and TV accessibility labels.
-- Fix background embedded artwork, unknown-length WebDAV playback, unreadable folder-history writes and subtitle ZIP handling.
-- Prefer gpu-next for automatic mpv rendering, with one Stable GPU fallback and an explicit manual renderer choice.
-- Offer explicit Media3 and mpv playback-core choices in settings and the player menu.
-- Update to mpv 0.42.0 and the Android wrapper 1.1.0, with matching FFmpeg 9.0.2 filters and rebuilt custom native components.
-- Handle remote Menu presses safely while native playback resources are loading, and use consistent playback-core names.
-- Provide smaller ARM64 and ARM32 APKs alongside the universal APK, plus an Android App Bundle for store distribution. Trim unused crypto code, add privacy-policy access in About, and refresh the screenshot gallery and release documentation.
+- Browse Continue watching, library shortcuts and video shelves with a consistent layout across phone, tablet and TV. Phones and tablets use a floating Home, Files, Settings and Search dock. TV has visible D-pad focus and direct access to Browse and Search.
+- Find media filters, sort order, grid or list view and catalog refresh under More options. The menu shows the saved filter and sort order. The Glass and Ember playback overlays keep Back above the video and stack the bottom controls in narrower windows.
+- Search and naturally sort complete saved folders, see durations before playing files, and reuse listings for paging, search and sort during the same visit. Ship startup profiles for phone and TV library navigation.
+
+### Playback, audio and subtitles
+
+- Select Automatic, Media3 or mpv from Settings or during playback. The player explains core and renderer choices. mpv exposes programs, live quality variants and editions. Automatic rendering starts with gpu-next and can recover to Stable GPU.
+- Add decoded PCM for supported IAMF and MPEG-H tracks in seekable local MP4-family files during mpv playback. The path has format and storage requirements, and immersive passthrough depends on the device and selected core. [Format details](docs/features.md)
+- Honor PCM and manual passthrough settings in Media3. See the active audio decoder and negotiated output in playback diagnostics. Automatic routing takes explicit decoder and tunneling choices into account.
+- Render eligible authored ASS subtitles with libass over Media3. Improve subtitle timing and ownership during core changes, and preserve subtitle-off selections across program changes.
+- Improve recovery for audio decoder errors, background playback and HTTP failures. Preserve playback state during core switches and report HDR surface and decoder diagnostics more clearly.
+- Update mpv to 0.42.0, the Android wrapper to 1.1.0 and the FFmpeg filters to 9.0.2. Fix background artwork, unknown-length WebDAV playback, unreadable folder-history writes, subtitle ZIP handling and remote Menu presses during playback startup.
+
+### Downloads and requirements
+
+- Install the universal APK or choose a smaller ARM64 or ARM32 APK. The Android App Bundle is available for store distribution. Android 10 or newer is required. Release downloads include SHA-256 checksums.
+- Find the privacy policy and bundled dependency notices under Settings → About. Updated guides cover the library, settings, build process and translation contributions. [Screenshot gallery](docs/screenshots/README.md) · [Build and signing](docs/building.md)
 
 ## [0.8.5]
 

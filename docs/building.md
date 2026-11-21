@@ -76,10 +76,10 @@ for the Console declarations and privacy-policy link.
 
 The [Android workflow](../.github/workflows/android.yml) runs functional tests,
 optimized APK and app-bundle compilation, lint and native dependency/alignment checks on
-pushes and pull requests. Pushes and manual runs provide an unsigned universal and per-architecture APKs plus an app-bundle
-artifact, retained for seven days. Manual runs also provide an installable debug
-APK. Validation jobs have no signing-secret references. All workflow actions use
-full commit SHAs.
+pushes and pull requests. Successful Android builds provide an installable debug
+APK for three days. Pushes and manual runs also provide unsigned universal and
+per-architecture APKs plus an app bundle for seven days. Validation jobs have no
+signing-secret references. All workflow actions use full commit SHAs.
 
 Configure the GitHub Environment **release-signing** before publishing:
 
