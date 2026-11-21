@@ -132,7 +132,6 @@ class PlayerActivity : ComponentActivity() {
     internal var audioPicked = false
     internal var modeApplied = false
     internal var videoDecoder: String? = null
-    internal var decoderStableSince=0L
     internal var decoderLearned=false
     internal var audioDecoder: String? = null
     internal lateinit var info: TextView

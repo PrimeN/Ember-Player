@@ -189,10 +189,13 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
             hdr10PlusMetadata = false
             val visit=playbackVisit
             handler.post {if(player===p && playbackVisit==visit)applyPictureEnhancement(format)}
-            decoderStableSince=android.os.SystemClock.elapsedRealtime();decoderLearned=false
+            playbackEngine?.restartQualityWindow()
+            decoderLearned = false
         }
         override fun onVideoDecoderInitialized(eventTime: AnalyticsListener.EventTime, decoderName: String, initializedTimestampMs: Long, initializationDurationMs: Long) {
             videoDecoder = decoderName
+            playbackEngine?.restartQualityWindow()
+            decoderLearned = false
         }
 
         override fun onAudioDecoderInitialized(eventTime: AnalyticsListener.EventTime, decoderName: String, initializedTimestampMs: Long, initializationDurationMs: Long) {
@@ -295,7 +298,6 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             if(isPlaying)app.ember.player.CastPlaybackService.localPlayback(resumeKey)
-            decoderStableSince=if(isPlaying)android.os.SystemClock.elapsedRealtime() else 0L
             controls.playing = isPlaying
             // Paused by the user: show the controls (with the synopsis and cast).
             if (advanced && !isPlaying && !p.playWhenReady && p.playbackState == Player.STATE_READY) showControls()
@@ -323,6 +325,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
                     return
                 }
             }
+            playbackEngine?.restartQualityWindow()
             PlaybackFailureClassifier.failedVideoDecoder(error)?.let { (format, name) ->
                 codecs.decoderHealth?.forget(format, name)
             }

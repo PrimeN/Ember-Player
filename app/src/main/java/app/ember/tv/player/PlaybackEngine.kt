@@ -9,6 +9,8 @@ import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.TrackSelectionParameters
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
+import androidx.media3.exoplayer.DecoderCounters
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.common.util.UnstableApi
 import java.lang.reflect.InvocationTargetException
@@ -52,27 +54,57 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
     }
     private var stable:Runnable?=null
     private fun memoryKey()=source?.let {app.ember.tv.data.CachePolicy.digest("${it.key}|${it.filename.orEmpty()}|${it.audio!=null}")}
-    private val stabilityListener=object:Player.Listener {
-        override fun onIsPlayingChanged(isPlaying:Boolean) {
-            stable?.let(handler::removeCallbacks);stable=null
-            if(!isPlaying || !config().rememberDecoderChoices || mode!="auto")return
-            val owner=active;val key=memoryKey()?:return
-            stable=Runnable {
-                stable=null
-                val quality=if(owner===standard)standard.videoDecoderCounters?.let {
-                    it.ensureUpdated();PlaybackQuality(renderedFrames=it.renderedOutputBufferCount,droppedFrames=it.droppedBufferCount)
-                } else null
-                val video=owner.currentTracks.groups.any {it.type==androidx.media3.common.C.TRACK_TYPE_VIDEO && it.isSelected} ||
-                    owner===standard && standard.videoFormat!=null
-                if(!released && active===owner && owner.isPlaying && memoryKey()==key && mode=="auto" && config().rememberDecoderChoices &&
-                    (quality ?: PlaybackQuality()).learnable(video))
-                    health?.rememberEngine(key,if(owner===standard)"standard" else "compatibility")
-            }.also {handler.postDelayed(it,15_000)}
+    private var videoWindow: PlaybackQualityWindow<DecoderCounters>? = null
+
+    private fun DecoderCounters.frames(): FrameCount {
+        ensureUpdated()
+        return FrameCount(renderedOutputBufferCount, droppedBufferCount)
+    }
+
+    fun standardQuality(): PlaybackQuality? {
+        if (active !== standard || !standard.isPlaying) return null
+        val counters = standard.videoDecoderCounters ?: return null
+        return videoWindow?.measure(counters, SystemClock.elapsedRealtime(), counters.frames())
+    }
+
+    private fun clearQualityWindow() {
+        stable?.let(handler::removeCallbacks)
+        stable = null
+        videoWindow = null
+    }
+
+    fun restartQualityWindow() {
+        clearQualityWindow()
+        if (released || !active.isPlaying || !config().rememberDecoderChoices) return
+        val owner = active
+        if (owner === standard) {
+            standard.videoDecoderCounters?.let {
+                videoWindow = PlaybackQualityWindow(it, SystemClock.elapsedRealtime(), it.frames())
+            }
+        }
+        val key = memoryKey() ?: return
+        if (mode != "auto") return
+        stable = Runnable {
+            stable = null
+            if (released || active !== owner || !owner.isPlaying || memoryKey() != key ||
+                mode != "auto" || !config().rememberDecoderChoices) return@Runnable
+            val video = owner.currentTracks.groups.any { it.type == C.TRACK_TYPE_VIDEO && it.isSelected } ||
+                owner === standard && standard.videoFormat != null
+            val quality = standardQuality() ?: PlaybackQuality()
+            if (quality.learnable(video)) health?.rememberEngine(key, if (owner === standard) "standard" else "compatibility")
+        }.also { handler.postDelayed(it, STABLE_PLAYBACK_MS) }
+    }
+
+    private val stabilityListener = object : Player.Listener {
+        override fun onIsPlayingChanged(isPlaying: Boolean) = restartQualityWindow()
+
+        override fun onPositionDiscontinuity(oldPosition: Player.PositionInfo, newPosition: Player.PositionInfo, reason: Int) {
+            restartQualityWindow()
         }
     }
     init {
         standard.addListener(stabilityListener)
-        if(config().rememberDecoderChoices && health==null)DecoderHealth.loadAsync(context) {if(!released){health=it;if(active.isPlaying)stabilityListener.onIsPlayingChanged(true)}}
+        if(config().rememberDecoderChoices && health==null)DecoderHealth.loadAsync(context) {if(!released){health=it;if(active.isPlaying)restartQualityWindow()}}
     }
     val compatibility get()=if(active===standard)null else active as? MpvPlayer
     internal fun snapshot():EngineSource? {
@@ -93,7 +125,7 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
                     val adapter=listeners.getOrPut(listener) {playbackListener(listener) {player}};active.addListener(adapter);null}
                 "removeListener" -> {listeners.remove(arguments[0])?.let(active::removeListener);null}
                 // Drop the released libmpv instance: native calls on a destroyed handle crash the process.
-                "release" -> {released=true;navigation.cancel();cancelTrackRestore();stable?.let(handler::removeCallbacks);active.removeListener(stabilityListener);listeners.values.forEach(active::removeListener);if(active!==standard)active.release();active=standard;standard.release();listeners.clear();null}
+                "release" -> {released=true;navigation.cancel();cancelTrackRestore();clearQualityWindow();active.removeListener(stabilityListener);listeners.values.forEach(active::removeListener);if(active!==standard)active.release();active=standard;standard.release();listeners.clear();null}
                 "getCurrentPosition", "getContentPosition" -> navigation.target ?: if(method.name=="getContentPosition")active.contentPosition else active.currentPosition
                 "seekBack", "seekForward" -> {
                     val delta=if(method.name=="seekBack")-active.seekBackIncrement else active.seekForwardIncrement
@@ -135,7 +167,7 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
     }
     fun configure(value:EngineSource) {
         navigation.cancel()
-        stable?.let(handler::removeCallbacks);stable=null
+        clearQualityWindow()
         cancelTrackRestore()
         if (active !== standard) {
             returnToStandard()
@@ -158,6 +190,7 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
             val repeat = outgoing.repeatMode
             val tracks = outgoing.trackSelectionParameters
             navigation.cancel()
+            clearQualityWindow()
             returnToStandard()
             selectionReason = app.ember.tv.R.string.ui_core_manual
             standard.trackSelectionParameters = tracks.buildUpon().also { builder ->
@@ -282,6 +315,7 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
         } catch(_:Exception){return false} catch(_:LinkageError){return false}
         try {
             navigation.cancel()
+            clearQualityWindow()
             cancelTrackRestore()
             standard.removeListener(stabilityListener);listeners.values.forEach(standard::removeListener)
             standard.clearVideoSurface();standard.stop()
@@ -294,7 +328,7 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
             native.prepare();selectionReason=reason;changed(true);return true
         } catch(e:Throwable) {
             if(e !is Exception && e !is LinkageError)throw e
-            stable?.let(handler::removeCallbacks);stable=null
+            clearQualityWindow()
             runCatching {native.removeListener(stabilityListener)};listeners.values.forEach {runCatching {native.removeListener(it)}}
             runCatching {native.release()};active=standard
             standard.addListener(stabilityListener);listeners.values.forEach(standard::addListener)

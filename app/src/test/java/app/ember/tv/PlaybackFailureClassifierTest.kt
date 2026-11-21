@@ -74,6 +74,18 @@ class PlaybackFailureClassifierTest {
         assertTrue(PlaybackQuality(renderedFrames=980,droppedFrames=20).learnable(true))
         assertTrue(PlaybackQuality().learnable(false))
     }
+    @Test fun stabilityUsesOnlyFramesFromTheSameDecoderWithinTheWindow() {
+        val decoder = Any()
+        val window = PlaybackQualityWindow(decoder, 100, FrameCount(rendered = 900, dropped = 120))
+        assertNull(window.measure(decoder, 15_099, FrameCount(1020, 120)))
+        assertNull(window.measure(Any(), 15_100, FrameCount(1020, 120)))
+        assertNull(window.measure(decoder, 15_100, FrameCount(1020, 0)))
+        assertFalse(window.measure(decoder, 15_100, FrameCount(1019, 120))!!.learnable(true))
+        val stable = window.measure(decoder, 15_100, FrameCount(1020, 122))!!
+        assertEquals(120, stable.renderedFrames)
+        assertEquals(2, stable.droppedFrames)
+        assertTrue(stable.learnable(true))
+    }
     @Test fun oldDecoderRecordsStillDecodeWithOptionalQualityFields() {
         val old=Json.decodeFromString<DecoderHealthDocument>("""{"environment":"same","entries":{"avc":{"name":"platform.avc","savedAt":10}}}""")
         assertNull(old.entries.getValue("avc").renderedFrames)

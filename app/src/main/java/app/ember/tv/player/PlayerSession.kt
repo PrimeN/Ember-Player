@@ -33,7 +33,7 @@ internal fun PlayerActivity.start(url: String, title: String, release: String?) 
     playbackEngine?.standard?.setVideoEffects(emptyList())
     httpFactory.setConnectTimeoutMs(config.stream.normalized().connectSeconds*1000).setReadTimeoutMs(config.stream.normalized().readSeconds*1000)
     hdr10PlusMetadata = false
-    decoderStableSince=0;decoderLearned=false
+    decoderLearned = false
     repeatRange.clear()
     val restoredEdition=intent.getIntExtra(BackgroundAudioService.FORCE_EDITION,-1).takeIf {it in 0..8190}
     intent.removeExtra(BackgroundAudioService.FORCE_EDITION)
