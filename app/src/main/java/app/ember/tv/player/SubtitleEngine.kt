@@ -41,13 +41,21 @@ class SubtitleEngine(private val view: SubtitleView,private val invalidate:()->U
 
     val active: Boolean get() = cues.isNotEmpty()
 
-    /** Loads a subtitle; false if nothing could be read from it. */
-    suspend fun load(text: String, format: String, fps: Float? = null): Boolean {
-        val parsed = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { parse(text,format,fps) } ?: return false
-        if(parsed.first.isEmpty())return false
-        cues=parsed.first;index=parsed.second;lastShown=null;invalidate()
-        return cues.isNotEmpty()
+    internal suspend fun prepare(text: String, format: String, fps: Float?): Prepared? =
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            parse(text, format, fps)?.takeIf { it.first.isNotEmpty() }?.let { Prepared(it.first, it.second) }
+        }
+
+    internal class Prepared(val cues: List<CuesWithTiming>, val index: CueIndex<CuesWithTiming>)
+
+    internal fun show(prepared: Prepared) {
+        cues = prepared.cues
+        index = prepared.index
+        lastShown = null
+        invalidate()
     }
+
+    internal fun style(config: SubtitleConfig) = style(view, config)
 
     private fun parse(text:String,format:String,fps:Float?):Pair<List<CuesWithTiming>,CueIndex<CuesWithTiming>>? {
         val source = when(format) {"microdvd"->SubtitleFiles.microDvd(text,fps) ?: return null;"sami"->app.ember.tv.data.SamiSubtitles.toSrt(text) ?: return null;else->text}

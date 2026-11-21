@@ -39,6 +39,16 @@ class SubtitleCoordinationTest {
         coordinator.select(SubtitleOwner.OFF)
         assertEquals(SubtitleOwner.EMBEDDED,coordinator.owner(SubtitleLayer.SECONDARY))
     }
+    @Test fun eachBackendDrawsOnlyTheCommittedPrimaryOwner() {
+        for (compatibility in listOf(false, true)) {
+            assertEquals(SubtitleDrawing(), subtitleDrawing(SubtitleOwner.OFF, compatibility))
+            assertEquals(SubtitleDrawing(overlay = true), subtitleDrawing(SubtitleOwner.EXTERNAL, compatibility))
+            assertEquals(SubtitleDrawing(native = compatibility, embedded = !compatibility),
+                subtitleDrawing(SubtitleOwner.EMBEDDED, compatibility))
+            assertEquals(SubtitleDrawing(native = compatibility), subtitleDrawing(SubtitleOwner.NATIVE, compatibility))
+        }
+    }
+
     @Test fun authoredAssIsDetectedWithoutTreatingPlainSubtitlesAsStyledAss() {
         for(tag in listOf("pos(10,20)","move(1,2,3,4)","kf30","t(0,100,\\fscx120)","fnCustom"))
             assertTrue(tag,SubtitleStyleProbe.styled("[Events]\nDialogue: {\\$tag}Hello"))

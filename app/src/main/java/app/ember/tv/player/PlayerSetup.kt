@@ -142,8 +142,16 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         videoDecoder=if(compatible)resources.getString(R.string.ui_compatibility_engine) else null
         loudness?.release();loudness=null
         if(boostLevel>0)setBoost(boostLevel)
+        if (subsInitialized) {
+            view.subtitleView?.setCues(emptyList())
+            embeddedCaptionText = ""
+            val visit = playbackVisit
+            handler.post { if (playbackVisit == visit && player != null) subs.onBackendChanged() }
+        }
         if(compatible) {
             playbackEngine?.compatibility?.onCaptionTextChanged={subtitleTicker.refresh()}
+            playbackEngine?.compatibility?.primarySubtitleVisible(false)
+            playbackEngine?.compatibility?.onSubtitleLoadFailed = { if (subsInitialized) subs.nativeLoadFailed() }
             playbackEngine?.compatibility?.onOptionsChanged={
                 metadataLoads.reset();chapters=playbackEngine?.compatibility?.chapters().orEmpty()
                 markerChapterState=null;autoSkipped.clear()
@@ -262,6 +270,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
             if(playbackEngine?.compatibility==null && SubtitleStyleProbe.routeToMpv(config.engine=="auto",captions.authoredStyles,captions.systemStyle,styledAss,p.videoFormat,p.audioFormat)) {
                 if(playbackEngine?.switch(R.string.ui_core_styled_subtitles)==true)return
             }
+            if (subsInitialized) subs.reconcileEmbeddedSelection()
             if (advanced) {
                 controls.audioTracks = audioTracks()
                 changed()
@@ -355,7 +364,25 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
     view.subtitleView?.let { sv ->
         SubtitleEngine.style(sv, subCfg)
         baseSubCfg = subCfg
-        subs = SubtitleController(this, { player }, SubtitleEngine(sv){subtitleTicker.refresh()}, subConfigFor(subCfg), {refreshSubtitlePanel();updateSubtitleSheet();subtitleTicker.refresh()}) { text,format,wholeFile ->
+        val overlay = androidx.media3.ui.SubtitleView(this).apply {
+            visibility = android.view.View.INVISIBLE
+            importantForAccessibility = android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }
+        val parent = sv.parent as android.view.ViewGroup
+        parent.addView(overlay, parent.indexOfChild(sv) + 1, android.widget.FrameLayout.LayoutParams(sv.layoutParams))
+        SubtitleEngine.style(overlay, subCfg)
+        sv.visibility = android.view.View.INVISIBLE
+        subs = SubtitleController(this, { player }, SubtitleEngine(overlay) { subtitleTicker.refresh() },
+            subConfigFor(subCfg), { refreshSubtitlePanel(); updateSubtitleSheet(); subtitleTicker.refresh() },
+            nativeBackend = { playbackEngine?.compatibility },
+            showOwner = { owner ->
+                val native = playbackEngine?.compatibility
+                val drawing = subtitleDrawing(owner, native != null)
+                sv.visibility = if (drawing.embedded) android.view.View.VISIBLE else android.view.View.INVISIBLE
+                overlay.visibility = if (drawing.overlay) android.view.View.VISIBLE else android.view.View.INVISIBLE
+                native?.primarySubtitleVisible(drawing.native)
+            },
+        ) { text,format,wholeFile ->
             val captions=prefs.subtitleConfig
             val styled=format=="ass" && captions.authoredStyles && SubtitleStyleProbe.styled(text)
             if(SubtitleStyleProbe.routeToMpv(config.engine=="auto",true,captions.systemStyle,styled||captions.layout.needsCompatibility,p.videoFormat,p.audioFormat))

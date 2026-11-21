@@ -88,7 +88,6 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     private var texture:TextureView?=null
     private var ownedSurface:Surface?=null
     private val descriptors=mutableListOf<ParcelFileDescriptor>()
-    private val temporary=mutableListOf<File>()
     private val durations=source.durations.toMutableList()
     var partIndex=0;private set
     private val editionRestore=NativeEditionRestore()
@@ -98,8 +97,11 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     private var additionalAudio:String?=source.audio
     private var wholeTitleAudio=false
     private var audioOffset=0L
-    private var externalSubtitle:File?=null
-    private var externalGlobal=false
+    private data class ExternalSubtitle(val file: File, val companions: List<File>, val wholeFile: Boolean) {
+        fun delete() { file.delete(); companions.forEach { it.delete() } }
+    }
+    private var externalSubtitle: ExternalSubtitle? = null
+    var onSubtitleLoadFailed: (() -> Unit)? = null
     var onOptionsChanged:(()->Unit)?=null
     var captionText="";private set
     var onCaptionTextChanged:(()->Unit)?=null
@@ -236,7 +238,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     }
     private fun load(index:Int,at:Long=0) {
         if(requestedStream!=openedStream){transport?.close();transport=NativeHttpTransport(source.headers,source.urls+listOfNotNull(source.audio),timing=requestedStream);openedStream=requestedStream}
-        if(index!=partIndex&&!externalGlobal)externalSubtitle=null
+        if (index != partIndex && externalSubtitle?.wholeFile == false) clearExternalSubtitle()
         captionText=""
         partIndex=index;pendingSeek=at;waitingSeek=true;position=at;loading=true;status=Player.STATE_BUFFERING;busy=true;stopping=false
         native.setPropertyBoolean("pause",true)
@@ -276,9 +278,9 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         if(C.TRACK_TYPE_VIDEO in value.disabledTrackTypes)native.setPropertyString("vid","no")
         for(type in listOf(C.TRACK_TYPE_AUDIO,C.TRACK_TYPE_TEXT)) {
             val property=if(type==C.TRACK_TYPE_AUDIO)"aid" else "sid"
-            if(type in value.disabledTrackTypes) {native.setPropertyString(property,"no");if(type==C.TRACK_TYPE_TEXT){native.setPropertyString("secondary-sid","no");secondaryLanguage=null;externalSubtitle=null;externalGlobal=false;subtitleDelay(subtitleOffset)};continue}
+            if(type in value.disabledTrackTypes) {native.setPropertyString(property,"no");if(type==C.TRACK_TYPE_TEXT){native.setPropertyString("secondary-sid","no");secondaryLanguage=null;clearExternalSubtitle()};continue}
             val override=value.overrides.values.firstOrNull {it.type==type}
-            if(type==C.TRACK_TYPE_TEXT&&override!=null){externalGlobal=false;externalSubtitle=null;subtitleDelay(subtitleOffset)}
+            if(type==C.TRACK_TYPE_TEXT&&override!=null) clearExternalSubtitle()
             val chosen = override?.let {
                 val format = it.trackIndices.firstOrNull()?.let(it.mediaTrackGroup::getFormat) ?: return@let null
                 matchingPlaybackTrack(tracks, type, format)
@@ -299,7 +301,12 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         } else if(remaining>0)native.command(arrayOf("seek",(remaining/1000.0).toString(),"absolute+exact")) else waitingSeek=false
         additionalAudio?.let {native.command(arrayOf("audio-add",uri(it),"select"))}
         audioDelay(audioOffset)
-        externalSubtitle?.let {native.command(arrayOf("sub-add",it.absolutePath,"select"))}
+        externalSubtitle?.let { subtitle ->
+            if (!addSubtitle(subtitle)) {
+                clearExternalSubtitle()
+                onSubtitleLoadFailed?.invoke()
+            }
+        }
         subtitleDelay(subtitleOffset)
         native.setPropertyBoolean("pause",!wanted||focusPaused);invalidateState()
         onOptionsChanged?.invoke()
@@ -418,7 +425,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         native.detachSurface();ownedSurface?.release();ownedSurface=null;output=null
     }
     override fun handleClearVideoOutput(videoOutput:Any?):ListenableFuture<*> {if(videoOutput==null||videoOutput===output)detachOutput();return done()}
-    override fun handleRelease():ListenableFuture<*> {if(!closed){closed=true;onCaptionTextChanged=null;onOptionsChanged=null;displayManager.unregisterDisplayListener(displayListener);detachOutput();hdrSurface.close();handler.removeCallbacksAndMessages(null);runCatching {context.unregisterReceiver(noisy)};audioManager.abandonAudioFocusRequest(focus);native.removeObserver(this);transport?.close();native.destroy();ownedSurface?.release();descriptors.forEach {it.close()};temporary.forEach {it.delete()}};return done()}
+    override fun handleRelease():ListenableFuture<*> {if(!closed){closed=true;onCaptionTextChanged=null;onOptionsChanged=null;onSubtitleLoadFailed=null;displayManager.unregisterDisplayListener(displayListener);detachOutput();hdrSurface.close();handler.removeCallbacksAndMessages(null);runCatching {context.unregisterReceiver(noisy)};audioManager.abandonAudioFocusRequest(focus);native.removeObserver(this);transport?.close();native.destroy();ownedSurface?.release();descriptors.forEach {it.close()};externalSubtitle?.delete();externalSubtitle=null};return done()}
     fun geometry(zoom:String,ratio:Float) {
         native.setPropertyDouble("video-zoom",0.0)
         native.setPropertyDouble("panscan",if(zoom=="crop")1.0 else 0.0)
@@ -428,7 +435,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     fun magnify(scale:Float) { native.setPropertyDouble("video-zoom", kotlin.math.ln(scale.coerceIn(1f,4f).toDouble()) / kotlin.math.ln(2.0)) }
     fun volumeBoost(db:Double){boostGain=Math.pow(10.0,db/20.0);native.setPropertyDouble("volume",gain*100.0*boostGain)}
     fun audioDelay(ms:Long){audioOffset=ms;native.setPropertyDouble("audio-delay",(ms-(if(wholeTitleAudio)prefix(partIndex) else 0L))/1000.0)}
-    fun subtitleDelay(ms:Long){subtitleOffset=ms;native.setPropertyDouble("sub-delay",SubtitleTiming.nativeDelay(ms,subtitleRate,if(externalGlobal)prefix(partIndex) else 0L))}
+    fun subtitleDelay(ms:Long){subtitleOffset=ms;native.setPropertyDouble("sub-delay",SubtitleTiming.nativeDelay(ms,subtitleRate,if(externalSubtitle?.wholeFile == true)prefix(partIndex) else 0L))}
     fun subtitleSpeed(value:Float){subtitleRate=SubtitleTiming.rate(value);native.setPropertyDouble("sub-speed",SubtitleTiming.nativeSpeed(value));subtitleDelay(subtitleOffset)}
     val secondaryId get()=native.getPropertyInt("secondary-sid")
     fun secondary(id:Int?) {
@@ -437,18 +444,74 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         native.setPropertyString("secondary-sid",id?.toString()?:"no")
     }
     fun secondaryDelay(ms:Long){native.setPropertyDouble("secondary-sub-delay",ms/1000.0)}
-    fun external(text:String,format:String,wholeFile:Boolean=false):Boolean {
-        if(format !in setOf("srt","vtt","ass"))return false
-        val file=File.createTempFile("player-sub-",".$format",context.cacheDir);file.writeText(text);temporary+=file
-        parameters=parameters.buildUpon().setTrackTypeDisabled(C.TRACK_TYPE_TEXT,false).clearOverridesOfType(C.TRACK_TYPE_TEXT).build()
-        externalSubtitle=file;externalGlobal=wholeFile;subtitleDelay(subtitleOffset)
-        native.command(arrayOf("sub-add",file.absolutePath,"select"));refreshTracks();invalidateState();return true
+    fun primarySubtitleVisible(visible: Boolean) {
+        native.setPropertyBoolean("sub-visibility", visible)
+        if (!visible) captions("")
     }
-    fun externalFile(file:File,companions:List<File> = emptyList()) {
-        temporary+=file;temporary+=companions;externalSubtitle=file;externalGlobal=true;subtitleDelay(subtitleOffset)
-        parameters=parameters.buildUpon().setTrackTypeDisabled(C.TRACK_TYPE_TEXT,false).clearOverridesOfType(C.TRACK_TYPE_TEXT).build()
-        native.command(arrayOf("sub-add",file.absolutePath,"select"));refreshTracks();invalidateState()
+
+    private fun subtitleTrack(file: File): Int? {
+        val count = (native.getPropertyInt("track-list/count") ?: 0).coerceIn(0, 256)
+        for (index in 0 until count) {
+            val path = "track-list/$index/"
+            if (native.getPropertyString(path + "type") == "sub" &&
+                native.getPropertyString(path + "external-filename") == file.absolutePath) {
+                return native.getPropertyInt(path + "id")
+            }
+        }
+        return null
     }
+
+    private fun addSubtitle(subtitle: ExternalSubtitle): Boolean {
+        val file = subtitle.file
+        if (subtitleTrack(file) == null) native.command(arrayOf("sub-add", file.absolutePath, "auto"))
+        val id = subtitleTrack(file) ?: return false
+        native.setPropertyInt("sid", id)
+        return true
+    }
+
+    private fun removeSubtitle(subtitle: ExternalSubtitle) {
+        subtitleTrack(subtitle.file)?.let { native.command(arrayOf("sub-remove", it.toString())) }
+        subtitle.delete()
+    }
+
+    private fun clearExternalSubtitle() {
+        val previous = externalSubtitle ?: return
+        externalSubtitle = null
+        removeSubtitle(previous)
+        subtitleDelay(subtitleOffset)
+    }
+
+    private fun replaceExternalSubtitle(replacement: ExternalSubtitle): Boolean {
+        if (!loading && status != Player.STATE_IDLE && !addSubtitle(replacement)) return false
+        val previous = externalSubtitle
+        externalSubtitle = replacement
+        parameters = parameters.buildUpon().setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+            .clearOverridesOfType(C.TRACK_TYPE_TEXT).build()
+        subtitleDelay(subtitleOffset)
+        previous?.let(::removeSubtitle)
+        refreshTracks()
+        invalidateState()
+        return true
+    }
+
+    fun external(text: String, format: String, wholeFile: Boolean = false): Boolean {
+        if (format !in setOf("srt", "vtt", "ass")) return false
+        val file = runCatching { File.createTempFile("player-sub-", ".$format", context.cacheDir) }.getOrNull() ?: return false
+        var accepted = false
+        try {
+            file.writeText(text)
+            accepted = replaceExternalSubtitle(ExternalSubtitle(file, emptyList(), wholeFile))
+            return accepted
+        } catch (_: java.io.IOException) {
+            return false
+        } finally {
+            if (!accepted) file.delete()
+        }
+    }
+
+    fun externalFile(file: File, companions: List<File> = emptyList()): Boolean =
+        replaceExternalSubtitle(ExternalSubtitle(file, companions, true))
+
     fun additionalAudio(uri:String){additionalAudio=uri;wholeTitleAudio=true;native.command(arrayOf("audio-add",uri(uri),"select"));audioDelay(audioOffset)}
     fun picture(deband:Boolean,interpolate:Boolean,scale:String,deinterlace:String = "off") {
         deinterlacing=deinterlace

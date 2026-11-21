@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
  * shifted in time). Settings > Subtitles decides the providers, languages and auto-selection.
  */
 @OptIn(UnstableApi::class)
-class SubtitleController(
+internal class SubtitleController(
     private val activity: ComponentActivity,
     private val player: () -> ExoPlayer?,
     val engine: SubtitleEngine,
@@ -31,6 +31,8 @@ class SubtitleController(
     var config: SubtitleConfig,
     /** Called when the list, status or selection changes, so the panel can redraw. */
     private val onChange: () -> Unit,
+    private val nativeBackend: () -> Any? = { null },
+    private val showOwner: (SubtitleOwner) -> Unit = {},
     private val nativeSubtitle: (String,String,Boolean) -> Boolean = {_,_,_->false},
 ) {
     sealed interface Selection {
@@ -43,13 +45,78 @@ class SubtitleController(
     var candidates: List<SubtitleCandidate> = emptyList(); private set
     var status: String? = null; private set
     var selection: Selection = Selection.Off; private set
-    private val renderers=SubtitleRenderCoordinator {_,_,next->
-        if(next!=SubtitleOwner.EXTERNAL)engine.clear()
-        if(next==SubtitleOwner.EXTERNAL || next==SubtitleOwner.OFF)setMedia3Text(false)
+    private val renderers = SubtitleRenderCoordinator { _, _, next ->
+        if (next != SubtitleOwner.EXTERNAL) engine.clear()
     }
+    internal val drawsOverlay get() = renderers.owner() == SubtitleOwner.EXTERNAL
+    private var loadGeneration = 0L
+    private var loaded: LoadedText? = null
+    private var renderedBackend: Any? = null
+
+    private data class LoadedText(
+        val text: String,
+        val format: String,
+        val wholeFile: Boolean,
+        val fallback: SubtitleEngine.Prepared?,
+    )
 
     var onManualSelection:(()->Unit)?=null
-    fun reserveManualSelection(){autoSelection.manual();loadJob?.cancel()}
+    fun reserveManualSelection() { autoSelection.manual(); cancelLoad() }
+
+    private fun cancelLoad() {
+        loadGeneration++
+        loadJob?.cancel()
+        loadJob = null
+    }
+
+    private fun setOwner(owner: SubtitleOwner) {
+        renderers.select(owner)
+        showOwner(owner)
+        if (owner == SubtitleOwner.EXTERNAL || owner == SubtitleOwner.OFF) setMedia3Text(false)
+    }
+
+    private fun applyText(value: LoadedText): Boolean {
+        val native = nativeSubtitle(value.text, value.format, value.wholeFile)
+        val fallback = value.fallback
+        if (!native && fallback == null) return false
+        if (native) {
+            setOwner(SubtitleOwner.NATIVE)
+        } else {
+            setOwner(SubtitleOwner.EXTERNAL)
+            engine.show(checkNotNull(fallback))
+        }
+        loaded = value
+        renderedBackend = nativeBackend()
+        return true
+    }
+
+    fun nativeLoadFailed() {
+        if (renderers.owner() != SubtitleOwner.NATIVE) return
+        val fallback = loaded?.fallback
+        if (fallback == null) {
+            setOwner(SubtitleOwner.OFF)
+            selection = Selection.Off
+        } else {
+            setOwner(SubtitleOwner.EXTERNAL)
+            engine.show(fallback)
+        }
+        onChange()
+    }
+
+    fun onBackendChanged() {
+        val current = nativeBackend()
+        val text = loaded
+        if (text != null && renderedBackend !== current) {
+            if (!applyText(text)) setOwner(SubtitleOwner.OFF)
+        } else if (manualBitmap && current == null) {
+            manualBitmap = false
+            selection = Selection.Off
+            setOwner(SubtitleOwner.OFF)
+            onChange()
+        } else {
+            showOwner(renderers.owner())
+        }
+    }
 
     private var searchJob: Job? = null
     private var loadJob: Job? = null
@@ -71,9 +138,12 @@ class SubtitleController(
         if (!preserve) { choice=null; chosenOff=false;manualFile=null;manualBitmap=false }
         this.query = query
         searchJob?.cancel()
-        loadJob?.cancel()
-        engine.clear()
-        if(!preserve||!manualBitmap){renderers.select(SubtitleOwner.OFF);setMedia3Text(false)}
+        cancelLoad()
+        if (!preserve || !manualBitmap) {
+            loaded = null
+            renderedBackend = null
+            setOwner(SubtitleOwner.OFF)
+        }
         candidates = emptyList()
         selection = Selection.Off
         searched = false
@@ -122,10 +192,9 @@ class SubtitleController(
         if(selection !is Selection.Embedded)return
         val groups=player()?.currentTracks?.groups ?: return
         val index=groups.indexOfFirst {it.type==C.TRACK_TYPE_TEXT&&it.isSelected}
-        selection=if(index<0)Selection.Off else {
-            val track=(0 until groups[index].length).firstOrNull {groups[index].isTrackSelected(it)} ?: return
-            Selection.Embedded(index,track)
-        }
+        if (index < 0) return
+        val track = (0 until groups[index].length).firstOrNull { groups[index].isTrackSelected(it) } ?: return
+        selection = Selection.Embedded(index, track)
         onChange()
     }
 
@@ -166,23 +235,23 @@ class SubtitleController(
     fun selectOff() {
         onManualSelection?.invoke()
         autoSelection.manual()
-        loadJob?.cancel()
-        engine.clear()
-        renderers.select(SubtitleOwner.OFF)
+        cancelLoad()
+        loaded = null
+        setOwner(SubtitleOwner.OFF)
         selection = Selection.Off
         chosenOff=true;choice=null;manualFile=null;manualBitmap=false
-        setMedia3Text(enabled = false)
         onChange()
     }
 
     fun selectEmbedded(group: Int, track: Int, manual: Boolean = true) {
         if(manual)onManualSelection?.invoke()
         autoSelection.manual()
-        loadJob?.cancel()
+        cancelLoad()
         val p = player() ?: return
         val g = p.currentTracks.groups.getOrNull(group) ?: return
         if(track !in 0 until g.length)return
-        renderers.select(SubtitleOwner.EMBEDDED)
+        loaded = null
+        setOwner(SubtitleOwner.EMBEDDED)
         p.trackSelectionParameters = p.trackSelectionParameters.buildUpon()
             .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
             .setOverrideForType(TrackSelectionOverride(g.mediaTrackGroup, track))
@@ -196,10 +265,9 @@ class SubtitleController(
     /** Downloads and shows a subtitle; if it cannot be read, tries [fallbacks] in turn. */
     fun selectExternal(c: SubtitleCandidate, fallbacks: List<SubtitleCandidate> = emptyList(), manual: Boolean = true) {
         if(manual)onManualSelection?.invoke()
-        manualFile=null;manualBitmap=false
-        if(manual) { choice=Choice(c.lang,true,c.provider,c.forced);chosenOff=false }
         autoSelection.manual()
-        loadJob?.cancel()
+        cancelLoad()
+        val generation = loadGeneration
         status = activity.resources.getString(R.string.ui_loading_subtitles_from ,c.languageName,c.provider)
         onChange()
         loadJob = activity.lifecycleScope.launch(kotlinx.coroutines.CoroutineExceptionHandler { _, _ ->
@@ -211,7 +279,7 @@ class SubtitleController(
                 if (got == null) continue
                 // #256: a file the player or the drawing engine cannot take moves on to the next one instead of
                 // ending playback (and the app) with it.
-                val native = try {
+                val applied = try {
                     val fps=player()?.videoFormat?.frameRate?.takeIf {it>0}
                     val text=kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {when(got.second) {
                         "microdvd"->app.ember.tv.data.SubtitleFiles.microDvd(got.first,fps)
@@ -219,13 +287,15 @@ class SubtitleController(
                         else->got.first
                     }}
                     val format=if(got.second in setOf("microdvd","sami"))"srt" else got.second
-                    if(text==null)null
-                    else if (nativeSubtitle(text,format,false)) true
-                    else if (engine.load(text,format,fps)) false
-                    else null
-                } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Throwable) { null }
-                if (native != null) {
-                    renderers.select(if(native)SubtitleOwner.NATIVE else SubtitleOwner.EXTERNAL)
+                    val parsed = text?.let { engine.prepare(it, format, fps) }
+                    ensureActive()
+                    text != null && generation == loadGeneration &&
+                        applyText(LoadedText(text, format, false, parsed))
+                } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { false }
+                if (applied) {
+                    manualFile = null
+                    manualBitmap = false
+                    if (manual) { choice = Choice(s.lang, true, s.provider, s.forced); chosenOff = false }
                     selection = Selection.External(s)
                     status = "${s.languageName} · ${s.provider}" + if (s.hashMatch) activity.resources.getString(R.string.ui_made_for_this_file) else ""
                     onChange()
@@ -239,15 +309,42 @@ class SubtitleController(
 
     /** Manual files have the same selection priority as an explicit track choice. */
     suspend fun loadManual(text:String,format:String,restoring:Boolean=false):Boolean {
-        if(!restoring)loadJob?.cancel()
-        autoSelection.manual();chosenOff=false
-        val fps=player()?.videoFormat?.frameRate?.takeIf {it>0}
-        val converted=kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {when(format) {"microdvd"->app.ember.tv.data.SubtitleFiles.microDvd(text,fps)?:return@withContext null;"sami"->app.ember.tv.data.SamiSubtitles.toSrt(text,Subtitles.wanted(config));else->text}} ?: return false
-        if(nativeSubtitle(converted,if(format in setOf("microdvd","sami"))"srt" else format,true)){renderers.select(SubtitleOwner.NATIVE);engine.clear();manualBitmap=false;manualFile=text to format;selection=Selection.Manual(activity.resources.getString(R.string.ui_manual_subtitle_file));status=activity.resources.getString(R.string.ui_manual_subtitle_file);onChange();return true}
-        if(!engine.load(converted,if(format in setOf("microdvd","sami"))"srt" else format,fps))return false
-        renderers.select(SubtitleOwner.EXTERNAL);setMedia3Text(false);manualBitmap=false;manualFile=text to format;selection=Selection.Manual(activity.resources.getString(R.string.ui_manual_subtitle_file));status=activity.resources.getString(R.string.ui_manual_subtitle_file);onChange();return true
+        if (!restoring) cancelLoad()
+        autoSelection.manual()
+        val generation = loadGeneration
+        val fps = player()?.videoFormat?.frameRate?.takeIf { it > 0 }
+        val converted = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            when (format) {
+                "microdvd" -> app.ember.tv.data.SubtitleFiles.microDvd(text, fps)
+                "sami" -> app.ember.tv.data.SamiSubtitles.toSrt(text, Subtitles.wanted(config))
+                else -> text
+            }
+        } ?: return false
+        val resolvedFormat = if (format in setOf("microdvd", "sami")) "srt" else format
+        val parsed = engine.prepare(converted, resolvedFormat, fps)
+        kotlinx.coroutines.currentCoroutineContext().ensureActive()
+        if (generation != loadGeneration || !applyText(LoadedText(converted, resolvedFormat, true, parsed))) return false
+        chosenOff = false
+        manualBitmap = false
+        manualFile = text to format
+        status = activity.resources.getString(R.string.ui_manual_subtitle_file)
+        selection = Selection.Manual(checkNotNull(status))
+        onChange()
+        return true
     }
-    fun selectManualNative(){autoSelection.manual();loadJob?.cancel();chosenOff=false;manualFile=null;manualBitmap=true;renderers.select(SubtitleOwner.NATIVE);engine.clear();selection=Selection.Manual(activity.resources.getString(R.string.ui_manual_bitmap_subtitles));status=activity.resources.getString(R.string.ui_manual_bitmap_subtitles);onChange()}
+
+    fun selectManualNative() {
+        autoSelection.manual()
+        cancelLoad()
+        chosenOff = false
+        manualFile = null
+        manualBitmap = true
+        loaded = null
+        setOwner(SubtitleOwner.NATIVE)
+        status = activity.resources.getString(R.string.ui_manual_bitmap_subtitles)
+        selection = Selection.Manual(checkNotNull(status))
+        onChange()
+    }
 
     /** Media3's own subtitle tracks on or off; off while a downloaded subtitle is shown. */
     private fun setMedia3Text(enabled: Boolean) {

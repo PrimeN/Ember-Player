@@ -14,3 +14,12 @@ internal class SubtitleRenderCoordinator(private val clearPrevious:(SubtitleLaye
         owners[layer]=next
     }
 }
+
+internal data class SubtitleDrawing(val embedded: Boolean = false, val overlay: Boolean = false, val native: Boolean = false)
+
+internal fun subtitleDrawing(owner: SubtitleOwner, compatibility: Boolean): SubtitleDrawing = when (owner) {
+    SubtitleOwner.OFF -> SubtitleDrawing()
+    SubtitleOwner.EMBEDDED -> if (compatibility) SubtitleDrawing(native = true) else SubtitleDrawing(embedded = true)
+    SubtitleOwner.EXTERNAL -> SubtitleDrawing(overlay = true)
+    SubtitleOwner.NATIVE -> SubtitleDrawing(native = compatibility)
+}
