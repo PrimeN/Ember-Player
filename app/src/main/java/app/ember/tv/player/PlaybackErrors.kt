@@ -55,8 +55,7 @@ internal object PlaybackErrors {
     fun decoding(code: Int) = code in decoding
 
     /** The sound output failed (often pass-through the receiver refused): decoded PCM may work. */
-    fun audioOutput(code: Int) = code == PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED ||
-        code == PlaybackException.ERROR_CODE_AUDIO_TRACK_WRITE_FAILED
+    fun audioOutput(code: Int) = PlaybackFailureClassifier.classify(code)==PlaybackFailure.AUDIO_OUTPUT
 
     /**
      * The stream type a link names, for links ExoPlayer cannot tell from their extension: HLS for a

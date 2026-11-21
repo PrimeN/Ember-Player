@@ -5,10 +5,22 @@ import argparse
 import os
 import subprocess
 import time
+import xml.etree.ElementTree as ET
 
 
 def run(*args, **kwargs):
     return subprocess.run(args, check=True, **kwargs)
+
+
+def report_test_failures(root):
+    reports = root / 'benchmark/build/outputs/androidTest-results'
+    for report in reports.rglob('TEST-*.xml'):
+        for case in ET.parse(report).iter('testcase'):
+            failure = case.find('failure')
+            if failure is None:
+                failure = case.find('error')
+            if failure is not None:
+                print(f"{case.get('classname')}.{case.get('name')}: {failure.get('message', '')}", flush=True)
 
 
 def main():
@@ -51,7 +63,11 @@ def main():
             run(adb, 'shell', 'settings', 'put', 'system', 'screen_off_timeout', '1800000')
             run(adb, 'shell', 'svc', 'power', 'stayon', 'true')
             run(adb, 'shell', 'input', 'keyevent', '82')
-            run(str(root / 'gradlew'), '--no-daemon', '--max-workers=2', '-PincludePerformanceTests=true', '-PuseMavenCentralMirror=true', ':benchmark:connectedBenchmarkAndroidTest', cwd=root)
+            try:
+                run(str(root / 'gradlew'), '--no-daemon', '--max-workers=2', '-PincludePerformanceTests=true', '-PuseMavenCentralMirror=true', ':benchmark:connectedBenchmarkAndroidTest', cwd=root)
+            except subprocess.CalledProcessError:
+                report_test_failures(root)
+                raise
             # AGP normally pulls additional test outputs; retain a direct copy as well.
             profiles = logs / 'profiles'
             profiles.mkdir(exist_ok=True)

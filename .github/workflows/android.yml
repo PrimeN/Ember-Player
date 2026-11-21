@@ -26,7 +26,7 @@ jobs:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
       - name: Unit tests and optimized release checks
         run: |
-          ./gradlew --no-daemon --max-workers=2 -PuseMavenCentralMirror=true testDebugUnitTest bundleRelease lintRelease writeNetworkCryptoClasspath
+          ./gradlew --no-daemon --max-workers=2 -PuseMavenCentralMirror=true testDebugUnitTest bundleRelease lintRelease writeNetworkCryptoClasspath assembleDebugAndroidTest mergeDebugNativeLibs
           ./gradlew --no-daemon --max-workers=2 -PuseMavenCentralMirror=true assembleRelease -PsplitApks=true
       - name: Verify shrunk network authentication algorithms
         run: python3 scripts/verify-network-crypto.py
@@ -34,7 +34,7 @@ jobs:
         run: python3 scripts/verify-player-native.py app/build/isolated-mpv/libmpv-1.1.0.aar --apk app/build/outputs/apk/release/app-universal-release-unsigned.apk
       - name: Check translation resources
         run: python3 scripts/check-translations.py
-      - name: Check release integrity rules
+      - name: Run Python validation tests
         run: python3 -m unittest discover -s tests -p 'test_*.py' -v
       - name: Verify and prepare unsigned validation packages
         run: python3 scripts/prepare-release.py

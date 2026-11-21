@@ -123,8 +123,8 @@
     <string name="ui_brightness_e1a2b6" formatted="false">"Brightness"</string>
     <string name="ui_brightness_swipe" formatted="false">"Brightness swipe"</string>
     <string name="ui_browse_smb_shares" formatted="false">"Browse SMB shares"</string>
-    <string name="ui_bt_2020_pq_confirmed" formatted="false">"BT.2020 / PQ confirmed"</string>
-    <string name="ui_bt_2020_pq_surface_confirmed" formatted="false">"BT.2020 / PQ surface confirmed"</string>
+    <string name="ui_bt_2020_pq_confirmed" formatted="false">"BT.2020 / PQ configured (panel mode unverified)"</string>
+    <string name="ui_bt_2020_pq_surface_confirmed" formatted="false">"BT.2020 / PQ surface configured (panel mode unverified)"</string>
     <string name="ui_bt_2390" formatted="false">"BT.2390"</string>
     <string name="ui_buffer" formatted="false">"Buffer"</string>
     <string name="ui_buffer_ahead" formatted="false">"Buffer ahead"</string>
@@ -1066,4 +1066,14 @@
     <string name="ui_your_media_ready_to_play" formatted="false">"Your media, ready to play"</string>
     <string name="ui_your_videos" formatted="false">"Your videos"</string>
     <string name="ui_zoom">"Zoom %1$s%%"</string>
+    <string name="ui_yes">Yes</string>
+    <string name="ui_no">No</string>
+    <string name="ui_core_styled_subtitles">Styled subtitles</string>
+    <string name="ui_nextlib_subtitle_notices">Nextlib subtitle library notices</string>
+    <string name="ui_hdr_confidence">HDR confidence</string>
+    <string name="ui_hdr_source_unknown">Source transfer not reported; output unverified</string>
+    <string name="ui_hdr_source_identified">Source identified; display output unverified</string>
+    <string name="ui_hdr_output_configured">Surface configured; display output unverified</string>
+    <string name="ui_hdr_display_support">Display supports requested signal</string>
+    <string name="ui_hdr_tone_mapping_active">HDR-to-SDR tone mapping active</string>
 </resources>

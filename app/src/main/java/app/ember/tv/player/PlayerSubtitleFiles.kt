@@ -59,7 +59,7 @@ internal suspend fun PlayerActivity.loadManualSubtitle(choice:ManualSubtitleFile
             }
             val native=playbackEngine?.compatibility ?: if(playbackEngine?.switch()==true)playbackEngine?.compatibility else null
             checkNotNull(native){resources.getString(R.string.ui_compatibility_playback_unavailable)}
-            native.externalFile(bitmap.first,bitmap.second)
+            check(native.externalFile(bitmap.first, bitmap.second))
             temporary=null // The compatibility engine owns and removes these files.
             subs.selectManualNative()
         } else {

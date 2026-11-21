@@ -1,4 +1,4 @@
-# Startup profiles and folder browsing
+# Startup profiles
 
 ## Baseline and startup profiles
 
@@ -10,8 +10,8 @@ The fixture provider and media asset are absent from production builds.
 The Android startup profiles workflow collects on a phone emulator and an Android
 TV emulator. Its dependency downloads use Google's Maven Central mirror through
 `-PuseMavenCentralMirror=true`. CI validation and release builds use the same
-mirror with Maven Central as a fallback. Download both `Ember-Player-profile-*` artifacts into one directory,
-then merge the generated rules:
+mirror with Maven Central as a fallback. CI uploads the merged rules in `Ember-Player-startup-rules`. To merge local
+captures, collect them into one directory and run:
 
 ```sh
 python3 scripts/merge-startup-profiles.py /path/to/captures
@@ -46,17 +46,4 @@ exclude the benchmark module and retain both supported ARM architectures.
 Playback, decoding, HDR and physical-device responsiveness still need manual
 validation. No emulator playback smoke test is part of this change.
 
-## Folder visit cache
-
-The saved-folder browser keeps one visit's metadata and sorted results in RAM.
-Next and previous pages reuse it, and search or sort changes use the same source
-snapshot. File operations, refresh, directory changes and privacy state changes
-end the visit. Ending a visit also prevents an outstanding read from restoring
-its cached data.
-
-The cache allows up to 20,000 entries within an estimated 16 MiB metadata budget.
-Larger listings use the existing bounded-memory scan. Neither cache stores file
-contents or writes filenames to disk. Folder thumbnails keep their independent
-bounded cache.
-
-[Build instructions](building.md) · [Translations](localization.md)
+[Build instructions](building.md) · [Folder browsing](settings.md#browse-your-media)

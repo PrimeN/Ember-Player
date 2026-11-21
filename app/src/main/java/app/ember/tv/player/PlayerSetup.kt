@@ -124,7 +124,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         "always" -> false
         else -> !Playback.screenHasDolbyVision(this)
     }
-    val standard = ExoPlayer.Builder(this, Playback.Renderers(this, config, audioDelay, codecs, decoderManager, audioEffectState))
+    val standard = ExoPlayer.Builder(this, Playback.Renderers(this, config, audioDelay, codecs, decoderManager, audioEffectState, nativeSubtitles = true))
         .setTrackSelector(trackSelector)
         .setLoadControl(Playback.loadControl(config, this){config})
         .setAudioAttributes(androidx.media3.common.AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true)
@@ -136,13 +136,23 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         )
         .build()
 
-    playbackEngine=PlaybackEngine(this,standard,{renderConfig().copy(passthrough=config.passthrough&&!codecs.pcm)}) { compatible ->
+    playbackEngine=PlaybackEngine(this,standard,{renderConfig().copy(passthrough=config.passthrough&&!codecs.pcm)},
+        recoveryAllowed={userVideoMode==null && userAudioMode==null}, recovery = decoderRecovery) { compatible ->
         pictureBypassed=false;pictureSignature=null;pictureEffectsActive=false
         videoDecoder=if(compatible)resources.getString(R.string.ui_compatibility_engine) else null
+        standardAudioTrack = null
         loudness?.release();loudness=null
         if(boostLevel>0)setBoost(boostLevel)
+        if (subsInitialized) {
+            view.subtitleView?.setCues(emptyList())
+            embeddedCaptionText = ""
+            val visit = playbackVisit
+            handler.post { if (playbackVisit == visit && player != null) subs.onBackendChanged() }
+        }
         if(compatible) {
             playbackEngine?.compatibility?.onCaptionTextChanged={subtitleTicker.refresh()}
+            playbackEngine?.compatibility?.primarySubtitleVisible(false)
+            playbackEngine?.compatibility?.onSubtitleLoadFailed = { if (subsInitialized) subs.nativeLoadFailed() }
             playbackEngine?.compatibility?.onOptionsChanged={
                 metadataLoads.reset();chapters=playbackEngine?.compatibility?.chapters().orEmpty()
                 markerChapterState=null;autoSkipped.clear()
@@ -182,16 +192,38 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
     p.setVideoFrameMetadataListener { _, _, _, output ->
         if (!hdr10PlusMetadata && output?.containsKey("hdr10-plus-info") == true)
             hdr10PlusMetadata = runCatching { output.getByteBuffer("hdr10-plus-info")?.hasRemaining() == true }.getOrDefault(false)
+        if (animateAssOverlay) {
+            handler.removeCallbacks(subtitleVideoFrame)
+            handler.post(subtitleVideoFrame)
+        }
     }
     p.addAnalyticsListener(object : AnalyticsListener {
         override fun onVideoInputFormatChanged(eventTime: AnalyticsListener.EventTime, format: Format, decoderReuseEvaluation: DecoderReuseEvaluation?) {
             hdr10PlusMetadata = false
             val visit=playbackVisit
             handler.post {if(player===p && playbackVisit==visit)applyPictureEnhancement(format)}
-            decoderStableSince=android.os.SystemClock.elapsedRealtime();decoderLearned=false
+            playbackEngine?.restartQualityWindow()
+            decoderLearned = false
         }
         override fun onVideoDecoderInitialized(eventTime: AnalyticsListener.EventTime, decoderName: String, initializedTimestampMs: Long, initializationDurationMs: Long) {
             videoDecoder = decoderName
+            playbackEngine?.restartQualityWindow()
+            decoderLearned = false
+        }
+
+        override fun onAudioTrackInitialized(eventTime: AnalyticsListener.EventTime, audioTrackConfig: androidx.media3.exoplayer.audio.AudioSink.AudioTrackConfig) {
+            if (playbackEngine?.compatibility != null) return
+            standardAudioTrack = audioTrackConfig
+            updateSoundLabel()
+        }
+
+        override fun onAudioTrackReleased(eventTime: AnalyticsListener.EventTime, audioTrackConfig: androidx.media3.exoplayer.audio.AudioSink.AudioTrackConfig) {
+            val active = standardAudioTrack ?: return
+            if (active.encoding == audioTrackConfig.encoding && active.sampleRate == audioTrackConfig.sampleRate &&
+                active.channelConfig == audioTrackConfig.channelConfig && active.offload == audioTrackConfig.offload) {
+                standardAudioTrack = null
+                updateSoundLabel()
+            }
         }
 
         override fun onAudioDecoderInitialized(eventTime: AnalyticsListener.EventTime, decoderName: String, initializedTimestampMs: Long, initializationDurationMs: Long) {
@@ -236,19 +268,6 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         override fun onCues(cueGroup:androidx.media3.common.text.CueGroup){embeddedCaptionText=cueGroup.cues.mapNotNull {it.text?.toString()}.joinToString("\n")}
 
         override fun onTracksChanged(tracks: Tracks) {
-            val captions=prefs.subtitleConfig
-            if(config.engine=="auto" && !captions.systemStyle && captions.layout.needsCompatibility && playbackEngine?.compatibility==null &&
-                tracks.groups.any {it.type==C.TRACK_TYPE_TEXT && it.isSelected} && playbackEngine?.switch()==true)return
-            if (config.engine == "auto" && playbackEngine?.compatibility == null && tracks.groups.any { group ->
-                group.type == C.TRACK_TYPE_VIDEO && (0 until group.length).any { group.isTrackSelected(it) && PlaybackFormats.nativeFirst(group.getTrackFormat(it).sampleMimeType, group.isTrackSupported(it, false)) }
-            } && playbackEngine?.switch(R.string.ui_core_format) == true) return
-            if(config.engine=="auto" && prefs.subtitleConfig.authoredStyles && !prefs.subtitleConfig.systemStyle && playbackEngine?.compatibility==null && tracks.groups.any {it.type==C.TRACK_TYPE_TEXT && (0 until it.length).any { index -> it.isTrackSelected(index) && it.getTrackFormat(index).sampleMimeType==MimeTypes.TEXT_SSA }}) {
-                if(playbackEngine?.switch()==true)return
-            }
-            if (advanced) {
-                controls.audioTracks = audioTracks()
-                changed()
-            }
             // Start on the best audio track once per title; after that the user's choice stands.
             if (!audioPicked && tracks.groups.any { it.type == C.TRACK_TYPE_AUDIO }) {
                 audioPicked = true
@@ -257,6 +276,30 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
                 (restored ?: Playback.bestAudio(tracks, config, showKey()?.let { memory.get(it)?.audio }))?.let { o ->
                     p.trackSelectionParameters = p.trackSelectionParameters.buildUpon().setOverrideForType(o).build()
                 }
+            }
+            val captions=prefs.subtitleConfig
+            if(SubtitleStyleProbe.routeToMpv(config.engine=="auto",true,captions.systemStyle,captions.layout.needsCompatibility,p.videoFormat,p.audioFormat) && playbackEngine?.compatibility==null &&
+                tracks.groups.any {it.type==C.TRACK_TYPE_TEXT && it.isSelected} && playbackEngine?.switch()==true)return
+            if (config.engine == "auto" && playbackEngine?.compatibility == null && tracks.groups.any { group ->
+                group.type == C.TRACK_TYPE_VIDEO && (0 until group.length).any { group.isTrackSelected(it) && PlaybackFormats.nativeFirst(group.getTrackFormat(it).sampleMimeType, group.isTrackSupported(it, false)) }
+            } && playbackEngine?.switch(R.string.ui_core_format) == true) return
+            val styledAss=tracks.groups.any {group->group.type==C.TRACK_TYPE_TEXT && (0 until group.length).any {index->
+                val format=group.getTrackFormat(index)
+                group.isTrackSelected(index) && format.sampleMimeType==MimeTypes.TEXT_SSA && format.initializationData.any {SubtitleStyleProbe.styled(it.toString(Charsets.UTF_8))}
+            }}
+            val sourceVideo = p.videoFormat ?: tracks.groups.firstNotNullOfOrNull { group ->
+                if (group.type != C.TRACK_TYPE_VIDEO) null
+                else (0 until group.length).firstOrNull(group::isTrackSelected)?.let(group::getTrackFormat)
+            }
+            if (playbackEngine?.compatibility == null &&
+                SubtitleStyleProbe.routeToMpv(config.engine == "auto", captions.authoredStyles, captions.systemStyle,
+                    styledAss, sourceVideo, playbackEngine?.selectedAudio())) {
+                if(playbackEngine?.switch(R.string.ui_core_styled_subtitles)==true)return
+            }
+            if (subsInitialized) subs.reconcileEmbeddedSelection(allowMissing = true)
+            if (advanced) {
+                controls.audioTracks = audioTracks()
+                changed()
             }
             matchDisplayMode(p)
             val visit=playbackVisit
@@ -290,7 +333,6 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             if(isPlaying)app.ember.player.CastPlaybackService.localPlayback(resumeKey)
-            decoderStableSince=if(isPlaying)android.os.SystemClock.elapsedRealtime() else 0L
             controls.playing = isPlaying
             // Paused by the user: show the controls (with the synopsis and cast).
             if (advanced && !isPlaying && !p.playWhenReady && p.playbackState == Player.STATE_READY) showControls()
@@ -318,13 +360,12 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
                     return
                 }
             }
-            if(PlaybackErrors.decoding(error.errorCode)) {
-                val failed=(error as? androidx.media3.exoplayer.ExoPlaybackException)?.rendererFormat ?: p.videoFormat
-                if(failed!=null)codecs.decoderHealth?.forget(failed)
-                decoderLearned=false;decoderStableSince=0
+            playbackEngine?.restartQualityWindow()
+            PlaybackFailureClassifier.failedVideoDecoder(error)?.let { (format, name) ->
+                codecs.decoderHealth?.forget(format, name)
             }
             if (recover(error)) return
-            if(playbackEngine?.recover(error.errorCode)==true)return
+            if(playbackEngine?.recover(error)==true)return
             Toast.makeText(
                 this@createPlayer,
                 getString(
@@ -349,8 +390,35 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
     view.subtitleView?.let { sv ->
         SubtitleEngine.style(sv, subCfg)
         baseSubCfg = subCfg
-        subs = SubtitleController(this, { player }, SubtitleEngine(sv){subtitleTicker.refresh()}, subConfigFor(subCfg), {refreshSubtitlePanel();updateSubtitleSheet();subtitleTicker.refresh()}) { text,format,wholeFile ->
-            if(config.engine=="auto" && (format=="ass"&&prefs.subtitleConfig.authoredStyles || prefs.subtitleConfig.layout.needsCompatibility&&!prefs.subtitleConfig.systemStyle))playbackEngine?.switch()
+        val overlay = androidx.media3.ui.SubtitleView(this).apply {
+            visibility = android.view.View.INVISIBLE
+            importantForAccessibility = android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }
+        val parent = sv.parent as android.view.ViewGroup
+        parent.addView(overlay, parent.indexOfChild(sv) + 1, android.widget.FrameLayout.LayoutParams(sv.layoutParams))
+        overlay.addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+            if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) subtitleTicker.refresh()
+        }
+        SubtitleEngine.style(overlay, subCfg)
+        sv.visibility = android.view.View.INVISIBLE
+        val externalSubtitles = SubtitleEngine(overlay) { subtitleTicker.refresh() }.apply {
+            onAnimationChanged = { animateAssOverlay = it }
+        }
+        subs = SubtitleController(this, { player }, externalSubtitles,
+            subConfigFor(subCfg), { refreshSubtitlePanel(); updateSubtitleSheet(); subtitleTicker.refresh() },
+            nativeBackend = { playbackEngine?.compatibility },
+            showOwner = { owner ->
+                val native = playbackEngine?.compatibility
+                val drawing = subtitleDrawing(owner, native != null)
+                sv.visibility = if (drawing.embedded) android.view.View.VISIBLE else android.view.View.INVISIBLE
+                overlay.visibility = if (drawing.overlay) android.view.View.VISIBLE else android.view.View.INVISIBLE
+                native?.primarySubtitleVisible(drawing.native)
+            },
+        ) { text,format,wholeFile ->
+            val captions=prefs.subtitleConfig
+            val styled = format == "ass" && captions.authoredStyles && SubtitleStyleProbe.styled(text)
+            if(SubtitleStyleProbe.routeToMpv(config.engine=="auto",true,captions.systemStyle,styled||captions.layout.needsCompatibility,p.videoFormat,playbackEngine?.selectedAudio()))
+                playbackEngine?.switch(if(styled)R.string.ui_core_styled_subtitles else R.string.ui_core_feature)
             playbackEngine?.compatibility?.external(text,format,wholeFile)==true
         }
         subs.onManualSelection={subtitleSelectionChanged()}

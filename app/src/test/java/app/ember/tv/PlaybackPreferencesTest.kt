@@ -1,11 +1,14 @@
 package app.ember.tv
 
 import app.ember.tv.player.*
+import androidx.media3.common.Format
+import androidx.media3.common.MimeTypes
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.*
 import org.junit.Test
 
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlaybackPreferencesTest {
     @Test fun olderSettingsKeepPreciseSeekingAndUnprocessedAudio() {
         val config=Json.decodeFromString<PlaybackConfig>("{}")
@@ -55,6 +58,31 @@ class PlaybackPreferencesTest {
         assertEquals("",AudioEffects("future",-100,"future").nativeFilters())
         assertFalse(AudioEffects("future",-100,"future").active)
     }
+    @Test fun audioOutputSettingsLimitEncodedFormatsAndKeepPcmAvailable() {
+        val trueHd = Format.Builder().setSampleMimeType(MimeTypes.AUDIO_TRUEHD).build()
+        val dtsHd = Format.Builder().setSampleMimeType(MimeTypes.AUDIO_DTS_HD).build()
+        val atmos = Format.Builder().setSampleMimeType(MimeTypes.AUDIO_E_AC3_JOC).build()
+        val pcm = Format.Builder().setSampleMimeType(MimeTypes.AUDIO_RAW).build()
+        val encoded = listOf(trueHd, dtsHd, atmos)
+        val choice = Playback.CodecChoice()
+        val automatic = Playback.AudioOutputPolicy(PlaybackConfig(), choice)
+        assertTrue(encoded.all(automatic::permits))
+
+        val manual = Playback.AudioOutputPolicy(
+            PlaybackConfig(passthroughMode = "manual", formats = setOf("truehd", "eac3joc")), choice
+        )
+        assertTrue(manual.permits(trueHd))
+        assertFalse(manual.permits(dtsHd))
+        assertTrue(manual.permits(atmos))
+
+        val disabled = Playback.AudioOutputPolicy(PlaybackConfig(passthrough = false), choice)
+        assertTrue(encoded.none(disabled::permits))
+        choice.pcm = true
+        assertTrue(encoded.none(automatic::permits))
+        assertTrue(encoded.none(manual::permits))
+        assertTrue(listOf(automatic, manual, disabled).all { it.permits(pcm) })
+    }
+
     @Test fun optionalFiltersWaitForTrackIdentityAndNeverForceBitstreamAudioToDecode() {
         assertFalse(AudioProcessingPolicy.allowed(null,true,false,false))
         assertFalse(AudioProcessingPolicy.allowed("audio/ac3",true,false,false))

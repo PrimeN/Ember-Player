@@ -129,13 +129,13 @@ Follow [Playback dependencies and source](../player-dependencies.md) for the exa
 source revisions, checksums, licenses, patches and rebuild commands. Retain all
 applicable notices when distributing a modified build.
 
-## Optional startup profiling
-
-See [startup profiles and folder browsing](performance.md) for profile collection
-on phone and TV emulators or a dedicated ARM device. The optional module is
-enabled with `-PincludePerformanceTests=true`; ordinary release builds omit it.
 See [UI translation guidance](localization.md) before contributing a language pack.
 
-CI enables `-PuseMavenCentralMirror=true` to read Maven Central dependencies
-through Google's mirror, with the canonical repository as a fallback. The flag is
-also available for local builds. The pinned native artifact checks still apply.
+CI enables `-PuseMavenCentralMirror=true` to use Google's Maven Central mirror, with the
+canonical repository as a fallback. Local builds can use the same flag. The
+pinned native artifact checks still apply.
+
+## Startup profiles
+
+See [startup profiles](performance.md) for phone and TV profile collection. The
+benchmark module is enabled with `-PincludePerformanceTests=true`.

@@ -29,4 +29,4 @@ on phone and TV layouts. Do not replace real media names with translated labels.
 The settings and library locale regression tests cover representative layouts;
 a native speaker should review the actual wording before a language is released.
 
-[Contributing](../CONTRIBUTING.md) · [Build instructions](building.md)
+[Contributing](contributing.md) · [Build instructions](building.md)

@@ -54,3 +54,29 @@ jobs:
             benchmark/build/reports/
           retention-days: 7
           if-no-files-found: warn
+
+  merge:
+    name: Merge collected startup rules
+    needs: profile
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: Ember-Player-profile-*
+          path: captures
+      - name: Merge phone and TV profiles
+        run: python3 scripts/merge-startup-profiles.py captures --output merged
+      - name: Save merged profile inputs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Ember-Player-startup-rules
+          path: merged/*.txt
+          if-no-files-found: error
+      - name: Export generated app rules for the initial import
+        run: |
+          for kind in baseline startup; do
+            echo "EMBER_PROFILE_BEGIN_${kind}"
+            grep -E '^[HSP]*Lapp/ember/' "merged/${kind}-prof.txt"
+            echo "EMBER_PROFILE_END_${kind}"
+          done

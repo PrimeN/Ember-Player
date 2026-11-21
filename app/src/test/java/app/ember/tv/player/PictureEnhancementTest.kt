@@ -48,7 +48,7 @@ class PictureEnhancementTest {
     @Test fun hdrDolbyVisionProtectedAndUnknownVideoKeepTheOriginalPath() {
         val p=PictureEnhancement(contrast=10,gamma=10,sharpness=20)
         val protected=video().buildUpon().setDrmInitData(DrmInitData("cenc",DrmInitData.SchemeData(C.WIDEVINE_UUID,"video/mp4",byteArrayOf(1)))).build()
-        for(format in listOf(null,video(C.COLOR_TRANSFER_ST2084),video(C.COLOR_TRANSFER_HLG),protected,
+        for(format in listOf(null,video().buildUpon().setColorInfo(null).build(),video(C.COLOR_TRANSFER_ST2084),video(C.COLOR_TRANSFER_HLG),protected,
             video().buildUpon().setSampleMimeType(MimeTypes.VIDEO_DOLBY_VISION).build())) {
             assertFalse(StandardPictureEffects.supported(format))
             assertTrue(StandardPictureEffects.effects(p,1920,1080,format).isEmpty())

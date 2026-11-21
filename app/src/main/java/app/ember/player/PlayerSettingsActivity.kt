@@ -205,11 +205,20 @@ private fun PlayerLegal() {
         uiResources.getString(R.string.ui_libaums_usb_notices) to "libaums-NOTICE.txt","SQLCipher" to "SQLCipher-LICENSE.txt","SMBJ-RPC" to "SMBJ-RPC-BSD.txt","JSch" to "JSch-BSD.txt",uiResources.getString(R.string.ui_apache_commons_notices) to "Commons-IO-Lang-NOTICE.txt",uiResources.getString(R.string.ui_apache_commons_net_notices) to "Commons-Net-NOTICE.txt",
         uiResources.getString(R.string.ui_fast_upscaling_shader_mit) to "Anime4K-MIT.txt",uiResources.getString(R.string.ui_jsch_compression_notices) to "JSch-JZlib-BSD.txt",uiResources.getString(R.string.ui_jsch_password_hashing_notices) to "JSch-jBCrypt-ISC.txt",uiResources.getString(R.string.ui_android_ndk_notices) to "Android-NDK-29-LLVM-NOTICE.txt")
     licenses.forEach {entry->PlayerAction(entry.first){chosen=entry}}
+    val subtitleNotices = uiResources.getString(R.string.ui_nextlib_subtitle_notices)
+    PlayerAction(subtitleNotices) { chosen = subtitleNotices to "native-dependencies" }
     PlayerAction(uiResources.getString(R.string.ui_google_cast_sdk_terms)) {runCatching {context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse("https://developers.google.com/cast/docs/terms")))}}
     PlayerAction(uiResources.getString(R.string.ui_android_sdk_terms)) {runCatching {context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse("https://developer.android.com/studio/terms.html")))}}
     chosen?.let {(title,file)->
         var text by remember(file){mutableStateOf(uiResources.getString(R.string.ui_loading_license))}
-        LaunchedEffect(file){text=withContext(Dispatchers.IO){runCatching {context.assets.open("licenses/$file").bufferedReader().use {it.readText()}}.getOrDefault(uiResources.getString(R.string.ui_license_unavailable_see_the_source_repository))}}
+        LaunchedEffect(file) {
+            text = withContext(Dispatchers.IO) {
+                runCatching {
+                    if (file == "native-dependencies") context.assets.readNativeNotices(file)
+                    else context.assets.open("licenses/$file").bufferedReader().use { it.readText() }
+                }.getOrDefault(uiResources.getString(R.string.ui_license_unavailable_see_the_source_repository))
+            }
+        }
         PlayerLicenseDialog(title,text){chosen=null}
     }
 }
@@ -219,4 +228,10 @@ private fun PlayerLegal() {
 internal fun PlayerChoice(label:String,options:List<Pair<String,Int>>,value:String,pick:(String)->Unit) {
     val resources=androidx.compose.ui.platform.LocalResources.current
     PlayerChoice(label,options.map {it.first to resources.getString(it.second)},value,pick)
+}
+
+private fun android.content.res.AssetManager.readNativeNotices(path: String): String {
+    val children = list(path).orEmpty()
+    if (children.isEmpty()) return open(path).bufferedReader().use { it.readText() }
+    return children.sorted().joinToString("\n\n") { readNativeNotices("$path/$it") }
 }

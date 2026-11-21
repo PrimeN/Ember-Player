@@ -1,7 +1,14 @@
 package app.ember.tv
 
 import android.app.Application
+import androidx.media3.common.C
 import androidx.media3.common.Format
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.PlaybackParameters
+import androidx.media3.common.TrackGroup
+import androidx.media3.common.TrackSelectionOverride
+import androidx.media3.common.TrackSelectionParameters
+import androidx.media3.common.Tracks
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -69,7 +76,7 @@ class PlaybackEngineTransitionTest {
                 val name=if(nativeFormat)"Film.wmv" else "Film.mp4"
                 engine.configure(EngineSource(listOf("content://media/123"),name,"key",filename=name))
                 engine.player.setMediaItem(MediaItem.fromUri("content://media/123"))
-                if(nativeFormat)engine.player.prepare() else assertTrue(engine.recover(4003))
+                if(nativeFormat)engine.player.prepare() else assertTrue(engine.recover(PlaybackException(null, null, PlaybackException.ERROR_CODE_DECODING_FAILED)))
                 assertTrue(created)
                 assertEquals(if(nativeFormat)app.ember.tv.R.string.ui_core_format else app.ember.tv.R.string.ui_core_recovery,engine.selectionReason)
                 engine.mode("standard")
@@ -134,9 +141,73 @@ class PlaybackEngineTransitionTest {
         try {
             engine.configure(EngineSource(listOf("content://media/123"),"Film","key"))
             engine.player.setMediaItem(MediaItem.fromUri("content://media/123"));engine.player.seekTo(42000)
-            assertFalse(engine.recover(4003));assertFalse(constructed);assertEquals(42000,original.currentPosition)
+            assertFalse(engine.recover(PlaybackException(null, null, PlaybackException.ERROR_CODE_DECODING_FAILED)));assertFalse(constructed);assertEquals(42000,original.currentPosition)
         } finally {engine.player.release()}
     }
+    @Test fun automaticCoreRoutingHonoursTunnelingAndExplicitDecoderModes() {
+        val context = RuntimeEnvironment.getApplication()
+        for (settings in listOf(PlaybackConfig(tunneling = true), PlaybackConfig(ffmpegVideo = "always"),
+                PlaybackConfig(ffmpeg = "off"))) {
+            val standard = ExoPlayer.Builder(context).build()
+            var created = false
+            val engine = PlaybackEngine(context, standard, { settings.copy(rememberDecoderChoices = false) },
+                compatibilityFactory = { _, _, _ -> created = true; error("Automatic change ignored settings") }) {}
+            try {
+                engine.configure(EngineSource(listOf("content://media/123"), "Film", "key"))
+                assertFalse(engine.recover(PlaybackException(null, null, PlaybackException.ERROR_CODE_DECODING_FAILED)))
+                assertFalse(engine.switch(app.ember.tv.R.string.ui_core_styled_subtitles))
+                assertFalse(created)
+            } finally { engine.player.release() }
+        }
+    }
+
+    @Test fun requestedAudioTakesPrecedenceOverTheLastDecoderFormat() {
+        val context = RuntimeEnvironment.getApplication()
+        val original = ExoPlayer.Builder(context).build()
+        val aac = Format.Builder().setSampleMimeType("audio/mp4a-latm").build()
+        val ac4 = Format.Builder().setSampleMimeType("audio/ac4").build()
+        val group = TrackGroup("audio", aac, ac4)
+        val tracks = Tracks(listOf(Tracks.Group(group, false, intArrayOf(C.FORMAT_HANDLED, C.FORMAT_HANDLED),
+            booleanArrayOf(true, false))))
+        val standard = intercept(original) { name -> when (name) {
+            "getAudioFormat" -> aac
+            "getCurrentTracks" -> tracks
+            "getTrackSelectionParameters" -> TrackSelectionParameters.DEFAULT.buildUpon()
+                .setOverrideForType(TrackSelectionOverride(group, 1)).build()
+            else -> Unit
+        } }
+        val engine = PlaybackEngine(context, standard, { PlaybackConfig(rememberDecoderChoices = false) },
+            compatibilityFactory = { _, _, _ -> error("Ineligible audio") }) {}
+        try {
+            engine.configure(EngineSource(listOf("content://media/123"), "Film", "key"))
+            assertFalse(engine.switch())
+        } finally { engine.player.release() }
+    }
+
+    @Test fun returningToStandardKeepsTheCurrentControlsAndPendingSeek() {
+        val context = RuntimeEnvironment.getApplication()
+        val original = ExoPlayer.Builder(context).build()
+        val candidate = ExoPlayer.Builder(context).build()
+        val engine = PlaybackEngine(context, original, { PlaybackConfig(rememberDecoderChoices = false) },
+            compatibilityFactory = { _, _, _ -> candidate }) {}
+        try {
+            engine.configure(EngineSource(listOf("content://media/123"), "Film", "key"))
+            engine.player.setMediaItem(MediaItem.fromUri("content://media/123"))
+            assertTrue(engine.switch())
+            engine.player.playbackParameters = PlaybackParameters(1.5f, .8f)
+            engine.player.volume = .3f
+            engine.player.repeatMode = Player.REPEAT_MODE_ONE
+            engine.player.playWhenReady = false
+            engine.navigate(42000, false)
+            engine.mode("standard")
+            assertEquals(42000L, engine.player.currentPosition)
+            assertEquals(PlaybackParameters(1.5f, .8f), engine.player.playbackParameters)
+            assertEquals(.3f, engine.player.volume)
+            assertEquals(Player.REPEAT_MODE_ONE, engine.player.repeatMode)
+            assertFalse(engine.player.playWhenReady)
+        } finally { engine.player.release() }
+    }
+
     @Test fun pendingKeySeeksAccumulateButExplicitJumpsAndSourceChangesCancelThem() {
         val context=RuntimeEnvironment.getApplication()
         val actual=ExoPlayer.Builder(context).build()

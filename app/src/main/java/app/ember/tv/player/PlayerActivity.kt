@@ -132,9 +132,9 @@ class PlayerActivity : ComponentActivity() {
     internal var audioPicked = false
     internal var modeApplied = false
     internal var videoDecoder: String? = null
-    internal var decoderStableSince=0L
     internal var decoderLearned=false
     internal var audioDecoder: String? = null
+    internal var standardAudioTrack: androidx.media3.exoplayer.audio.AudioSink.AudioTrackConfig? = null
     internal lateinit var info: TextView
     /** Info and subtitle panel (Info, Menu or Guide). */
     internal lateinit var panel: android.widget.ScrollView
@@ -144,15 +144,26 @@ class PlayerActivity : ComponentActivity() {
     internal lateinit var subs: SubtitleController
     internal val handler = Handler(Looper.getMainLooper())
     internal var subtitleUpdatesStarted=false
+    @Volatile internal var animateAssOverlay = false
+    internal val subtitleVideoFrame = Runnable {
+        val p = player ?: return@Runnable
+        if (animateAssOverlay && subtitleUpdatesStarted && subsInitialized && subs.drawsOverlay) {
+            subs.engine.render(p.currentPosition)
+        }
+    }
     internal val subtitleTicker = SubtitleTicker(handler,{subtitleUpdatesStarted&&player!=null&&!isFinishing},{
         player?.isPlaying==true&&(::subs.isInitialized&&subs.engine.active||repeatRange.end!=null)
     }) {
             val p = player
             if(p!=null && p.isPlaying)repeatRange.destination(p.currentPosition)?.let(p::seekTo)
-            if (p != null && ::subs.isInitialized) {val prefix=if(subs.wholeFileTiming)0L else (playbackEngine?.compatibility?.partOffset)?:0L;subs.engine.render((p.currentPosition-prefix).coerceAtLeast(0))}
+            if (p != null && ::subs.isInitialized && subs.drawsOverlay) {val prefix=if(subs.wholeFileTiming)0L else (playbackEngine?.compatibility?.partOffset)?:0L;subs.engine.render(p.currentPosition,prefix)}
             if(p!=null&&::prefs.isInitialized){
                 val native=playbackEngine?.compatibility
-                val text=if(native!=null)native.captionText else if(::subs.isInitialized&&(subs.selection is SubtitleController.Selection.Manual||subs.selection is SubtitleController.Selection.External))subs.engine.visibleText else embeddedCaptionText
+                val text = when {
+                    subsInitialized && subs.drawsOverlay -> subs.engine.visibleText
+                    native != null -> native.captionText
+                    else -> embeddedCaptionText
+                }
                 updateCaptionAssistance(text,p.isPlaying)
             }
     }
@@ -244,6 +255,7 @@ class PlayerActivity : ComponentActivity() {
             return
         }
         if (!::view.isInitialized) return
+        playbackEngine?.compatibility?.refreshHdrOutput()
         view.useController = !isInPictureInPictureMode && !advanced
         if (isInPictureInPictureMode) {
             controls.visible = false
@@ -589,6 +601,7 @@ class PlayerActivity : ComponentActivity() {
         handler.removeCallbacks(infoUpdater)
         handler.removeCallbacks(hideInfo)
         handler.removeCallbacks(subtitleTicker)
+        handler.removeCallbacks(subtitleVideoFrame)
         handler.removeCallbacks(markerTicker)
         handler.removeCallbacks(controlsTicker)
         handler.removeCallbacks(hideControls)

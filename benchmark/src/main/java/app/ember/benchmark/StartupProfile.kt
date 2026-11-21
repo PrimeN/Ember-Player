@@ -28,7 +28,8 @@ class StartupProfile {
     private fun label(device:UiDevice,text:String,timeout:Long=15_000):UiObject2 {
         val end=SystemClock.elapsedRealtime()+timeout
         do {
-            val node=device.findObject(By.text(text)) ?: device.findObject(By.desc(text)) ?: device.findObject(By.descStartsWith(text))
+            val node = device.findObject(By.text(text)) ?: device.findObject(By.desc(text))
+                ?: device.findObject(By.descContains(text))
             if(node!=null)return node
             SystemClock.sleep(100)
         }while(SystemClock.elapsedRealtime()<end)

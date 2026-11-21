@@ -17,8 +17,8 @@ native binary is required for an ordinary Gradle build.
 | `com.github.mwiede:jsch` | 2.28.8 | SFTP with a pinned host key |
 | `commons-net:commons-net` | 3.13.0 | FTP and certificate-verified FTPS |
 
-Existing Media3 core/UI/HLS/DASH stay at **1.11.1** and existing Nextlib stays at
-**1.11.1-0.17.0**. Nextlib bundles AV1/dav1d. Media3 includes an AVI extractor; the compatibility
+Media3 core/UI/HLS/DASH use **1.11.1**. Nextlib **1.11.1-0.19.0** bundles
+AV1/dav1d and libass 0.17.5 for authored ASS in Standard playback. Media3 includes an AVI extractor; the compatibility
 engine provides another route for variants the normal pipeline cannot handle.
 
 SMBJ's runtime dependencies resolve to SLF4J API 2.0.18, Bouncy Castle 1.85.2, mbassador
@@ -105,7 +105,8 @@ the wrapper does not remove that requirement.
   their pinned NDK 29.0.14206865 toolchain. Exact upstream patches/configuration
   are in that release's build scripts.
   The curl notice is bundled in `app/src/main/assets/licenses/curl-COPYING.txt`.
-- [Nextlib source matching 1.11.1-0.17.0](https://github.com/anilbeesetti/nextlib/tree/a4c1e634278b7c918c3801e08c9d0e3eaee4f7ae), GPLv3.
+- [Nextlib source matching 1.11.1-0.19.0](https://github.com/anilbeesetti/nextlib/tree/v1.11.1-0.19.0), GPLv3.
+  Its AAR packages the libass and font dependency notices under `assets/native-dependencies/`.
 - [Media3](https://github.com/androidx/media), Apache 2.0;
   [SMBJ](https://github.com/hierynomus/smbj), Apache 2.0;
   [JSch](https://github.com/mwiede/jsch), BSD style;

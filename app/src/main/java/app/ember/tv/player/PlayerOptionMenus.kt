@@ -63,12 +63,8 @@ internal fun PlayerActivity.changed() {
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 internal fun PlayerActivity.passthrough(): Boolean {
     playbackEngine?.compatibility?.let {return it.isPassthrough()}
-    if(!config.passthrough||codecs.pcm)return false
-    val mime = player?.audioFormat?.sampleMimeType ?: return false
-    return audioDecoder == null && mime in setOf(
-        MimeTypes.AUDIO_TRUEHD, MimeTypes.AUDIO_E_AC3_JOC, MimeTypes.AUDIO_E_AC3, MimeTypes.AUDIO_AC3,
-        MimeTypes.AUDIO_DTS_X, MimeTypes.AUDIO_DTS_HD, MimeTypes.AUDIO_DTS,
-    )
+    val output = standardAudioTrack ?: return false
+    return !output.offload && !androidx.media3.common.util.Util.isEncodingLinearPcm(output.encoding)
 }
 
 @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
@@ -336,6 +332,10 @@ internal fun PlayerActivity.applySubLook(c: app.ember.tv.data.SubtitleConfig) {
     if(subsInitialized)subs.config=subConfigFor(c)
     if(c.layout.needsCompatibility && !c.systemStyle && playbackEngine?.compatibility==null && config.engine=="auto")playbackEngine?.switch()
     view.subtitleView?.let { SubtitleEngine.style(it, c) }
+    if (subsInitialized) {
+        subs.engine.style(c)
+        subs.refreshAssOverlay()
+    }
     playbackEngine?.compatibility?.captionStyle(c)
 }
 

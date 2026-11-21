@@ -123,7 +123,7 @@ internal fun PlayerActivity.infoText(): String {
     val buffer = getString(R.string.pl_info_buffered, ((p.bufferedPosition - p.currentPosition) / 1000).coerceAtLeast(0))
     return listOfNotNull(
         Playback.describeVideo(resources,p.videoFormat, videoDecoder, hdr10PlusMetadata && playbackEngine?.compatibility == null, playbackEngine?.compatibility != null),
-        Playback.describeAudio(resources,p.audioFormat, audioDecoder),
+        Playback.describeAudio(resources,p.audioFormat, audioDecoder, passthrough()),
         resources.getString(R.string.ui_source_hdr ,HdrDiagnostics.source(resources,p.videoFormat)),
         resources.getString(R.string.ui_requested_output ,HdrDiagnostics.requested(resources,PictureProfiles.effective(config,resumeKey).hdrOutput)),
         playbackEngine?.compatibility?.diagnostics()?.filterKeys {it in setOf(R.string.ui_renderer,R.string.ui_hdr_output,R.string.ui_android_hdr_surface,R.string.ui_expansion_status) }?.entries?.joinToString("\n"){"${resources.getString(it.key)}: ${it.value}"},

@@ -33,7 +33,7 @@ internal fun PlayerActivity.start(url: String, title: String, release: String?) 
     playbackEngine?.standard?.setVideoEffects(emptyList())
     httpFactory.setConnectTimeoutMs(config.stream.normalized().connectSeconds*1000).setReadTimeoutMs(config.stream.normalized().readSeconds*1000)
     hdr10PlusMetadata = false
-    decoderStableSince=0;decoderLearned=false
+    decoderLearned = false
     repeatRange.clear()
     val restoredEdition=intent.getIntExtra(BackgroundAudioService.FORCE_EDITION,-1).takeIf {it in 0..8190}
     intent.removeExtra(BackgroundAudioService.FORCE_EDITION)
@@ -72,7 +72,7 @@ internal fun PlayerActivity.start(url: String, title: String, release: String?) 
     }
     subsTouched=false
     if(subsInitialized)restoreManualSubtitle()
-    decoderRecovery.reset();codecs.pcm=false
+    codecs.pcm=false
     codecs.sourceUrl=url;codecs.sourceFilename=release;codecs.manualVideo=userVideoMode!=null
     decoderManager.selectVideoDecoder(userVideoMode ?: if(config.ffmpegVideo=="always")DecoderMode.FFMPEG else DecoderMode.AUTO)
     decoderManager.selectAudioDecoder(userAudioMode ?: DecoderMode.AUTO)
@@ -137,6 +137,7 @@ internal fun PlayerActivity.endPlayback(finishActivity: Boolean = true) {
     handler.removeCallbacks(infoUpdater)
     handler.removeCallbacks(hideInfo)
     handler.removeCallbacks(subtitleTicker)
+    handler.removeCallbacks(subtitleVideoFrame)
     handler.removeCallbacks(markerTicker)
     handler.removeCallbacks(controlsTicker)
     handler.removeCallbacks(hideControls)
@@ -146,6 +147,7 @@ internal fun PlayerActivity.endPlayback(finishActivity: Boolean = true) {
     loudness = null
     val p = player ?: return
     rememberTracks()
+    if (subsInitialized) subs.close()
     if (!ended) {
         savePosition()
     }

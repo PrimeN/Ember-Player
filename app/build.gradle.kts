@@ -19,7 +19,7 @@ plugins {
 val useMavenCentralMirror = providers.gradleProperty("useMavenCentralMirror").orNull == "true"
 val includePerformanceTests = providers.gradleProperty("includePerformanceTests").orNull == "true"
 val profileAbi = providers.gradleProperty("profileAbi").orElse("x86_64").get()
-require(profileAbi in setOf("x86_64","arm64-v8a","armeabi-v7a"))
+require(profileAbi in setOf("x86_64", "arm64-v8a", "armeabi-v7a"))
 
 /** The two engines ship independent FFmpeg bundles. Rename libmpv's private ELF dependencies
  * and its JNI loader strings without changing symbols, byte offsets or JNI class names.
@@ -235,7 +235,8 @@ android {
         targetSdk = 36
         versionCode = 1000
         versionName = "1.0.0"
-        ndk { abiFilters += if(includePerformanceTests)listOf(profileAbi) else listOf("arm64-v8a", "armeabi-v7a") }
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        ndk { abiFilters += if (includePerformanceTests) listOf(profileAbi) else listOf("arm64-v8a", "armeabi-v7a") }
     }
     val releaseKeystore = System.getenv("EMBER_KEYSTORE_FILE")?.takeIf { it.isNotBlank() }
     signingConfigs {
@@ -259,17 +260,18 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
-    if(includePerformanceTests)buildTypes.create("benchmark") {
-        initWith(buildTypes.getByName("release"))
-        applicationIdSuffix = ".benchmark"
-        signingConfig = signingConfigs.getByName("debug")
-        isDebuggable = false
-        isProfileable = true
-        isMinifyEnabled = false
-        isShrinkResources = false
-        matchingFallbacks += listOf("release")
+    if (includePerformanceTests) {
+        buildTypes.create("benchmark") {
+            initWith(buildTypes.getByName("release"))
+            applicationIdSuffix = ".benchmark"
+            signingConfig = signingConfigs.getByName("debug")
+            isDebuggable = false
+            isProfileable = true
+            isMinifyEnabled = false
+            isShrinkResources = false
+            matchingFallbacks += listOf("release")
+        }
     }
-    if(includePerformanceTests)sourceSets.getByName("benchmark").assets.srcDir("src/benchmark/assets")
     splits {
         abi {
             isEnable = providers.gradleProperty("splitApks").orNull == "true"
@@ -282,10 +284,11 @@ android {
     buildFeatures { compose = true; buildConfig = true }
     lint { abortOnError = true; disable += setOf("MissingTranslation"); lintConfig = file("lint.xml") }
     testOptions {
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
         unitTests.isReturnDefaultValues = true
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
-            it.systemProperty("robolectric.dependency.repo.url", if(useMavenCentralMirror)"https://gcp.mirrors.maven.org/maven2" else "https://repo.maven.apache.org/maven2")
+            it.systemProperty("robolectric.dependency.repo.url", if (useMavenCentralMirror) "https://gcp.mirrors.maven.org/maven2" else "https://repo.maven.apache.org/maven2")
             it.testLogging.exceptionFormat=org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
         }
     }
@@ -347,6 +350,10 @@ dependencies {
     implementation("androidx.fragment:fragment:1.9.1")
 
     testImplementation("androidx.sqlite:sqlite-framework:2.7.1")
+    androidTestImplementation("androidx.test:core:1.7.0")
+    androidTestImplementation("androidx.test:runner:1.7.0")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestUtil("androidx.test:orchestrator:1.6.1")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.18.1")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
@@ -368,9 +375,11 @@ tasks.register("writeNetworkCryptoClasspath") {
     }
 }
 
-// Profiling APKs are isolated from production releases and may use a different device ABI.
+// The profiling variant can have a different ABI and includes synthetic library fixtures.
 gradle.taskGraph.whenReady {
-    if(includePerformanceTests && allTasks.any {it.project==project && it.name in setOf("packageRelease","bundleRelease","assembleRelease")}) {
+    if (includePerformanceTests && allTasks.any {
+            it.project == project && it.name in setOf("packageRelease", "bundleRelease", "assembleRelease")
+        }) {
         error("Build production releases without -PincludePerformanceTests=true.")
     }
 }

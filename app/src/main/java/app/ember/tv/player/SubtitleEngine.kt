@@ -27,6 +27,10 @@ class SubtitleEngine(private val view: SubtitleView,private val invalidate:()->U
     var visibleText="";private set
     private var cues: List<CuesWithTiming> = emptyList()
     private var lastShown: List<Cue>? = null
+    private var assOverlay: AssOverlay? = null
+    private var assScript: String? = null
+    private var nativeOutput = false
+    internal var onAnimationChanged: (Boolean) -> Unit = {}
     private var index = CueIndex<CuesWithTiming>(emptyList(), { it.startTimeUs }, { it.startTimeUs })
     var speed: Float = 1f
         set(value){field=SubtitleTiming.rate(value);lastShown=null;invalidate()}
@@ -41,12 +45,48 @@ class SubtitleEngine(private val view: SubtitleView,private val invalidate:()->U
 
     val active: Boolean get() = cues.isNotEmpty()
 
-    /** Loads a subtitle; false if nothing could be read from it. */
-    suspend fun load(text: String, format: String, fps: Float? = null): Boolean {
-        val parsed = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { parse(text,format,fps) } ?: return false
-        if(parsed.first.isEmpty())return false
-        cues=parsed.first;index=parsed.second;lastShown=null;invalidate()
-        return cues.isNotEmpty()
+    internal suspend fun prepare(text: String, format: String, fps: Float?): Prepared? =
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            parse(text, format, fps)?.takeIf { it.first.isNotEmpty() }?.let { Prepared(it.first, it.second) }
+        }
+
+    internal class Prepared(val cues: List<CuesWithTiming>, val index: CueIndex<CuesWithTiming>)
+
+    internal fun show(prepared: Prepared) {
+        cues = prepared.cues
+        index = prepared.index
+        lastShown = null
+        invalidate()
+    }
+
+    internal fun style(config: SubtitleConfig) = style(view, config)
+
+    internal fun useAss(script: String?) {
+        if (script == assScript) return
+        assOverlay?.close()
+        assOverlay = null
+        assScript = script
+        nativeOutput = false
+        lastShown = null
+        view.setCues(emptyList())
+        if (script != null && nativeAssAvailable()) {
+            val output = object : androidx.media3.exoplayer.text.TextOutput {
+                override fun onCues(cueGroup: androidx.media3.common.text.CueGroup) {
+                    if (cueGroup.cues.any { it.bitmap != null }) nativeOutput = true
+                    if (nativeOutput) view.setCues(cueGroup.cues)
+                }
+            }
+            assOverlay = AssOverlay(view.context, script, output) {
+                assOverlay?.close()
+                assOverlay = null
+                onAnimationChanged(false)
+                nativeOutput = false
+                lastShown = null
+                invalidate()
+            }
+        }
+        onAnimationChanged(assOverlay != null)
+        invalidate()
     }
 
     private fun parse(text:String,format:String,fps:Float?):Pair<List<CuesWithTiming>,CueIndex<CuesWithTiming>>? {
@@ -69,6 +109,11 @@ class SubtitleEngine(private val view: SubtitleView,private val invalidate:()->U
     }
 
     fun clear() {
+        assOverlay?.close()
+        assOverlay = null
+        assScript = null
+        onAnimationChanged(false)
+        nativeOutput = false
         visibleText=""
         cues = emptyList()
         index = CueIndex(emptyList(), { it.startTimeUs }, { it.startTimeUs })
@@ -78,14 +123,15 @@ class SubtitleEngine(private val view: SubtitleView,private val invalidate:()->U
     }
 
     /** Shows the cues for [positionMs] of the video. Call every ~100 ms while playing. */
-    fun render(positionMs: Long) {
+    fun render(positionMs: Long, partOffsetMs:Long=0) {
         if (cues.isEmpty()) return
-        val t = ((positionMs * speed - offsetMs) * 1000).toLong()
+        val t = SubtitleClock.timeUs(positionMs,partOffsetMs,speed,offsetMs)
+        if (view.width > 0 && view.height > 0) assOverlay?.draw(t, view.width, view.height)
         val now = index.at(t).flatMap { it.cues }
         if (now != lastShown) {
             lastShown = now
             visibleText=now.mapNotNull {it.text?.toString()}.joinToString("\n")
-            view.setCues(now)
+            if (!nativeOutput) view.setCues(now)
         }
     }
 

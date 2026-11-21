@@ -24,6 +24,16 @@ class DecoderHealthMemoryTest {
         health.forget("codec199");assertNull(health.get("codec199"));assertNotNull(health.get("codec198"))
         health.clear();assertTrue(health.document().entries.isEmpty())
     }
+    @Test fun invalidationMatchesBothProfileAndDecoder() {
+        val health = DecoderHealthMemory("device", clock = { 1000 })
+        health.remember("hevc-main", ProvenDecoder("a", savedAt = 999))
+        health.remember("hevc-main10", ProvenDecoder("b", savedAt = 999))
+        assertFalse(health.forget("hevc-main", "b"))
+        assertEquals("a", health.get("hevc-main")?.name)
+        assertTrue(health.forget("hevc-main10", "b"))
+        assertNull(health.get("hevc-main10"))
+        assertEquals("a", health.get("hevc-main")?.name)
+    }
     @Test fun oversizedRestoredMemoryIsBoundedBeforeItCanBeUsed() {
         val old=DecoderHealthDocument("device",(0..200).associate {"codec$it" to ProvenDecoder("decoder",savedAt=it.toLong())})
         assertEquals(128,DecoderHealthMemory("device",old){1000}.document().entries.size)

@@ -14,7 +14,19 @@ import kotlinx.coroutines.delay
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 
 @OptIn(UnstableApi::class)
-internal fun PlayerActivity.mediaSourceFactory(factory: androidx.media3.datasource.DataSource.Factory)=DefaultMediaSourceFactory(factory)
+internal fun PlayerActivity.mediaSourceFactory(factory: androidx.media3.datasource.DataSource.Factory): DefaultMediaSourceFactory {
+    val captions = prefs.subtitleConfig
+    if (!authoredAssEnabled(captions.authoredStyles, captions.systemStyle) || !nativeAssAvailable()) {
+        return DefaultMediaSourceFactory(factory)
+    }
+    val extractors = io.github.anilbeesetti.nextlib.media3ext.ffdecoder.FfmpegSubtitleExtractorsFactory()
+    val defaultParsers = androidx.media3.extractor.text.DefaultSubtitleParserFactory()
+    val parsers = object : androidx.media3.extractor.text.SubtitleParser.Factory by defaultParsers {
+        override fun supportsFormat(format: Format): Boolean =
+            format.sampleMimeType != MimeTypes.TEXT_SSA && defaultParsers.supportsFormat(format)
+    }
+    return DefaultMediaSourceFactory(factory, extractors).setSubtitleParserFactory(parsers)
+}
 
 @OptIn(UnstableApi::class)
 internal fun PlayerActivity.describe(f: androidx.media3.common.Format?) = PlaybackErrors.describe(resources,f)
@@ -26,9 +38,10 @@ internal fun PlayerActivity.describe(f: androidx.media3.common.Format?) = Playba
  */
 internal fun PlayerActivity.recover(e: PlaybackException): Boolean {
     if(playbackEngine?.compatibility!=null)return false
-    val decoding = PlaybackErrors.decoding(e.errorCode)
+    val failure=PlaybackFailureClassifier.classify(e)
+    val decoding = failure.changesDecoder
     val p = player ?: return false
-    val network = PlaybackErrors.connection(e.errorCode)
+    val network = failure == PlaybackFailure.NETWORK
     if (network && ioRetries < 2) {
         ioRetries++
         lastRetryAt = android.os.SystemClock.elapsedRealtime()
@@ -50,28 +63,44 @@ internal fun PlayerActivity.recover(e: PlaybackException): Boolean {
         handler.postDelayed(retry, 1_500L * ioRetries)
         return true
     }
-    val outputFailure=PlaybackErrors.audioOutput(e.errorCode)
+    val outputFailure=failure==PlaybackFailure.AUDIO_OUTPUT
     if ((!decoding && !outputFailure) || recoveries >= 6) return false
     val format=(e as? androidx.media3.exoplayer.ExoPlaybackException)?.rendererFormat
     val audio=outputFailure || format?.sampleMimeType?.let(MimeTypes::isAudio)==true
-    val message: String
-    if(audio && decoderRecovery.pcmFallback()) {
-        codecs.pcm=true
-        val was=p.playWhenReady;val at=p.currentPosition
-        p.stop();p.seekTo(at);p.playWhenReady=was
-        message=resources.getString(R.string.ui_trying_pcm_audio_output)
+    // Session and saved decoder choices are explicit. Leave their error visible.
+    val manual=if(audio)userAudioMode!=null || config.ffmpeg=="prefer" || config.ffmpeg=="off"
+        else userVideoMode!=null || config.ffmpegVideo=="always" ||
+            config.decoderRules.preference(currentUrl.orEmpty(),format?.sampleMimeType,codecs.sourceFilename) !in setOf("inherit","auto")
+    val position = p.currentPosition
+    val playWhenReady = p.playWhenReady
+    val currentRoute = PlaybackRoute(
+        PlaybackCore.MEDIA3, decoderManager.videoMode.name.lowercase(), decoderManager.audioMode.name.lowercase(),
+        if (codecs.pcm) "pcm" else "automatic",
+    )
+    decoderRecovery.attempt(currentRoute)
+    val message = if (outputFailure) {
+        if (codecs.pcm || !decoderRecovery.attempt(currentRoute.copy(output = "pcm"))) return false
+        codecs.pcm = true
+        p.stop()
+        resources.getString(R.string.ui_trying_pcm_audio_output)
     } else {
-        val height=format?.height?.takeIf { it>0 } ?: p.videoFormat?.height ?: 2160
-        val hdr=(format ?: p.videoFormat)?.colorInfo?.colorTransfer.let { it==C.COLOR_TRANSFER_ST2084 || it==C.COLOR_TRANSFER_HLG }
-        val next=decoderRecovery.next(audio,if(audio)config.ffmpeg!="off" else config.ffmpegVideo!="off",audio || height<=1080 && !hdr) ?: return false
-        val mode=if(next=="ffmpeg")DecoderMode.FFMPEG else DecoderMode.SOFTWARE
-        if(audio)decoderManager.selectAudioDecoder(mode) else { decoderManager.selectVideoDecoder(mode);codecs.ffmpegVideo=mode==DecoderMode.FFMPEG }
-        message=if(audio)resources.getString(R.string.ui_trying_another_audio_decoder) else resources.getString(R.string.ui_trying_another_video_decoder)
+        val safe = audio || (format ?: p.videoFormat)?.let(DecoderHealth::softwareSafe) == true
+        val ffmpeg = if (audio) config.ffmpeg != "off" else config.ffmpegVideo != "off"
+        val next = PlaybackRoutePlanner.fallbackModes(safe, ffmpeg, manual).firstOrNull { mode ->
+            val route = if (audio) currentRoute.copy(audioDecoder = mode) else currentRoute.copy(videoDecoder = mode)
+            decoderRecovery.attempt(route)
+        } ?: return false
+        val mode = if (next == "ffmpeg") DecoderMode.FFMPEG else DecoderMode.SOFTWARE
+        if (audio) decoderManager.selectAudioDecoder(mode) else {
+            decoderManager.selectVideoDecoder(mode)
+            codecs.ffmpegVideo = mode == DecoderMode.FFMPEG
+        }
+        resources.getString(if (audio) R.string.ui_trying_another_audio_decoder else R.string.ui_trying_another_video_decoder)
     }
     recoveries++
     Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-    val at = p.currentPosition
-    p.seekTo(at)
+    p.seekTo(position)
+    p.playWhenReady = playWhenReady
     p.prepare()
     return true
 }

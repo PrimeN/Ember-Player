@@ -68,6 +68,7 @@ internal class AndroidBackgroundAudioEngine(context:Context,private val request:
     }
     override fun load(source:EngineSource,position:Long) {
         choice.sourceUrl=source.urls.first();choice.sourceFilename=source.filename
+        choice.pcm = !config.passthrough
         engine.configure(source)
         val media=MediaItem.Builder().setUri(source.urls.first()).setMediaId(source.key)
             .setMediaMetadata(MediaMetadata.Builder().setTitle(source.title).build()).apply {PlaybackErrors.mimeHint(source.urls.first())?.let(::setMimeType)}.build()
@@ -76,6 +77,19 @@ internal class AndroidBackgroundAudioEngine(context:Context,private val request:
         else engine.player.setMediaSource(content)
         engine.player.seekTo(position.coerceAtLeast(0));engine.player.prepare();engine.player.playWhenReady=true
     }
-    override fun recover(error:PlaybackException)=engine.recover(error.errorCode)
+    override fun recover(error: PlaybackException): Boolean {
+        if (engine.compatibility == null && !choice.pcm &&
+            PlaybackFailureClassifier.classify(error) == PlaybackFailure.AUDIO_OUTPUT) {
+            val position = standard.currentPosition
+            val playWhenReady = standard.playWhenReady
+            choice.pcm = true
+            standard.stop()
+            standard.seekTo(position)
+            standard.playWhenReady = playWhenReady
+            standard.prepare()
+            return true
+        }
+        return engine.recover(error)
+    }
     override fun close(){route.close();engine.player.removeListener(listener);boost?.release();boost=null;manager.detach();engine.player.release()}
 }

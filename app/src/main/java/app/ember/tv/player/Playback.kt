@@ -23,7 +23,7 @@ import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.NextRenderersFactory
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderManager
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 import io.github.anilbeesetti.nextlib.media3ext.renderer.NextTextRenderer
-import androidx.media3.exoplayer.audio.AudioCapabilities
+import androidx.media3.exoplayer.audio.AudioOffloadSupport
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import kotlinx.serialization.Serializable
@@ -162,14 +162,36 @@ object Playback {
         @Volatile var us: Long = 0
     }
 
+    /** User settings restrict encoded output. Media3 still decides what the current device supports. */
+    internal class AudioOutputPolicy(config: PlaybackConfig, private val choice: CodecChoice) {
+        private val passthrough = config.passthrough
+        private val manualEncodings = if (config.passthroughMode == "manual") {
+            config.formats.mapNotNull(::encoding).toSet()
+        } else null
+
+        fun permits(format: Format): Boolean {
+            if (format.sampleMimeType == MimeTypes.AUDIO_RAW) return true
+            if (!passthrough || choice.pcm) return false
+            val encodings = manualEncodings ?: return true
+            val mime = format.sampleMimeType ?: return false
+            return MimeTypes.getEncoding(mime, format.codecs) in encodings
+        }
+    }
+
     /**
      * Shifts the audio clock that the picture follows: reporting the position [AudioDelay.us] ahead
      * shows each frame earlier, so the sound lands later relative to the picture (and the reverse).
      * Works for decoded and passthrough audio alike.
      */
-    private class DelayedSink(sink: AudioSink, private val delay: AudioDelay, private val choice: CodecChoice) : androidx.media3.exoplayer.audio.ForwardingAudioSink(sink) {
-        override fun supportsFormat(format: Format): Boolean = (!choice.pcm || format.sampleMimeType == MimeTypes.AUDIO_RAW) && super.supportsFormat(format)
-        override fun getFormatSupport(format: Format): Int = if(choice.pcm && format.sampleMimeType != MimeTypes.AUDIO_RAW) AudioSink.SINK_FORMAT_UNSUPPORTED else super.getFormatSupport(format)
+    private class DelayedSink(sink: AudioSink, private val delay: AudioDelay, private val output: AudioOutputPolicy) : androidx.media3.exoplayer.audio.ForwardingAudioSink(sink) {
+        override fun supportsFormat(format: Format): Boolean =
+            output.permits(format) && super.supportsFormat(format)
+
+        override fun getFormatSupport(format: Format): Int =
+            if (output.permits(format)) super.getFormatSupport(format) else AudioSink.SINK_FORMAT_UNSUPPORTED
+
+        override fun getFormatOffloadSupport(format: Format): AudioOffloadSupport =
+            if (output.permits(format)) super.getFormatOffloadSupport(format) else AudioOffloadSupport.DEFAULT_UNSUPPORTED
         override fun getCurrentPositionUs(sourceEnded: Boolean): Long {
             val p = super.getCurrentPositionUs(sourceEnded)
             return if (p == AudioSink.CURRENT_POSITION_NOT_SET) p else maxOf(0L, p + delay.us)
@@ -187,6 +209,7 @@ object Playback {
         private val codecs: CodecChoice = CodecChoice(),
         private val manager: DecoderManager = DecoderManager(),
         private val effects: AudioEffectState = AudioEffectState(),
+        private val nativeSubtitles: Boolean = false,
     ) : NextRenderersFactory(context) {
         init {
             setDecoderManager(manager)
@@ -273,7 +296,8 @@ object Playback {
             extensionRendererMode: Int,
             out: ArrayList<Renderer>,
         ) {
-            out.add(NextTextRenderer(output, outputLooper))
+            if (nativeSubtitles) super.buildTextRenderers(context, output, outputLooper, extensionRendererMode, out)
+            else out.add(NextTextRenderer(output, outputLooper))
         }
 
         override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink {
@@ -281,17 +305,7 @@ object Playback {
                 .setAudioProcessors(arrayOf(AudioEffectProcessor(effects)))
                 .setEnableFloatOutput(enableFloatOutput)
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
-            when {
-                // PCM only: everything is decoded on the TV.
-                !c.passthrough -> b.setAudioCapabilities(AudioCapabilities.DEFAULT_AUDIO_CAPABILITIES)
-                c.passthroughMode == "manual" -> {
-                    val enc = (listOf(AudioFormat.ENCODING_PCM_16BIT) + c.formats.mapNotNull { encoding(it) }).toIntArray()
-                    @Suppress("DEPRECATION")
-                    b.setAudioCapabilities(AudioCapabilities(enc, 8))
-                }
-                // auto: the sink follows what the HDMI link reports, and updates when it changes.
-            }
-            return DelayedSink(b.build(), delay, codecs)
+            return DelayedSink(b.build(), delay, AudioOutputPolicy(c, codecs))
         }
     }
 
@@ -411,7 +425,7 @@ object Playback {
         else -> PlaybackFormats.audio(f.sampleMimeType) ?: f.sampleMimeType ?: "?"
     }
 
-    fun describeAudio(resources:android.content.res.Resources,f: Format?, decoder: String?): String {
+    fun describeAudio(resources:android.content.res.Resources,f: Format?, decoder: String?, passthrough: Boolean = false): String {
         f ?: return resources.getString(R.string.ui_audio_none)
         val mime = f.sampleMimeType
         val codec = when (mime) {
@@ -427,13 +441,8 @@ object Playback {
             MimeTypes.AUDIO_OPUS -> "Opus"
             else -> PlaybackFormats.audio(mime) ?: mime ?: "?"
         }
-        val encoded = mime in setOf(
-            MimeTypes.AUDIO_TRUEHD, MimeTypes.AUDIO_E_AC3_JOC, MimeTypes.AUDIO_E_AC3, MimeTypes.AUDIO_AC3,
-            MimeTypes.AUDIO_DTS_X, MimeTypes.AUDIO_DTS_HD, MimeTypes.AUDIO_DTS,
-        )
-        // Passthrough skips the decoder, so an encoded format with no decoder means bitstream output.
         val output = when {
-            decoder == null && encoded -> resources.getString(R.string.ui_passthrough_bitstream_to_receiver)
+            passthrough -> resources.getString(R.string.ui_passthrough_bitstream_to_receiver)
             decoder != null && decoder.contains("ffmpeg", true) -> resources.getString(R.string.ui_decoded_by_ffmpeg_to_pcm)
             decoder != null -> resources.getString(R.string.ui_decoded_by_to_pcm ,decoder)
             else -> null
