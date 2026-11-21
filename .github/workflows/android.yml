@@ -26,6 +26,7 @@ jobs:
         run: |
           ./gradlew --no-daemon --max-workers=2 testDebugUnitTest bundleRelease lintRelease writeNetworkCryptoClasspath
           ./gradlew --no-daemon --max-workers=2 assembleRelease -PsplitApks=true
+          ./gradlew --no-daemon --max-workers=2 assembleDebugAndroidTest
       - name: Verify shrunk network authentication algorithms
         run: python3 scripts/verify-network-crypto.py
       - name: Verify native dependency isolation and ARM alignment

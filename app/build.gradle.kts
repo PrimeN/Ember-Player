@@ -230,6 +230,7 @@ android {
         targetSdk = 36
         versionCode = 1000
         versionName = "1.0.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
     val releaseKeystore = System.getenv("EMBER_KEYSTORE_FILE")?.takeIf { it.isNotBlank() }
@@ -331,6 +332,9 @@ dependencies {
     implementation("androidx.fragment:fragment:1.8.9")
 
     testImplementation("androidx.sqlite:sqlite-framework:2.7.1")
+    androidTestImplementation("androidx.test:core:1.7.0")
+    androidTestImplementation("androidx.test:runner:1.7.0")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.18.1")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
