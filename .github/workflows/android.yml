@@ -24,9 +24,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
       - name: Unit tests and optimized release checks
         run: |
-          ./gradlew --no-daemon --max-workers=2 testDebugUnitTest bundleRelease lintRelease writeNetworkCryptoClasspath
+          ./gradlew --no-daemon --max-workers=2 testDebugUnitTest bundleRelease lintRelease writeNetworkCryptoClasspath assembleDebugAndroidTest mergeDebugNativeLibs
           ./gradlew --no-daemon --max-workers=2 assembleRelease -PsplitApks=true
-          ./gradlew --no-daemon --max-workers=2 assembleDebugAndroidTest
       - name: Verify shrunk network authentication algorithms
         run: python3 scripts/verify-network-crypto.py
       - name: Verify native dependency isolation and ARM alignment

@@ -126,12 +126,20 @@ class PlaybackDeviceTest {
         }
     }
 
-    @Test fun iamfFixtureUsesTheBundledDecoder() = withFixture("iamf") { activity ->
-        await(activity, "IAMF decoder") { it.player?.isPlaying == true && it.audioDecoder == "IamfDecoder" }
-    }
+    @Test fun iamfFixtureUsesABundledOrPlatformDecoder() =
+        verifyAudio("iamf", setOf("audio/iamf"), "IamfDecoder")
 
-    @Test fun mpegHFixtureUsesTheBundledDecoder() = withFixture("mpegh") { activity ->
-        await(activity, "MPEG-H decoder") { it.player?.isPlaying == true && it.audioDecoder == "libmpegh" }
+    @Test fun mpegHFixtureUsesABundledOrPlatformDecoder() =
+        verifyAudio("mpegh", setOf("audio/mhm1", "audio/mha1"), "libmpegh")
+
+    private fun verifyAudio(fixture: String, formats: Set<String>, bundled: String) = withFixture(fixture) { activity ->
+        val platform = MediaCodecList(MediaCodecList.ALL_CODECS).codecInfos.filter { codec ->
+            !codec.isEncoder && codec.supportedTypes.any { it.lowercase() in formats }
+        }.map { it.name }.toSet()
+        await(activity, "$fixture audio decoder") { screen ->
+            screen.player?.isPlaying == true && screen.player?.audioFormat?.sampleMimeType in formats &&
+                (screen.audioDecoder == bundled || screen.audioDecoder in platform)
+        }
     }
 
     // Pass an app-readable path with -e avc, -e hdr, -e iamf or -e mpegh.
