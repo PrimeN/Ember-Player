@@ -1069,6 +1069,7 @@
     <string name="ui_yes">Yes</string>
     <string name="ui_no">No</string>
     <string name="ui_core_styled_subtitles">Styled subtitles</string>
+    <string name="ui_nextlib_subtitle_notices">Nextlib subtitle library notices</string>
     <string name="ui_hdr_confidence">HDR confidence</string>
     <string name="ui_hdr_source_unknown">Source transfer not reported; output unverified</string>
     <string name="ui_hdr_source_identified">Source identified; display output unverified</string>
