@@ -4,17 +4,24 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.MediaCodecList
 import android.net.Uri
+import android.os.Process
 import android.os.SystemClock
 import androidx.annotation.OptIn
+import androidx.media3.common.C
+import androidx.media3.common.MimeTypes
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.text.CueGroup
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.common.util.Util
 import androidx.media3.decoder.iamf.IamfLibrary
 import androidx.media3.decoder.mpegh.MpeghLibrary
 import androidx.media3.exoplayer.text.TextOutput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import app.ember.tv.data.Prefs
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -126,6 +133,101 @@ class PlaybackDeviceTest {
         }
     }
 
+    @Test fun trueHdNegotiatesOutput() =
+        verifyEncodedOutput("truehd", MimeTypes.AUDIO_TRUEHD, setOf(C.ENCODING_DOLBY_TRUEHD))
+
+    @Test fun dtsHdNegotiatesOutput() =
+        verifyEncodedOutput("dtshd", MimeTypes.AUDIO_DTS_HD, setOf(C.ENCODING_DTS_HD))
+
+    @Test fun atmosNegotiatesOutput() =
+        verifyEncodedOutput("eac3joc", MimeTypes.AUDIO_E_AC3_JOC, setOf(C.ENCODING_E_AC3, C.ENCODING_E_AC3_JOC))
+
+    private fun verifyEncodedOutput(fixture: String, mime: String, encodings: Set<Int>) {
+        val expected = InstrumentationRegistry.getArguments().getString("audioOutput") ?: "pcm"
+        require(expected in setOf("pcm", "hdmi", "hdmi-bluetooth-hdmi"))
+        withPlaybackConfig({ it.copy(engine = "standard", passthrough = expected != "pcm", passthroughMode = "auto") }) {
+            withFixture(fixture) { activity ->
+                await(activity, "$fixture on $expected") { screen ->
+                    val output = screen.standardAudioTrack ?: return@await false
+                    screen.player?.isPlaying == true && screen.player?.audioFormat?.sampleMimeType == mime &&
+                        if (expected == "pcm") Util.isEncodingLinearPcm(output.encoding)
+                        else !screen.bluetoothOutput && !output.offload && output.encoding in encodings
+                }
+                if (expected == "hdmi") {
+                    activity.onActivity { screen ->
+                        assertTrue(screen.recover(PlaybackException(null, null, PlaybackException.ERROR_CODE_AUDIO_TRACK_WRITE_FAILED)))
+                    }
+                    await(activity, "$fixture resumes as PCM after an output error") { screen ->
+                        screen.player?.isPlaying == true && screen.codecs.pcm && screen.standardAudioTrack?.let {
+                            Util.isEncodingLinearPcm(it.encoding)
+                        } == true
+                    }
+                }
+                if (expected == "hdmi-bluetooth-hdmi") {
+                    activity.onActivity { it.player?.repeatMode = Player.REPEAT_MODE_ONE }
+                    await(activity, "select the Bluetooth device while playback is active", 90_000L) { screen ->
+                        screen.player?.isPlaying == true && screen.bluetoothOutput && screen.standardAudioTrack?.let {
+                            Util.isEncodingLinearPcm(it.encoding)
+                        } == true
+                    }
+                    await(activity, "switch back to HDMI while playback is active", 90_000L) { screen ->
+                        screen.player?.isPlaying == true && !screen.bluetoothOutput && screen.standardAudioTrack?.let {
+                            !it.offload && it.encoding in encodings
+                        } == true
+                    }
+                }
+            }
+        }
+    }
+
+    @Test fun ffmpegThenMpvSurviveRepeatedInitialization() = exerciseNativeEngines("standard")
+
+    @Test fun mpvThenFfmpegSurviveRepeatedInitialization() = exerciseNativeEngines("compatibility")
+
+    private fun exerciseNativeEngines(initialEngine: String) {
+        val abi = InstrumentationRegistry.getArguments().getString("nativeAbi")
+        if (abi != null) {
+            require(abi == "arm64-v8a" || abi == "armeabi-v7a")
+            assertEquals(abi == "arm64-v8a", Process.is64Bit())
+        }
+        val other = if (initialEngine == "standard") "compatibility" else "standard"
+        withPlaybackConfig({ it.copy(engine = initialEngine, ffmpeg = "prefer", passthrough = false, rememberDecoderChoices = false) }) {
+            repeat(2) {
+                withFixture("truehd", initialEngine) { activity ->
+                    awaitNativeEngine(activity, initialEngine)
+                    repeat(3) {
+                        for (mode in listOf(other, initialEngine)) {
+                            activity.onActivity { screen ->
+                                screen.player?.seekTo(0)
+                                screen.playbackEngine?.mode(mode)
+                            }
+                            awaitNativeEngine(activity, mode)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun awaitNativeEngine(activity: ActivityScenario<PlayerActivity>, engine: String) {
+        await(activity, "$engine plays the encoded fixture") { screen ->
+            screen.player?.isPlaying == true && screen.player?.audioFormat != null &&
+                if (engine == "compatibility") screen.playbackEngine?.compatibility != null
+                else screen.playbackEngine?.compatibility == null && screen.audioDecoder?.contains("ffmpeg", true) == true
+        }
+    }
+
+    private fun withPlaybackConfig(transform: (PlaybackConfig) -> PlaybackConfig, action: () -> Unit) {
+        val prefs = Prefs(context)
+        val previous = prefs.playbackConfig
+        try {
+            prefs.playbackConfig = transform(previous)
+            action()
+        } finally {
+            prefs.playbackConfig = previous
+        }
+    }
+
     @Test fun iamfFixtureUsesABundledOrPlatformDecoder() =
         verifyAudio("iamf", setOf("audio/iamf"), "IamfDecoder")
 
@@ -143,7 +245,7 @@ class PlaybackDeviceTest {
     }
 
     // Pass an app-readable path with -e avc, -e hdr, -e iamf or -e mpegh.
-    private fun withFixture(argument: String, action: (ActivityScenario<PlayerActivity>) -> Unit) {
+    private fun withFixture(argument: String, engine: String = "standard", action: (ActivityScenario<PlayerActivity>) -> Unit) {
         val path = InstrumentationRegistry.getArguments().getString(argument)
         assumeTrue("Supply the $argument fixture path", !path.isNullOrBlank())
         val file = File(checkNotNull(path))
@@ -155,13 +257,18 @@ class PlaybackDeviceTest {
             .putExtra(PlayRequest.EXTRA_START_OVER, true)
         ActivityScenario.launch<PlayerActivity>(intent).use { activity ->
             await(activity, "Player initialized") { it.playbackEngine != null && it.player != null }
-            activity.onActivity { it.playbackEngine?.mode("standard") }
+            activity.onActivity { it.playbackEngine?.mode(engine) }
             action(activity)
         }
     }
 
-    private fun await(activity: ActivityScenario<PlayerActivity>, expected: String, ready: (PlayerActivity) -> Boolean) {
-        val deadline = SystemClock.uptimeMillis() + 25_000
+    private fun await(
+        activity: ActivityScenario<PlayerActivity>,
+        expected: String,
+        timeoutMs: Long = 25_000,
+        ready: (PlayerActivity) -> Boolean,
+    ) {
+        val deadline = SystemClock.uptimeMillis() + timeoutMs
         while (SystemClock.uptimeMillis() < deadline) {
             var reached = false
             activity.onActivity { reached = ready(it) }
