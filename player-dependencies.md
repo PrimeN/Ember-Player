@@ -130,13 +130,13 @@ Fraunhofer r3.0.2 for ARM64/ARM32 only. No new Maven artifact is required. The
 complete unmodified Fraunhofer source archive, full license, native checksums,
 rebuild steps and wrapper changes are recorded in
 [the MPEG-H native directory](app/native/mpegh/README.md). The Media3 player
-can decode supported unencrypted MPEG-H to stereo PCM; mpv/libmpv does
-not use this extension. Software preference changes renderer priority instead of
+can decode supported unencrypted MPEG-H to stereo PCM. Software preference
+changes renderer priority instead of
 forcing Nextlib's FFmpeg-only gate, so it retains MPEG-H and device-only AC-4
 fallbacks. TV decoders only continues to exclude software extensions. AC-4 still
 requires device support; no software AC-4 decoder is bundled. Media3 also
 supports unencrypted IAMF tracks in MP4 using Opus, FLAC or PCM. AAC-based IAMF,
-encrypted IAMF and mpv IAMF decoding are excluded. Source, licenses
+and encrypted IAMF are excluded. Source, licenses
 and rebuild instructions are in [the IAMF native directory](app/native/iamf/README.md).
 
 Both native manifests pin the Media3 version used for the Java/JNI adapters. The
@@ -146,6 +146,18 @@ libraries, and refresh their manifests using the linked rebuild instructions.
 Full playback statistics show Media3's active audio decoder separately from its
 video decoder. When the output is confirmed as passthrough, the audio decoder
 row reports passthrough.
+
+Compatibility uses the same standalone IAMF and MPEG-H decoders for clear,
+seekable local MP4 files on ARM. It prepares a temporary 16-bit PCM track before
+mpv starts, then lets mpv handle playback, seeking and audio timing. MPEG-H
+outputs stereo. IAMF requires a supported mono or stereo output from the selected
+mix. This is decoded PCM output, with no immersive HDMI passthrough. The
+temporary file is unlinked before audio is written and released with playback.
+Streaming, multipart titles, encrypted and private media, and sessions with a
+separate external audio source stay on their existing paths. Device-decoders-only
+mode disables this conversion. In mixed-codec files, conventional audio remains
+the default in Compatibility. To keep a particular IAMF or MPEG-H track in a mixed
+file, select it in Media3 before switching to Compatibility.
 
 Software HDR
 preservation/tone mapping is not advertised as equivalent to the TV's HDR pipeline.

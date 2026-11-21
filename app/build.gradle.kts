@@ -336,6 +336,7 @@ dependencies {
     implementation("androidx.media3:media3-ui:$playerMedia3Version")
     implementation("androidx.media3:media3-session:$playerMedia3Version")
     implementation("androidx.media3:media3-transformer:$playerMedia3Version")
+    implementation("androidx.media3:media3-inspector:$playerMedia3Version")
     implementation("net.zetetic:sqlcipher-android:4.20.0")
     implementation("androidx.sqlite:sqlite:2.7.1")
     // FFmpeg audio decoders from Nextlib (TrueHD, DTS/DTS-HD core, AC3, E-AC3, FLAC, ALAC, MP3, AAC,

@@ -9,7 +9,10 @@ outputs stereo, 16-bit PCM. This does not add immersive MPEG-H HDMI passthrough.
 Device decoding remains first in the default **Software when needed** mode.
 **Prefer software** changes renderer priority without disabling other decoders;
 **TV decoders only** excludes the extension. Explicit runtime decoder recovery
-still uses Nextlib's controller. mpv/libmpv does not use this decoder.
+still uses Nextlib's controller. Compatibility can also play supported MPEG-H in
+local MP4 files. Ember decodes the selected track with the existing separate JNI
+library and supplies a seekable stereo PCM track to libmpv. The Fraunhofer library
+is kept separate from mpv's FFmpeg build.
 
 ## Source and licenses
 

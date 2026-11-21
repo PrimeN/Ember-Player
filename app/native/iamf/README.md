@@ -3,8 +3,10 @@
 The Media3 engine includes Media3's IAMF renderer and IAMF Tools. Supported
 IAMF tracks in MP4 use Opus, FLAC or PCM, with output layouts selected for the
 current audio configuration. AAC-based IAMF and encrypted IAMF are unsupported.
-This does not add an IAMF renderer to mpv, raw IAMF extraction, or
-Dolby/DTS object rendering. Existing AAC playback outside IAMF is unchanged.
+For eligible local MP4 files, Compatibility uses the same decoder to prepare
+seekable 16-bit PCM before mpv starts. This path supports mono or stereo output
+from the selected IAMF mix. Raw IAMF files and Dolby/DTS object rendering are
+outside this path. Existing AAC playback outside IAMF is unchanged.
 
 ## Sources and rebuilding
 

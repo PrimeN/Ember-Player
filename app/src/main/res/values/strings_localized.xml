@@ -194,6 +194,7 @@
     <string name="ui_compatibility" formatted="false">"mpv"</string>
     <string name="ui_compatibility_decoder_profile" formatted="false">"mpv decoder profile"</string>
     <string name="ui_compatibility_engine" formatted="false">"mpv engine"</string>
+    <string name="ui_compatibility_pcm_audio">Bundled decoder · PCM</string>
     <string name="ui_compatibility_libmpv" formatted="false">"mpv"</string>
     <string name="ui_compatibility_only_automatic_detects_nvidia_shield_10_bit_h" formatted="false">"mpv only. Automatic detects NVIDIA Shield 10-bit H.264 and uses full-quality software decoding. Lighter software skips some deblocking for lower CPU load; explicit track rules and manual choices take priority."</string>
     <string name="ui_compatibility_only_normal_hdr_output_stays_automatic_when_off" formatted="false">"mpv only. Normal HDR output stays automatic when off. Separate from SDR picture enhancement."</string>

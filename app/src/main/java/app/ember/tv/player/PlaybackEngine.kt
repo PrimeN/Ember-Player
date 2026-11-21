@@ -278,11 +278,12 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
         } ?: standard.audioFormat
     }
 
-    private fun preservesStandardAudio(audio: Format?) = PlaybackEnginePolicy.preservesAudio(
-        audio?.sampleMimeType,
-        audio?.drmInitData != null || standard.videoFormat?.drmInitData != null ||
-            standard.currentMediaItem?.localConfiguration?.drmConfiguration != null,
-    )
+    private fun protectedAudio(audio: Format?) = audio?.drmInitData != null ||
+        standard.videoFormat?.drmInitData != null ||
+        standard.currentMediaItem?.localConfiguration?.drmConfiguration != null
+
+    private fun preservesStandardAudio(audio: Format?) =
+        PlaybackEnginePolicy.preservesAudio(audio?.sampleMimeType, protectedAudio(audio))
 
     fun recover(error: PlaybackException): Boolean {
         if (active !== standard || !PlaybackRoutePlanner.canSwitchCore(
@@ -303,7 +304,13 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
                     current.filename) !in setOf("inherit", "auto")) return false
         }
         val audio = selectedAudio()
-        if (!preservesStandardAudio(audio)) return false
+        val canPreparePcm = (manual || mode == "compatibility") && !protectedAudio(audio) &&
+            CompatibilityPcmAudio.supports(audio?.sampleMimeType) &&
+            current.urls.singleOrNull()?.let { url ->
+                !app.ember.player.PrivateMedia.hidden(url) && !standard.isCurrentMediaItemLive &&
+                    CompatibilityPcmAudio.eligible(url, current.filename, current, config())
+            } == true
+        if (!preservesStandardAudio(audio) && !canPreparePcm) return false
         val route = PlaybackRoute(PlaybackCore.MPV, "mpv-native", audio?.sampleMimeType, "automatic")
         if (!recovery.attempt(route, manual)) return false
         if (reason == app.ember.tv.R.string.ui_core_recovery) {

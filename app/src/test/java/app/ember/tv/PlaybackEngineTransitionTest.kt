@@ -248,6 +248,29 @@ class PlaybackEngineTransitionTest {
         }finally{activity.player=null;activity.playbackEngine=null;engine.player.release()}
     }
 
+    @Test fun explicitlySelectedLocalIamfCanSwitchToCompatibilityButAutomaticSwitchKeepsStandard() {
+        val context = RuntimeEnvironment.getApplication()
+        val original = ExoPlayer.Builder(context).build()
+        val candidate = ExoPlayer.Builder(context).build()
+        val standard = intercept(original) { name ->
+            if (name == "getAudioFormat") Format.Builder().setSampleMimeType("audio/iamf").build() else Unit
+        }
+        var created = 0
+        val engine = PlaybackEngine(context, standard, { PlaybackConfig(rememberDecoderChoices = false) },
+            compatibilityFactory = { _, _, _ -> created++; candidate }) {}
+        try {
+            engine.configure(EngineSource(listOf("content://media/123"), "Film", "key", filename = "Film.mp4"))
+            original.setMediaItem(MediaItem.fromUri("content://media/123"))
+            assertFalse(engine.switch())
+            assertEquals(0, created)
+            engine.mode("compatibility")
+            assertEquals(1, created)
+        } finally {
+            engine.player.release()
+            if (created == 0) candidate.release()
+        }
+    }
+
     @Test fun unsupportedAudioDoesNotBlockALaterSupportedTrackSwitch() {
         val context=RuntimeEnvironment.getApplication()
         val original=ExoPlayer.Builder(context).build();val candidate=ExoPlayer.Builder(context).build()

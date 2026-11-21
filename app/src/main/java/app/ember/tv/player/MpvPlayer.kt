@@ -14,6 +14,14 @@ import androidx.media3.common.util.UnstableApi
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import dev.jdtech.mpv.MPVLib
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 /** libmpv exposed through Media3's Player contract, so Ember keeps its existing TV controls. */
@@ -95,6 +103,11 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     private var waitingSeek=true
     private var secondaryLanguage:String?=null
     private var additionalAudio:String?=source.audio
+    private val audioPreparation = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var pcmJob: Job? = null
+    private var pcmChecked = false
+    private var pcmAudio: CompatibilityPcmAudio.Prepared? = null
+    private var pcmTrackId: Int? = null
     private var wholeTitleAudio=false
     private var audioOffset=0L
     private data class ExternalSubtitle(val file: File, val companions: List<File>, val wholeFile: Boolean) {
@@ -115,7 +128,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         .setAudioAttributes(android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA).setContentType(android.media.AudioAttributes.CONTENT_TYPE_MOVIE).build())
         .setOnAudioFocusChangeListener({ change ->
             if(!closed) { when(change) { AudioManager.AUDIOFOCUS_GAIN -> focusPaused=false; AudioManager.AUDIOFOCUS_LOSS -> {wanted=false;focusPaused=false}; else -> focusPaused=true }
-                native.setPropertyBoolean("pause",!wanted||focusPaused);invalidateState() }
+                native.setPropertyBoolean("pause",pcmJob != null || !wanted||focusPaused);invalidateState() }
         },handler).build()
     private val noisy=object:BroadcastReceiver() {override fun onReceive(c:Context,i:Intent){if(i.action==AudioManager.ACTION_AUDIO_BECOMING_NOISY)playWhenReady=false}}
     private val callback = object : SurfaceHolder.Callback {
@@ -242,11 +255,64 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         captionText=""
         partIndex=index;pendingSeek=at;waitingSeek=true;position=at;loading=true;status=Player.STATE_BUFFERING;busy=true;stopping=false
         native.setPropertyBoolean("pause",true)
-        native.command(arrayOf("loadfile",uri(source.urls[index]),"replace"))
+        pcmJob?.cancel()
+        pcmJob = null
+        val value = source.urls[index]
+        val requested = parameters.overrides.values.firstOrNull { it.type == C.TRACK_TYPE_AUDIO }?.let { selection ->
+            selection.trackIndices.firstOrNull()?.let(selection.mediaTrackGroup::getFormat)
+        }
+        val prepareAudio = !pcmChecked && additionalAudio == null && C.TRACK_TYPE_AUDIO !in parameters.disabledTrackTypes &&
+            (requested == null || CompatibilityPcmAudio.supports(requested.sampleMimeType)) &&
+            CompatibilityPcmAudio.eligible(value, source.filename, source, config) &&
+            !app.ember.player.PrivateMedia.hidden(value)
+        if (prepareAudio) {
+            pcmJob = audioPreparation.launch {
+                var prepared: CompatibilityPcmAudio.Prepared? = null
+                try {
+                    try {
+                        withContext(Dispatchers.IO) {
+                            prepared = CompatibilityPcmAudio.prepare(context, value, requested, source.audioLanguages)
+                        }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        // Normal mpv playback remains available if the auxiliary audio cannot be prepared.
+                    } catch (_: LinkageError) {
+                        // A device with no usable bundled decoder still takes the ordinary path.
+                    }
+                    pcmChecked = true
+                    if (!app.ember.player.PrivateMedia.hidden(value)) {
+                        pcmAudio = prepared
+                        prepared = null
+                    }
+                    pcmJob = null
+                    try {
+                        startNativeLoad(value)
+                    } catch (_: Exception) {
+                        fail()
+                    }
+                } finally {
+                    prepared?.close()
+                }
+            }
+        } else startNativeLoad(value)
         invalidateState()
     }
+
+    private fun startNativeLoad(value: String) {
+        pcmTrackId = null
+        val command = pcmAudio?.url?.takeIf {
+            additionalAudio == null && !app.ember.player.PrivateMedia.hidden(value)
+        }?.let { audioUrl ->
+            arrayOf("loadfile", uri(value), "replace", "-1", "audio-files=$audioUrl")
+        } ?: arrayOf("loadfile", uri(value), "replace")
+        native.command(command)
+    }
+
     private fun refreshTracks() {
         val groups=mutableListOf<Tracks.Group>()
+        pcmTrackId = null
+        val pcm = pcmAudio
         for(i in 0 until (native.getPropertyInt("track-list/count")?:0).coerceIn(0,256)) {
             val path="track-list/$i/";val id=native.getPropertyInt(path+"id")?:continue
             val type=native.getPropertyString(path+"type")?:continue
@@ -260,13 +326,26 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
                 "ass","ssa"->MimeTypes.TEXT_SSA;"hdmv_pgs_subtitle"->MimeTypes.APPLICATION_PGS;"dvd_subtitle"->MimeTypes.APPLICATION_VOBSUB
                 else->when(type){"audio"->"audio/"+codec;"sub"->MimeTypes.APPLICATION_SUBRIP;else->"video/"+codec}
             }
+            val bridged = type == "audio" && pcm != null &&
+                native.getPropertyString(path + "external-filename") == pcm.url
+            if (bridged) pcmTrackId = id
             val format=Format.Builder().setId("mpv:$type:$id").setSampleMimeType(mime).setLabel(native.getPropertyString(path+"title")?:codec)
                 .setLanguage(native.getPropertyString(path+"lang")).setSelectionFlags(if(native.getPropertyBoolean(path+"forced")==true)C.SELECTION_FLAG_FORCED else 0)
                 .apply {if(type=="video"){setWidth(native.getPropertyInt("video-params/w")?:-1);setHeight(native.getPropertyInt("video-params/h")?:-1);setFrameRate(native.getPropertyDouble("container-fps")?.toFloat()?:-1f)
                     val transfer=when(native.getPropertyString("video-params/gamma")){"pq"->C.COLOR_TRANSFER_ST2084;"hlg"->C.COLOR_TRANSFER_HLG;else->null}
                     transfer?.let {setColorInfo(ColorInfo.Builder().setColorTransfer(it).build())}}
-                    if(type=="audio") {setChannelCount(native.getPropertyInt(path+"demux-channel-count")?:-1);setSampleRate(native.getPropertyInt(path+"demux-samplerate")?:-1)} }.build()
-            groups+=Tracks.Group(TrackGroup(format.id!!,format),false,intArrayOf(C.FORMAT_HANDLED),booleanArrayOf(native.getPropertyBoolean(path+"selected")==true))
+                    if(type=="audio") {setChannelCount(native.getPropertyInt(path+"demux-channel-count")?:-1);setSampleRate(native.getPropertyInt(path+"demux-samplerate")?:-1)}
+                    if (bridged) {
+                        setSampleMimeType(pcm.format.sampleMimeType)
+                        setLanguage(pcm.format.language)
+                        setLabel(pcm.format.label ?: context.getString(R.string.ui_compatibility_pcm_audio))
+                    }
+                }.build()
+            val selected = native.getPropertyBoolean(path+"selected")==true
+            val unsupportedSpecialAudio = type == "audio" && CompatibilityPcmAudio.supports(mime) &&
+                !bridged && (!selected || native.getPropertyString("audio-codec-name").isNullOrEmpty())
+            val support = if (unsupportedSpecialAudio) C.FORMAT_UNSUPPORTED_SUBTYPE else C.FORMAT_HANDLED
+            groups+=Tracks.Group(TrackGroup(format.id!!,format),false,intArrayOf(support),booleanArrayOf(selected))
         }
         tracks=Tracks(groups)
         currentVideoMime=groups.firstOrNull {it.type==C.TRACK_TYPE_VIDEO&&it.isSelected}?.getTrackFormat(0)?.sampleMimeType
@@ -285,7 +364,16 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
                 val format = it.trackIndices.firstOrNull()?.let(it.mediaTrackGroup::getFormat) ?: return@let null
                 matchingPlaybackTrack(tracks, type, format)
             }
-            chosen?.mediaTrackGroup?.id?.substringAfterLast(':')?.toIntOrNull()?.let {native.setPropertyInt(property,it)}
+            val chosenId = chosen?.mediaTrackGroup?.id?.substringAfterLast(':')?.toIntOrNull()
+            val requested = override?.trackIndices?.firstOrNull()?.let { override.mediaTrackGroup.getFormat(it) }
+            val pcm = pcmAudio
+            val bridgeId = if (type == C.TRACK_TYPE_AUDIO && additionalAudio == null && pcm != null &&
+                (requested == null || requested.sampleMimeType == pcm.format.sampleMimeType &&
+                    (requested.language.isNullOrBlank() ||
+                        app.ember.tv.data.Subtitles.normalise(requested.language) == app.ember.tv.data.Subtitles.normalise(pcm.format.language)))) {
+                pcmTrackId
+            } else null
+            (bridgeId ?: chosenId)?.let { native.setPropertyInt(property, it) }
         }
     }
     private fun loaded() {
@@ -393,7 +481,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     private fun done():ListenableFuture<*> = Futures.immediateVoidFuture()
     override fun handlePrepare():ListenableFuture<*> {error=null;load(partIndex,position);return done()}
     override fun handleSetPlayWhenReady(playWhenReady:Boolean):ListenableFuture<*> {wanted=playWhenReady;if(wanted)focusPaused=audioManager.requestAudioFocus(focus)!=AudioManager.AUDIOFOCUS_REQUEST_GRANTED
-        native.setPropertyBoolean("pause",!wanted||focusPaused);return done()}
+        native.setPropertyBoolean("pause",pcmJob != null || !wanted||focusPaused);return done()}
     fun seekNavigation(positionMs: Long, fast: Boolean) {
         navigationSeek=fast
         try { seekTo(positionMs) } finally { navigationSeek=false }
@@ -403,6 +491,11 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         approximateSeek=navigationSeek
         val target=positionMs.coerceAtLeast(0);var index=0
         while(index<source.urls.lastIndex && durations[index]!=null && target>=prefix(index)+durations[index]!!)index++
+        if (pcmJob != null) {
+            pendingSeek = target
+            position = target
+            return done()
+        }
         if(index!=partIndex)load(index,target) else {pendingSeek=target;waitingSeek=true;native.command(arrayOf("seek",((target-prefix(index)).coerceAtLeast(0)/1000.0).toString(),SeekPreference.flags(if(navigationSeek) "fast" else "precise",false)));position=target;status=Player.STATE_READY;native.setPropertyBoolean("pause",!wanted||focusPaused)}
         return done()
     }
@@ -410,7 +503,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     override fun handleSetPlaybackParameters(playbackParameters:PlaybackParameters):ListenableFuture<*> {playback=playbackParameters;native.setPropertyDouble("speed",playback.speed.toDouble());return done()}
     override fun handleSetRepeatMode(repeatMode:Int):ListenableFuture<*> {repeat=repeatMode;return done()}
     override fun handleSetVolume(volume:Float):ListenableFuture<*> {gain=volume;native.setPropertyDouble("volume",volume*100.0*boostGain);return done()}
-    override fun handleStop():ListenableFuture<*> {stopping=true;wanted=false;status=Player.STATE_IDLE;busy=false;native.command(arrayOf("stop"));return done()}
+    override fun handleStop():ListenableFuture<*> {pcmJob?.cancel();pcmJob=null;stopping=true;wanted=false;status=Player.STATE_IDLE;busy=false;native.command(arrayOf("stop"));return done()}
     override fun handleSetVideoOutput(videoOutput:Any):ListenableFuture<*> {
         detachOutput();output=videoOutput;appliedHdr=null
         when(videoOutput){is Surface->native.attachSurface(videoOutput);is SurfaceView->attach(videoOutput.holder);is SurfaceHolder->attach(videoOutput)
@@ -425,7 +518,7 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         native.detachSurface();ownedSurface?.release();ownedSurface=null;output=null
     }
     override fun handleClearVideoOutput(videoOutput:Any?):ListenableFuture<*> {if(videoOutput==null||videoOutput===output)detachOutput();return done()}
-    override fun handleRelease():ListenableFuture<*> {if(!closed){closed=true;onCaptionTextChanged=null;onOptionsChanged=null;onSubtitleLoadFailed=null;displayManager.unregisterDisplayListener(displayListener);detachOutput();hdrSurface.close();handler.removeCallbacksAndMessages(null);runCatching {context.unregisterReceiver(noisy)};audioManager.abandonAudioFocusRequest(focus);native.removeObserver(this);transport?.close();native.destroy();ownedSurface?.release();descriptors.forEach {it.close()};externalSubtitle?.delete();externalSubtitle=null};return done()}
+    override fun handleRelease():ListenableFuture<*> {if(!closed){closed=true;audioPreparation.cancel();pcmJob=null;onCaptionTextChanged=null;onOptionsChanged=null;onSubtitleLoadFailed=null;displayManager.unregisterDisplayListener(displayListener);detachOutput();hdrSurface.close();handler.removeCallbacksAndMessages(null);runCatching {context.unregisterReceiver(noisy)};audioManager.abandonAudioFocusRequest(focus);native.removeObserver(this);transport?.close();try {native.destroy()} finally {pcmAudio?.close();pcmAudio=null};ownedSurface?.release();descriptors.forEach {it.close()};externalSubtitle?.delete();externalSubtitle=null};return done()}
     fun geometry(zoom:String,ratio:Float) {
         native.setPropertyDouble("video-zoom",0.0)
         native.setPropertyDouble("panscan",if(zoom=="crop")1.0 else 0.0)
@@ -602,6 +695,8 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         return runCatching { native.setPropertyString("af",value); appliedEffects=value;true }.getOrDefault(false)
     }
     fun isPassthrough()=native.getPropertyString("audio-out-params/format")?.startsWith("spdif")==true
+    fun hasBundledPcmAudio() = pcmTrackId?.let { it == native.getPropertyInt("aid") } == true &&
+        native.getPropertyString("audio-out-params/format")?.let { !it.startsWith("spdif") } == true
     private fun decoderChoice():NativeDecoderChoice {
         val preference=config.decoderRules.preference(source.urls[partIndex],currentVideoMime,source.filename)
         val count=(native.getPropertyInt("track-list/count")?:0).coerceIn(0,2000)
@@ -703,5 +798,8 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         R.string.ui_decoded_video_transfer to native.getPropertyString("video-params/gamma").orEmpty(),
         R.string.ui_deinterlacing_mode to deinterlacing,
         R.string.ui_renderer_input_transfer to native.getPropertyString("video-out-params/gamma").orEmpty(),
-        R.string.ui_audio_output to native.getPropertyString("audio-out-params/format").orEmpty())
+        R.string.ui_audio_output to native.getPropertyString("audio-out-params/format").orEmpty()) +
+        if (hasBundledPcmAudio()) {
+            mapOf(R.string.pl_audio_decoder to context.getString(R.string.ui_compatibility_pcm_audio))
+        } else emptyMap()
 }

@@ -234,6 +234,35 @@ class PlaybackDeviceTest {
     @Test fun mpegHFixtureUsesABundledOrPlatformDecoder() =
         verifyAudio("mpegh", setOf("audio/mhm1", "audio/mha1"), "libmpegh")
 
+    @Test fun compatibilityPlaysIamfAsPcm() =
+        verifyCompatibilityPcm("iamf", setOf("audio/iamf"))
+
+    @Test fun compatibilityPlaysMpegHAsPcm() =
+        verifyCompatibilityPcm("mpegh", setOf("audio/mhm1", "audio/mha1"))
+
+    private fun verifyCompatibilityPcm(fixture: String, formats: Set<String>) =
+        withPlaybackConfig({ it.copy(engine = "compatibility", ffmpeg = "on", passthrough = false, resume = "start") }) {
+            withFixture(fixture, "compatibility") { activity ->
+                await(activity, "$fixture uses bundled PCM in mpv") { screen ->
+                    screen.player?.isPlaying == true && screen.player?.audioFormat?.sampleMimeType in formats &&
+                        screen.playbackEngine?.compatibility?.hasBundledPcmAudio() == true
+                }
+                var target = 0L
+                activity.onActivity { screen ->
+                    val player = checkNotNull(screen.player)
+                    check(player.duration > 0 && player.isCurrentMediaItemSeekable)
+                    player.pause()
+                    target = player.duration / 2
+                    player.seekTo(target)
+                    player.play()
+                }
+                await(activity, "$fixture remains audible after seek") { screen ->
+                    screen.player?.let { player -> player.isPlaying && player.currentPosition in target..(target + 1_000L) } == true &&
+                        screen.playbackEngine?.compatibility?.hasBundledPcmAudio() == true
+                }
+            }
+        }
+
     private fun verifyAudio(fixture: String, formats: Set<String>, bundled: String) = withFixture(fixture) { activity ->
         val platform = MediaCodecList(MediaCodecList.ALL_CODECS).codecInfos.filter { codec ->
             !codec.isEncoder && codec.supportedTypes.any { it.lowercase() in formats }

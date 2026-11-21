@@ -4,7 +4,7 @@ package app.ember.tv.player
 object PlaybackEnginePolicy {
     fun compatibilityError(code: Int): Boolean = PlaybackFailureClassifier.classify(code).changesCore
     fun nativeFirst(uri: String, filename: String? = null): Boolean = MediaFileFormats.nativeFirst(uri, filename)
-    /** These formats have no bundled Compatibility audio decoder. Keep a working Standard path. */
+    /** Keep a working Standard decoder when an automatic Compatibility switch could lose its audio. */
     fun preservesAudio(mime:String?, protected:Boolean=false):Boolean = !protected && mime?.lowercase() !in setOf("audio/ac4","audio/mhm1","audio/mha1","audio/iamf")
 }
 internal data class EngineSource(
