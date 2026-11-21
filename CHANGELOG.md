@@ -4,6 +4,7 @@
 
 - Reuse saved-folder listings for paging, search and sorting during the current visit.
 - Add translation resource checks and contributor guidance.
+- Update AppCompat to 1.8.0 and Fragment to 1.9.1.
 
 - Add mpv program and quality choices, explain automatic core and renderer decisions, and prepare reusable native resources off the main thread.
 - Search and naturally sort entire saved folders, show durations before videos are played, and improve compact phone headers and TV accessibility labels.

@@ -16,6 +16,8 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+val useMavenCentralMirror = providers.gradleProperty("useMavenCentralMirror").orNull == "true"
+
 /** The two engines ship independent FFmpeg bundles. Rename libmpv's private ELF dependencies
  * and its JNI loader strings without changing symbols, byte offsets or JNI class names.
  * Never use packaging pickFirst for these libraries: that would break one engine.
@@ -271,7 +273,7 @@ android {
         unitTests.isReturnDefaultValues = true
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
-            it.systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
+            it.systemProperty("robolectric.dependency.repo.url", if (useMavenCentralMirror) "https://gcp.mirrors.maven.org/maven2" else "https://repo.maven.apache.org/maven2")
             it.testLogging.exceptionFormat=org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
         }
     }
@@ -329,8 +331,8 @@ dependencies {
     implementation("commons-net:commons-net:3.13.0")
     implementation("me.jahnen.libaums:core:0.10.0")
     implementation("com.google.android.gms:play-services-cast-framework:23.0.0")
-    implementation("androidx.appcompat:appcompat:1.7.1")
-    implementation("androidx.fragment:fragment:1.8.9")
+    implementation("androidx.appcompat:appcompat:1.8.0")
+    implementation("androidx.fragment:fragment:1.9.1")
 
     testImplementation("androidx.sqlite:sqlite-framework:2.7.1")
     androidTestImplementation("androidx.test:core:1.7.0")

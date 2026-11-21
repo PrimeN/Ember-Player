@@ -130,3 +130,7 @@ source revisions, checksums, licenses, patches and rebuild commands. Retain all
 applicable notices when distributing a modified build.
 
 See [UI translation guidance](localization.md) before contributing a language pack.
+
+CI enables `-PuseMavenCentralMirror=true` to use Google's Maven Central mirror, with the
+canonical repository as a fallback. Local builds can use the same flag. The
+pinned native artifact checks still apply.

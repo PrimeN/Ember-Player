@@ -84,8 +84,8 @@ jobs:
           EMBER_KEY_ALIAS: ${{ secrets.EMBER_KEY_ALIAS }}
           EMBER_KEY_PASSWORD: ${{ secrets.EMBER_KEY_PASSWORD }}
         run: |
-          ./gradlew --no-daemon --max-workers=2 bundleRelease
-          ./gradlew --no-daemon --max-workers=2 assembleRelease -PsplitApks=true
+          ./gradlew --no-daemon --max-workers=2 -PuseMavenCentralMirror=true bundleRelease
+          ./gradlew --no-daemon --max-workers=2 -PuseMavenCentralMirror=true assembleRelease -PsplitApks=true
       - name: Verify release identity and prepare all packages
         run: python3 scripts/prepare-release.py --require-signed
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
