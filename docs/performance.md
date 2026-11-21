@@ -3,8 +3,8 @@
 ## Baseline and startup profiles
 
 The optional `benchmark` module records app startup, populated library shelves,
-scrolling, remote focus and Settings navigation. It seeds 60 synthetic media
-entries through a signature-protected fixture receiver in the profiling variant.
+scrolling, remote focus and Settings navigation. It seeds sample media and saved
+playback positions through a signature-protected fixture receiver in the profiling variant.
 The fixture provider and media asset are absent from production builds.
 
 The Android startup profiles workflow collects on a phone emulator and an Android

@@ -56,12 +56,13 @@ class StartupProfile {
     }
 
     private fun click(device: UiDevice, text: String) {
-        repeat(5) {
+        val end = SystemClock.elapsedRealtime() + 15_000
+        do {
             try {
                 if (television) {
                     val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
-                    if (activate(automation.rootInActiveWindow, text)) return
-                    device.waitForIdle(3000)
+                    if (activate(automation.rootInActiveWindow, text) ||
+                        automation.windows.any { activate(it.root, text) }) return
                 } else {
                     label(device, text).click()
                     return
@@ -69,7 +70,8 @@ class StartupProfile {
             } catch (_: StaleObjectException) {
                 device.waitForIdle(3000)
             }
-        }
+            SystemClock.sleep(100)
+        } while (SystemClock.elapsedRealtime() < end)
         throw AssertionError("Could not activate: $text")
     }
     private fun scroll(device:UiDevice,direction:Direction) {

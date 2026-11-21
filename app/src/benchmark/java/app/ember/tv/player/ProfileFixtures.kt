@@ -22,7 +22,8 @@ class ProfileFixtures:BroadcastReceiver() {
                 val entries=(1..60).map {QueueMedia("content://${context.packageName}.fixtures/media/$it","Sample episode $it")}
                 check(MediaHistory(context).add(entries))
                 val positions=PositionStore(context,app.ember.tv.data.LocalActivity.scope(context))
-                entries.take(8).forEach {positions.put(it.key,60_000,120_000)}
+                // Continue watching sorts by last played, so seed the first sample last.
+                entries.take(8).asReversed().forEach {positions.put(it.key,60_000,120_000)}
                 result.setResultCode(Activity.RESULT_OK)
             } catch(_:Exception) {result.setResultCode(Activity.RESULT_CANCELED)}
             finally {result.finish()}
