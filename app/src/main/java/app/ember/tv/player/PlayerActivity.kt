@@ -134,6 +134,7 @@ class PlayerActivity : ComponentActivity() {
     internal var videoDecoder: String? = null
     internal var decoderLearned=false
     internal var audioDecoder: String? = null
+    internal var standardAudioTrack: androidx.media3.exoplayer.audio.AudioSink.AudioTrackConfig? = null
     internal lateinit var info: TextView
     /** Info and subtitle panel (Info, Menu or Guide). */
     internal lateinit var panel: android.widget.ScrollView

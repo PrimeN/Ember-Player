@@ -140,6 +140,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         recoveryAllowed={userVideoMode==null && userAudioMode==null}, recovery = decoderRecovery) { compatible ->
         pictureBypassed=false;pictureSignature=null;pictureEffectsActive=false
         videoDecoder=if(compatible)resources.getString(R.string.ui_compatibility_engine) else null
+        standardAudioTrack = null
         loudness?.release();loudness=null
         if(boostLevel>0)setBoost(boostLevel)
         if (subsInitialized) {
@@ -208,6 +209,21 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
             videoDecoder = decoderName
             playbackEngine?.restartQualityWindow()
             decoderLearned = false
+        }
+
+        override fun onAudioTrackInitialized(eventTime: AnalyticsListener.EventTime, audioTrackConfig: androidx.media3.exoplayer.audio.AudioSink.AudioTrackConfig) {
+            if (playbackEngine?.compatibility != null) return
+            standardAudioTrack = audioTrackConfig
+            updateSoundLabel()
+        }
+
+        override fun onAudioTrackReleased(eventTime: AnalyticsListener.EventTime, audioTrackConfig: androidx.media3.exoplayer.audio.AudioSink.AudioTrackConfig) {
+            val active = standardAudioTrack ?: return
+            if (active.encoding == audioTrackConfig.encoding && active.sampleRate == audioTrackConfig.sampleRate &&
+                active.channelConfig == audioTrackConfig.channelConfig && active.offload == audioTrackConfig.offload) {
+                standardAudioTrack = null
+                updateSoundLabel()
+            }
         }
 
         override fun onAudioDecoderInitialized(eventTime: AnalyticsListener.EventTime, decoderName: String, initializedTimestampMs: Long, initializationDurationMs: Long) {

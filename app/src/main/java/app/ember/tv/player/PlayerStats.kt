@@ -54,7 +54,13 @@ internal fun PlayerActivity.audioLine(f: Format?): String {
     }
     val hz = f.sampleRate.takeIf { it > 0 }?.let { resources.getString(R.string.ui_hz_648ee5 ,it.toString()) }
     val bitrate = listOf(f.bitrate, f.averageBitrate, f.peakBitrate).firstOrNull { it > 0 }?.let { rate(it.toLong()) }
-    val out = getString(if (passthrough()) R.string.pl_passthrough else R.string.pl_decoded)
+    val out = when {
+        passthrough() -> getString(R.string.pl_passthrough)
+        playbackEngine?.compatibility != null ||
+            standardAudioTrack?.let { androidx.media3.common.util.Util.isEncodingLinearPcm(it.encoding) } == true ->
+            getString(R.string.pl_decoded)
+        else -> null
+    }
     return listOfNotNull(Playback.audioName(f), hz, ch, bitrate, out).joinToString(", ")
 }
 

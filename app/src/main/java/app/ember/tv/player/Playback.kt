@@ -425,7 +425,7 @@ object Playback {
         else -> PlaybackFormats.audio(f.sampleMimeType) ?: f.sampleMimeType ?: "?"
     }
 
-    fun describeAudio(resources:android.content.res.Resources,f: Format?, decoder: String?): String {
+    fun describeAudio(resources:android.content.res.Resources,f: Format?, decoder: String?, passthrough: Boolean = false): String {
         f ?: return resources.getString(R.string.ui_audio_none)
         val mime = f.sampleMimeType
         val codec = when (mime) {
@@ -441,13 +441,8 @@ object Playback {
             MimeTypes.AUDIO_OPUS -> "Opus"
             else -> PlaybackFormats.audio(mime) ?: mime ?: "?"
         }
-        val encoded = mime in setOf(
-            MimeTypes.AUDIO_TRUEHD, MimeTypes.AUDIO_E_AC3_JOC, MimeTypes.AUDIO_E_AC3, MimeTypes.AUDIO_AC3,
-            MimeTypes.AUDIO_DTS_X, MimeTypes.AUDIO_DTS_HD, MimeTypes.AUDIO_DTS,
-        )
-        // Passthrough skips the decoder, so an encoded format with no decoder means bitstream output.
         val output = when {
-            decoder == null && encoded -> resources.getString(R.string.ui_passthrough_bitstream_to_receiver)
+            passthrough -> resources.getString(R.string.ui_passthrough_bitstream_to_receiver)
             decoder != null && decoder.contains("ffmpeg", true) -> resources.getString(R.string.ui_decoded_by_ffmpeg_to_pcm)
             decoder != null -> resources.getString(R.string.ui_decoded_by_to_pcm ,decoder)
             else -> null
