@@ -16,15 +16,21 @@ class PlayerRecoveryAndSubtitleTest {
         val out=ByteArrayOutputStream();ZipOutputStream(out).use { z->entries.forEach { (n,t)->z.putNextEntry(ZipEntry(n));z.write(t.toByteArray());z.closeEntry() } };return out.toByteArray()
     }
     @Test fun automaticDecoderRecoveryIsIndependentAndResetsPerItem() {
-        val r=DecoderRecovery()
-        assertEquals("software",r.next(false,true));assertEquals("software",r.next(true,true))
-        assertEquals("ffmpeg",r.next(false,true));assertNull(r.next(false,true))
-        assertTrue(r.pcmFallback());assertFalse(r.pcmFallback());r.reset()
-        assertFalse(r.pcm);assertEquals("software",r.next(false,true))
+        val recovery = DecoderRecovery()
+        val initial = app.ember.tv.player.PlaybackRoute(app.ember.tv.player.PlaybackCore.MEDIA3, "auto", "auto", "automatic")
+        assertTrue(recovery.attempt(initial))
+        assertTrue(recovery.attempt(initial.copy(audioDecoder = "software")))
+        assertTrue(recovery.attempt(initial.copy(videoDecoder = "software")))
+        val pcm = initial.copy(output = "pcm")
+        assertTrue(recovery.attempt(pcm))
+        assertFalse(recovery.attempt(pcm))
+        recovery.reset()
+        assertTrue(recovery.attempt(pcm))
     }
     @Test fun disabledFfmpegAndUnsafeSoftwareAreNotAutomaticFallbacks() {
-        val r=DecoderRecovery();assertEquals("software",r.next(true,false));assertNull(r.next(true,false))
-        assertNull(r.next(false,true,false))
+        val planner = app.ember.tv.player.PlaybackRoutePlanner
+        assertEquals(listOf("software"), planner.fallbackModes(true, false, false))
+        assertTrue(planner.fallbackModes(false, true, false).isEmpty())
     }
     @Test fun dolbyVisionFallbackRequiresCompatibleProfileAndMetadata() {
         assertFalse(DolbyVisionPolicy.hdr10Base("dvhe.05.06",true))

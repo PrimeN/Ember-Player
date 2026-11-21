@@ -137,7 +137,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         .build()
 
     playbackEngine=PlaybackEngine(this,standard,{renderConfig().copy(passthrough=config.passthrough&&!codecs.pcm)},
-        recoveryAllowed={userVideoMode==null && userAudioMode==null}) { compatible ->
+        recoveryAllowed={userVideoMode==null && userAudioMode==null}, recovery = decoderRecovery) { compatible ->
         pictureBypassed=false;pictureSignature=null;pictureEffectsActive=false
         videoDecoder=if(compatible)resources.getString(R.string.ui_compatibility_engine) else null
         loudness?.release();loudness=null
@@ -237,6 +237,15 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         override fun onCues(cueGroup:androidx.media3.common.text.CueGroup){embeddedCaptionText=cueGroup.cues.mapNotNull {it.text?.toString()}.joinToString("\n")}
 
         override fun onTracksChanged(tracks: Tracks) {
+            // Start on the best audio track once per title; after that the user's choice stands.
+            if (!audioPicked && tracks.groups.any { it.type == C.TRACK_TYPE_AUDIO }) {
+                audioPicked = true
+                val restored=BackgroundAudioTrack.from(intent.getBundleExtra(BackgroundAudioService.FORCE_TRACK))?.selection(tracks)
+                intent.removeExtra(BackgroundAudioService.FORCE_TRACK)
+                (restored ?: Playback.bestAudio(tracks, config, showKey()?.let { memory.get(it)?.audio }))?.let { o ->
+                    p.trackSelectionParameters = p.trackSelectionParameters.buildUpon().setOverrideForType(o).build()
+                }
+            }
             val captions=prefs.subtitleConfig
             if(SubtitleStyleProbe.routeToMpv(config.engine=="auto",true,captions.systemStyle,captions.layout.needsCompatibility,p.videoFormat,p.audioFormat) && playbackEngine?.compatibility==null &&
                 tracks.groups.any {it.type==C.TRACK_TYPE_TEXT && it.isSelected} && playbackEngine?.switch()==true)return
@@ -253,15 +262,6 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
             if (advanced) {
                 controls.audioTracks = audioTracks()
                 changed()
-            }
-            // Start on the best audio track once per title; after that the user's choice stands.
-            if (!audioPicked && tracks.groups.any { it.type == C.TRACK_TYPE_AUDIO }) {
-                audioPicked = true
-                val restored=BackgroundAudioTrack.from(intent.getBundleExtra(BackgroundAudioService.FORCE_TRACK))?.selection(tracks)
-                intent.removeExtra(BackgroundAudioService.FORCE_TRACK)
-                (restored ?: Playback.bestAudio(tracks, config, showKey()?.let { memory.get(it)?.audio }))?.let { o ->
-                    p.trackSelectionParameters = p.trackSelectionParameters.buildUpon().setOverrideForType(o).build()
-                }
             }
             matchDisplayMode(p)
             val visit=playbackVisit
@@ -327,7 +327,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
                 codecs.decoderHealth?.forget(format, name)
             }
             if (recover(error)) return
-            if(playbackEngine?.recover(error.errorCode)==true)return
+            if(playbackEngine?.recover(error)==true)return
             Toast.makeText(
                 this@createPlayer,
                 getString(

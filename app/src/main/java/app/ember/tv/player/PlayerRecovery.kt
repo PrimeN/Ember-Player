@@ -59,26 +59,36 @@ internal fun PlayerActivity.recover(e: PlaybackException): Boolean {
     val manual=if(audio)userAudioMode!=null || config.ffmpeg=="prefer" || config.ffmpeg=="off"
         else userVideoMode!=null || config.ffmpegVideo=="always" ||
             config.decoderRules.preference(currentUrl.orEmpty(),format?.sampleMimeType,codecs.sourceFilename) !in setOf("inherit","auto")
-    val message: String
-    if(audio && decoderRecovery.pcmFallback()) {
-        codecs.pcm=true
-        val was=p.playWhenReady;val at=p.currentPosition
-        p.stop();p.seekTo(at);p.playWhenReady=was
-        message=resources.getString(R.string.ui_trying_pcm_audio_output)
+    val position = p.currentPosition
+    val playWhenReady = p.playWhenReady
+    val currentRoute = PlaybackRoute(
+        PlaybackCore.MEDIA3, decoderManager.videoMode.name.lowercase(), decoderManager.audioMode.name.lowercase(),
+        if (codecs.pcm) "pcm" else "automatic",
+    )
+    decoderRecovery.attempt(currentRoute)
+    val message = if (outputFailure) {
+        if (codecs.pcm || !decoderRecovery.attempt(currentRoute.copy(output = "pcm"))) return false
+        codecs.pcm = true
+        p.stop()
+        resources.getString(R.string.ui_trying_pcm_audio_output)
     } else {
-        val safe=audio || (format ?: p.videoFormat)?.let(DecoderHealth::softwareSafe)==true
-        val next=decoderRecovery.next(audio,if(audio)config.ffmpeg!="off" else config.ffmpegVideo!="off",safe,manual) ?: return false
-        val route=PlaybackRoute(PlaybackCore.MEDIA3,if(audio)videoDecoder else next,
-            if(audio)next else audioDecoder,if(codecs.pcm)"pcm" else "automatic")
-        if(!decoderRecovery.attempt(route))return false
-        val mode=if(next=="ffmpeg")DecoderMode.FFMPEG else DecoderMode.SOFTWARE
-        if(audio)decoderManager.selectAudioDecoder(mode) else { decoderManager.selectVideoDecoder(mode);codecs.ffmpegVideo=mode==DecoderMode.FFMPEG }
-        message=if(audio)resources.getString(R.string.ui_trying_another_audio_decoder) else resources.getString(R.string.ui_trying_another_video_decoder)
+        val safe = audio || (format ?: p.videoFormat)?.let(DecoderHealth::softwareSafe) == true
+        val ffmpeg = if (audio) config.ffmpeg != "off" else config.ffmpegVideo != "off"
+        val next = PlaybackRoutePlanner.fallbackModes(safe, ffmpeg, manual).firstOrNull { mode ->
+            val route = if (audio) currentRoute.copy(audioDecoder = mode) else currentRoute.copy(videoDecoder = mode)
+            decoderRecovery.attempt(route)
+        } ?: return false
+        val mode = if (next == "ffmpeg") DecoderMode.FFMPEG else DecoderMode.SOFTWARE
+        if (audio) decoderManager.selectAudioDecoder(mode) else {
+            decoderManager.selectVideoDecoder(mode)
+            codecs.ffmpegVideo = mode == DecoderMode.FFMPEG
+        }
+        resources.getString(if (audio) R.string.ui_trying_another_audio_decoder else R.string.ui_trying_another_video_decoder)
     }
     recoveries++
     Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-    val at = p.currentPosition
-    p.seekTo(at)
+    p.seekTo(position)
+    p.playWhenReady = playWhenReady
     p.prepare()
     return true
 }

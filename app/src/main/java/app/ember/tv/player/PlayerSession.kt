@@ -72,7 +72,7 @@ internal fun PlayerActivity.start(url: String, title: String, release: String?) 
     }
     subsTouched=false
     if(subsInitialized)restoreManualSubtitle()
-    decoderRecovery.reset();codecs.pcm=false
+    codecs.pcm=false
     codecs.sourceUrl=url;codecs.sourceFilename=release;codecs.manualVideo=userVideoMode!=null
     decoderManager.selectVideoDecoder(userVideoMode ?: if(config.ffmpegVideo=="always")DecoderMode.FFMPEG else DecoderMode.AUTO)
     decoderManager.selectAudioDecoder(userAudioMode ?: DecoderMode.AUTO)

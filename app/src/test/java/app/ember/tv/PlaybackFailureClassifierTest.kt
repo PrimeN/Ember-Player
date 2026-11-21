@@ -62,7 +62,7 @@ class PlaybackFailureClassifierTest {
         repeat(10){assertTrue(recovery.attempt(first.copy(videoDecoder="codec$it")))}
         assertFalse(recovery.attempt(first.copy(output="new")))
         recovery.reset();assertTrue(recovery.attempt(first))
-        assertNull(recovery.next(false,true,manual=true))
+        assertTrue(PlaybackRoutePlanner.fallbackModes(true, true, manual = true).isEmpty())
         assertTrue(PlaybackRoutePlanner.fallbackModes(false,true,false).isEmpty())
         assertFalse(PlaybackRoutePlanner.canSwitchCore(PlaybackFailure.EXTRACTOR,false,true))
         assertFalse(PlaybackRoutePlanner.canSwitchCore(PlaybackFailure.AUDIO_DECODER,true,false))
