@@ -1,6 +1,9 @@
 package app.ember.benchmark
 
 import android.app.Activity
+import android.app.UiModeManager
+import android.content.res.Configuration
+import android.view.accessibility.AccessibilityNodeInfo
 import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
@@ -35,12 +38,39 @@ class StartupProfile {
         }while(SystemClock.elapsedRealtime()<end)
         throw AssertionError("Missing visible label: $text")
     }
-    private fun click(device:UiDevice,text:String) {
-        repeat(5) {
-            try {label(device,text).click();return}
-            catch(_:StaleObjectException){device.waitForIdle(3000)}
+    private val television: Boolean
+        get() = InstrumentationRegistry.getInstrumentation().context
+            .getSystemService(UiModeManager::class.java)?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
+
+    private fun activate(node: AccessibilityNodeInfo?, text: String): Boolean {
+        if (node == null) return false
+        val matches = node.text?.toString() == text || node.contentDescription?.toString() == text
+        if (matches && node.isVisibleToUser && node.packageName == "app.ember.player.benchmark") {
+            var target: AccessibilityNodeInfo? = node
+            while (target != null && target.packageName == node.packageName) {
+                if (target.isClickable && target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true
+                target = target.parent
+            }
         }
-        throw AssertionError("Could not click: $text")
+        return (0 until node.childCount).any { activate(node.getChild(it), text) }
+    }
+
+    private fun click(device: UiDevice, text: String) {
+        repeat(5) {
+            try {
+                if (television) {
+                    val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+                    if (activate(automation.rootInActiveWindow, text)) return
+                    device.waitForIdle(3000)
+                } else {
+                    label(device, text).click()
+                    return
+                }
+            } catch (_: StaleObjectException) {
+                device.waitForIdle(3000)
+            }
+        }
+        throw AssertionError("Could not activate: $text")
     }
     private fun scroll(device:UiDevice,direction:Direction) {
         var stale:StaleObjectException?=null
@@ -74,7 +104,7 @@ class StartupProfile {
         scroll(device,Direction.UP)
         device.pressDPadDown();device.pressDPadRight();device.pressDPadLeft()
         click(device,"Folders")
-        label(device,"Add a media folder")
+        label(device, if (television) "Device folders" else "Add a media folder")
         click(device,"Settings")
         label(device,"Playback")
         click(device,"Audio");device.waitForIdle()

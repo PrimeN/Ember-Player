@@ -20,7 +20,8 @@ def report_test_failures(root):
             if failure is None:
                 failure = case.find('error')
             if failure is not None:
-                print(f"{case.get('classname')}.{case.get('name')}: {failure.get('message', '')}", flush=True)
+                detail = failure.get('message') or ''.join(failure.itertext()).strip().split('\n', 1)[0]
+                print(f"{case.get('classname')}.{case.get('name')}: {detail}", flush=True)
 
 
 def main():
