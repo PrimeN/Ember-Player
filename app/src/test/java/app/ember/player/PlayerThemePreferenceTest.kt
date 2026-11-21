@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.test.junit4.createComposeRule
 import app.ember.tv.data.Prefs
+import app.ember.tv.ui.AccentTones
 import app.ember.tv.ui.LocalRenderOptions
 import org.junit.Assert.*
 import org.junit.Rule
@@ -23,13 +24,18 @@ class PlayerThemePreferenceTest {
     @get:Rule val compose=createComposeRule()
     @Test fun appearanceAndPerformanceRefreshWithoutRecreatingTheScreen() {
         val prefs=Prefs(RuntimeEnvironment.getApplication()).apply {theme="night";devicePerformance="high"}
-        var background=Color.Unspecified;var low=false
+        var background=Color.Unspecified;var surface=Color.Unspecified;var low=false
         compose.setContent {PlayerTheme(prefs) {
-            val color=androidx.compose.material3.MaterialTheme.colorScheme.background
+            val palette=androidx.compose.material3.MaterialTheme.colorScheme
             val limited=LocalRenderOptions.current.lowPower
-            SideEffect {background=color;low=limited}
+            SideEffect {background=palette.background;surface=palette.surface;low=limited}
         }}
-        compose.runOnIdle {assertTrue(background.luminance()<.1f);assertFalse(low);prefs.theme="day";prefs.devicePerformance="low"}
+        compose.runOnIdle {
+            assertEquals(AccentTones.page(prefs.accent), background)
+            assertEquals(AccentTones.panel(prefs.accent, oled=false), surface)
+            assertFalse(low)
+            prefs.theme="day";prefs.devicePerformance="low"
+        }
         compose.waitForIdle()
         compose.runOnIdle {assertTrue(background.luminance()>.8f);assertTrue(low)}
     }

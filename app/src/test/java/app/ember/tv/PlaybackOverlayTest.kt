@@ -155,12 +155,12 @@ class PlaybackOverlayTest {
     }
     @Test fun unknownDurationDoesNotOfferSeekingAndHiddenOverlayHasNoButtons() {
         val s=state().apply {duration=0};show(s)
-        compose.onNodeWithContentDescription("Ember Player").assertExists()
+        compose.onNodeWithTag("player_back").assertIsDisplayed()
         compose.onNodeWithTag("player_forward").assertIsNotEnabled()
         compose.onNodeWithTag("player_rewind").assertIsNotEnabled()
         compose.runOnIdle {s.visible=false}
         compose.onNodeWithTag("player_play").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Ember Player").assertDoesNotExist()
+        compose.onNodeWithTag("player_back").assertDoesNotExist()
     }
     @Test fun smallWindowsAndLargeTextKeepUtilitiesAndTransportSeparated() {
         val s=state().apply {title="A very long media title that must remain a single line in the control dock"}
@@ -173,6 +173,13 @@ class PlaybackOverlayTest {
             val bounds=compose.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot
             assertTrue(scene.contains(bounds.topLeft));assertTrue(bounds.bottom<=scene.bottom)
         }
+    }
+    @Test fun intermediateWidthKeepsQueueAndTransportFromOverlapping() {
+        val s=state().apply {fileQueueNext=true;fileQueueLabel="Playlist"}
+        show(s,612,480)
+        val next=compose.onNodeWithTag("player_next").fetchSemanticsNode().boundsInRoot
+        val audio=compose.onNodeWithTag("player_audio").fetchSemanticsNode().boundsInRoot
+        assertTrue(next.bottom<=audio.top || next.right<=audio.left)
     }
     @Test fun audioMenuOpensAtTheCurrentTrackBeyondTheFirstScreen() {
         val s=state().apply {audioTracks=(0 until 40).map {"Track $it" to (it==35)}}

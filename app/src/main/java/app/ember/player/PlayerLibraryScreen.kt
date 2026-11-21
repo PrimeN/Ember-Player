@@ -63,18 +63,19 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
         }
     }
     if (television) RestoreToolbarFocus(browseMenu, browseFocus)
+    val moreFocus = remember { FocusRequester() }
     var menu by remember {mutableStateOf(false)}
     var stream by remember {mutableStateOf(false)}
     var clearingRecent by remember {mutableStateOf(false)}
     var filterMenu by remember {mutableStateOf(false)}
     var sortMenu by remember {mutableStateOf(false)}
+    if (television) RestoreToolbarFocus(menu || filterMenu || sortMenu || stream || clearingRecent, moreFocus)
     var notice by remember {mutableStateOf<String?>(null)}
     var localRevision by rememberSaveable {mutableIntStateOf(0)}
     var grid by remember {mutableStateOf(prefs.playerLibraryGrid)}
     var filter by remember {mutableStateOf(PlayerLibraryFilter.from(prefs.playerLibraryFilter))}
     var sort by remember {mutableStateOf(PlayerLibrarySort.from(prefs.playerLibrarySort))}
     val scope=rememberCoroutineScope()
-    val openFocus=remember {FocusRequester()}
     val searchFocus=remember {FocusRequester()}
     val background by BackgroundAudioService.nowPlaying.collectAsState()
     val casting by CastPlaybackService.state.collectAsState()
@@ -103,6 +104,7 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
     val tablet = !television && isPlayerTablet()
     val phone = !television && !tablet
     val videos = destination == PlayerLibraryDestination.VIDEOS
+    val canOpenFiles = !preparing && !opening
     val title = uiResources.getString(when {
         search -> R.string.ui_search
         videos -> R.string.ui_library_home
@@ -113,21 +115,14 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
         if (television) {
             LibraryToolbarAction(uiResources.getString(R.string.ui_browse_library), Icons.Outlined.FolderOpen,
                 Modifier.focusRequester(browseFocus)) { browseMenu = true }
-        }
-        if (videos) {
-            LibraryToolbarAction(uiResources.getString(R.string.ui_show_media), Icons.Outlined.FilterAlt) { filterMenu = true }
-            LibraryToolbarAction(uiResources.getString(R.string.ui_sort_media), Icons.AutoMirrored.Outlined.Sort) { sortMenu = true }
-            LibraryToolbarAction(uiResources.getString(R.string.ui_refresh_library_view), Icons.Outlined.Refresh) { localRevision++ }
-        }
-        LibraryToolbarAction(uiResources.getString(if (preparing || opening) R.string.ui_preparing_files else R.string.ui_open_file),
-            Icons.AutoMirrored.Outlined.InsertDriveFile, Modifier.focusRequester(openFocus),
-            enabled = !preparing && !opening, onClick = openFiles)
-        if (television) {
             LibraryToolbarAction(uiResources.getString(R.string.ui_search_media), Icons.Outlined.Search,
                 Modifier.semantics { selected = search }, onClick = ::toggleSearch)
-            LibraryToolbarAction(uiResources.getString(R.string.ui_settings), Icons.Outlined.Settings, onClick = ::settings)
+        } else {
+            LibraryToolbarAction(uiResources.getString(if (canOpenFiles) R.string.ui_open_file else R.string.ui_preparing_files),
+                Icons.AutoMirrored.Outlined.InsertDriveFile, enabled = canOpenFiles, onClick = openFiles)
         }
-        LibraryToolbarAction(uiResources.getString(R.string.ui_more_options), Icons.Outlined.MoreVert) { menu = true }
+        LibraryToolbarAction(uiResources.getString(R.string.ui_more_options), Icons.Outlined.MoreVert,
+            Modifier.focusRequester(moreFocus)) { menu = true }
     }
     val scheme = MaterialTheme.colorScheme
     val backgroundColor = if (television && LocalNight.current && scheme.background != Color.Black) {
@@ -181,7 +176,7 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
                     if(destination==PlayerLibraryDestination.VIDEOS)PlayerVideos(activity,version,query,search,grid,filter,sort,::play,
                         background?.takeUnless {BackgroundAudioService.currentIsPrivate()},casting?.takeIf {it.ready&&it.error==null},notice,
                         {uri->folderUri=uri;go(PlayerLibraryDestination.FOLDERS, restoreFocus=television)},catalogRevision=localRevision,
-                        addFiles=openFiles.takeIf { !preparing && !opening }, phone=phone, bottomPadding=dockPadding,
+                        addFiles=openFiles.takeIf { canOpenFiles }, phone=phone, bottomPadding=dockPadding,
                         shortcuts={ target -> folderUri=null;go(target, restoreFocus=television) })
                     else Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(androidx.compose.foundation.rememberScrollState())
                         .padding(top=8.dp,bottom=20.dp+dockPadding),verticalArrangement=Arrangement.spacedBy(16.dp)) {
@@ -201,7 +196,7 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
     LaunchedEffect(Unit) {
         if (television) {
             withFrameNanos {}
-            runCatching { if (!openFocus.requestFocus()) browseFocus.requestFocus() }
+            runCatching { browseFocus.requestFocus() }
         }
     }
     if (browseMenu) OptionMenu(uiResources.getString(R.string.ui_browse_library),
@@ -214,13 +209,31 @@ internal fun PlayerLibraryScreen(activity:MediaFilesActivity,version:Int,prepari
         }, { browseMenu = false })
     if(filterMenu)OptionMenu(uiResources.getString(R.string.ui_show_media),PlayerLibraryFilter.entries.map {value->MenuOption(uiResources.getString(value.label),filter==value){filter=value;prefs.playerLibraryFilter=value.id}},{filterMenu=false})
     if(sortMenu)OptionMenu(uiResources.getString(R.string.ui_sort_media),PlayerLibrarySort.entries.map {value->MenuOption(uiResources.getString(value.label),sort==value){sort=value;prefs.playerLibrarySort=value.id}},{sortMenu=false})
-    if(menu)OptionMenu(uiResources.getString(R.string.ui_ember_player),
-        listOf(MenuOption(uiResources.getString(R.string.ui_open_file)){if(!preparing&&!opening)openFiles()},MenuOption(uiResources.getString(R.string.ui_open_stream_url)){stream=true},MenuOption(uiResources.getString(R.string.ui_refresh_library_view)){localRevision++},
-            MenuOption(uiResources.getString(R.string.ui_clear_recent_media)){clearingRecent=true}) +
-            if (videos) listOf(MenuOption(uiResources.getString(if (grid) R.string.ui_list_view else R.string.ui_grid_view)) {
-                grid = !grid
-                prefs.playerLibraryGrid = grid
-            }) else emptyList(), {menu=false})
+    if (menu) {
+        val options = buildList {
+            if (television && canOpenFiles) {
+                add(MenuOption(uiResources.getString(R.string.ui_open_file), icon = Icons.AutoMirrored.Outlined.InsertDriveFile, onPick = openFiles))
+            }
+            if (videos) {
+                val filterLabel = uiResources.getString(R.string.ui_label_value,
+                    uiResources.getString(R.string.ui_show_media), uiResources.getString(filter.label))
+                val sortLabel = uiResources.getString(R.string.ui_label_value,
+                    uiResources.getString(R.string.ui_sort_media), uiResources.getString(sort.label))
+                add(MenuOption(filterLabel, icon = Icons.Outlined.FilterAlt) { filterMenu = true })
+                add(MenuOption(sortLabel, icon = Icons.AutoMirrored.Outlined.Sort) { sortMenu = true })
+                val viewLabel = uiResources.getString(if (grid) R.string.ui_list_view else R.string.ui_grid_view)
+                add(MenuOption(viewLabel, icon = if (grid) Icons.AutoMirrored.Outlined.ViewList else Icons.Outlined.GridView) {
+                    grid = !grid
+                    prefs.playerLibraryGrid = grid
+                })
+            }
+            if (television) add(MenuOption(uiResources.getString(R.string.ui_settings), icon = Icons.Outlined.Settings, onPick = ::settings))
+            add(MenuOption(uiResources.getString(R.string.ui_open_stream_url), icon = Icons.Outlined.Link) { stream = true })
+            add(MenuOption(uiResources.getString(R.string.ui_refresh_library_view), icon = Icons.Outlined.Refresh) { localRevision++ })
+            add(MenuOption(uiResources.getString(R.string.ui_clear_recent_media), icon = Icons.Outlined.History) { clearingRecent = true })
+        }
+        OptionMenu(uiResources.getString(R.string.ui_more_options), options) { menu = false }
+    }
     if(clearingRecent)PlayerConfirmationDialog(uiResources.getString(R.string.ui_clear_recent_media_6abe06),uiResources.getString(R.string.ui_clear_the_recent_media_list_resume_positions_playlists_and),uiResources.getString(R.string.ui_clear_recent_media),{clearingRecent=false}) {
         clearingRecent=false
         scope.launch {val ok=withContext(Dispatchers.IO){MediaHistory(activity).clear()};if(ok)localRevision++ else notice=uiResources.getString(R.string.ui_could_not_clear_saved_history)}

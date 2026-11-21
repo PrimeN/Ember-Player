@@ -46,17 +46,20 @@ private fun SemanticsNodeInteraction.saveScreenshot(name:String) {
 class ReleaseLibraryScreenshotsTest {
     @get:Rule(order=0) val enabled=captureEnabled()
     @get:Rule(order=1) val compose=createAndroidComposeRule<MediaFilesActivity>()
-    private fun capture(name:String) {
+    private fun capture(name:String, toolbarAction:String) {
         compose.onNode(
             hasText("Home") and SemanticsMatcher.keyIsDefined(androidx.compose.ui.semantics.SemanticsProperties.Heading)
         ).assertIsDisplayed()
-        compose.onNode(hasText("Settings") or hasContentDescription("Settings")).assertIsDisplayed()
+        compose.onNodeWithContentDescription(toolbarAction).assertIsDisplayed()
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("library-loading").fetchSemanticsNodes().isEmpty() }
+        compose.onNodeWithText("Add files").assertIsDisplayed()
+        compose.onNodeWithText("Media folders").assertIsDisplayed()
         compose.waitForIdle()
         compose.onRoot().saveScreenshot(name)
     }
-    @Test fun phone()=capture("mobile")
-    @Test @Config(qualifiers="sw600dp-w960dp-h600dp-land-xhdpi") fun tablet()=capture("tablet")
-    @Test @Config(qualifiers="w960dp-h540dp-land-television-xhdpi") fun television()=capture("tv")
+    @Test fun phone()=capture("mobile", "Open file")
+    @Test @Config(qualifiers="sw600dp-w960dp-h600dp-land-xhdpi") fun tablet()=capture("tablet", "Open file")
+    @Test @Config(qualifiers="w960dp-h540dp-land-television-xhdpi") fun television()=capture("tv", "Browse library")
 }
 
 @RunWith(RobolectricTestRunner::class)

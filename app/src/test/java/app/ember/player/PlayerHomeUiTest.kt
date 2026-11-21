@@ -56,7 +56,27 @@ class PlayerHomeUiTest {
     @Test @Config(qualifiers="w960dp-h540dp-land-television-mdpi")
     fun televisionHomeShortcutsKeepRemoteNavigationAvailable() {
         compose.onNodeWithText("Home").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Open file").assertIsFocused()
+        compose.onNodeWithContentDescription("Browse library").assertIsFocused()
+        compose.onNodeWithContentDescription("Open file").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Settings").assertDoesNotExist()
+        val more = compose.onNodeWithContentDescription("More options")
+        more.performSemanticsAction(SemanticsActions.RequestFocus)
+        more.assertIsFocused().performKeyInput {
+            keyDown(Key.DirectionCenter)
+            keyUp(Key.DirectionCenter)
+        }
+        compose.onNodeWithContentDescription("Open file").assertIsFocused().performKeyInput {
+            keyDown(Key.DirectionDown)
+            keyUp(Key.DirectionDown)
+        }
+        compose.onNodeWithContentDescription("Settings").assertHasClickAction()
+        compose.onNodeWithContentDescription("Show media · All media").assertIsFocused().performKeyInput {
+            keyDown(Key.DirectionCenter)
+            keyUp(Key.DirectionCenter)
+        }
+        compose.onNodeWithContentDescription("All media").assertIsSelected().assertIsFocused()
+        compose.onNodeWithContentDescription("Close").performSemanticsAction(SemanticsActions.OnClick) { it() }
+        more.assertIsFocused()
         val folders = compose.onNode(hasText("Folders") and hasClickAction())
         folders.performSemanticsAction(SemanticsActions.RequestFocus)
         folders.assertIsFocused().performKeyInput {
@@ -101,9 +121,15 @@ class PlayerHomeUiTest {
         home.performSemanticsAction(SemanticsActions.OnClick) { it() }
         compose.onNodeWithText("Search videos").assertDoesNotExist()
 
-        compose.onNodeWithContentDescription("Show media").performSemanticsAction(SemanticsActions.OnClick) { it() }
+        for (label in listOf("Show media", "Sort media", "Reload displayed media")) {
+            compose.onNodeWithContentDescription(label).assertDoesNotExist()
+        }
+        val more = compose.onNodeWithContentDescription("More options")
+        more.performClick()
+        compose.onNodeWithContentDescription("Show media · All media").performClick()
         compose.onNodeWithContentDescription("Watched").performSemanticsAction(SemanticsActions.OnClick) { it() }
-        compose.onNodeWithContentDescription("Sort media").performSemanticsAction(SemanticsActions.OnClick) { it() }
+        more.performClick()
+        compose.onNodeWithContentDescription("Sort media · Date modified").performClick()
         compose.onNodeWithContentDescription("Name A–Z").performSemanticsAction(SemanticsActions.OnClick) { it() }
         compose.runOnIdle {
             val stored = app.ember.tv.data.Prefs(compose.activity)
@@ -120,7 +146,9 @@ class PlayerHomeUiTest {
         compose.onNodeWithText("Add network folder").assertExists()
         home.performSemanticsAction(SemanticsActions.OnClick) { it() }
         home.assertIsSelected()
-        compose.onNodeWithContentDescription("Show media").performSemanticsAction(SemanticsActions.OnClick) { it() }
+        more.performClick()
+        compose.onNodeWithContentDescription("Sort media · Name A–Z").assertExists()
+        compose.onNodeWithContentDescription("Show media · Watched").performClick()
         compose.onNodeWithContentDescription("Watched").assertIsSelected()
     }
     @Test @Config(qualifiers="sw600dp-w960dp-h720dp-land-mdpi")

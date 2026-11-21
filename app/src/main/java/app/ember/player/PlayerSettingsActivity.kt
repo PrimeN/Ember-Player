@@ -162,7 +162,7 @@ private fun PlayerSettingsActivity.SettingsContent(id:String,prefs:Prefs,config:
         "appearance"->PlayerSection(uiResources.getString(R.string.ui_appearance_and_performance)) {
             PlayerChoice(uiResources.getString(R.string.ui_performance),listOf("auto" to uiResources.getString(R.string.ui_automatic),"low" to uiResources.getString(R.string.ui_low),"balanced" to uiResources.getString(R.string.ui_balanced),"high" to uiResources.getString(R.string.ui_high)),prefs.devicePerformance){v->prefs.devicePerformance=v;refresh()}
             PlayerPalettePicker(prefs.accent){value->prefs.accent=value;refresh()}
-            PlayerChoice(uiResources.getString(R.string.ui_theme),listOf("system" to uiResources.getString(R.string.ui_follow_system),"night" to uiResources.getString(R.string.ui_dark),"day" to uiResources.getString(R.string.ui_light)),prefs.themeForDevice(LocalPlayerTelevision.current || !isPlayerTablet())){v->prefs.theme=v;refresh()}
+            PlayerChoice(uiResources.getString(R.string.ui_theme),listOf("system" to uiResources.getString(R.string.ui_follow_system),"night" to uiResources.getString(R.string.ui_dark),"day" to uiResources.getString(R.string.ui_light)),prefs.theme){v->prefs.theme=v;refresh()}
             SwitchChip(uiResources.getString(R.string.ui_glass_surfaces),prefs.navigationGlass){prefs.navigationGlass=!prefs.navigationGlass;refresh()}
         }
         "privacy"->PlayerSection(uiResources.getString(PlayerUiLabels.PRIVATE_MEDIA)) {

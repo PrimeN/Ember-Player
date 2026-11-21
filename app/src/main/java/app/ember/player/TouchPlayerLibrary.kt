@@ -34,35 +34,20 @@ internal fun isPlayerTablet(): Boolean {
 
 @Composable
 internal fun TouchLibraryHeading(title: String, tools: @Composable RowScope.() -> Unit) {
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val inline = maxWidth >= 480.dp && LocalConfiguration.current.screenHeightDp in 1..479
-        val heading: @Composable (Modifier) -> Unit = { modifier ->
-            Text(
-                title,
-                modifier.semantics { heading() },
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        if (inline) {
-            Row(
-                Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                heading(Modifier.weight(1f))
-                LibraryControlSurface { Row(content = tools) }
-            }
-        } else {
-            Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    LibraryControlSurface { Row(content = tools) }
-                }
-                heading(Modifier.fillMaxWidth().padding(top = 12.dp))
-            }
-        }
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            title,
+            Modifier.weight(1f).semantics { heading() },
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Bold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        LibraryControlSurface { Row(content = tools) }
     }
 }
 
@@ -132,12 +117,13 @@ private fun LibraryControlSurface(modifier: Modifier = Modifier, floating: Boole
 @Composable
 internal fun LibraryWelcome(message: String, addFiles: (() -> Unit)?, folders: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
+    val television = LocalPlayerTelevision.current
     Column(
         Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        PlayerBrandMark(106.dp)
+        PlayerBrandMark(if (television) 80.dp else 106.dp)
         Text(
             stringResource(R.string.ui_ember_player),
             style = MaterialTheme.typography.headlineSmall,
@@ -146,10 +132,15 @@ internal fun LibraryWelcome(message: String, addFiles: (() -> Unit)?, folders: (
         )
         Text(message, color = scheme.onSurfaceVariant, textAlign = TextAlign.Center)
         val addLabel = stringResource(R.string.ui_add_files)
+        val foldersLabel = stringResource(R.string.ui_media_folders)
         val addButton = Modifier.widthIn(min = 176.dp).heightIn(min = 48.dp)
-        if (LocalPlayerTelevision.current) {
-            PlayerAction(addLabel, Icons.Outlined.Add, addButton, primary = true, enabled = addFiles != null) {
-                addFiles?.invoke()
+        if (television) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                PlayerAction(addLabel, Icons.Outlined.Add, primary = true, enabled = addFiles != null) { addFiles?.invoke() }
+                PlayerAction(foldersLabel, Icons.Outlined.CreateNewFolder, onClick = folders)
             }
         } else {
             Button(
@@ -160,7 +151,7 @@ internal fun LibraryWelcome(message: String, addFiles: (() -> Unit)?, folders: (
             ) {
                 Text(addLabel)
             }
+            PlayerAction(foldersLabel, Icons.Outlined.CreateNewFolder, onClick = folders)
         }
-        PlayerAction(stringResource(R.string.ui_media_folders), Icons.Outlined.CreateNewFolder, onClick = folders)
     }
 }

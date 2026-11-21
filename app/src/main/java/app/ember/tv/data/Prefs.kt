@@ -66,10 +66,8 @@ class Prefs(context:Context) {
         get()=sp.getString("remoteSettingsKey","ember") ?: "ember"
         set(value) {sp.edit {putString("remoteSettingsKey",value)}}
     var theme:String
-        get()=themeForDevice(preferDark=false)
+        get()=sp.getString("theme","night") ?: "night"
         set(value) {sp.edit {putString("theme",value)}}
-    internal fun themeForDevice(preferDark:Boolean):String =
-        sp.getString("theme",null) ?: if(preferDark)"night" else "system"
     var screenMargin:String
         get()=sp.getString("screenMargin","0") ?: "0"
         set(value) {sp.edit {putString("screenMargin",value)}}

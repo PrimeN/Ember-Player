@@ -80,9 +80,10 @@ internal fun PlaybackOverlay(s:ControlsState,a:ControlsActions) {
         BoxWithConstraints(Modifier.fillMaxSize().testTag(if(glass)"player_glass" else "player_cinema")
             .onPreviewKeyEvent {a.touched();false}) {
             val density=LocalDensity.current
-            val narrow=maxWidth<600.dp || density.fontScale>1.3f
+            val narrow=maxWidth<680.dp || density.fontScale>1.3f
             val inset=if(maxWidth<680.dp)20.dp else 32.dp
             val button=if(maxHeight<420.dp)36.dp else 40.dp
+            val palette=androidx.tv.material3.MaterialTheme.colorScheme
             var dockHeight by remember {mutableStateOf(140.dp)}
             fun rememberOrigin(id:String) {s.returnControl=id}
             @Composable fun control(id:String,icon:ImageVector,label:String,enabled:Boolean=true,large:Boolean=false,action:()->Unit) {
@@ -92,16 +93,15 @@ internal fun PlaybackOverlay(s:ControlsState,a:ControlsActions) {
             }
             if(!glass)Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().fillMaxHeight(.34f)
                 .background(Brush.verticalGradient(listOf(Color.Transparent,Coal.copy(alpha=.84f)))))
-            Row(Modifier.fillMaxWidth().padding(horizontal=inset,vertical=20.dp),verticalAlignment=Alignment.CenterVertically) {
+            Box(Modifier.padding(horizontal=inset,vertical=20.dp).clip(CircleShape)
+                .background(palette.surface.copy(alpha=.90f))) {
                 control("back",Icons.AutoMirrored.Outlined.ArrowBack,stringResource(R.string.player_back),action=a.close)
-                Spacer(Modifier.weight(1f))
-                app.ember.player.PlayerBrandMark(36.dp,Modifier.semantics {contentDescription=uiResources.getString(R.string.ui_ember_player)})
             }
             val dock=Modifier.align(Alignment.BottomCenter).padding(start=inset,end=inset,bottom=20.dp)
                 .fillMaxWidth().onSizeChanged {dockHeight=with(density){it.height.toDp()};s.overlayHeightDp=dockHeight.value}
             val material=if(glass)Modifier.clip(RoundedCornerShape(TvTokens.Shape.NativePill.dp))
-                .background(Brush.verticalGradient(listOf(Color(0xA3292B2E),Color(0xBF15181C))))
-                .border(.7.dp,Color.White.copy(alpha=.14f),RoundedCornerShape(TvTokens.Shape.NativePill.dp)) else Modifier
+                .background(Brush.verticalGradient(listOf(palette.surfaceVariant.copy(alpha=.80f),palette.surface.copy(alpha=.94f))))
+                .border(.7.dp,palette.border,RoundedCornerShape(TvTokens.Shape.NativePill.dp)) else Modifier
             Column(dock.then(material).padding(horizontal=if(glass)18.dp else 0.dp,vertical=if(glass)12.dp else 0.dp)) {
                 Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(16.dp)) {
                     Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(2.dp)) {
@@ -196,11 +196,12 @@ internal fun PlaybackOverlay(s:ControlsState,a:ControlsActions) {
 @Composable
 private fun PlaybackControl(icon:ImageVector,label:String,glass:Boolean,modifier:Modifier=Modifier,enabled:Boolean=true,size:Dp=40.dp,onClick:()->Unit) {
     var focused by remember {mutableStateOf(false)}
+    val focusInk=OnPillColor
     Focusable(onClick,modifier.size(size).onFocusChanged {focused=it.isFocused},radius=TvTokens.Shape.Pill,
         container=if(glass)Color.White.copy(alpha=.07f) else Color.Transparent,
-        focusedContainer=Ivory,focusedContent=Coal,outline=false,focusedScale=TvTokens.Focus.None,enabled=enabled) {
+        focusedContainer=PillColor,focusedContent=focusInk,outline=false,focusedScale=TvTokens.Focus.None,enabled=enabled) {
         Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center) {
-            Image(icon,label,Modifier.size(22.dp),colorFilter=ColorFilter.tint(when { !enabled->Ivory.copy(alpha=.32f);focused->Coal;else->Ivory }))
+            Image(icon,label,Modifier.size(22.dp),colorFilter=ColorFilter.tint(when { !enabled->Ivory.copy(alpha=.32f);focused->focusInk;else->Ivory }))
         }
     }
 }
@@ -247,6 +248,7 @@ private fun PlaybackChoices(s:ControlsState,a:ControlsActions) {
     val choices=if(audio)s.audioTracks else s.subtitleOptions
     val more=stringResource(if(audio)R.string.player_more_audio else R.string.player_more_subtitles)
     val chosen=choices.indexOfFirst {it.second}.coerceAtLeast(0)
+    val palette=androidx.tv.material3.MaterialTheme.colorScheme
     val measure=rememberTextMeasurer()
     val density=LocalDensity.current
     val labelStyle=androidx.tv.material3.MaterialTheme.typography.bodyMedium
@@ -256,7 +258,7 @@ private fun PlaybackChoices(s:ControlsState,a:ControlsActions) {
     BoxWithConstraints(Modifier.fillMaxSize().guardOpeningPress().focusProperties {onExit={cancelFocusChange()}}.focusGroup(),contentAlignment=Alignment.CenterEnd) {
         val panelWidth=width.coerceIn(minOf(220.dp,maxWidth*.8f),minOf(420.dp,maxWidth*.8f))
         Column(Modifier.padding(18.dp).width(panelWidth).heightIn(max=maxHeight*.68f).clip(RoundedCornerShape(TvTokens.Shape.Panel.dp))
-            .background(Color(0xF01B1E23)).border(.7.dp,Color.White.copy(alpha=.14f),RoundedCornerShape(TvTokens.Shape.Panel.dp)).padding(10.dp)) {
+            .background(palette.surface.copy(alpha=.94f)).border(.7.dp,palette.border,RoundedCornerShape(TvTokens.Shape.Panel.dp)).padding(10.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically) {
                 Text(title,color=Ivory,style=androidx.tv.material3.MaterialTheme.typography.bodyLarge,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f).padding(8.dp))
                 val close=remember {FocusRequester()}
@@ -280,12 +282,13 @@ private fun PlaybackChoices(s:ControlsState,a:ControlsActions) {
 private fun PlaybackChoice(label:String,selected:Boolean,first:Boolean,onClick:()->Unit) {
     val focus=remember {FocusRequester()}
     var focused by remember {mutableStateOf(false)}
+    val focusInk=OnPillColor
     if(first)LaunchedEffect(Unit) {focus.requestFocus()}
     Focusable(onClick,Modifier.focusRequester(focus).fillMaxWidth().onFocusChanged {focused=it.isFocused}.semantics {this.selected=selected},radius=TvTokens.Shape.Card,
-        container=Color.Transparent,focusedContainer=Ivory,focusedContent=Coal,outline=false,focusedScale=TvTokens.Focus.None) {
+        container=Color.Transparent,focusedContainer=PillColor,focusedContent=focusInk,outline=false,focusedScale=TvTokens.Focus.None) {
         Row(Modifier.padding(horizontal=10.dp,vertical=9.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-            Text(label,color=if(focused)Coal else Ivory,style=androidx.tv.material3.MaterialTheme.typography.bodyMedium,maxLines=1,overflow=TextOverflow.Ellipsis,modifier=Modifier.weight(1f))
-            if(selected)Box(Modifier.size(6.dp).clip(CircleShape).background(if(focused)Coal else LocalPlayerAccent.current))
+            Text(label,color=if(focused)focusInk else Ivory,style=androidx.tv.material3.MaterialTheme.typography.bodyMedium,maxLines=1,overflow=TextOverflow.Ellipsis,modifier=Modifier.weight(1f))
+            if(selected)Box(Modifier.size(6.dp).clip(CircleShape).background(if(focused)focusInk else LocalPlayerAccent.current))
         }
     }
 }
