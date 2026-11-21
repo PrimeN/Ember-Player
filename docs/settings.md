@@ -32,6 +32,12 @@ and startup refreshes an index older than 15 minutes or changed saved roots.
 Use **Folders → Saved folder library → Refresh library** for an immediate scan.
 **Reload displayed media** reloads the visible catalog without scanning folders.
 
+When you browse inside a saved folder, paging, search and sorting reuse the same
+listing for that visit. Refreshing, changing folders, changing files or changing
+privacy settings discards the listing. The cache holds metadata in memory for up
+to 20,000 entries within an estimated 16 MiB. Larger folders use the existing
+bounded-memory scan.
+
 Thumbnails come from local video frames. The app does not automatically download
 movie posters or create an online catalog for local files. The screenshot gallery
 uses representative media to illustrate the layout.
