@@ -148,11 +148,12 @@ class PlayerLayoutRegressionTest {
         val unknown=compose.onNodeWithTag("unknown").fetchSemanticsNode().boundsInRoot
         assertEquals(known.height,unknown.height,.5f)
     }
-    @Test fun libraryUtilitiesSpeakTheirVisibleLabelOnlyOnce() {
+    @Test fun libraryToolbarActionHasASingleAccessibleLabel() {
         compose.setContent {PlayerTheme(Prefs(LocalContext.current)) {
-            LibraryUtility("Unwatched",Icons.Outlined.FilterList,Modifier.width(300.dp),expanded=true){}
+            LibraryToolbarAction("Show media", Icons.Outlined.FilterList) {}
         }}
-        compose.onNodeWithText("Unwatched").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentDescription))
+        compose.onAllNodesWithContentDescription("Show media").assertCountEquals(1)
+        compose.onNodeWithContentDescription("Show media").assertHasClickAction()
     }
     @Test fun remotePagesThroughTheLicenseAndCanReachCloseAtTheEnd() {
         var closed=false

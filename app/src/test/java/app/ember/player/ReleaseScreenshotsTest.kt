@@ -47,13 +47,15 @@ class ReleaseLibraryScreenshotsTest {
     @get:Rule(order=0) val enabled=captureEnabled()
     @get:Rule(order=1) val compose=createAndroidComposeRule<MediaFilesActivity>()
     private fun capture(name:String) {
-        compose.onNodeWithText("Ember Player").assertIsDisplayed()
+        compose.onNode(
+            hasText("Home") and SemanticsMatcher.keyIsDefined(androidx.compose.ui.semantics.SemanticsProperties.Heading)
+        ).assertIsDisplayed()
         compose.onNode(hasText("Settings") or hasContentDescription("Settings")).assertIsDisplayed()
         compose.waitForIdle()
         compose.onRoot().saveScreenshot(name)
     }
     @Test fun phone()=capture("mobile")
-    @Test @Config(qualifiers="w960dp-h600dp-land-xhdpi") fun tablet()=capture("tablet")
+    @Test @Config(qualifiers="sw600dp-w960dp-h600dp-land-xhdpi") fun tablet()=capture("tablet")
     @Test @Config(qualifiers="w960dp-h540dp-land-television-xhdpi") fun television()=capture("tv")
 }
 

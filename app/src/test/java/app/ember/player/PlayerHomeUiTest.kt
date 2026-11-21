@@ -1,6 +1,7 @@
 package app.ember.player
 
 import android.app.Application
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -16,7 +17,7 @@ import org.robolectric.annotation.Config
 class PlayerHomeUiTest {
     @get:Rule val compose=createAndroidComposeRule<MediaFilesActivity>()
     @Test fun firstScreenHasFileSelectionAndStreamDialogCanClose() {
-        compose.onNodeWithText("Ember Player").assertExists()
+        compose.onNode(hasText("Home") and !hasClickAction()).assertIsDisplayed()
         compose.onNodeWithContentDescription("Open file").assertExists()
         compose.onNodeWithContentDescription("More options").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.onNodeWithContentDescription("Open stream URL").performSemanticsAction(SemanticsActions.OnClick){it()}
@@ -25,7 +26,7 @@ class PlayerHomeUiTest {
         compose.onNodeWithText("Cancel").assertDoesNotExist()
     }
     @Test fun browserDestinationsKeepFolderAndNetworkToolsReachable() {
-        compose.onNodeWithText("Files").performClick().assertIsSelected()
+        compose.onNode(hasText("Files") and hasClickAction()).performSemanticsAction(SemanticsActions.OnClick) { it() }
         compose.onNodeWithText("Add a media folder").assertExists()
         compose.onNodeWithText("USB drives").assert(SemanticsMatcher.keyIsDefined(androidx.compose.ui.semantics.SemanticsProperties.Heading))
         compose.onNodeWithText("Search media library").assertExists()
@@ -33,61 +34,108 @@ class PlayerHomeUiTest {
         compose.onNodeWithText("Folders").performClick()
         compose.onNodeWithText("Network").assertIsNotSelected().performClick()
         compose.onNodeWithText("Add network folder").assertExists()
-        compose.onNodeWithText("Files").assertIsSelected().performClick()
+        compose.onNode(hasText("Files") and hasClickAction()).assertIsSelected().performClick()
         compose.onNodeWithText("Add a media folder").assertExists()
         compose.onNodeWithText("Folders").performClick()
         compose.onNodeWithText("Playlists").assertIsNotSelected().performClick()
         compose.onNodeWithText("New playlist from files").assertExists()
     }
-    @Test fun gridChoicePersistsAndSearchCanBeOpenedAndClosed() {
-        compose.onNodeWithContentDescription("List view").performSemanticsAction(SemanticsActions.OnClick){it()}
-        compose.runOnIdle {org.junit.Assert.assertFalse(app.ember.tv.data.Prefs(org.robolectric.RuntimeEnvironment.getApplication()).playerLibraryGrid)}
-        compose.onNodeWithContentDescription("Grid view").assertExists()
-        compose.onNodeWithText("Search").performClick().assertIsSelected()
-        compose.onNodeWithText("Search videos").assertExists()
-        compose.onNodeWithText("Home").assertIsNotSelected()
-        compose.onNodeWithText("Search").performClick().assertIsNotSelected()
+    @Test @Config(qualifiers="sw360dp-w800dp-h360dp-land-mdpi")
+    fun landscapePhoneKeepsTheSameHomeDockAndSavedLibraryTools() {
+        compose.onNode(hasText("Home") and hasClickAction()).assertIsDisplayed().assertIsSelected()
+        val more = compose.onNodeWithContentDescription("More options")
+        more.performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.onNodeWithContentDescription("List view").performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.runOnIdle { org.junit.Assert.assertFalse(app.ember.tv.data.Prefs(compose.activity).playerLibraryGrid) }
+        val search = compose.onNode(hasText("Search") and hasClickAction())
+        search.performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.onNodeWithText("Search videos").assertIsDisplayed()
+        search.assertIsSelected().performSemanticsAction(SemanticsActions.OnClick) { it() }
         compose.onNodeWithText("Search videos").assertDoesNotExist()
-        compose.onNodeWithText("Home").assertIsSelected()
     }
     @Test @Config(qualifiers="w960dp-h540dp-land-television-mdpi")
-    fun televisionStartsOnFileActionAndKeepsRemoteNavigationAvailable() {
+    fun televisionHomeShortcutsKeepRemoteNavigationAvailable() {
+        compose.onNodeWithText("Home").assertIsDisplayed()
         compose.onNodeWithContentDescription("Open file").assertIsFocused()
-        compose.onNodeWithText("Folders").performSemanticsAction(SemanticsActions.OnClick){it()}
-        compose.onNodeWithText("Add a media folder").assertExists()
-        compose.onNodeWithContentDescription("Open file").assertExists()
-        compose.runOnIdle {compose.activity.onBackPressedDispatcher.onBackPressed()}
-        compose.onNodeWithText("Videos").assertIsFocused()
+        val folders = compose.onNode(hasText("Folders") and hasClickAction())
+        folders.performSemanticsAction(SemanticsActions.RequestFocus)
+        folders.assertIsFocused().performKeyInput {
+            keyDown(Key.DirectionRight)
+            keyUp(Key.DirectionRight)
+        }
+        val network = compose.onNode(hasText("Network") and hasClickAction())
+        network.assertIsFocused().performKeyInput {
+            keyDown(Key.DirectionCenter)
+            keyUp(Key.DirectionCenter)
+        }
+        compose.onNodeWithText("Add network folder").assertIsDisplayed()
+        val browse = compose.onNodeWithContentDescription("Browse library")
+        browse.assertIsFocused().performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.onNodeWithContentDescription("Folders").performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.onNodeWithText("Add a media folder").assertIsDisplayed()
+        compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.onNodeWithText("Home").assertIsDisplayed()
+        browse.assertIsFocused()
     }
 
     @Test @Config(qualifiers="w320dp-h800dp-port-mdpi")
-    fun compactHeaderShowsTheFullTitleAndOffersDirectFileSelection() {
-        val result=mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
-        compose.onNodeWithText("Ember Player",useUnmergedTree=true).performSemanticsAction(SemanticsActions.GetTextLayoutResult){it(result)}
-        org.junit.Assert.assertFalse(result.single().hasVisualOverflow)
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun compactHeaderShowsHomeAndOffersDirectFileSelection() {
+        val result = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        compose.onNode(hasText("Home") and SemanticsMatcher.keyIsDefined(androidx.compose.ui.semantics.SemanticsProperties.Heading), useUnmergedTree = true)
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(result) }
+        org.junit.Assert.assertFalse("Home title should fit the header", result.single().hasVisualOverflow)
         compose.onNodeWithContentDescription("Open file").assertIsDisplayed().assertHasClickAction()
         compose.onNodeWithContentDescription("More options").assertIsDisplayed()
     }
-    @Test @Config(qualifiers="w360dp-h800dp-port-mdpi")
-    fun floatingDockKeepsNavigationReachableAndBrowseChoicesPersist() {
-        for(label in listOf("Home","Files","Search","Settings")) {
-            compose.onAllNodesWithText(label).assertCountEquals(1)
-            compose.onNodeWithText(label).assertIsDisplayed().assertHasClickAction()
-        }
-        compose.onNodeWithText("Home").assertIsSelected()
-        compose.onNodeWithText("All media").performSemanticsAction(SemanticsActions.OnClick){it()}
-        compose.onNodeWithContentDescription("Watched").performSemanticsAction(SemanticsActions.OnClick){it()}
-        compose.onNodeWithText("Date modified").performSemanticsAction(SemanticsActions.OnClick){it()}
-        compose.onNodeWithContentDescription("Name A–Z").performSemanticsAction(SemanticsActions.OnClick){it()}
-        compose.runOnIdle {
-            val stored=app.ember.tv.data.Prefs(compose.activity)
-            org.junit.Assert.assertEquals("watched",stored.playerLibraryFilter)
-            org.junit.Assert.assertEquals("name",stored.playerLibrarySort)
-        }
-        compose.onNodeWithText("Files").performClick().assertIsSelected()
-        compose.onNodeWithText("Add a media folder").assertExists()
-        compose.onNodeWithText("Home").performClick().assertIsSelected()
-        compose.onNode(hasText("Watched") and hasClickAction()).assertExists()
-    }
 
+    @Test @Config(qualifiers="w360dp-h800dp-port-mdpi")
+    fun phoneDockAndToolbarKeepNavigationReachableAndBrowseChoicesPersist() {
+        val home = compose.onNode(hasText("Home") and hasClickAction())
+        home.assertIsDisplayed().assertIsSelected()
+        compose.onNode(hasText("Settings") and hasClickAction()).assertIsDisplayed()
+        val search = compose.onNode(hasText("Search") and hasClickAction())
+        search.performSemanticsAction(SemanticsActions.OnClick) { it() }
+        search.assertIsSelected()
+        compose.onNodeWithText("Search videos").assertIsDisplayed()
+        home.performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.onNodeWithText("Search videos").assertDoesNotExist()
+
+        compose.onNodeWithContentDescription("Show media").performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.onNodeWithContentDescription("Watched").performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.onNodeWithContentDescription("Sort media").performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.onNodeWithContentDescription("Name A–Z").performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.runOnIdle {
+            val stored = app.ember.tv.data.Prefs(compose.activity)
+            org.junit.Assert.assertEquals("watched", stored.playerLibraryFilter)
+            org.junit.Assert.assertEquals("name", stored.playerLibrarySort)
+        }
+
+        val files = compose.onNode(hasText("Files") and hasClickAction())
+        files.performSemanticsAction(SemanticsActions.OnClick) { it() }
+        files.assertIsSelected()
+        compose.onNodeWithText("Add a media folder").assertExists()
+        compose.onNodeWithText("Folders").performClick()
+        compose.onNodeWithText("Network").performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.onNodeWithText("Add network folder").assertExists()
+        home.performSemanticsAction(SemanticsActions.OnClick) { it() }
+        home.assertIsSelected()
+        compose.onNodeWithContentDescription("Show media").performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.onNodeWithContentDescription("Watched").assertIsSelected()
+    }
+    @Test @Config(qualifiers="sw600dp-w960dp-h720dp-land-mdpi")
+    fun tabletDockAndLibraryShortcutsOpenExistingDestinations() {
+        val home = compose.onNode(hasText("Home") and hasClickAction())
+        home.assertIsDisplayed().assertIsSelected()
+        compose.onNodeWithText("Library shortcuts").assertIsDisplayed()
+        compose.onNode(hasText("Network") and hasClickAction())
+            .performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.onNodeWithText("Add network folder").assertIsDisplayed()
+        compose.onNode(hasText("Files") and hasClickAction()).assertIsSelected()
+        home.performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.onNodeWithText("Library shortcuts").assertIsDisplayed()
+        compose.onNode(hasText("Search") and hasClickAction())
+            .performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.onNodeWithText("Search videos").assertIsDisplayed()
+    }
 }

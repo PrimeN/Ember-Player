@@ -7,11 +7,13 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
@@ -27,7 +29,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -51,7 +55,7 @@ internal fun playerLibraryColumns(width:Float,television:Boolean)=when {
 
 @Composable
 internal fun RowScope.PlayerVideos(activity:MediaFilesActivity,version:Int,query:String,searching:Boolean,grid:Boolean,filter:PlayerLibraryFilter,sort:PlayerLibrarySort,play:(QueueMedia)->Unit,
-    background:BackgroundNowPlaying?,casting:CastingState?,notice:String?,folders:(String?)->Unit,catalogRevision:Int=0,library:PlayerLibraryRepository=activity.library,bottomPadding:Dp=0.dp) {
+    background:BackgroundNowPlaying?,casting:CastingState?,notice:String?,folders:(String?)->Unit,catalogRevision:Int=0,library:PlayerLibraryRepository=activity.library,phone:Boolean=false,addFiles:(()->Unit)?=null,shortcuts:((PlayerLibraryDestination)->Unit)?=null,bottomPadding:Dp=0.dp) {
     val uiResources=androidx.compose.ui.platform.LocalResources.current
 
     var snapshot by remember(query) {mutableStateOf(library.peek(query) ?: PlayerLibrarySnapshot(emptyList()))}
@@ -83,13 +87,22 @@ internal fun RowScope.PlayerVideos(activity:MediaFilesActivity,version:Int,query
     val continuing=remember(snapshot){snapshot.continuing}.filterNot {PrivateMedia.hidden(it.media.uri)}
     val unwatched=visible.filterNot {it.watched}
     val television=LocalPlayerTelevision.current
+    val tablet = shortcuts != null && !television && !phone
     val fontScale=LocalDensity.current.fontScale.coerceAtLeast(1f)
     BoxWithConstraints(Modifier.weight(1f).fillMaxHeight()) {
         val columns=playerLibraryColumns(maxWidth.value/fontScale,television)
-        val gap=if(television)8.dp else 12.dp
+        val gap = if (television) 16.dp else 12.dp
         val cardWidth=((maxWidth-gap*(columns-1))/columns).coerceAtLeast(72.dp)
-        val resumeWidth=if(television)((maxWidth-gap*5)/6).coerceAtLeast(108.dp) else if(maxWidth>=600.dp)((maxWidth-gap*4)/5).coerceAtLeast(160.dp) else 248.dp
-        LazyColumn(Modifier.fillMaxSize().testTag("library-media"),state=listState,contentPadding=PaddingValues(top=8.dp,bottom=20.dp+bottomPadding),verticalArrangement=Arrangement.spacedBy(if(television)8.dp else 20.dp)) {
+        val resumeWidth = when {
+            television && maxWidth >= 820.dp -> (maxWidth - gap * 2) * .32f
+            television -> (maxWidth - gap) * .44f
+            tablet && maxWidth >= 900.dp -> (maxWidth - gap * 3) / 4
+            tablet && maxWidth >= 600.dp -> (maxWidth - gap * 2) / 3
+            phone || tablet -> maxWidth * .84f
+            maxWidth >= 600.dp -> ((maxWidth - gap * 4) / 5).coerceAtLeast(160.dp)
+            else -> 248.dp
+        }
+        LazyColumn(Modifier.fillMaxSize().testTag("library-media"),state=listState,contentPadding=PaddingValues(top=8.dp,bottom=20.dp+bottomPadding),verticalArrangement=Arrangement.spacedBy(20.dp)) {
             background?.let {playing->item {PlayerAction(uiResources.getString(R.string.ui_label_value ,if(playing.playing)uiResources.getString(R.string.ui_playing) else uiResources.getString(R.string.ui_paused),playing.title),Icons.Outlined.Headphones,Modifier.fillMaxWidth()) {
                 activity.startActivity(Intent(activity,ResumeBackgroundAudioActivity::class.java).putExtra(BackgroundAudioService.EXTRA_ID,playing.id))
             }}}
@@ -97,8 +110,25 @@ internal fun RowScope.PlayerVideos(activity:MediaFilesActivity,version:Int,query
             if(busy)item {LinearProgressIndicator(Modifier.fillMaxWidth().testTag("library-loading"),color=MaterialTheme.colorScheme.primary)}
             if(home) {
                 if(continuing.isNotEmpty())item {
-                    LibraryShelf(uiResources.getString(R.string.ui_continue_watching),continuing,resumeWidth,gap,false,version,play){expanded=PlayerLibraryFilter.CONTINUING.id}
+                    if (phone || tablet || television) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ShelfHeading(uiResources.getString(R.string.ui_continue_watching)) {
+                                expanded = PlayerLibraryFilter.CONTINUING.id
+                            }
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(gap),
+                                contentPadding = PaddingValues(if (television) 4.dp else 0.dp),
+                            ) {
+                                items(continuing, key = { it.media.key }) { entry ->
+                                    val modifier = Modifier.width(resumeWidth)
+                                    if (television) TvResumeCard(entry, modifier, version) { play(entry.media) }
+                                    else TouchResumeCard(entry, modifier, version) { play(entry.media) }
+                                }
+                            }
+                        }
+                    } else LibraryShelf(uiResources.getString(R.string.ui_continue_watching),continuing,resumeWidth,gap,false,version,play){expanded=PlayerLibraryFilter.CONTINUING.id}
                 }
+                if (shortcuts != null && (!phone || !emptyLibrary)) item { LibraryShortcuts(shortcuts) }
                 if(visible.isNotEmpty())item {
                     LibraryShelf(if(sort==PlayerLibrarySort.MODIFIED&&visible.any {it.modified>0})uiResources.getString(R.string.ui_recently_modified) else uiResources.getString(R.string.ui_your_videos),visible,cardWidth,gap,true,version,play){expanded=PlayerLibraryFilter.ALL.id}
                 }
@@ -126,7 +156,9 @@ internal fun RowScope.PlayerVideos(activity:MediaFilesActivity,version:Int,query
                 }}
             }
             if(filtered.isEmpty()&&!busy)item {
-                PlayerSection(if(emptyLibrary)uiResources.getString(R.string.ui_your_media_ready_to_play) else uiResources.getString(R.string.ui_no_matching_media)) {
+                if ((phone || tablet || television) && emptyLibrary && !searching && !page.indexUnavailable && error == null) {
+                    LibraryWelcome(uiResources.getString(R.string.ui_open_a_file_or_add_a_media_folder_to), addFiles) { folders(null) }
+                } else PlayerSection(if(emptyLibrary)uiResources.getString(R.string.ui_your_media_ready_to_play) else uiResources.getString(R.string.ui_no_matching_media)) {
                     Text(if(page.indexUnavailable)uiResources.getString(R.string.ui_the_saved_folder_index_is_unavailable_check_folder_access)
                         else if(emptyLibrary)uiResources.getString(R.string.ui_open_a_file_or_add_a_media_folder_to)
                         else uiResources.getString(R.string.ui_try_another_filename_or_media_filter),color=MaterialTheme.colorScheme.onSurfaceVariant)
@@ -150,10 +182,13 @@ private fun sameDocumentTree(media:String,folder:String):Boolean=runCatching {
 
 @Composable
 private fun LibraryShelf(title:String,entries:List<PlayerLibraryMedia>,width:androidx.compose.ui.unit.Dp,gap:androidx.compose.ui.unit.Dp,portrait:Boolean,version:Int,play:(QueueMedia)->Unit,all:()->Unit) {
+    val television = LocalPlayerTelevision.current
     Column(verticalArrangement=Arrangement.spacedBy(6.dp)) {
         ShelfHeading(title,all)
         LazyRow(horizontalArrangement=Arrangement.spacedBy(gap),contentPadding=PaddingValues(3.dp)) {
-            items(entries,key={it.media.key}) {entry->PlayerMediaCard(entry,Modifier.width(width),version,portrait){play(entry.media)}}
+            items(entries,key={it.media.key}) {entry->
+                PlayerMediaCard(entry,Modifier.width(width),version,portrait,tvPoster=television && portrait){play(entry.media)}
+            }
         }
     }
 }
@@ -163,7 +198,7 @@ private fun ShelfHeading(title:String,all:()->Unit) {
     val uiResources=androidx.compose.ui.platform.LocalResources.current
 
     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
-        Text(title,Modifier.weight(1f).semantics {heading()},style=if(LocalPlayerTelevision.current)MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold,maxLines=1,overflow=TextOverflow.Ellipsis)
+        Text(title,Modifier.weight(1f).semantics {heading()},style=if(LocalPlayerTelevision.current)MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold,maxLines=1,overflow=TextOverflow.Ellipsis)
         if(LocalPlayerTelevision.current)Focusable(all,Modifier.size(48.dp).semantics {contentDescription=uiResources.getString(R.string.ui_see_all ,title)},radius=TvTokens.Shape.Pill,
             container=Color.Transparent,focusedContainer=MaterialTheme.colorScheme.primary,focusedContent=MaterialTheme.colorScheme.onPrimary,outline=false,focusedScale=1f) {
             Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){Icon(Icons.AutoMirrored.Outlined.ArrowForward,null,Modifier.size(20.dp))}
@@ -172,18 +207,98 @@ private fun ShelfHeading(title:String,all:()->Unit) {
 }
 
 @Composable
-internal fun PlayerMediaCard(entry:PlayerLibraryMedia,modifier:Modifier,version:Int,portrait:Boolean=false,play:()->Unit) {
+private fun TouchResumeCard(entry: PlayerLibraryMedia, modifier: Modifier, version: Int, play: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val playLabel = stringResource(R.string.ui_play_9507b9, entry.media.title)
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Surface(
+            onClick = play,
+            modifier = Modifier.semantics { contentDescription = playLabel },
+            shape = RoundedCornerShape(16.dp),
+            color = scheme.surfaceVariant,
+        ) {
+            ResumeCardArtwork(entry, version) {
+                LibraryPlaylistAction(entry.media, Modifier.align(Alignment.TopStart)
+                    .background(scheme.surface.copy(alpha = .9f), RoundedCornerShape(16.dp)))
+            }
+        }
+        Text(entry.media.title, style = MaterialTheme.typography.titleSmall, maxLines = 2,
+            overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun TvResumeCard(entry: PlayerLibraryMedia, modifier: Modifier, version: Int, play: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val playLabel = stringResource(R.string.ui_play_9507b9, entry.media.title)
+    var playlist by remember { mutableStateOf(false) }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Focusable(
+            play,
+            Modifier.fillMaxWidth().semantics { contentDescription = playLabel },
+            onLongClick = { playlist = true },
+            radius = 16,
+            container = scheme.surfaceVariant,
+            card = true,
+            focusedScale = 1.025f,
+        ) {
+            ResumeCardArtwork(entry, version)
+        }
+        Text(entry.media.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            "${playerMediaTime(entry.position)} / ${playerMediaTime(entry.duration)}",
+            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+            color = scheme.onSurfaceVariant, maxLines = 1,
+        )
+    }
+    if (playlist) PlaylistPicker(LocalContext.current, listOf(entry.media)) { playlist = false }
+}
+
+@Composable
+private fun ResumeCardArtwork(
+    entry: PlayerLibraryMedia,
+    version: Int,
+    overlay: @Composable BoxScope.() -> Unit = {},
+) {
+    val television = LocalPlayerTelevision.current
+    Box(Modifier.fillMaxWidth().aspectRatio(16f / 9), contentAlignment = Alignment.Center) {
+        PlayerMediaArtwork(entry.media, version, Modifier.fillMaxSize(), showPlaceholderIcon = false)
+        Surface(
+            shape = CircleShape,
+            color = Color.Black.copy(alpha = if (television) .55f else .65f),
+            contentColor = Color.White,
+            border = if (television) BorderStroke(1.dp, Color.White.copy(alpha = .75f)) else null,
+        ) {
+            Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.PlayArrow, null, Modifier.size(if (television) 26.dp else 24.dp))
+            }
+        }
+        overlay()
+        LinearProgressIndicator(
+            progress = { entry.progress },
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(4.dp),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = Color.Black.copy(alpha = .45f),
+            drawStopIndicator = {},
+        )
+    }
+}
+
+@Composable
+internal fun PlayerMediaCard(entry:PlayerLibraryMedia,modifier:Modifier,version:Int,portrait:Boolean=false,tvPoster:Boolean=false,play:()->Unit) {
     val uiResources=androidx.compose.ui.platform.LocalResources.current
 
     val scheme=MaterialTheme.colorScheme
     val television=LocalPlayerTelevision.current
     var previewDuration by remember(entry.key,version){mutableLongStateOf(0L)}
     val duration=entry.duration.takeIf {it>0} ?: previewDuration
-    Focusable(play,modifier,container=scheme.surface,focusedContainer=scheme.surface,outline=true,card=true,focusedScale=1.025f) {
+    var playlist by remember { mutableStateOf(false) }
+    val playlistAction: (() -> Unit)? = if (tvPoster) ({ playlist = true }) else null
+    Focusable(play,modifier,onLongClick=playlistAction,container=scheme.surface,focusedContainer=scheme.surface,outline=true,card=true,focusedScale=1.025f) {
         Column(Modifier.fillMaxWidth()) {
-            Box(Modifier.fillMaxWidth().aspectRatio(if(portrait){if(television)1f else 2f/3} else 16f/9).clip(RoundedCornerShape(TvTokens.Shape.Card.dp))) {
+            Box(Modifier.fillMaxWidth().aspectRatio(if(portrait){if(television && !tvPoster)1f else 2f/3} else 16f/9).clip(RoundedCornerShape(TvTokens.Shape.Card.dp))) {
                 PlayerMediaArtwork(entry.media,version,Modifier.fillMaxSize()){previewDuration=it}
-                LibraryPlaylistAction(entry.media,Modifier.align(Alignment.TopStart).background(scheme.surface.copy(alpha=.9f),RoundedCornerShape(TvTokens.Shape.Panel.dp)))
+                if (!tvPoster) LibraryPlaylistAction(entry.media,Modifier.align(Alignment.TopStart).background(scheme.surface.copy(alpha=.9f),RoundedCornerShape(TvTokens.Shape.Panel.dp)))
                 if(entry.watched)Icon(Icons.Outlined.CheckCircle,uiResources.getString(R.string.ui_watched),Modifier.align(Alignment.TopEnd).padding(5.dp).size(20.dp).background(scheme.surface.copy(alpha=.85f),RoundedCornerShape(TvTokens.Shape.Card.dp)),tint=scheme.primary)
                 if(!portrait)Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                     .background(Brush.verticalGradient(listOf(Color.Transparent,Color.Black.copy(alpha=.8f)))).padding(if(television)6.dp else 8.dp),verticalArrangement=Arrangement.spacedBy(3.dp)) {
@@ -200,6 +315,7 @@ internal fun PlayerMediaCard(entry:PlayerLibraryMedia,modifier:Modifier,version:
             }
         }
     }
+    if (playlist) PlaylistPicker(LocalContext.current, listOf(entry.media)) { playlist = false }
 }
 
 @Composable
@@ -218,7 +334,7 @@ private fun LibraryFolderCard(folder:DeviceFolder,media:QueueMedia?,modifier:Mod
 }
 
 @Composable
-private fun PlayerMediaArtwork(media:QueueMedia,version:Int,modifier:Modifier,duration:(Long)->Unit={}) {
+private fun PlayerMediaArtwork(media:QueueMedia,version:Int,modifier:Modifier,showPlaceholderIcon:Boolean=true,duration:(Long)->Unit={}) {
     val context=androidx.compose.ui.platform.LocalContext.current
     val updateDuration by rememberUpdatedState(duration)
     val preview by produceState(BrowserPreview(),media.key,version) {
@@ -232,8 +348,11 @@ private fun PlayerMediaArtwork(media:QueueMedia,version:Int,modifier:Modifier,du
         }
     }
     LaunchedEffect(preview.duration){updateDuration(preview.duration)}
+    val bitmap=preview.bitmap
     Box(modifier.background(MaterialTheme.colorScheme.surfaceVariant),contentAlignment=Alignment.Center) {
-        preview.bitmap?.let {Image(it.asImageBitmap(),null,Modifier.fillMaxSize(),contentScale=ContentScale.Crop)}
-            ?: Icon(Icons.Outlined.Movie,null,Modifier.size(48.dp),tint=MaterialTheme.colorScheme.onSurfaceVariant)
+        bitmap?.let {Image(it.asImageBitmap(),null,Modifier.fillMaxSize(),contentScale=ContentScale.Crop)}
+        if (bitmap == null && showPlaceholderIcon) {
+            Icon(Icons.Outlined.Movie,null,Modifier.size(48.dp),tint=MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }

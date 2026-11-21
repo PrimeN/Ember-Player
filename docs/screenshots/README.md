@@ -1,7 +1,6 @@
 # Screenshots
 
-The gallery shows the current Ember Player interface. Library captures show the
-first-launch screen before folders or media have been selected. The playback
+The library captures show an earlier Ember Player first-launch layout before folders or media have been selected. The playback
 capture shows real transport controls over an illustrative backdrop.
 
 | View | Preview |

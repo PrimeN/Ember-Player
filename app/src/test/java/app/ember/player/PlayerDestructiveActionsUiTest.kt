@@ -34,7 +34,7 @@ class PlayerDestructiveActionsUiTest {
     @After fun cleanup(){storage.close()}
     private fun click(text:String)=compose.onNodeWithText(text).performSemanticsAction(SemanticsActions.OnClick){it()}
     private fun openFileSection(section:String) {
-        click("Files")
+        compose.onNode(hasText("Files") and hasClickAction()).performClick()
         if(section!="Folders") {
             click("Folders")
             click(section)

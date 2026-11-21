@@ -24,8 +24,10 @@ class PhoneLibraryNavigationTest {
             PlayerTheme(Prefs(LocalContext.current)) {
                 var destination by remember {mutableStateOf(PlayerLibraryDestination.VIDEOS)}
                 var searching by remember {mutableStateOf(false)}
-                LibraryDock(
-                    destination,searching,
+                TouchLibraryDock(
+                    homeSelected = !searching && destination == PlayerLibraryDestination.VIDEOS,
+                    filesSelected = !searching && destination != PlayerLibraryDestination.VIDEOS,
+                    searchSelected = searching,
                     home={destination=PlayerLibraryDestination.VIDEOS;searching=false},
                     files={destination=PlayerLibraryDestination.FOLDERS;searching=false},
                     search={searching=!searching},
