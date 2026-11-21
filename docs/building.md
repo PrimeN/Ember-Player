@@ -128,3 +128,5 @@ the native components requires their documented toolchains, including NDK
 Follow [Playback dependencies and source](../player-dependencies.md) for the exact
 source revisions, checksums, licenses, patches and rebuild commands. Retain all
 applicable notices when distributing a modified build.
+
+See [UI translation guidance](localization.md) before contributing a language pack.

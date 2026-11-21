@@ -3,6 +3,7 @@
 ## [1.0.0]
 
 - Reuse saved-folder listings for paging, search and sorting during the current visit.
+- Add translation resource checks and contributor guidance.
 
 - Add mpv program and quality choices, explain automatic core and renderer decisions, and prepare reusable native resources off the main thread.
 - Search and naturally sort entire saved folders, show durations before videos are played, and improve compact phone headers and TV accessibility labels.
