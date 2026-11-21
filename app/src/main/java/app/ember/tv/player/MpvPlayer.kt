@@ -116,17 +116,76 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
                 native.setPropertyBoolean("pause",!wanted||focusPaused);invalidateState() }
         },handler).build()
     private val noisy=object:BroadcastReceiver() {override fun onReceive(c:Context,i:Intent){if(i.action==AudioManager.ACTION_AUDIO_BECOMING_NOISY)playWhenReady=false}}
-    private val callback=object:SurfaceHolder.Callback {
-        override fun surfaceCreated(h:SurfaceHolder){if(!closed){native.attachSurface(h.surface);appliedHdr=null;applyHdrOutput()}}
-        override fun surfaceChanged(h:SurfaceHolder,f:Int,w:Int,height:Int){if(!closed){native.attachSurface(h.surface);native.setPropertyString("android-surface-size","${w}x$height");surfaceSize=androidx.media3.common.util.Size(w,height);applyHdrOutput();invalidateState()}}
-        override fun surfaceDestroyed(h:SurfaceHolder){hdrSurface.restore();signaledHdr=false;if(!closed)native.detachSurface()}
+    private val callback = object : SurfaceHolder.Callback {
+        override fun surfaceCreated(holder: SurfaceHolder) {
+            if (closed || holder !== this@MpvPlayer.holder) return
+            native.attachSurface(holder.surface)
+            refreshHdrOutput()
+        }
+
+        override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+            if (closed || holder !== this@MpvPlayer.holder) return
+            native.attachSurface(holder.surface)
+            updateSurfaceSize(width, height)
+        }
+
+        override fun surfaceDestroyed(holder: SurfaceHolder) {
+            if (closed || holder !== this@MpvPlayer.holder) return
+            clearHdrSurface()
+            native.detachSurface()
+        }
     }
-    private val textureCallback=object:TextureView.SurfaceTextureListener {
-        override fun onSurfaceTextureAvailable(t:android.graphics.SurfaceTexture,w:Int,h:Int) {if(!closed){ownedSurface?.release();ownedSurface=Surface(t);native.attachSurface(ownedSurface!!);native.setPropertyString("android-surface-size","${w}x$h");surfaceSize=androidx.media3.common.util.Size(w,h);invalidateState()}}
-        override fun onSurfaceTextureSizeChanged(t:android.graphics.SurfaceTexture,w:Int,h:Int) {if(!closed){native.setPropertyString("android-surface-size","${w}x$h");surfaceSize=androidx.media3.common.util.Size(w,h);invalidateState()}}
-        override fun onSurfaceTextureDestroyed(t:android.graphics.SurfaceTexture):Boolean {if(!closed)native.detachSurface();ownedSurface?.release();ownedSurface=null;return true}
-        override fun onSurfaceTextureUpdated(t:android.graphics.SurfaceTexture) {}
+
+    private var attachedTexture: android.graphics.SurfaceTexture? = null
+    private val textureCallback = object : TextureView.SurfaceTextureListener {
+        override fun onSurfaceTextureAvailable(surfaceTexture: android.graphics.SurfaceTexture, width: Int, height: Int) {
+            if (closed || texture?.surfaceTexture !== surfaceTexture) return
+            clearHdrSurface()
+            if (ownedSurface != null) native.detachSurface()
+            ownedSurface?.release()
+            attachedTexture = surfaceTexture
+            ownedSurface = Surface(surfaceTexture).also { native.attachSurface(it) }
+            updateSurfaceSize(width, height)
+        }
+
+        override fun onSurfaceTextureSizeChanged(surfaceTexture: android.graphics.SurfaceTexture, width: Int, height: Int) {
+            if (!closed && attachedTexture === surfaceTexture) updateSurfaceSize(width, height)
+        }
+
+        override fun onSurfaceTextureDestroyed(surfaceTexture: android.graphics.SurfaceTexture): Boolean {
+            if (!closed && attachedTexture === surfaceTexture) {
+                clearHdrSurface()
+                native.detachSurface()
+                ownedSurface?.release()
+                ownedSurface = null
+                attachedTexture = null
+            }
+            return true
+        }
+
+        override fun onSurfaceTextureUpdated(surfaceTexture: android.graphics.SurfaceTexture) = Unit
     }
+
+    private fun updateSurfaceSize(width: Int, height: Int) {
+        native.setPropertyString("android-surface-size", "${width}x$height")
+        surfaceSize = androidx.media3.common.util.Size(width, height)
+        applyHdrOutput()
+        invalidateState()
+    }
+
+    private fun clearHdrSurface() {
+        hdrSurface.detach()
+        signaledHdr = false
+        appliedHdr = null
+    }
+
+    fun refreshHdrOutput() {
+        appliedHdr = null
+        applyHdrOutput()
+    }
+
+    val surfaceRestoreFailure get() = hdrSurface.restoreFailure
+
     private fun initializeNative() {
             check(native.requestLogMessages("no")>=0) {"mpv log suppression unavailable"}
             fun option(k:String,v:String) { check(native.setOptionString(k,v)>=0) { "Compatibility player option unavailable: $k" } }
@@ -353,9 +412,9 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
     }
     private fun attach(value:SurfaceHolder) {holder?.removeCallback(callback);holder=value;value.addCallback(callback);if(value.surface.isValid)native.attachSurface(value.surface)}
     private fun detachOutput() {
-        hdrSurface.restore();signaledHdr=false;appliedHdr=null
+        clearHdrSurface()
         holder?.removeCallback(callback);holder=null
-        texture?.let {if(it.surfaceTextureListener===textureCallback)it.surfaceTextureListener=previousTextureListener};texture=null;previousTextureListener=null
+        texture?.let {if(it.surfaceTextureListener===textureCallback)it.surfaceTextureListener=previousTextureListener};texture=null;previousTextureListener=null;attachedTexture=null
         native.detachSurface();ownedSurface?.release();ownedSurface=null;output=null
     }
     override fun handleClearVideoOutput(videoOutput:Any?):ListenableFuture<*> {if(videoOutput==null||videoOutput===output)detachOutput();return done()}
@@ -566,7 +625,11 @@ internal class MpvPlayer(private val context: Context, val source: EngineSource,
         R.string.ui_renderer to (native.getPropertyString("current-vo") ?: renderer),
         R.string.ui_renderer_recovery to if(rendererFallback)context.getString(R.string.ui_stable_fallback_active) else context.getString(R.string.ui_not_needed),
         R.string.ui_display_hdr_capabilities to HdrDisplayInfo.read(context).summary,
-        R.string.ui_android_hdr_surface to if(signaledHdr)context.getString(R.string.ui_bt_2020_pq_confirmed) else context.getString(R.string.ui_original_data_space_no_forced_hdr),
+        R.string.ui_android_hdr_surface to context.getString(when {
+            surfaceRestoreFailure != null -> R.string.ui_restore_failed
+            signaledHdr -> R.string.ui_bt_2020_pq_confirmed
+            else -> R.string.ui_original_data_space_no_forced_hdr
+        }),
         R.string.ui_dolby_vision_source_profile to context.getString(R.string.ui_not_exposed_by_this_native_build),
         R.string.ui_dolby_vision_rpu_processing to context.getString(R.string.ui_not_independently_verified),
         R.string.ui_dolby_vision_fel_reconstruction to context.getString(R.string.ui_not_independently_verified),

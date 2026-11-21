@@ -44,6 +44,8 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
     private var surfaceMethod:Method?=null
     private var surface:Any?=null
     private var source:EngineSource?=null
+    private var previousHdrRestoreFailure: HdrSurfaceResult? = null
+    val hdrRestoreFailure get() = compatibility?.surfaceRestoreFailure ?: previousHdrRestoreFailure
     private var mode=config().engine
     private var released=false
     private var health:DecoderHealth?=if(config().rememberDecoderChoices)DecoderHealth.current() else null
@@ -125,7 +127,7 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
                     val adapter=listeners.getOrPut(listener) {playbackListener(listener) {player}};active.addListener(adapter);null}
                 "removeListener" -> {listeners.remove(arguments[0])?.let(active::removeListener);null}
                 // Drop the released libmpv instance: native calls on a destroyed handle crash the process.
-                "release" -> {released=true;navigation.cancel();cancelTrackRestore();clearQualityWindow();active.removeListener(stabilityListener);listeners.values.forEach(active::removeListener);if(active!==standard)active.release();active=standard;standard.release();listeners.clear();null}
+                "release" -> {released=true;navigation.cancel();cancelTrackRestore();clearQualityWindow();active.removeListener(stabilityListener);listeners.values.forEach(active::removeListener);if(active!==standard)releaseCompatibility(active);active=standard;standard.release();listeners.clear();null}
                 "getCurrentPosition", "getContentPosition" -> navigation.target ?: if(method.name=="getContentPosition")active.contentPosition else active.currentPosition
                 "seekBack", "seekForward" -> {
                     val delta=if(method.name=="seekBack")-active.seekBackIncrement else active.seekForwardIncrement
@@ -216,11 +218,19 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
         val outgoing = active
         outgoing.removeListener(stabilityListener)
         listeners.values.forEach(outgoing::removeListener)
-        outgoing.release()
+        releaseCompatibility(outgoing)
         active = standard
         standard.addListener(stabilityListener)
         listeners.values.forEach(standard::addListener)
         attachSurface(standard)
+    }
+
+    private fun releaseCompatibility(owner: Player) {
+        try {
+            owner.release()
+        } finally {
+            (owner as? MpvPlayer)?.surfaceRestoreFailure?.let { previousHdrRestoreFailure = it }
+        }
     }
 
     private var trackRestore: Player.Listener? = null
@@ -330,7 +340,7 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
             if(e !is Exception && e !is LinkageError)throw e
             clearQualityWindow()
             runCatching {native.removeListener(stabilityListener)};listeners.values.forEach {runCatching {native.removeListener(it)}}
-            runCatching {native.release()};active=standard
+            runCatching {releaseCompatibility(native)};active=standard
             standard.addListener(stabilityListener);listeners.values.forEach(standard::addListener)
             runCatching {attachSurface(standard)}
             standard.seekTo(position);standard.playWhenReady=desired

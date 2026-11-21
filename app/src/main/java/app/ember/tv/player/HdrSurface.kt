@@ -30,7 +30,11 @@ internal object HdrSurface {
 }
 /** A surface's original data space is restored before it is detached or comparison ends. */
 internal enum class HdrSurfaceStatus { ORIGINAL, BRIDGE_UNAVAILABLE, INVALID_SURFACE, ORIGINAL_UNREADABLE, WRITE_FAILED, READBACK_MISMATCH, CONFIGURED, RESTORED, RESTORE_FAILED, RELEASED }
-internal data class HdrSurfaceResult(val status:HdrSurfaceStatus,val dataspace:Int?=null) {
+internal data class HdrSurfaceResult(
+    val status: HdrSurfaceStatus,
+    val dataspace: Int? = null,
+    val expectedDataspace: Int? = null,
+) {
     val configured get()=status==HdrSurfaceStatus.CONFIGURED
 }
 internal class HdrSurfaceBinding(private val read:(Surface)->Int=HdrSurface::read,private val write:(Surface,Int)->Boolean=HdrSurface::write,private val valid:(Surface)->Boolean={it.isValid},private val available:()->Boolean={true}) {
@@ -38,13 +42,15 @@ internal class HdrSurfaceBinding(private val read:(Surface)->Int=HdrSurface::rea
     private var original:Int?=null
     private var closed=false
     var result=HdrSurfaceResult(HdrSurfaceStatus.ORIGINAL);private set
+    var restoreFailure: HdrSurfaceResult? = null
+        private set
     fun signal(value:Surface?):Boolean=signalResult(value).configured
     fun signalResult(value:Surface?):HdrSurfaceResult {
         if(closed)return HdrSurfaceResult(HdrSurfaceStatus.RELEASED)
         if(!available())return HdrSurfaceResult(HdrSurfaceStatus.BRIDGE_UNAVAILABLE).also {result=it}
         if(value==null || !valid(value))return HdrSurfaceResult(HdrSurfaceStatus.INVALID_SURFACE).also {result=it}
         if(surface!==value){
-            if(restore().status==HdrSurfaceStatus.RESTORE_FAILED)return result
+            if(surface != null && restore().status==HdrSurfaceStatus.RESTORE_FAILED && surface != null)return result
             val current=read(value)
             if(current<0)return HdrSurfaceResult(HdrSurfaceStatus.ORIGINAL_UNREADABLE).also {result=it}
             surface=value;original=current
@@ -57,17 +63,40 @@ internal class HdrSurfaceBinding(private val read:(Surface)->Int=HdrSurface::rea
         if(restore().status!=HdrSurfaceStatus.RESTORE_FAILED)result=failure
         return result
     }
-    fun restore():HdrSurfaceResult {
-        if(closed)return HdrSurfaceResult(HdrSurfaceStatus.RELEASED)
-        val target=surface;val space=original
-        if(target==null || space==null)return result
-        if(!valid(target)){surface=null;original=null;return HdrSurfaceResult(HdrSurfaceStatus.INVALID_SURFACE).also {result=it}}
-        if(!write(target,space) || read(target)!=space)return HdrSurfaceResult(HdrSurfaceStatus.RESTORE_FAILED).also {result=it}
-        surface=null;original=null
-        return HdrSurfaceResult(HdrSurfaceStatus.RESTORED,space).also {result=it}
+    fun restore(): HdrSurfaceResult {
+        if (closed) return HdrSurfaceResult(HdrSurfaceStatus.RELEASED)
+        val target = surface ?: return result
+        val space = original ?: return result
+        val usable = valid(target)
+        val written = usable && write(target, space)
+        val actual = if (usable) read(target).takeIf { it >= 0 } else null
+        if (!written || actual != space) {
+            if (!usable) {
+                surface = null
+                original = null
+            }
+            return HdrSurfaceResult(HdrSurfaceStatus.RESTORE_FAILED, actual, space).also {
+                restoreFailure = it
+                result = it
+            }
+        }
+        surface = null
+        original = null
+        return HdrSurfaceResult(HdrSurfaceStatus.RESTORED, space).also { result = it }
     }
+
+    fun detach() {
+        if (closed) return
+        restore()
+        surface = null
+        original = null
+        result = HdrSurfaceResult(HdrSurfaceStatus.ORIGINAL)
+    }
+
     fun close() {
-        if(closed)return
-        restore();closed=true;surface=null;original=null
+        if (closed) return
+        detach()
+        closed = true
+        result = HdrSurfaceResult(HdrSurfaceStatus.RELEASED)
     }
 }

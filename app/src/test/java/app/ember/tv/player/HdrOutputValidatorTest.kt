@@ -55,4 +55,38 @@ class HdrOutputValidatorTest {
             assertEquals(atClose,calls)
         }finally{surface.release();second.release()}
     }
+
+    @Test fun replacingOrReleasingAnOutputPreservesTheRestoreDiagnostic() {
+        val firstTexture = SurfaceTexture(0)
+        val secondTexture = SurfaceTexture(0)
+        val first = Surface(firstTexture)
+        val second = Surface(secondTexture)
+        try {
+            val spaces = mutableMapOf(first to 42, second to 84)
+            val binding = HdrSurfaceBinding(
+                { spaces.getValue(it) },
+                { surface, space ->
+                    if (surface === first && space == 42) false
+                    else { spaces[surface] = space; true }
+                },
+                { true },
+            )
+            assertTrue(binding.signal(first))
+            binding.detach()
+            assertEquals(42, binding.restoreFailure?.expectedDataspace)
+            assertEquals(HdrSurface.BT2020_PQ, binding.restoreFailure?.dataspace)
+            assertTrue(binding.signal(second))
+            assertEquals(HdrSurfaceStatus.CONFIGURED, binding.result.status)
+            binding.detach()
+            assertEquals(84, spaces.getValue(second))
+            assertTrue(binding.signal(second))
+            binding.close()
+            assertEquals(84, spaces.getValue(second))
+            assertEquals(HdrSurfaceStatus.RELEASED, binding.result.status)
+            assertEquals(HdrSurfaceStatus.RESTORE_FAILED, binding.restoreFailure?.status)
+        } finally {
+            first.release(); second.release()
+            firstTexture.release(); secondTexture.release()
+        }
+    }
 }

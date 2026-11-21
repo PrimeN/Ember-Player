@@ -69,6 +69,9 @@ internal fun PlayerActivity.updateStats() {
     val full = config.hud == "full"
     out += resources.getString(R.string.ui_engine) to if(playbackEngine?.compatibility!=null)resources.getString(R.string.ui_compatibility) else resources.getString(R.string.ui_standard)
     playbackEngine?.compatibility?.diagnostics()?.forEach {(k,v)->if(k!=R.string.ui_engine)out+=resources.getString(k) to v}
+    if (playbackEngine?.compatibility == null && playbackEngine?.hdrRestoreFailure != null) {
+        out += resources.getString(R.string.ui_android_hdr_surface) to resources.getString(R.string.ui_restore_failed)
+    }
     out += resources.getString(R.string.ui_source_hdr_f0e76b) to HdrDiagnostics.source(resources,p.videoFormat)
     out += resources.getString(R.string.ui_requested_output_ef90cd) to HdrDiagnostics.requested(resources,PictureProfiles.effective(config,resumeKey).hdrOutput)
     val hdrState=playbackEngine?.compatibility?.hdrState() ?: HdrOutputValidator.source(p.videoFormat,hdr10PlusMetadata).let {source->

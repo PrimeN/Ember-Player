@@ -243,6 +243,7 @@ class PlayerActivity : ComponentActivity() {
             return
         }
         if (!::view.isInitialized) return
+        playbackEngine?.compatibility?.refreshHdrOutput()
         view.useController = !isInPictureInPictureMode && !advanced
         if (isInPictureInPictureMode) {
             controls.visible = false
