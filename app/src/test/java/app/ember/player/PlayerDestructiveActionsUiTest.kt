@@ -33,11 +33,18 @@ class PlayerDestructiveActionsUiTest {
     }
     @After fun cleanup(){storage.close()}
     private fun click(text:String)=compose.onNodeWithText(text).performSemanticsAction(SemanticsActions.OnClick){it()}
+    private fun openFileSection(section:String) {
+        click("Files")
+        if(section!="Folders") {
+            click("Folders")
+            click(section)
+        }
+    }
     @Test fun downloadsAppearOnEntryAndDeletionIsNotDispatchedWhenCanceled() {
         val store=DownloadStore(context);val item=store.add("https://example.test/clip.mkv","Clip.mkv")
         val file=DownloadStore.file(context,item).apply {parentFile!!.mkdirs();writeBytes(ByteArray(32768))}
         store.change(item.id){it.copy(state="complete",bytes=32768,total=32768)}
-        click("Downloads")
+        openFileSection("Downloads")
         compose.waitUntil(10_000){compose.onAllNodesWithText("Clip.mkv").fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithText("Downloaded",substring=true).assertExists()
         compose.onNodeWithText("Manage downloads").assertDoesNotExist()
@@ -64,7 +71,7 @@ class PlayerDestructiveActionsUiTest {
         val other=NetworkAccount(label="Keep folder",address="sftp://127.0.0.1:9/other",username="other",password="keep-password")
         val key="media.network."+Prefs(context).currentProfile
         assertTrue(TokenStore(context).putEncrypted(key,Json.encodeToString(listOf(first,other))))
-        click("Network")
+        openFileSection("Network")
         compose.waitUntil(10_000){compose.onAllNodesWithText("Test folder").fetchSemanticsNodes().isNotEmpty()}
         click("Test folder");click("Remove saved folder");click("Cancel")
         compose.runOnIdle {assertEquals(listOf(first,other),Json.decodeFromString<List<NetworkAccount>>(TokenStore(context).get(key)!!))}
@@ -78,7 +85,7 @@ class PlayerDestructiveActionsUiTest {
         encrypted.edit().putString("media.network."+profile,"%unreadable%").commit()
         val previous=encrypted.all
         compose.runOnIdle {compose.activity.intent.putExtra("network.profile",profile).putExtra("network.account","saved")}
-        click("Network")
+        openFileSection("Network")
         val message=context.getString(app.ember.tv.R.string.ui_could_not_update_encrypted_folder_storage)
         compose.waitUntil(10_000){compose.onAllNodesWithText(message).fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithText(context.getString(app.ember.tv.R.string.ui_this_saved_folder_was_removed_add_it_again_to)).assertDoesNotExist()
@@ -95,7 +102,7 @@ class PlayerDestructiveActionsUiTest {
         val playlistCopy=encrypted.getString(playlistKey,null)!!
         val downloadCopy=encrypted.getString(downloadKey,null)!!
         encrypted.edit().putString(playlistKey,"%unreadable%").putString(downloadKey,"%unreadable%").commit()
-        click("Playlists")
+        openFileSection("Playlists")
         val playlistError=context.getString(app.ember.tv.R.string.ui_playlists_unreadable)
         compose.waitUntil(10_000){compose.onAllNodesWithText(playlistError).fetchSemanticsNodes().isNotEmpty()}
         compose.runOnIdle {assertEquals("%unreadable%",encrypted.getString(playlistKey,null));encrypted.edit().putString(playlistKey,playlistCopy).commit()}
@@ -103,7 +110,7 @@ class PlayerDestructiveActionsUiTest {
         compose.onNodeWithContentDescription("Reload displayed media").performSemanticsAction(SemanticsActions.OnClick){it()}
         compose.waitUntil(10_000){compose.onAllNodesWithText("Recovered playlist",substring=true).fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithText(playlistError).assertDoesNotExist()
-        click("Downloads")
+        openFileSection("Downloads")
         val downloadError=context.getString(app.ember.tv.R.string.ui_downloads_unreadable)
         compose.waitUntil(10_000){compose.onAllNodesWithText(downloadError).fetchSemanticsNodes().isNotEmpty()}
         compose.runOnIdle {assertEquals("%unreadable%",encrypted.getString(downloadKey,null));encrypted.edit().putString(downloadKey,downloadCopy).commit()}
@@ -131,7 +138,7 @@ class PlayerDestructiveActionsUiTest {
         for((destination,key,label) in cases) {
             encrypted.edit().putString(key,"%unreadable%").commit()
             val before=encrypted.all
-            click(destination)
+            openFileSection(destination)
             compose.waitUntil(10_000){compose.onAllNodesWithText(label).fetchSemanticsNodes().isNotEmpty()}
             click(label);click("Cancel")
             compose.runOnIdle {assertEquals(before,encrypted.all)}
@@ -152,7 +159,7 @@ class PlayerDestructiveActionsUiTest {
         val encrypted=context.getSharedPreferences(app.ember.player.storage.SecretVault.FILE,Context.MODE_PRIVATE)
         val original=encrypted.getString("player.folders",null)!!
         encrypted.edit().putString("player.folders","%unreadable%").commit()
-        click("Folders")
+        openFileSection("Folders")
         val error=context.getString(app.ember.tv.R.string.ui_saved_folders_unreadable)
         compose.waitUntil(10_000){compose.onAllNodesWithText(error).fetchSemanticsNodes().isNotEmpty()}
         click("Reset saved folders")
@@ -165,7 +172,7 @@ class PlayerDestructiveActionsUiTest {
     @Test fun playlistOptionsHaveASpokenNameAndDeletionCanBeCanceled() {
         val store=SavedPlaylists(context)
         assertTrue(store.save("Test playlist",listOf(QueueMedia("https://example.test/clip.mkv","Clip"))))
-        click("Playlists")
+        openFileSection("Playlists")
         compose.waitUntil(10_000){compose.onAllNodesWithContentDescription("More options for Test playlist").fetchSemanticsNodes().isNotEmpty()}
         fun deleteMenu(){compose.onNodeWithContentDescription("More options for Test playlist").performSemanticsAction(SemanticsActions.OnClick){it()};compose.onNodeWithContentDescription("Delete playlist").performSemanticsAction(SemanticsActions.OnClick){it()}}
         deleteMenu();click("Cancel")
