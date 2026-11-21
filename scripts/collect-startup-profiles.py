@@ -41,14 +41,20 @@ def main():
     logs = root / 'benchmark/build/reports/device'
     logs.mkdir(parents=True, exist_ok=True)
     adb = str(sdk / 'platform-tools/adb')
-    with (logs / 'emulator.log').open('w') as output:
+    emulator_log = logs / 'emulator.log'
+    # The TV image uses more memory and needs longer on a cold CI boot.
+    memory = '4096' if args.television else '2048'
+    boot_timeout = 660 if args.television else 480
+    run(adb, 'start-server')
+    with emulator_log.open('w') as output:
         emulator = subprocess.Popen([str(sdk / 'emulator/emulator'), '-avd', name, '-port', '5554', '-no-window', '-no-audio',
-            '-no-snapshot', '-no-boot-anim', '-no-metrics', '-gpu', 'swiftshader_indirect', '-memory', '2048', '-cores', '2'], stdout=output, stderr=subprocess.STDOUT)
+            '-no-snapshot', '-no-boot-anim', '-no-metrics', '-gpu', 'swiftshader_indirect',
+            '-accel', 'on', '-memory', memory, '-cores', '2'], stdout=output, stderr=subprocess.STDOUT)
         try:
-            deadline = time.monotonic() + 480
+            deadline = time.monotonic() + boot_timeout
             while time.monotonic() < deadline:
                 if emulator.poll() is not None:
-                    raise RuntimeError('Emulator exited before boot. See emulator.log.')
+                    raise RuntimeError('Emulator exited before boot.')
                 try:
                     reply = subprocess.run([adb, '-s', 'emulator-5554', 'shell', 'getprop', 'sys.boot_completed'], capture_output=True, text=True, timeout=10)
                     if reply.stdout.strip() == '1':
@@ -57,7 +63,7 @@ def main():
                     pass
                 time.sleep(5)
             else:
-                raise RuntimeError('Emulator did not boot within eight minutes.')
+                raise RuntimeError(f'Emulator did not boot within {boot_timeout // 60} minutes.')
             for key in ('window_animation_scale', 'transition_animation_scale', 'animator_duration_scale'):
                 run(adb, 'shell', 'settings', 'put', 'global', key, '0')
             run(adb, 'shell', 'settings', 'put', 'system', 'screen_off_timeout', '1800000')
@@ -72,6 +78,10 @@ def main():
             profiles = logs / 'profiles'
             profiles.mkdir(exist_ok=True)
             subprocess.run([adb, 'pull', '/sdcard/Android/media/app.ember.benchmark/additional_test_output', str(profiles)], check=False)
+        except RuntimeError:
+            # Include the emulator tail when the test runner never started.
+            print('\n'.join(emulator_log.read_text(errors='replace').splitlines()[-40:]), flush=True)
+            raise
         finally:
             with (logs / 'logcat.txt').open('w') as logcat:
                 try:
