@@ -8,7 +8,8 @@ import androidx.media3.ui.SubtitleView
 import app.ember.tv.data.*
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.*
@@ -137,12 +138,13 @@ class SubtitleFilesAndAppearanceTest {
         assertFalse(authoredAssEnabled(true, true))
     }
 
-    @Test fun switchingBackendsMigratesExternalSubtitlesAndAnOffChoiceWinsPendingLoads() = runBlocking {
+    @Test fun switchingBackendsMigratesExternalSubtitlesAndAnOffChoiceWinsPendingLoads() = runTest {
         val activity = Robolectric.buildActivity(ComponentActivity::class.java).get()
         val player = ExoPlayer.Builder(activity).build()
         var backend: Any? = null
         val owners = mutableListOf<SubtitleOwner>()
-        val controller = SubtitleController(activity, { player }, SubtitleEngine(SubtitleView(activity)),
+        val engine = SubtitleEngine(SubtitleView(activity), StandardTestDispatcher(testScheduler)) {}
+        val controller = SubtitleController(activity, { player }, engine,
             SubtitleConfig(), {}, nativeBackend = { backend }, showOwner = { owners.add(it) },
             nativeSubtitle = { _, _, _ -> backend != null })
         val script = "1\n00:00:00,000 --> 00:00:02,000\nFirst\n"
