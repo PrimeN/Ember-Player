@@ -271,7 +271,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
                 SubtitleStyleProbe.routeToMpv(config.engine=="auto",captions.authoredStyles,captions.systemStyle,styledAss,p.videoFormat,p.audioFormat)) {
                 if(playbackEngine?.switch(R.string.ui_core_styled_subtitles)==true)return
             }
-            if (subsInitialized) subs.reconcileEmbeddedSelection()
+            if (subsInitialized) subs.reconcileEmbeddedSelection(allowMissing = true)
             if (advanced) {
                 controls.audioTracks = audioTracks()
                 changed()

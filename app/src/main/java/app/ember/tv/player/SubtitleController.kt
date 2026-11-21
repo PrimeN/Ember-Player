@@ -204,11 +204,19 @@ internal class SubtitleController(
     }
 
     /** A source program can replace embedded track IDs without changing the subtitle controller. */
-    fun reconcileEmbeddedSelection() {
+    fun reconcileEmbeddedSelection(allowMissing: Boolean = false) {
         if(selection !is Selection.Embedded)return
         val groups=player()?.currentTracks?.groups ?: return
         val index=groups.indexOfFirst {it.type==C.TRACK_TYPE_TEXT&&it.isSelected}
-        if (index < 0) return
+        if (index < 0) {
+            if (!allowMissing) {
+                selection = Selection.Off
+                renderers.select(SubtitleOwner.OFF)
+                showOwner(SubtitleOwner.OFF)
+                onChange()
+            }
+            return
+        }
         val track = (0 until groups[index].length).firstOrNull { groups[index].isTrackSelected(it) } ?: return
         selection = Selection.Embedded(index, track)
         onChange()
