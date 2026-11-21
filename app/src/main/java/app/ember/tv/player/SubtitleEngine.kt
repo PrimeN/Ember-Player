@@ -30,7 +30,7 @@ class SubtitleEngine(private val view: SubtitleView,private val invalidate:()->U
     private var assOverlay: AssOverlay? = null
     private var assScript: String? = null
     private var nativeOutput = false
-    internal val renderIntervalMs get() = if (assOverlay != null) 33L else 100L
+    internal var onAnimationChanged: (Boolean) -> Unit = {}
     private var index = CueIndex<CuesWithTiming>(emptyList(), { it.startTimeUs }, { it.startTimeUs })
     var speed: Float = 1f
         set(value){field=SubtitleTiming.rate(value);lastShown=null;invalidate()}
@@ -79,11 +79,13 @@ class SubtitleEngine(private val view: SubtitleView,private val invalidate:()->U
             assOverlay = AssOverlay(view.context, script, output) {
                 assOverlay?.close()
                 assOverlay = null
+                onAnimationChanged(false)
                 nativeOutput = false
                 lastShown = null
                 invalidate()
             }
         }
+        onAnimationChanged(assOverlay != null)
         invalidate()
     }
 
@@ -110,6 +112,7 @@ class SubtitleEngine(private val view: SubtitleView,private val invalidate:()->U
         assOverlay?.close()
         assOverlay = null
         assScript = null
+        onAnimationChanged(false)
         nativeOutput = false
         visibleText=""
         cues = emptyList()

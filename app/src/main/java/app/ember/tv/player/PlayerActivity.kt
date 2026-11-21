@@ -143,9 +143,16 @@ class PlayerActivity : ComponentActivity() {
     internal lateinit var subs: SubtitleController
     internal val handler = Handler(Looper.getMainLooper())
     internal var subtitleUpdatesStarted=false
+    @Volatile internal var animateAssOverlay = false
+    internal val subtitleVideoFrame = Runnable {
+        val p = player ?: return@Runnable
+        if (animateAssOverlay && subtitleUpdatesStarted && subsInitialized && subs.drawsOverlay) {
+            subs.engine.render(p.currentPosition)
+        }
+    }
     internal val subtitleTicker = SubtitleTicker(handler,{subtitleUpdatesStarted&&player!=null&&!isFinishing},{
         player?.isPlaying==true&&(::subs.isInitialized&&subs.engine.active||repeatRange.end!=null)
-    }, intervalMs = { if (subsInitialized) subs.engine.renderIntervalMs else 100L }) {
+    }) {
             val p = player
             if(p!=null && p.isPlaying)repeatRange.destination(p.currentPosition)?.let(p::seekTo)
             if (p != null && ::subs.isInitialized && subs.drawsOverlay) {val prefix=if(subs.wholeFileTiming)0L else (playbackEngine?.compatibility?.partOffset)?:0L;subs.engine.render(p.currentPosition,prefix)}
@@ -593,6 +600,7 @@ class PlayerActivity : ComponentActivity() {
         handler.removeCallbacks(infoUpdater)
         handler.removeCallbacks(hideInfo)
         handler.removeCallbacks(subtitleTicker)
+        handler.removeCallbacks(subtitleVideoFrame)
         handler.removeCallbacks(markerTicker)
         handler.removeCallbacks(controlsTicker)
         handler.removeCallbacks(hideControls)

@@ -265,7 +265,8 @@ internal class PlaybackEngine(private val context:Context,val standard:ExoPlayer
         surfaceMethod?.let { method -> surface?.let { method.invoke(target, it) } }
     }
 
-    private fun selectedAudio(): Format? {
+    internal fun selectedAudio(): Format? {
+        if (active !== standard) return null
         val parameters = standard.trackSelectionParameters
         if (C.TRACK_TYPE_AUDIO in parameters.disabledTrackTypes) return null
         val groups = standard.currentTracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }

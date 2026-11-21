@@ -191,6 +191,10 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
     p.setVideoFrameMetadataListener { _, _, _, output ->
         if (!hdr10PlusMetadata && output?.containsKey("hdr10-plus-info") == true)
             hdr10PlusMetadata = runCatching { output.getByteBuffer("hdr10-plus-info")?.hasRemaining() == true }.getOrDefault(false)
+        if (animateAssOverlay) {
+            handler.removeCallbacks(subtitleVideoFrame)
+            handler.post(subtitleVideoFrame)
+        }
     }
     p.addAnalyticsListener(object : AnalyticsListener {
         override fun onVideoInputFormatChanged(eventTime: AnalyticsListener.EventTime, format: Format, decoderReuseEvaluation: DecoderReuseEvaluation?) {
@@ -267,8 +271,13 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
                 val format=group.getTrackFormat(index)
                 group.isTrackSelected(index) && format.sampleMimeType==MimeTypes.TEXT_SSA && format.initializationData.any {SubtitleStyleProbe.styled(it.toString(Charsets.UTF_8))}
             }}
-            if (!nativeAssAvailable() && playbackEngine?.compatibility == null &&
-                SubtitleStyleProbe.routeToMpv(config.engine=="auto",captions.authoredStyles,captions.systemStyle,styledAss,p.videoFormat,p.audioFormat)) {
+            val sourceVideo = p.videoFormat ?: tracks.groups.firstNotNullOfOrNull { group ->
+                if (group.type != C.TRACK_TYPE_VIDEO) null
+                else (0 until group.length).firstOrNull(group::isTrackSelected)?.let(group::getTrackFormat)
+            }
+            if (playbackEngine?.compatibility == null &&
+                SubtitleStyleProbe.routeToMpv(config.engine == "auto", captions.authoredStyles, captions.systemStyle,
+                    styledAss, sourceVideo, playbackEngine?.selectedAudio())) {
                 if(playbackEngine?.switch(R.string.ui_core_styled_subtitles)==true)return
             }
             if (subsInitialized) subs.reconcileEmbeddedSelection(allowMissing = true)
@@ -376,7 +385,10 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         }
         SubtitleEngine.style(overlay, subCfg)
         sv.visibility = android.view.View.INVISIBLE
-        subs = SubtitleController(this, { player }, SubtitleEngine(overlay) { subtitleTicker.refresh() },
+        val externalSubtitles = SubtitleEngine(overlay) { subtitleTicker.refresh() }.apply {
+            onAnimationChanged = { animateAssOverlay = it }
+        }
+        subs = SubtitleController(this, { player }, externalSubtitles,
             subConfigFor(subCfg), { refreshSubtitlePanel(); updateSubtitleSheet(); subtitleTicker.refresh() },
             nativeBackend = { playbackEngine?.compatibility },
             showOwner = { owner ->
@@ -388,8 +400,8 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
             },
         ) { text,format,wholeFile ->
             val captions=prefs.subtitleConfig
-            val styled = format == "ass" && captions.authoredStyles && !nativeAssAvailable() && SubtitleStyleProbe.styled(text)
-            if(SubtitleStyleProbe.routeToMpv(config.engine=="auto",true,captions.systemStyle,styled||captions.layout.needsCompatibility,p.videoFormat,p.audioFormat))
+            val styled = format == "ass" && captions.authoredStyles && SubtitleStyleProbe.styled(text)
+            if(SubtitleStyleProbe.routeToMpv(config.engine=="auto",true,captions.systemStyle,styled||captions.layout.needsCompatibility,p.videoFormat,playbackEngine?.selectedAudio()))
                 playbackEngine?.switch(if(styled)R.string.ui_core_styled_subtitles else R.string.ui_core_feature)
             playbackEngine?.compatibility?.external(text,format,wholeFile)==true
         }
