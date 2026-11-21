@@ -14,7 +14,19 @@ import kotlinx.coroutines.delay
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 
 @OptIn(UnstableApi::class)
-internal fun PlayerActivity.mediaSourceFactory(factory: androidx.media3.datasource.DataSource.Factory)=DefaultMediaSourceFactory(factory)
+internal fun PlayerActivity.mediaSourceFactory(factory: androidx.media3.datasource.DataSource.Factory): DefaultMediaSourceFactory {
+    val captions = prefs.subtitleConfig
+    if (!authoredAssEnabled(captions.authoredStyles, captions.systemStyle) || !nativeAssAvailable()) {
+        return DefaultMediaSourceFactory(factory)
+    }
+    val extractors = io.github.anilbeesetti.nextlib.media3ext.ffdecoder.FfmpegSubtitleExtractorsFactory()
+    val defaultParsers = androidx.media3.extractor.text.DefaultSubtitleParserFactory()
+    val parsers = object : androidx.media3.extractor.text.SubtitleParser.Factory by defaultParsers {
+        override fun supportsFormat(format: Format): Boolean =
+            format.sampleMimeType != MimeTypes.TEXT_SSA && defaultParsers.supportsFormat(format)
+    }
+    return DefaultMediaSourceFactory(factory, extractors).setSubtitleParserFactory(parsers)
+}
 
 @OptIn(UnstableApi::class)
 internal fun PlayerActivity.describe(f: androidx.media3.common.Format?) = PlaybackErrors.describe(resources,f)

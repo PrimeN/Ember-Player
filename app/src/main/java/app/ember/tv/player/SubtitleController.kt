@@ -87,7 +87,23 @@ internal class SubtitleController(
         }
         loaded = value
         renderedBackend = nativeBackend()
+        refreshAssOverlay()
         return true
+    }
+
+    fun refreshAssOverlay() {
+        val text = loaded?.takeIf {
+            it.format == "ass" && drawsOverlay && nativeBackend() == null &&
+                authoredAssEnabled(config.authoredStyles, config.systemStyle)
+        }
+        engine.useAss(text?.text)
+    }
+
+    fun close() {
+        cancelLoad()
+        searchJob?.cancel()
+        loaded = null
+        engine.clear()
     }
 
     fun nativeLoadFailed() {

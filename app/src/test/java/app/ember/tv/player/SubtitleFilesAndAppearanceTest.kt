@@ -114,6 +114,29 @@ class SubtitleFilesAndAppearanceTest {
         assertNull(store.get("video-0"));assertNotNull(store.get("video-259"))
         assertEquals(256,Json.decodeFromString<Map<String,ManualSubtitleFile>>(raw!!).size)
     }
+    @Test fun nativeAssReceivesTheOriginalScriptAsASingleTimedSample() {
+        val format = androidx.media3.common.Format.Builder().setSampleMimeType("text/x-ssa").build()
+        val bytes = "[Script Info]\nPlayResX: 1920\n[Events]\nDialogue: preserved".toByteArray()
+        val stream = AssScriptStream(format, bytes)
+        val holder = androidx.media3.exoplayer.FormatHolder()
+        val buffer = androidx.media3.decoder.DecoderInputBuffer(
+            androidx.media3.decoder.DecoderInputBuffer.BUFFER_REPLACEMENT_MODE_DIRECT
+        )
+        assertEquals(androidx.media3.common.C.RESULT_FORMAT_READ, stream.readData(holder, buffer, 0))
+        assertEquals(format, holder.format)
+        assertEquals(androidx.media3.common.C.RESULT_BUFFER_READ, stream.readData(holder, buffer, 0))
+        assertEquals(0L, buffer.timeUs)
+        buffer.flip()
+        val actual = ByteArray(bytes.size)
+        buffer.data!!.get(actual)
+        assertArrayEquals(bytes, actual)
+        buffer.clear()
+        stream.readData(holder, buffer, 0)
+        assertTrue(buffer.isEndOfStream)
+        assertTrue(authoredAssEnabled(true, false))
+        assertFalse(authoredAssEnabled(true, true))
+    }
+
     @Test fun switchingBackendsMigratesExternalSubtitlesAndAnOffChoiceWinsPendingLoads() = runBlocking {
         val activity = Robolectric.buildActivity(ComponentActivity::class.java).get()
         val player = ExoPlayer.Builder(activity).build()

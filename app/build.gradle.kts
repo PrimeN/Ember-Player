@@ -308,7 +308,7 @@ dependencies {
     implementation("androidx.sqlite:sqlite:2.7.1")
     // FFmpeg audio decoders from Nextlib (TrueHD, DTS/DTS-HD core, AC3, E-AC3, FLAC, ALAC, MP3, AAC,
     // Opus, Vorbis), plus software video recovery through Nextlib DecoderManager.
-    implementation("io.github.anilbeesetti:nextlib-media3ext:1.11.1-0.17.0")
+    implementation("io.github.anilbeesetti:nextlib-media3ext:1.11.1-0.19.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("io.coil-kt:coil:2.7.0") // ImageView loading for the screensaver
     implementation("io.coil-kt:coil-gif:2.7.0") // animated collection covers

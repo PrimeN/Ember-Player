@@ -145,7 +145,7 @@ class PlayerActivity : ComponentActivity() {
     internal var subtitleUpdatesStarted=false
     internal val subtitleTicker = SubtitleTicker(handler,{subtitleUpdatesStarted&&player!=null&&!isFinishing},{
         player?.isPlaying==true&&(::subs.isInitialized&&subs.engine.active||repeatRange.end!=null)
-    }) {
+    }, intervalMs = { if (subsInitialized) subs.engine.renderIntervalMs else 100L }) {
             val p = player
             if(p!=null && p.isPlaying)repeatRange.destination(p.currentPosition)?.let(p::seekTo)
             if (p != null && ::subs.isInitialized && subs.drawsOverlay) {val prefix=if(subs.wholeFileTiming)0L else (playbackEngine?.compatibility?.partOffset)?:0L;subs.engine.render(p.currentPosition,prefix)}

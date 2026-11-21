@@ -124,7 +124,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         "always" -> false
         else -> !Playback.screenHasDolbyVision(this)
     }
-    val standard = ExoPlayer.Builder(this, Playback.Renderers(this, config, audioDelay, codecs, decoderManager, audioEffectState))
+    val standard = ExoPlayer.Builder(this, Playback.Renderers(this, config, audioDelay, codecs, decoderManager, audioEffectState, nativeSubtitles = true))
         .setTrackSelector(trackSelector)
         .setLoadControl(Playback.loadControl(config, this){config})
         .setAudioAttributes(androidx.media3.common.AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true)
@@ -267,7 +267,8 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
                 val format=group.getTrackFormat(index)
                 group.isTrackSelected(index) && format.sampleMimeType==MimeTypes.TEXT_SSA && format.initializationData.any {SubtitleStyleProbe.styled(it.toString(Charsets.UTF_8))}
             }}
-            if(playbackEngine?.compatibility==null && SubtitleStyleProbe.routeToMpv(config.engine=="auto",captions.authoredStyles,captions.systemStyle,styledAss,p.videoFormat,p.audioFormat)) {
+            if (!nativeAssAvailable() && playbackEngine?.compatibility == null &&
+                SubtitleStyleProbe.routeToMpv(config.engine=="auto",captions.authoredStyles,captions.systemStyle,styledAss,p.videoFormat,p.audioFormat)) {
                 if(playbackEngine?.switch(R.string.ui_core_styled_subtitles)==true)return
             }
             if (subsInitialized) subs.reconcileEmbeddedSelection()
@@ -370,6 +371,9 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
         }
         val parent = sv.parent as android.view.ViewGroup
         parent.addView(overlay, parent.indexOfChild(sv) + 1, android.widget.FrameLayout.LayoutParams(sv.layoutParams))
+        overlay.addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+            if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) subtitleTicker.refresh()
+        }
         SubtitleEngine.style(overlay, subCfg)
         sv.visibility = android.view.View.INVISIBLE
         subs = SubtitleController(this, { player }, SubtitleEngine(overlay) { subtitleTicker.refresh() },
@@ -384,7 +388,7 @@ internal fun PlayerActivity.createPlayer(savedInstanceState: Bundle?) {
             },
         ) { text,format,wholeFile ->
             val captions=prefs.subtitleConfig
-            val styled=format=="ass" && captions.authoredStyles && SubtitleStyleProbe.styled(text)
+            val styled = format == "ass" && captions.authoredStyles && !nativeAssAvailable() && SubtitleStyleProbe.styled(text)
             if(SubtitleStyleProbe.routeToMpv(config.engine=="auto",true,captions.systemStyle,styled||captions.layout.needsCompatibility,p.videoFormat,p.audioFormat))
                 playbackEngine?.switch(if(styled)R.string.ui_core_styled_subtitles else R.string.ui_core_feature)
             playbackEngine?.compatibility?.external(text,format,wholeFile)==true

@@ -336,7 +336,10 @@ internal fun PlayerActivity.applySubLook(c: app.ember.tv.data.SubtitleConfig) {
     if(subsInitialized)subs.config=subConfigFor(c)
     if(c.layout.needsCompatibility && !c.systemStyle && playbackEngine?.compatibility==null && config.engine=="auto")playbackEngine?.switch()
     view.subtitleView?.let { SubtitleEngine.style(it, c) }
-    if (subsInitialized) subs.engine.style(c)
+    if (subsInitialized) {
+        subs.engine.style(c)
+        subs.refreshAssOverlay()
+    }
     playbackEngine?.compatibility?.captionStyle(c)
 }
 

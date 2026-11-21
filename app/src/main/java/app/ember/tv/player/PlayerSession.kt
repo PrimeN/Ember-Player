@@ -146,6 +146,7 @@ internal fun PlayerActivity.endPlayback(finishActivity: Boolean = true) {
     loudness = null
     val p = player ?: return
     rememberTracks()
+    if (subsInitialized) subs.close()
     if (!ended) {
         savePosition()
     }
